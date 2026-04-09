@@ -309,13 +309,17 @@ tailwind.config = {
   .story-ring img { border-radius: 50%; border: 3px solid var(--bg); }
 
   /* BGM 播放器 */
-  .bgm-player {
-    position: fixed; bottom: 16px; left: 16px; z-index: 900;
-    background: var(--card); border: 1px solid var(--border);
-    border-radius: 16px; backdrop-filter: blur(12px);
-    box-shadow: 0 4px 20px var(--shadow); padding: 10px 14px;
-    transition: all 0.3s; max-width: 320px;
+    .bgm-player {
+    position: fixed; bottom: 20px; left: 20px; z-index: 9999;
+    background: var(--card); border: 3px solid var(--accent);
+    border-radius: 20px; backdrop-filter: blur(12px);
+    box-shadow: 0 8px 30px var(--glow); padding: 12px 16px;
+    transition: all 0.3s; max-width: 340px;
   }
+@media (min-width: 769px) {
+  .bgm-player #bgmPlaylist { display: none; }
+  .bgm-player:hover #bgmPlaylist { display: block !important; }
+}
   .bgm-player.minimized { width: 48px; height: 48px; padding: 0; border-radius: 50%; overflow: hidden; cursor: pointer; }
 
   /* 悬浮按钮 */
@@ -389,7 +393,7 @@ tailwind.config = {
   /* 响应式调整 */
   @media (max-width: 768px) {
     .top-nav .desktop-only { display: none !important; }
-    .bgm-player { bottom: 70px; left: 8px; max-width: 260px; }
+    .bgm-player { bottom: 85px; left: 10px; max-width: 280px; }
     .scroll-btn { bottom: 80px; right: 16px; }
     body { padding-bottom: 70px; }
   }
@@ -437,13 +441,17 @@ tailwind.config = {
     </div>
     <div class="flex items-center gap-3">
       <span id="bjTime" class="text-xs font-mono hidden sm:block" style="color:var(--muted)"></span>
+<span class="text-xs font-mono hidden sm:flex items-center gap-1" style="color:var(--accent)">
+  <i class="fas fa-fire"></i> <span id="onlineCount">0</span> 人在线
+</span>
       <button onclick="toggleTheme()" class="w-8 h-8 rounded-full flex items-center justify-center" style="background:var(--surface);border:1px solid var(--border)" id="themeBtn" aria-label="切换主题">☀️</button>
       <div class="relative">
-        <button onclick="openModal('notifModal')" class="w-8 h-8 rounded-full flex items-center justify-center" style="background:var(--surface);border:1px solid var(--border)" aria-label="通知">
+        <button onclick="openNotifModal()" class="w-8 h-8 rounded-full flex items-center justify-center" style="background:var(--surface);border:1px solid var(--border)" aria-label="通知">
           <i class="fas fa-bell text-sm" style="color:var(--muted)"></i>
         </button>
         <div class="notif-dot" id="notifDot" style="display:none"></div>
       </div>
+<button onclick="openAuthModal()" class="btn-ghost text-sm" id="authBtn">登录/注册</button>
       <button onclick="openProfile()" class="w-8 h-8 rounded-full overflow-hidden" style="border:2px solid var(--accent)" id="navAvatar" aria-label="个人主页">
         <img src="" alt="头像" class="w-full h-full object-cover" id="navAvatarImg">
       </button>
@@ -766,6 +774,56 @@ tailwind.config = {
   </div>
 </div>
 
+<!-- ===== BGM 播放器 ===== -->
+<div class="bgm-player" id="bgmPlayer">
+  <div class="flex items-center gap-2">
+    <button onclick="bgmPrev()" class="text-xs" style="color:var(--muted)"><i class="fas fa-backward-step"></i></button>
+    <button onclick="bgmToggle()" class="w-8 h-8 rounded-full flex items-center justify-center" style="background:linear-gradient(135deg,#FF6B35,#FF4757)" id="bgmPlayBtn"><i class="fas fa-play text-white text-xs"></i></button>
+    <button onclick="bgmNext()" class="text-xs" style="color:var(--muted)"><i class="fas fa-forward-step"></i></button>
+    <div class="flex-1 min-w-0">
+      <div class="text-xs font-bold truncate" id="bgmTitle">未播放</div>
+      <div class="flex items-center gap-1 text-[10px]" style="color:var(--muted)">
+        <span id="bgmCurrentTime">0:00</span>
+        <div class="flex-1 h-1 rounded cursor-pointer" style="background:var(--surface)" onclick="bgmSeek(event)">
+          <div class="h-full rounded" style="background:linear-gradient(90deg,#FF6B35,#FFD700);width:0%" id="bgmProgressFill"></div>
+        </div>
+        <span id="bgmDuration">0:00</span>
+      </div>
+    </div>
+    <input type="range" min="0" max="100" value="50" class="w-12" style="accent-color:var(--accent)" onchange="bgmSetVolume(this.value)" id="bgmVol">
+    <button onclick="openModal('musicSearchModal')" class="text-xs" style="color:var(--muted)" title="搜索歌曲"><i class="fas fa-search"></i></button>
+    <button onclick="toggleBgmPlaylist()" class="text-xs" style="color:var(--muted)" title="播放列表"><i class="fas fa-list"></i></button>
+  </div>
+  <div id="bgmPlaylist" style="display:none" class="mt-2 max-h-40 overflow-y-auto space-y-1"></div>
+</div>
+
+<!-- 登录/注册弹窗 -->
+<!-- 登录/注册弹窗 -->
+<div class="modal-overlay" id="authModal">
+  <div class="modal-content" style="max-width:400px">
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="font-display text-xl" id="authModalTitle">登录</h2>
+      <button onclick="closeModal('authModal')" class="w-8 h-8 rounded-full flex items-center justify-center" style="background:var(--surface)"><i class="fas fa-times"></i></button>
+    </div>
+    <div id="authFormArea">
+      <div id="loginForm" class="space-y-3">
+        <input type="email" id="loginEmail" placeholder="邮箱" class="w-full">
+        <input type="password" id="loginPassword" placeholder="密码" class="w-full">
+        <button class="btn-warm w-full py-2" onclick="handleLogin()">登录</button>
+        <p class="text-center text-xs" style="color:var(--muted)">没有账号？ <button class="text-sm underline" style="color:var(--accent)" onclick="switchAuthForm('register')">立即注册</button></p>
+      </div>
+      <div id="registerForm" style="display:none" class="space-y-3">
+        <input type="email" id="regEmail" placeholder="邮箱" class="w-full">
+        <input type="password" id="regPassword" placeholder="密码（至少6位）" class="w-full">
+        <input type="text" id="regUsername" placeholder="昵称" class="w-full">
+        <button class="btn-warm w-full py-2" onclick="handleRegister()">注册</button>
+        <p class="text-center text-xs" style="color:var(--muted)">已有账号？ <button class="text-sm underline" style="color:var(--accent)" onclick="switchAuthForm('login')">去登录</button></p>
+      </div>
+    </div>
+  </div>
+</div>
+
+
 <!-- 管理员弹窗 -->
 <div class="modal-overlay" id="adminModal">
   <div class="modal-content" style="max-width:600px">
@@ -812,26 +870,7 @@ tailwind.config = {
       <button class="btn-warm text-sm" onclick="searchMusic()">搜索</button>
     </div>
     <div id="musicSearchResults" class="space-y-2 max-h-60 overflow-y-auto"></div>
-  </div>
-</div>
-
-<!-- ===== BGM 播放器 ===== -->
-<div class="bgm-player" id="bgmPlayer">
-  <div class="flex items-center gap-2">
-    <button onclick="bgmPrev()" class="text-xs" style="color:var(--muted)"><i class="fas fa-backward-step"></i></button>
-    <button onclick="bgmToggle()" class="w-8 h-8 rounded-full flex items-center justify-center" style="background:linear-gradient(135deg,#FF6B35,#FF4757)" id="bgmPlayBtn"><i class="fas fa-play text-white text-xs"></i></button>
-    <button onclick="bgmNext()" class="text-xs" style="color:var(--muted)"><i class="fas fa-forward-step"></i></button>
-    <div class="flex-1 min-w-0">
-      <div class="text-xs font-bold truncate" id="bgmTitle">未播放</div>
-      <div class="w-full h-1 rounded mt-1 cursor-pointer" style="background:var(--surface)" onclick="bgmSeek(event)">
-        <div class="h-full rounded" style="background:linear-gradient(90deg,#FF6B35,#FFD700);width:0%" id="bgmProgress"></div>
-      </div>
-    </div>
-    <input type="range" min="0" max="100" value="50" class="w-12" style="accent-color:var(--accent)" onchange="bgmSetVolume(this.value)" id="bgmVol">
-    <button onclick="openModal('musicSearchModal')" class="text-xs" style="color:var(--muted)" title="搜索歌曲"><i class="fas fa-search"></i></button>
-    <button onclick="toggleBgmPlaylist()" class="text-xs" style="color:var(--muted)" title="播放列表"><i class="fas fa-list"></i></button>
-  </div>
-  <div id="bgmPlaylist" style="display:none" class="mt-2 max-h-40 overflow-y-auto space-y-1"></div>
+ </div>
 </div>
 
 <script>
@@ -867,14 +906,21 @@ function showToast(msg) {
 
 // 弹窗控制
 function openModal(id) { $(id).classList.add('active'); }
-function closeModal(id) { $(id).classList.remove('active'); }
+function closeModal(id) { 
+  $(id).classList.remove('active'); 
+  if (id === 'musicSearchModal') {
+    // 可选：关闭搜索弹窗时不清除播放器，保持后台播放
+  }
+}
 
 // 生成随机昵称后缀
 function randSuffix() { return String(Math.floor(Math.random()*9000)+1000); }
 
 // DiceBear 头像 URL
 function dicebearUrl(seed) {
-  return `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(seed)}`;
+  // 使用新版 DiceBear 9.x API，风格为 adventurer（冒险家）
+  const cleanSeed = String(seed).replace(/[^a-zA-Z0-9]/g, '').substring(0, 20) || 'default';
+  return `https://api.dicebear.com/9.x/adventurer/svg?seed=${cleanSeed}`;
 }
 
 // 时间格式化
@@ -982,27 +1028,31 @@ async function initAuth() {
     
     if (session) {
       APP.user = session.user;
+      await loadOrCreateProfile();
+      await afterAuthSuccess();
     } else {
-      const { data, error } = await sb.auth.signInAnonymously();
-      if (error) {
-        // 把整个 error 对象打印出来，特别是 details 和 hint
-        console.error('❌ 匿名登录失败，完整错误信息：', JSON.stringify(error, null, 2));
-        console.error('错误详情：', error.details, error.hint, error.message);
-        throw error;
-      }
-      APP.user = data.user;
+      $('authBtn').textContent = '登录/注册';
+      $('navAvatarImg').src = dicebearUrl('guest');
+    initOnlinePresence();
     }
-    await loadOrCreateProfile();
-    await loadBanners();
-    await loadPosts(true);
-    await loadStories();
-    await loadFollowingIds();
-    subscribeRealtime();
   } catch(e) {
     console.error('初始化失败:', e);
     showToast('初始化失败，请刷新');
   }
 }
+
+async function afterAuthSuccess() {
+  await loadBanners();
+  await loadPosts(true);
+  await loadStories();
+  await loadFollowingIds();
+  await loadNotifications();
+  subscribeRealtime();
+  $('authBtn').textContent = APP.profile?.username || '个人中心';
+  updateNavAvatar();
+  if (APP.isAdmin) $('adminEntry').style.display = 'block';
+  initOnlinePresence();
+}  
 async function loadOrCreateProfile() {
   const uid = APP.user.id;
   const { data, error } = await sb.from('profiles').select('*').eq('id', uid).single();
@@ -1010,26 +1060,89 @@ async function loadOrCreateProfile() {
     APP.profile = data;
     APP.isAdmin = data.is_admin || false;
   } else {
-    // 创建新 profile
     const name = '干员_' + randSuffix();
     const avatar = dicebearUrl(name);
-    const { data: np, error: e2 } = await sb.from('profiles').insert({
+    const { data: np } = await sb.from('profiles').insert({
       id: uid, username: name, avatar_url: avatar, level: 1, exp: 0
     }).select().single();
     if (np) { APP.profile = np; }
     else { APP.profile = { id: uid, username: name, avatar_url: avatar, level: 1, exp: 0, posts_count:0, likes_received:0, followers_count:0, following_count:0, achievements:[] }; }
   }
   updateNavAvatar();
-  if (APP.isAdmin) $('adminEntry').style.display = 'block';
 }
 
-function updateNavAvatar() {
-  const url = APP.profile?.avatar_url || dicebearUrl('default');
-  $('navAvatarImg').src = url;
+function openAuthModal() {
+  if (APP.user) {
+    openProfile();
+    return;
+  }
+  openModal('authModal');
 }
 
-// ==================== Tab 切换 ====================
-function switchTab(tab) {
+function switchAuthForm(type) {
+  $('loginForm').style.display = type === 'login' ? 'block' : 'none';
+  $('registerForm').style.display = type === 'register' ? 'block' : 'none';
+  $('authModalTitle').textContent = type === 'login' ? '登录' : '注册';
+}
+
+async function handleLogin() {
+  const email = $('loginEmail').value.trim();
+  const password = $('loginPassword').value;
+  if (!email || !password) { showToast('请输入邮箱和密码'); return; }
+  const { data, error } = await sb.auth.signInWithPassword({ email, password });
+  if (error) { showToast('登录失败: ' + error.message); return; }
+  APP.user = data.user;
+  await loadOrCreateProfile();
+  closeModal('authModal');
+  showToast('登录成功');
+  await afterAuthSuccess();
+  $('loginEmail').value = $('loginPassword').value = '';
+}
+
+async function handleRegister() {
+  const email = $('regEmail').value.trim();
+  const password = $('regPassword').value;
+  const username = $('regUsername').value.trim();
+  if (!email || !password || password.length < 6) { showToast('密码至少6位'); return; }
+  if (!username) { showToast('请输入昵称'); return; }
+  const { data, error } = await sb.auth.signUp({ email, password });
+  if (error) { showToast('注册失败: ' + error.message); return; }
+  if (data.user) {
+    const avatar = dicebearUrl(username);
+    await sb.from('profiles').insert({ id: data.user.id, username, avatar_url: avatar, level:1, exp:0 });
+    showToast('注册成功，请登录');
+    switchAuthForm('login');
+    $('regEmail').value = $('regPassword').value = $('regUsername').value = '';
+  }
+}
+
+function logout() {
+  sb.auth.signOut().then(() => {
+    APP.user = null; APP.profile = null;
+    $('authBtn').textContent = '登录/注册';
+    $('navAvatarImg').src = dicebearUrl('guest');
+    switchTab('home');
+    showToast('已退出登录');
+  });
+}
+
+async function loadNotifications() {
+  if (!APP.user) return;
+  const { data } = await sb.from('notifications').select('*').eq('recipient_id', APP.user.id).order('created_at', { ascending: false }).limit(20);
+  APP.notifications = data || [];
+  renderNotifications();
+  if (APP.notifications.some(n => !n.read)) $('notifDot').style.display = 'block';
+}
+
+function openNotifModal() {
+  if (APP.user) {
+    sb.from('notifications').update({ read: true }).eq('recipient_id', APP.user.id).then(() => {
+      $('notifDot').style.display = 'none';
+    });
+  }
+  openModal('notifModal');
+}
+ function switchTab(tab) {
   APP.currentTab = tab;
   ['homeTab','discoverTab','followingTab','profileTab'].forEach(id => $(id).style.display = 'none');
   const map = { home:'homeTab', discover:'discoverTab', following:'followingTab', profile:'profileTab' };
@@ -1045,6 +1158,10 @@ function switchTab(tab) {
 }
 
 function openProfile() { switchTab('profile'); }
+function updateNavAvatar() {
+  const url = APP.profile?.avatar_url || dicebearUrl('default');
+  $('navAvatarImg').src = url;
+}
 
 // ==================== 筛选 ====================
 function setFilter(type, val, btn) {
@@ -1142,12 +1259,14 @@ function createPostCard(post, idx, isTop = false) {
         <div>
           <div class="text-sm font-bold">${post.profiles?.username || '干员'}</div>
           <div class="text-xs" style="color:var(--muted)">${timeAgo(post.created_at)}</div>
+${APP.user && APP.user.id !== post.user_id ? `<button class="text-xs mt-1 px-2 py-0.5 rounded-full" style="border:1px solid var(--accent);color:var(--accent)" onclick="followUser('${post.user_id}')">${APP.followedIds.includes(post.user_id) ? '已关注' : '+ 关注'}</button>` : ''}
         </div>
         ${topBadge}
         <div class="ml-auto relative">
           <button onclick="togglePostMenu(event,'${post.id}')" class="text-xs px-2 py-1 rounded" style="color:var(--muted)"><i class="fas fa-ellipsis-v"></i></button>
           <div class="post-menu absolute right-0 top-6 card-base p-2 space-y-1 text-xs" style="display:none;z-index:50;min-width:100px" id="menu-${post.id}">
             <button class="block w-full text-left px-2 py-1 rounded hover:bg-black/5" onclick="openReportModal('${post.id}')">举报</button>
+${(APP.user?.id === post.user_id || APP.isAdmin) ? `<button class="block w-full text-left px-2 py-1 rounded hover:bg-red-500/10 text-red-500" onclick="deletePost('${post.id}')">删除</button>` : ''}
           </div>
         </div>
       </div>
@@ -1208,20 +1327,22 @@ $('pubMedia')?.addEventListener('change', function() {
     }
   });
 });
-
+// 上传媒体文件
 async function publishPost() {
+  const btn = event.target;
+  if (btn.disabled) return;
+  btn.disabled = true;
   const title = $('pubTitle').value.trim();
-  if (!title) { showToast('请输入标题'); return; }
+  if (!title) { showToast('请输入标题'); btn.disabled = false; return; }
 
   showToast('发布中...');
   const mediaUrls = [];
 
-  // 上传媒体文件
   const files = $('pubMedia').files;
   for (let i = 0; i < files.length; i++) {
     const f = files[i];
     const ext = f.name.split('.').pop();
-const path = `${APP.user.id}/${Date.now()}_${Math.random().toString(36).substr(2, 6)}.${ext}`;
+    const path = `${APP.user.id}/${Date.now()}_${Math.random().toString(36).substr(2, 6)}.${ext}`;
     const { error } = await sb.storage.from('posts').upload(path, f);
     if (!error) {
       const { data: { publicUrl } } = sb.storage.from('posts').getPublicUrl(path);
@@ -1229,7 +1350,6 @@ const path = `${APP.user.id}/${Date.now()}_${Math.random().toString(36).substr(2
     }
   }
 
-  // 投票选项
   let voteOptions = [];
   if ($('pubType').value === 'vote') {
     qsa('.vote-opt-input').forEach(inp => {
@@ -1247,13 +1367,11 @@ const path = `${APP.user.id}/${Date.now()}_${Math.random().toString(36).substr(2
   };
 
   const { error } = await sb.from('posts').insert(postData);
-  if (error) { showToast('发布失败: ' + error.message); return; }
+  if (error) { showToast('发布失败: ' + error.message); btn.disabled = false; return; }
 
-  // 更新发帖计数
   await sb.from('profiles').update({ posts_count: (APP.profile.posts_count||0) + 1 }).eq('id', APP.user.id);
   APP.profile.posts_count = (APP.profile.posts_count||0) + 1;
 
-  // 检查成就
   checkAchievement('first_post', APP.profile.posts_count >= 1);
 
   showToast('发布成功！');
@@ -1261,6 +1379,7 @@ const path = `${APP.user.id}/${Date.now()}_${Math.random().toString(36).substr(2
   $('pubTitle').value = ''; $('pubDesc').value = ''; $('pubTags').value = '';
   $('pubMediaPreview').innerHTML = ''; $('pubMedia').value = '';
   loadPosts(true);
+  btn.disabled = false;
 }
 
 // ==================== 点赞/点踩 ====================
@@ -1486,6 +1605,15 @@ async function downloadWithWatermark(pid) {
   showToast('下载成功');
 }
 // ==================== 分享 ====================
+async function deletePost(pid) {
+  if (!confirm('确定删除这篇帖子吗？')) return;
+  const { error } = await sb.from('posts').delete().eq('id', pid);
+  if (error) { showToast('删除失败: '+error.message); return; }
+  showToast('帖子已删除');
+  if (APP.currentTab === 'home') loadPosts(true);
+  else if (APP.currentTab === 'profile') renderProfile();
+  qsa('.post-menu').forEach(m => m.style.display = 'none');
+}
 function sharePost(pid) {
   const url = window.location.origin + window.location.pathname + '#post-' + pid;
   navigator.clipboard.writeText(url).then(() => showToast('链接已复制')).catch(() => showToast('复制失败'));
@@ -1554,13 +1682,18 @@ function renderBannerAds(banners) {
 
 // ==================== Story 限时动态 ====================
 async function loadStories() {
-  const { data } = await sb.from('posts').select('*, profiles(username, avatar_url)').eq('post_type', 'story').gt('story_expires_at', new Date().toISOString()).order('created_at', { ascending: false });
+  const now = new Date().toISOString();
+  await sb.from('posts').delete().eq('post_type', 'story').lt('story_expires_at', now);
+  
+  const { data } = await sb.from('posts').select('*, profiles(username, avatar_url)').eq('post_type', 'story').gt('story_expires_at', now).order('created_at', { ascending: false }).limit(5);
   const bar = $('storiesBar');
-  // 保留发布按钮
   const addBtn = bar.firstElementChild;
   bar.innerHTML = '';
   bar.appendChild(addBtn);
   (data||[]).forEach(s => {
+    const created = new Date(s.created_at);
+    const diffMin = (new Date() - created) / 60000;
+    if (diffMin > 3) return;
     const div = document.createElement('div');
     div.className = 'flex flex-col items-center gap-1 cursor-pointer flex-shrink-0';
     div.innerHTML = `
@@ -1596,7 +1729,7 @@ async function publishStory() {
   const f = $('storyMedia').files[0];
   if (f) {
     const ext = f.name.split('.').pop();
-const path = `${APP.user.id}/story_${Date.now()}_${Math.random().toString(36).substr(2, 6)}.${ext}`;
+    const path = `${APP.user.id}/story_${Date.now()}_${Math.random().toString(36).substr(2, 6)}.${ext}`;
     const { error } = await sb.storage.from('posts').upload(path, f);
     if (!error) {
       const { data: { publicUrl } } = sb.storage.from('posts').getPublicUrl(path);
@@ -1612,8 +1745,9 @@ const path = `${APP.user.id}/story_${Date.now()}_${Math.random().toString(36).su
   showToast('动态已发布');
   closeModal('storyPublishModal');
   $('storyText').value = ''; $('storyMedia').value = '';
-  loadStories();
+  await loadStories();
 }
+// ==================== Story 限时动态结束 ====================
 
 // ==================== 个人资料 ====================
 function renderProfile() {
@@ -1801,22 +1935,42 @@ async function interactSpirit() {
 
 // ==================== 关注系统 ====================
 async function loadFollowingIds() {
+  if (!APP.user) return;
   const { data } = await sb.from('follows').select('followed_id').eq('follower_id', APP.user.id);
   APP.followedIds = (data || []).map(f => f.followed_id);
 }
 
 async function followUser(userId) {
-  if (APP.followedIds.includes(userId)) { showToast('已关注'); return; }
-  const { error } = await sb.from('follows').insert({ follower_id: APP.user.id, followed_id: userId });
-  if (error) { showToast('关注失败'); return; }
-  APP.followedIds.push(userId);
-  // 更新双方计数
-  const { data: me } = await sb.from('profiles').select('following_count').eq('id', APP.user.id).single();
-  const { data: them } = await sb.from('profiles').select('followers_count').eq('id', userId).single();
-  if (me) await sb.from('profiles').update({ following_count: (me.following_count||0)+1 }).eq('id', APP.user.id);
-  if (them) await sb.from('profiles').update({ followers_count: (them.followers_count||0)+1 }).eq('id', userId);
-  APP.profile.following_count = (APP.profile.following_count||0) + 1;
-  showToast('关注成功');
+  if (!APP.user) { showToast('请先登录'); openAuthModal(); return; }
+  const isFollowed = APP.followedIds.includes(userId);
+  if (isFollowed) {
+    const { error } = await sb.from('follows').delete().eq('follower_id', APP.user.id).eq('followed_id', userId);
+    if (error) { showToast('取消失败'); return; }
+    APP.followedIds = APP.followedIds.filter(id => id !== userId);
+    const { data: me } = await sb.from('profiles').select('following_count').eq('id', APP.user.id).single();
+    const { data: them } = await sb.from('profiles').select('followers_count').eq('id', userId).single();
+    await sb.from('profiles').update({ following_count: Math.max(0, (me.following_count||0)-1) }).eq('id', APP.user.id);
+    await sb.from('profiles').update({ followers_count: Math.max(0, (them.followers_count||0)-1) }).eq('id', userId);
+    showToast('已取消关注');
+  } else {
+    const { error } = await sb.from('follows').insert({ follower_id: APP.user.id, followed_id: userId });
+    if (error) { showToast('关注失败'); return; }
+    APP.followedIds.push(userId);
+    const { data: me } = await sb.from('profiles').select('following_count').eq('id', APP.user.id).single();
+    const { data: them } = await sb.from('profiles').select('followers_count').eq('id', userId).single();
+    await sb.from('profiles').update({ following_count: (me.following_count||0)+1 }).eq('id', APP.user.id);
+    await sb.from('profiles').update({ followers_count: (them.followers_count||0)+1 }).eq('id', userId);
+    await sb.from('notifications').insert({
+      recipient_id: userId,
+      sender_id: APP.user.id,
+      type: 'follow',
+      content: `${APP.profile.username} 关注了你`
+    });
+    showToast('关注成功');
+  }
+  if (APP.currentTab === 'following') loadFollowingPosts();
+  renderProfile();
+  loadPosts(true);
 }
 
 async function loadFollowingPosts() {
@@ -1831,7 +1985,6 @@ async function loadFollowingPosts() {
   grid.innerHTML = '';
   (data||[]).forEach((p, i) => grid.appendChild(createPostCard(p, i)));
 }
-
 // ==================== 排行榜 ====================
 async function loadRanks() {
   // 贡献榜：按获赞数
@@ -1974,6 +2127,34 @@ async function resolveReport(rid, status) {
   showToast('已处理');
   loadAdminData();
 }
+// ==================== 实时在线计数 ====================
+let onlineChannel = null;
+
+async function initOnlinePresence() {
+  if (!sb) return;
+  onlineChannel = sb.channel('online-users');
+  onlineChannel
+    .on('presence', { event: 'sync' }, () => {
+      const state = onlineChannel.presenceState();
+      const count = Object.keys(state).length;
+      $('onlineCount').textContent = count;
+    })
+    .subscribe(async (status) => {
+      if (status === 'SUBSCRIBED') {
+        await onlineChannel.track({
+          user_id: APP.user?.id || 'guest',
+          online_at: new Date().toISOString()
+        });
+      }
+    });
+}
+
+window.addEventListener('beforeunload', () => {
+  if (onlineChannel) {
+    onlineChannel.untrack();
+    sb.removeChannel(onlineChannel);
+  }
+});
 
 // ==================== 实时通知 ====================
 function subscribeRealtime() {
@@ -2016,23 +2197,17 @@ const BGM_SONGS = [
   { name:'战场黄昏', url:'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3' },
   { name:'墨辰之歌', url:'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3' },
   { name:'烈焰冲锋', url:'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3' },
-  { name:'暗夜侦察', url:'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3' },
-  { name:'工程师进行曲', url:'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-6.mp3' },
-  { name:'支援前线', url:'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-7.mp3' },
-  { name:'突袭黎明', url:'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3' },
-  { name:'全面战争', url:'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-9.mp3' },
-  { name:'胜利时刻', url:'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-10.mp3' }
+  { name:'暗夜侦察', url:'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3' }
 ];
 
-const bgmState = { playing: false, idx: 0, audio: null, volume: 0.5, playlist: [...BGM_SONGS] };
+const bgmState = { playing: false, idx: 0, audio: null, volume: 0.5, playlist: [...BGM_SONGS], currentTime: 0, duration: 0 };
 
 function initBGM() {
   bgmState.audio = new Audio();
-  bgmState.audio.volume = 0; // 静音开始
+  bgmState.audio.volume = 0;
   bgmState.idx = Math.floor(Math.random() * bgmState.playlist.length);
   loadBGMTrack();
 
-  // 点击页面恢复音量
   const unmute = () => {
     if (bgmState.audio && bgmState.audio.volume === 0) {
       bgmState.audio.volume = bgmState.volume;
@@ -2042,25 +2217,39 @@ function initBGM() {
   };
   document.addEventListener('click', unmute);
 
-  // 进度更新
-  bgmState.audio.addEventListener('timeupdate', () => {
-    if (bgmState.audio.duration) {
-      const pct = (bgmState.audio.currentTime / bgmState.audio.duration) * 100;
-      $('bgmProgress').style.width = pct + '%';
-    }
+  bgmState.audio.addEventListener('timeupdate', updateBGMProgress);
+  bgmState.audio.addEventListener('loadedmetadata', () => {
+    bgmState.duration = bgmState.audio.duration;
+    $('bgmDuration').textContent = formatTime(bgmState.duration);
   });
-
   bgmState.audio.addEventListener('ended', () => bgmNext());
 
-  // 视频播放时暂停 BGM
   document.addEventListener('play', e => {
-    if (e.target.tagName === 'VIDEO') { bgmState.audio.pause(); bgmState.playing = false; updateBGMBtn(); }
+    if (e.target.tagName === 'VIDEO') { if (bgmState.playing) { bgmState.audio.pause(); bgmState.playing = false; updateBGMBtn(); } }
   }, true);
   document.addEventListener('pause', e => {
-    if (e.target.tagName === 'VIDEO' && bgmState.playing === false) { bgmState.audio.play(); bgmState.playing = true; updateBGMBtn(); }
+    if (e.target.tagName === 'VIDEO' && !bgmState.playing) { bgmState.audio.play(); bgmState.playing = true; updateBGMBtn(); }
   }, true);
 
   renderBGMPlaylist();
+}
+
+function formatTime(sec) {
+  if (isNaN(sec)) return '0:00';
+  const m = Math.floor(sec / 60);
+  const s = Math.floor(sec % 60);
+  return `${m}:${s < 10 ? '0' : ''}${s}`;
+}
+
+function updateBGMProgress() {
+  const cur = bgmState.audio.currentTime;
+  const dur = bgmState.audio.duration;
+  if (dur) {
+    const pct = (cur / dur) * 100;
+    $('bgmProgressFill').style.width = pct + '%';
+    $('bgmCurrentTime').textContent = formatTime(cur);
+    $('bgmDuration').textContent = formatTime(dur);
+  }
 }
 
 function loadBGMTrack() {
@@ -2075,7 +2264,7 @@ function bgmToggle() {
     bgmState.audio.pause();
     bgmState.playing = false;
   } else {
-    bgmState.audio.play().catch(() => {});
+    bgmState.audio.play().catch(()=>{});
     bgmState.audio.volume = bgmState.volume;
     bgmState.playing = true;
   }
@@ -2089,7 +2278,7 @@ function updateBGMBtn() {
 function bgmNext() {
   bgmState.idx = (bgmState.idx + 1) % bgmState.playlist.length;
   loadBGMTrack();
-  bgmState.audio.play().catch(() => {});
+  bgmState.audio.play().catch(()=>{});
   bgmState.playing = true;
   updateBGMBtn();
   renderBGMPlaylist();
@@ -2098,7 +2287,7 @@ function bgmNext() {
 function bgmPrev() {
   bgmState.idx = (bgmState.idx - 1 + bgmState.playlist.length) % bgmState.playlist.length;
   loadBGMTrack();
-  bgmState.audio.play().catch(() => {});
+  bgmState.audio.play().catch(()=>{});
   bgmState.playing = true;
   updateBGMBtn();
   renderBGMPlaylist();
@@ -2134,13 +2323,12 @@ function renderBGMPlaylist() {
 function playBGMIdx(i) {
   bgmState.idx = i;
   loadBGMTrack();
-  bgmState.audio.play().catch(() => {});
+  bgmState.audio.play().catch(()=>{});
   bgmState.playing = true;
   updateBGMBtn();
   renderBGMPlaylist();
 }
 
-// 搜索网易云歌曲
 async function searchMusic() {
   const keyword = $('musicSearchInput').value.trim();
   if (!keyword) { showToast('请输入搜索关键词'); return; }
@@ -2150,26 +2338,33 @@ async function searchMusic() {
     const results = $('musicSearchResults');
     results.innerHTML = '';
     (data || []).slice(0, 10).forEach(s => {
-      results.innerHTML += `<div class="flex items-center gap-2 p-2 rounded-lg cursor-pointer hover:bg-black/5" style="background:var(--surface)" onclick="addNeteaseSong('${s.name||''}','${s.url||''}')">
+      const name = s.name || s.title || '未知歌曲';
+      const artist = s.artist || '';
+      const url = s.url;
+      results.innerHTML += `<div class="flex items-center gap-2 p-2 rounded-lg cursor-pointer hover:bg-black/5" style="background:var(--surface)" onclick="playNeteaseSong('${name.replace(/'/g, "\\'")}', '${url}')">
         <i class="fas fa-music" style="color:var(--accent)"></i>
-        <div class="flex-1 min-w-0"><div class="text-sm font-bold truncate">${s.name || s.title || '未知'}</div><div class="text-xs truncate" style="color:var(--muted)">${s.artist || ''}</div></div>
-        <button class="text-xs" style="color:var(--accent)"><i class="fas fa-plus"></i></button>
+        <div class="flex-1 min-w-0"><div class="text-sm font-bold truncate">${name}</div><div class="text-xs truncate" style="color:var(--muted)">${artist}</div></div>
+        <button class="text-xs" style="color:var(--accent)"><i class="fas fa-play"></i></button>
       </div>`;
     });
     if (!data || !data.length) results.innerHTML = '<p class="text-center py-4" style="color:var(--muted)">无搜索结果</p>';
   } catch(e) {
-    showToast('搜索失败，请稍后重试');
+    showToast('搜索失败');
   }
 }
 
-function addNeteaseSong(name, url) {
-  if (!url) { showToast('无法获取歌曲链接'); return; }
-  bgmState.playlist.push({ name: name || '网易云歌曲', url });
+function playNeteaseSong(name, url) {
+  if (!url) { showToast('无法播放该歌曲'); return; }
+  bgmState.playlist = [{ name, url }];
+  bgmState.idx = 0;
+  loadBGMTrack();
+  bgmState.audio.play().catch(()=>{});
+  bgmState.playing = true;
+  updateBGMBtn();
   renderBGMPlaylist();
-  showToast('已添加到播放列表');
   closeModal('musicSearchModal');
+  showToast(`正在播放: ${name}`);
 }
-
 // ==================== 每日榜首统计 ====================
 async function calculateTopPost() {
   const yesterday = new Date(Date.now() - 86400000).toISOString();
