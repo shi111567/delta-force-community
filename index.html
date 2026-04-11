@@ -199,6 +199,15 @@ tailwind.config = {
 </script>
 
 <style>
+@media (max-width: 640px) {
+  #notifModal .modal-content {
+    max-width: 95%;
+    padding: 16px;
+  }
+  #notifList {
+    max-height: 70vh;
+  }
+}
   :root {
     --bg: #FFF5E8; --card: rgba(255,240,220,0.85); --surface: #FFEFD5;
     --text: #3D2B1F; --muted: #8B7355; --accent: #FF6B35;
@@ -2344,7 +2353,41 @@ async function loadUserVotes() {
   APP.myVoteMap = {};
   (data||[]).forEach(v => APP.myVoteMap[v.post_id] = v.vote_type);
 }
+async function votePost(pid, type) {
+  if (!APP.user) { showToast('请先登录'); openAuthModal(); return; }
+  if (navigator.vibrate) navigator.vibrate(10);
 
+  // 防重复：检查是否已投过票
+  if (APP.myVoteMap[pid]) { showToast('你已经投过票了'); return; }
+
+  const { error } = await sb.from('votes').insert({ user_id: APP.user.id, post_id: pid, vote_type: type });
+  if (error) { 
+    if (error.code === '23505') { showToast('你已经投过票了'); }
+    else { showToast('投票失败'); }
+    return; 
+  }
+
+  APP.myVoteMap[pid] = type;
+  // 更新 UI 计数
+  const field = type === 'up' ? 'upvotes' : 'downvotes';
+  const { data: post } = await sb.from('posts').select(field).eq('id', pid).single();
+  if (post) {
+    const newVal = (post[field] || 0) + 1;
+    await sb.from('posts').update({ [field]: newVal }).eq('id', pid);
+    const btn = $(type + '-' + pid);
+    if (btn) btn.innerHTML = `<i class="fas fa-thumbs-${type}"></i> ${newVal}`;
+    if (type === 'up') btn.style.color = '#FF6B35';
+  }
+
+  // 更新发布者获赞总数
+  if (type === 'up') {
+    const { data: p } = await sb.from('posts').select('user_id').eq('id', pid).single();
+    if (p) {
+      const { data: prof } = await sb.from('profiles').select('likes_received').eq('id', p.user_id).single();
+      if (prof) await sb.from('profiles').update({ likes_received: (prof.likes_received||0)+1 }).eq('id', p.user_id);
+    }
+  }
+}
 async function votePost(pid, type) {
   // === 添加震动效果 ===
   if (navigator.vibrate) navigator.vibrate(10);
@@ -3133,36 +3176,29 @@ async function loadFollowingIds() {
 async function followUser(userId) {
   if (!APP.user) { showToast('请先登录'); openAuthModal(); return; }
   const isFollowed = APP.followedIds.includes(userId);
+  
   if (isFollowed) {
     const { error } = await sb.from('follows').delete().eq('follower_id', APP.user.id).eq('followed_id', userId);
     if (error) { showToast('取消失败'); return; }
     APP.followedIds = APP.followedIds.filter(id => id !== userId);
-    const { data: me } = await sb.from('profiles').select('following_count').eq('id', APP.user.id).single();
-    const { data: them } = await sb.from('profiles').select('followers_count').eq('id', userId).single();
-    await sb.from('profiles').update({ following_count: Math.max(0, (me.following_count||0)-1) }).eq('id', APP.user.id);
-    await sb.from('profiles').update({ followers_count: Math.max(0, (them.followers_count||0)-1) }).eq('id', userId);
+    // 更新计数
+    await sb.rpc('decrement_follow_counts', { follower_id: APP.user.id, followed_id: userId });
     showToast('已取消关注');
   } else {
     const { error } = await sb.from('follows').insert({ follower_id: APP.user.id, followed_id: userId });
-    if (error) { showToast('关注失败'); return; }
+    if (error) { 
+      if (error.code === '23505') showToast('已经关注过了');
+      else showToast('关注失败');
+      return; 
+    }
     APP.followedIds.push(userId);
-    const { data: me } = await sb.from('profiles').select('following_count').eq('id', APP.user.id).single();
-    const { data: them } = await sb.from('profiles').select('followers_count').eq('id', userId).single();
-    await sb.from('profiles').update({ following_count: (me.following_count||0)+1 }).eq('id', APP.user.id);
-    await sb.from('profiles').update({ followers_count: (them.followers_count||0)+1 }).eq('id', userId);
-    await sb.from('notifications').insert({
-      recipient_id: userId,
-      sender_id: APP.user.id,
-      type: 'follow',
-      content: `${APP.profile.username} 关注了你`
-    });
+    await sb.rpc('increment_follow_counts', { follower_id: APP.user.id, followed_id: userId });
     showToast('关注成功');
   }
-  if (APP.currentTab === 'following') loadFollowingPosts();
-  renderProfile();
-  loadPosts(true);
+  
+  renderProfile(); // 刷新个人主页计数
+  loadPosts(true); // 刷新帖子列表中的关注按钮状态
 }
-
 async function loadFollowingPosts() {
   if (!APP.followedIds.length) {
     $('followingGrid').innerHTML = '';
@@ -3581,16 +3617,32 @@ function subscribeRealtime() {
 
 function renderNotifications() {
   const list = $('notifList');
-  if (!APP.notifications.length) {
+  if (!APP.notifications || !APP.notifications.length) {
     list.innerHTML = '<p class="text-center py-8" style="color:var(--muted)">暂无新通知</p>';
     return;
   }
-  list.innerHTML = APP.notifications.slice(-20).reverse().map(n => `
-    <div class="p-2 rounded-lg text-sm" style="background:var(--surface)">
-      <i class="fas fa-${n.type==='like'?'thumbs-up text-orange-400':'comment text-blue-400'} mr-2"></i>${n.msg}
-      <span class="text-xs ml-2" style="color:var(--muted)">${timeAgo(n.time)}</span>
-    </div>
-  `).join('');
+
+  list.innerHTML = APP.notifications.slice(-20).reverse().map(n => {
+    // 兼容不同的字段名
+    const msg = n.content || n.msg || n.message || '有新动态';
+    const time = n.created_at || n.time || new Date().toISOString();
+    const type = n.type || 'system';
+    
+    let iconClass = 'fa-bell';
+    let colorClass = '';
+    if (type === 'like') { iconClass = 'fa-thumbs-up'; colorClass = 'text-orange-400'; }
+    else if (type === 'comment') { iconClass = 'fa-comment'; colorClass = 'text-blue-400'; }
+    else if (type === 'follow') { iconClass = 'fa-user-plus'; colorClass = 'text-green-400'; }
+    else if (type === 'favorite') { iconClass = 'fa-heart'; colorClass = 'text-pink-400'; }
+    else if (type === 'download') { iconClass = 'fa-download'; colorClass = 'text-purple-400'; }
+
+    return `
+      <div class="p-2 rounded-lg text-sm" style="background:var(--surface)">
+        <i class="fas ${iconClass} ${colorClass} mr-2"></i>${msg}
+        <span class="text-xs ml-2" style="color:var(--muted)">${timeAgo(time)}</span>
+      </div>
+    `;
+  }).join('');
 }
 
 // ==================== BGM 播放器 ====================
