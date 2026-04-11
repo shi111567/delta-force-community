@@ -224,14 +224,22 @@ tailwind.config = {
   ::-webkit-scrollbar-track { background: var(--bg); }
   ::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 3px; }
 
-  /* 卡片基础样式 */
+    /* 卡片基础样式 */
   .card-base {
-    background: var(--card); border: 1px solid var(--border);
-    border-radius: 16px; backdrop-filter: blur(12px);
-    transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.3s;
+    background: var(--card);
+    border: 1.5px solid var(--border);
+    border-radius: 16px;
+    backdrop-filter: blur(12px);
+    transition: transform 0.25s cubic-bezier(0.34,1.56,0.64,1), 
+                box-shadow 0.3s, 
+                border-color 0.2s;
     box-shadow: 0 4px 20px var(--shadow);
   }
-  .card-base:hover { transform: scale(1.03); box-shadow: 0 8px 40px var(--glow); }
+  .card-base:hover {
+    transform: translateY(-6px) scale(1.02);
+    box-shadow: 0 20px 40px var(--glow);
+    border-color: var(--accent);
+  }
 
   /* 按钮动画 */
   .btn-warm {
@@ -261,7 +269,16 @@ tailwind.config = {
     max-width: 600px; width: 92%; max-height: 85vh; overflow-y: auto;
     transform: scale(0.7); transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1);
     border: 1px solid var(--border); box-shadow: 0 20px 60px var(--shadow);
+word-wrap: break-word;
   }
+/* 弹窗内媒体自适应 */
+.modal-content img,
+.modal-content video {
+  max-width: 100%;
+  height: auto;
+  border-radius: 12px;
+  object-fit: contain;
+}
   .modal-overlay.active .modal-content { transform: scale(1); }
 
   /* Toast */
@@ -316,9 +333,11 @@ tailwind.config = {
     box-shadow: 0 8px 30px var(--glow); padding: 12px 16px;
     transition: all 0.3s; max-width: 340px;
   }
-@media (min-width: 769px) {
-  .bgm-player #bgmPlaylist { display: none; }
-  .bgm-player:hover #bgmPlaylist { display: block !important; }
+    /* 悬停展开控制 */
+  .bgm-compact { display: flex; }
+  .bgm-extended { display: none; }
+  #bgmPlayer:hover .bgm-compact { display: none; }
+  #bgmPlayer:hover .bgm-extended { display: block; }important; }
 }
   .bgm-player.minimized { width: 48px; height: 48px; padding: 0; border-radius: 50%; overflow: hidden; cursor: pointer; }
 
@@ -402,16 +421,145 @@ tailwind.config = {
   }
 
   .tag-pill {
-    display: inline-block; padding: 2px 10px; border-radius: 12px;
-    font-size: 11px; background: rgba(255,107,53,0.1); color: var(--accent);
-    border: 1px solid rgba(255,107,53,0.2);
-  }
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  background: rgba(255,107,53,0.1);
+  color: var(--accent);
+  border: 1.5px solid rgba(255,107,53,0.25);
+  transition: all 0.2s;
+}
+.tag-pill:hover {
+  background: var(--accent);
+  color: white;
+  transform: scale(1.05);
+}
 
   /* 录音动画 */
   .recording { animation: recordPulse 0.8s infinite; }
   @keyframes recordPulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
 
   /* 排行榜 */
+/* ===== 优化热门话题标签 ===== */
+.topic-tag {
+  display: inline-block;
+  padding: 8px 18px;
+  border-radius: 30px;
+  background: var(--surface);
+  color: var(--text);
+  font-weight: 600;
+  cursor: pointer;
+  border: 1.5px solid var(--border);
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: 0 2px 8px var(--shadow);
+  text-decoration: none;
+  user-select: none;
+}
+.topic-tag i { margin-right: 6px; }
+.topic-tag:hover {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 0 12px 20px var(--glow);
+}
+
+/* ===== 热门推荐卡片动效 ===== */
+.hot-recommend-item {
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+.hot-recommend-item:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 24px var(--glow);
+  border-color: var(--accent);
+}
+
+/* ===== 搜索页面专属样式 ===== */
+.search-type-tab {
+  padding: 10px 24px;
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  font-weight: 700;
+  font-size: 15px;
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  transition: all 0.2s;
+}
+.search-type-tab.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+.search-type-tab:hover { color: var(--text); }
+
+/* B站风格视频卡片 */
+.bilibili-video-card {
+  display: flex;
+  gap: 16px;
+  padding: 16px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  backdrop-filter: blur(8px);
+}
+.bilibili-video-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 32px var(--glow);
+  border-color: var(--accent);
+}
+.bilibili-video-cover {
+  width: 180px;
+  height: 112px;
+  border-radius: 12px;
+  object-fit: cover;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+.bilibili-video-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.bilibili-video-title {
+  font-weight: 700;
+  font-size: 16px;
+  margin-bottom: 8px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  color: var(--text);
+}
+.bilibili-video-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.bilibili-video-meta i { margin-right: 4px; color: var(--accent); }
+
+/* 搜索输入框 */
+.search-hero-input {
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: 40px;
+  padding: 14px 24px;
+  font-size: 16px;
+  transition: all 0.2s;
+}
+.search-hero-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px var(--glow);
+}
   .rank-item { transition: all 0.2s; }
   .rank-item:hover { transform: translateX(4px); }
 
@@ -420,10 +568,148 @@ tailwind.config = {
     border-radius: 10px; padding: 10px 14px; font-family: inherit; transition: border 0.2s;
   }
   input:focus, textarea:focus, select:focus { outline: none; border-color: var(--accent); }
+/* ===== 增强版下拉菜单样式 ===== */
+.filter-dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.filter-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 8px;
+  backdrop-filter: blur(24px);
+  z-index: 100;
+  min-width: 140px;
+  box-shadow: 0 12px 28px var(--shadow), 0 4px 12px rgba(0,0,0,0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.filter-menu.hidden {
+  display: none !important;  /* 完全隐藏，不占位 */
+}
+
+.filter-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.filter-option i {
+  width: 18px;
+  color: var(--accent);
+  font-size: 14px;
+}
+
+.filter-option:hover {
+  background: var(--accent);
+  color: white;
+  transform: translateX(2px);
+  box-shadow: 0 2px 8px rgba(255,107,53,0.2);
+}
+
+.filter-option:hover i {
+  color: white;
+}
+
+.filter-option:active {
+  transform: translateX(2px) scale(0.98);
+}
+
+/* 当前选中项的标识（可选） */
+.filter-option.active {
+  background: var(--accent);
+  color: white;
+}
+.filter-option.active i {
+  color: white;
+}
+/* 勋章展示动画 */
+.badge-display {
+  display: inline-block;
+  vertical-align: middle;
+}
+.badge-rare {
+  animation: rareGlow 3s infinite;
+}
+.badge-epic {
+  animation: epicPulse 1.5s infinite;
+}
+.badge-legendary {
+  animation: legendaryGlow 2s infinite;
+}
+@keyframes rareGlow {
+  0%,100% { filter: drop-shadow(0 0 2px #aaa); }
+  50% { filter: drop-shadow(0 0 6px #fff); }
+}
+@keyframes epicPulse {
+  0%,100% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+}
+@keyframes legendaryGlow {
+  0%,100% { filter: drop-shadow(0 0 8px gold); }
+  50% { filter: drop-shadow(0 0 20px #ffaa00); }
+}
+@media (max-width: 640px) {
+  .modal-content {
+    padding: 16px;
+    max-height: 90vh;
+  }
+  #postPreviewSection {
+    max-height: 30vh !important;
+  }
+  #commentsList {
+    max-height: 30vh !important;
+  }
+}
+.topic-tag {
+  display: inline-block;
+  padding: 6px 16px;
+  border-radius: 30px;
+  background: var(--surface);
+  color: var(--text);
+  font-weight: 600;
+  cursor: pointer;
+  border: 1.5px solid var(--border);
+  transition: all 0.2s;
+  box-shadow: 0 2px 6px var(--shadow);
+}
+.topic-tag:hover {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 16px var(--glow);
+}
 </style>
+<script src="https://cdn.jsdelivr.net/npm/interactjs@1.10.27/dist/interact.min.js"></script>
 </head>
 
 <body>
+<!-- 开场动画遮罩 -->
+<div id="introOverlay" style="position:fixed; inset:0; z-index:99999; background:var(--bg); display:flex; align-items:center; justify-content:center; pointer-events:none; transition:opacity 0.8s;">
+  <div id="introCircle" style="width:10px; height:10px; background:linear-gradient(135deg, var(--accent), var(--accent2)); border-radius:50%; box-shadow:0 0 60px var(--accent); transition:transform 0.8s cubic-bezier(0.25,0.46,0.45,0.94);"></div>
+</div>
 <!-- Canvas 粒子背景 -->
 <canvas id="particle-canvas"></canvas>
 
@@ -437,6 +723,7 @@ tailwind.config = {
       <button onclick="switchTab('home')" class="btn-ghost text-sm" id="navHome">首页</button>
       <button onclick="switchTab('discover')" class="btn-ghost text-sm" id="navDiscover">发现</button>
       <button onclick="switchTab('following')" class="btn-ghost text-sm" id="navFollowing">关注</button>
+
       <button onclick="openModal('publishModal')" class="btn-warm text-sm">发布</button>
     </div>
     <div class="flex items-center gap-3">
@@ -455,8 +742,10 @@ tailwind.config = {
       <button onclick="openProfile()" class="w-8 h-8 rounded-full overflow-hidden" style="border:2px solid var(--accent)" id="navAvatar" aria-label="个人主页">
         <img src="" alt="头像" class="w-full h-full object-cover" id="navAvatarImg">
       </button>
+      <button onclick="logout()" class="btn-ghost text-sm" id="logoutBtn" style="display:none;">退出</button>
     </div>
   </div>
+  <div id="loadingBar" class="absolute bottom-0 left-0 h-0.5 bg-accent" style="width:0%; transition:width 0.2s;"></div>
 </nav>
 
 <!-- 主内容区 -->
@@ -482,39 +771,100 @@ tailwind.config = {
 
   <!-- 首页 Tab -->
   <div id="homeTab">
-    <!-- 筛选栏 -->
-    <div class="flex flex-wrap gap-2 mb-4 items-center">
-      <div class="flex flex-wrap gap-1.5">
-        <button class="filter-btn active" data-filter="type" data-val="all" onclick="setFilter('type','all',this)">全部</button>
-        <button class="filter-btn" data-filter="type" data-val="normal" onclick="setFilter('type','normal',this)">图文</button>
-        <button class="filter-btn" data-filter="type" data-val="vote" onclick="setFilter('type','vote',this)">投票</button>
-        <button class="filter-btn" data-filter="type" data-val="qa" onclick="setFilter('type','qa',this)">问答</button>
+        <!-- 筛选栏（下拉菜单版·增强） -->
+    <div class="flex flex-wrap items-center gap-2 mb-4">
+      <!-- 类型下拉 -->
+      <div class="filter-dropdown" id="typeDropdown">
+        <button class="btn-ghost text-sm px-4 py-2 flex items-center gap-1" onclick="toggleFilterDropdown('typeDropdown')">
+          <span id="currentTypeLabel">全部</span> <i class="fas fa-chevron-down text-xs"></i>
+        </button>
+        <div class="filter-menu hidden">
+          <button class="filter-option" data-type="all" onclick="selectFilterType('all')"><i class="fas fa-globe"></i>全部</button>
+          <button class="filter-option" data-type="normal" onclick="selectFilterType('normal')"><i class="fas fa-image"></i>图文</button>
+          <button class="filter-option" data-type="vote" onclick="selectFilterType('vote')"><i class="fas fa-chart-bar"></i>投票</button>
+          <button class="filter-option" data-type="qa" onclick="selectFilterType('qa')"><i class="fas fa-question-circle"></i>问答</button>
+        </div>
       </div>
-      <div class="flex flex-wrap gap-1.5">
-        <button class="filter-btn active" data-filter="op" data-val="all" onclick="setFilter('op','all',this)">全兵种</button>
-        <button class="filter-btn" data-filter="op" data-val="突击" onclick="setFilter('op','突击',this)">突击</button>
-        <button class="filter-btn" data-filter="op" data-val="工程" onclick="setFilter('op','工程',this)">工程</button>
-        <button class="filter-btn" data-filter="op" data-val="侦察" onclick="setFilter('op','侦察',this)">侦察</button>
-        <button class="filter-btn" data-filter="op" data-val="支援" onclick="setFilter('op','支援',this)">支援</button>
+      
+      <!-- 兵种下拉 -->
+      <div class="filter-dropdown" id="opDropdown">
+        <button class="btn-ghost text-sm px-4 py-2 flex items-center gap-1" onclick="toggleFilterDropdown('opDropdown')">
+          <span id="currentOpLabel">全兵种</span> <i class="fas fa-chevron-down text-xs"></i>
+        </button>
+        <div class="filter-menu hidden">
+          <button class="filter-option" data-op="all" onclick="selectFilterOp('all')"><i class="fas fa-users"></i>全兵种</button>
+          <button class="filter-option" data-op="突击" onclick="selectFilterOp('突击')"><i class="fas fa-fist-raised"></i>突击</button>
+          <button class="filter-option" data-op="工程" onclick="selectFilterOp('工程')"><i class="fas fa-tools"></i>工程</button>
+          <button class="filter-option" data-op="侦察" onclick="selectFilterOp('侦察')"><i class="fas fa-eye"></i>侦察</button>
+          <button class="filter-option" data-op="支援" onclick="selectFilterOp('支援')"><i class="fas fa-medkit"></i>支援</button>
+        </div>
       </div>
-      <div class="flex gap-1.5 ml-auto">
-        <button class="filter-btn active" data-filter="sort" data-val="latest" onclick="setFilter('sort','latest',this)">最新</button>
-        <button class="filter-btn" data-filter="sort" data-val="hot" onclick="setFilter('sort','hot',this)">热度</button>
-        <button class="filter-btn" data-filter="sort" data-val="likes" onclick="setFilter('sort','likes',this)">赞最多</button>
-        <button class="filter-btn" data-filter="sort" data-val="downloads" onclick="setFilter('sort','downloads',this)">下载最多</button>
+      
+      <!-- 排序下拉 -->
+      <div class="filter-dropdown" id="sortDropdown">
+        <button class="btn-ghost text-sm px-4 py-2 flex items-center gap-1" onclick="toggleFilterDropdown('sortDropdown')">
+          <span id="currentSortLabel">最新</span> <i class="fas fa-chevron-down text-xs"></i>
+        </button>
+        <div class="filter-menu hidden">
+          <button class="filter-option" data-sort="latest" onclick="selectFilterSort('latest')"><i class="fas fa-clock"></i>最新</button>
+          <button class="filter-option" data-sort="hot" onclick="selectFilterSort('hot')"><i class="fas fa-fire"></i>热度</button>
+          <button class="filter-option" data-sort="likes" onclick="selectFilterSort('likes')"><i class="fas fa-thumbs-up"></i>赞最多</button>
+          <button class="filter-option" data-sort="downloads" onclick="selectFilterSort('downloads')"><i class="fas fa-download"></i>下载最多</button>
+        </div>
       </div>
+      <!-- 话题下拉 -->
+<div class="filter-dropdown" id="topicDropdown">
+  <button class="btn-ghost text-sm px-4 py-2 flex items-center gap-1" onclick="toggleFilterDropdown('topicDropdown')">
+    <span id="currentTopicLabel">全话题</span> <i class="fas fa-chevron-down text-xs"></i>
+  </button>
+  <div class="filter-menu hidden">
+    <button class="filter-option" data-topic="all" onclick="selectFilterTopic('all')"><i class="fas fa-hashtag"></i>全话题</button>
+    <button class="filter-option" data-topic="战术研讨" onclick="selectFilterTopic('战术研讨')"><i class="fas fa-crosshairs"></i>战术研讨</button>
+    <button class="filter-option" data-topic="新手攻略" onclick="selectFilterTopic('新手攻略')"><i class="fas fa-graduation-cap"></i>新手攻略</button>
+    <button class="filter-option" data-topic="武器评测" onclick="selectFilterTopic('武器评测')"><i class="fas fa-gun"></i>武器评测</button>
+    <button class="filter-option" data-topic="战队招募" onclick="selectFilterTopic('战队招募')"><i class="fas fa-users"></i>战队招募</button>
+    <button class="filter-option" data-topic="精彩集锦" onclick="selectFilterTopic('精彩集锦')"><i class="fas fa-video"></i>精彩集锦</button>
+  </div>
+</div>
+      <!-- 搜索输入框（集成在筛选栏） -->
+      <div class="flex items-center gap-1 ml-2">
+        <div class="relative">
+          <input type="text" id="homeSearchInput" placeholder="搜索帖子..." class="w-48 md:w-56 pl-9 pr-3 py-2 text-sm rounded-xl" style="background:var(--surface);border:1.5px solid var(--border);color:var(--text)">
+          <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-sm" style="color:var(--accent)"></i>
+        </div>
+        <button class="btn-ghost text-sm px-3 py-2" onclick="performHomeSearch()">
+          <i class="fas fa-arrow-right"></i>
+        </button>
+        <!-- 装饰小图片（增强沉浸感） -->
+        <img src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/1f3ae.svg" class="w-8 h-8 hidden md:block ml-1" alt="game" title="搜索游戏内容">
+      </div>
+      <span class="text-xs ml-auto" style="color:var(--muted)"><span id="postCount">0</span> 条动态</span>
     </div>
-
+<!-- 话题广场 -->
+<!-- 热门推荐精简版 -->
+<div class="mb-6">
+  <h3 class="font-display text-lg mb-2 flex items-center gap-2"><i class="fas fa-fire" style="color:#FF4757"></i>热门推荐</h3>
+  <div id="hotRecommendList" class="grid grid-cols-1 md:grid-cols-2 gap-2"></div>
+</div>
+<div class="mb-6">
+  <div class="flex items-center justify-between mb-2">
+    <h3 class="font-display text-lg flex items-center gap-2"><i class="fas fa-hashtag" style="color:var(--accent)"></i>热门话题</h3>
+    <button class="text-xs" style="color:var(--muted)" onclick="loadMoreTopics()"><i class="fas fa-sync-alt mr-1"></i>换一批</button>
+  </div>
+  <div class="flex flex-wrap gap-2" id="topicCloud"></div>
+</div>
     <!-- 置顶帖 -->
     <div id="topPostArea" class="mb-4"></div>
 
     <!-- 瀑布流帖子列表 -->
     <div class="masonry" id="postsGrid"></div>
+<div id="postsSkeleton" class="masonry" style="display: none;">
+  <div class="masonry-item"><div class="skeleton h-40 w-full rounded-2xl"></div></div>
+  <div class="masonry-item"><div class="skeleton h-56 w-full rounded-2xl"></div></div>
+  <div class="masonry-item"><div class="skeleton h-32 w-full rounded-2xl"></div></div>
+</div>
 
     <!-- 加载更多 -->
-    <div class="text-center mt-8 mb-4">
-      <button class="btn-warm px-8 py-3" onclick="loadMorePosts()" id="loadMoreBtn">加载更多</button>
-    </div>
   </div>
 
   <!-- 发现 Tab -->
@@ -540,6 +890,100 @@ tailwind.config = {
       <i class="fas fa-user-plus text-4xl mb-3 block" style="color:var(--border)"></i>
       <p>关注其他干员，查看他们的最新动态</p>
     </div>
+  <!-- 搜索 Tab（发现页） -->
+  <div id="searchTab" style="display:none">
+    <!-- 搜索头部 -->
+    <div class="mb-6">
+      <div class="flex items-center gap-3">
+        <div class="flex-1 relative">
+          <i class="fas fa-search absolute left-5 top-1/2 -translate-y-1/2 text-lg" style="color:var(--muted)"></i>
+          <input type="text" id="searchInput" placeholder="搜索帖子、用户或视频..." class="w-full search-hero-input pl-14 pr-5">
+          <button id="searchClearBtn" class="absolute right-4 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full flex items-center justify-center" style="background:var(--surface);display:none" onclick="clearSearch()">
+            <i class="fas fa-times text-xs"></i>
+          </button>
+        </div>
+        <button class="btn-warm px-8 py-3 text-base" onclick="performSearch()"><i class="fas fa-search mr-2"></i>搜索</button>
+      </div>
+    </div>
+
+    <!-- 搜索类型切换 -->
+    <div class="flex items-center gap-2 mb-5 border-b" style="border-color:var(--border)">
+      <button class="search-type-tab active" data-type="internal" onclick="switchSearchType('internal')">
+        <i class="fas fa-users mr-2"></i>站内帖子
+      </button>
+      <button class="search-type-tab" data-type="bilibili" onclick="switchSearchType('bilibili')">
+        <i class="fab fa-bilibili mr-2"></i>B站视频
+      </button>
+    </div>
+
+    <!-- 站内搜索筛选栏 -->
+    <div id="internalSearchFilters" class="flex flex-wrap items-center gap-2 mb-4">
+      <div class="filter-dropdown" id="searchTypeDropdown">
+        <button class="btn-ghost text-sm px-4 py-2 flex items-center gap-1" onclick="toggleFilterDropdown('searchTypeDropdown')">
+          <span id="currentSearchTypeLabel">全部</span> <i class="fas fa-chevron-down text-xs"></i>
+        </button>
+        <div class="filter-menu hidden">
+          <button class="filter-option" data-type="all" onclick="selectSearchType('all')"><i class="fas fa-globe"></i>全部</button>
+          <button class="filter-option" data-type="normal" onclick="selectSearchType('normal')"><i class="fas fa-image"></i>图文</button>
+          <button class="filter-option" data-type="vote" onclick="selectSearchType('vote')"><i class="fas fa-chart-bar"></i>投票</button>
+          <button class="filter-option" data-type="qa" onclick="selectSearchType('qa')"><i class="fas fa-question-circle"></i>问答</button>
+        </div>
+      </div>
+      <div class="filter-dropdown" id="searchSortDropdown">
+        <button class="btn-ghost text-sm px-4 py-2 flex items-center gap-1" onclick="toggleFilterDropdown('searchSortDropdown')">
+          <span id="currentSearchSortLabel">最新</span> <i class="fas fa-chevron-down text-xs"></i>
+        </button>
+        <div class="filter-menu hidden">
+          <button class="filter-option" data-sort="latest" onclick="selectSearchSort('latest')"><i class="fas fa-clock"></i>最新</button>
+          <button class="filter-option" data-sort="hot" onclick="selectSearchSort('hot')"><i class="fas fa-fire"></i>最热</button>
+        </div>
+      </div>
+      <span class="text-xs ml-auto" style="color:var(--muted)"><span id="searchResultCount">0</span> 条结果</span>
+    </div>
+
+    <!-- B站搜索筛选栏 -->
+    <div id="bilibiliSearchFilters" class="flex flex-wrap items-center gap-2 mb-4" style="display:none">
+      <div class="filter-dropdown" id="bilibiliOrderDropdown">
+        <button class="btn-ghost text-sm px-4 py-2 flex items-center gap-1" onclick="toggleFilterDropdown('bilibiliOrderDropdown')">
+          <span id="currentBilibiliOrderLabel">综合排序</span> <i class="fas fa-chevron-down text-xs"></i>
+        </button>
+        <div class="filter-menu hidden">
+          <button class="filter-option" data-order="totalrank" onclick="selectBilibiliOrder('totalrank')"><i class="fas fa-star"></i>综合排序</button>
+          <button class="filter-option" data-order="click" onclick="selectBilibiliOrder('click')"><i class="fas fa-eye"></i>最多播放</button>
+          <button class="filter-option" data-order="pubdate" onclick="selectBilibiliOrder('pubdate')"><i class="fas fa-clock"></i>最新发布</button>
+        </div>
+      </div>
+      <div class="filter-dropdown" id="bilibiliDurationDropdown">
+        <button class="btn-ghost text-sm px-4 py-2 flex items-center gap-1" onclick="toggleFilterDropdown('bilibiliDurationDropdown')">
+          <span id="currentBilibiliDurationLabel">全部时长</span> <i class="fas fa-chevron-down text-xs"></i>
+        </button>
+        <div class="filter-menu hidden">
+          <button class="filter-option" data-duration="0" onclick="selectBilibiliDuration('0')"><i class="fas fa-clock"></i>全部时长</button>
+          <button class="filter-option" data-duration="1" onclick="selectBilibiliDuration('1')"><i class="fas fa-hourglass-start"></i>10分钟以下</button>
+          <button class="filter-option" data-duration="2" onclick="selectBilibiliDuration('2')"><i class="fas fa-hourglass-half"></i>10-30分钟</button>
+          <button class="filter-option" data-duration="3" onclick="selectBilibiliDuration('3')"><i class="fas fa-hourglass"></i>30-60分钟</button>
+        </div>
+      </div>
+      <span class="text-xs ml-auto" style="color:var(--muted)"><span id="bilibiliResultCount">0</span> 条结果</span>
+    </div>
+
+    <!-- 搜索结果容器 -->
+    <div id="searchResults" class="masonry"></div>
+    <div id="bilibiliResults" class="space-y-4" style="display:none"></div>
+    
+    <!-- 加载状态 -->
+    <div id="searchLoading" class="text-center py-12" style="display:none;color:var(--muted)">
+      <i class="fas fa-spinner fa-pulse fa-2x mb-3"></i>
+      <p>正在搜索...</p>
+    </div>
+    <div id="searchEmpty" class="text-center py-12" style="display:none;color:var(--muted)">
+      <i class="fas fa-search text-4xl mb-3 opacity-30"></i>
+      <p>暂无搜索结果，换个关键词试试吧</p>
+    </div>
+    <div id="searchLoadMore" class="text-center py-4" style="display:none">
+      <button class="btn-ghost text-sm px-6 py-2" onclick="loadMoreSearchResults()"><i class="fas fa-chevron-down mr-2"></i>加载更多</button>
+    </div>
+  </div>
   </div>
 
   <!-- 个人主页 -->
@@ -705,6 +1149,12 @@ tailwind.config = {
         <label class="text-sm font-bold block mb-2">预设头像</label>
         <div class="grid grid-cols-5 gap-2" id="presetAvatars"></div>
       </div>
+   <div>
+     <label class="text-sm font-bold block mb-1">展示勋章</label>
+     <select id="editDisplayBadge" class="w-full mb-2 p-2 rounded">
+       <option value="">不展示</option>
+     </select>
+   </div>
       <button class="btn-warm w-full py-2" onclick="saveProfile()">保存</button>
     </div>
   </div>
@@ -714,10 +1164,28 @@ tailwind.config = {
 <div class="modal-overlay" id="commentsModal">
   <div class="modal-content" style="max-width:560px">
     <div class="flex justify-between items-center mb-4">
+    <!-- 帖子详情头部 -->
+    <div id="postDetailHeader" class="mb-4 pb-3 border-b" style="border-color:var(--border);">
+      <div class="flex items-center gap-2 mb-2">
+        <img id="postDetailAvatar" class="w-8 h-8 rounded-full object-cover" src="">
+        <div>
+          <div class="font-bold text-sm" id="postDetailAuthor"></div>
+          <div class="text-xs" style="color:var(--muted)" id="postDetailTime"></div>
+        </div>
+      </div>
+      <h3 class="font-bold text-lg mb-1" id="postDetailTitle"></h3>
+      <p class="text-sm mb-2" style="color:var(--muted)" id="postDetailDesc"></p>
+      <div id="postDetailMedia" class="mb-2"></div>
+      <div class="flex items-center gap-3 text-xs" style="color:var(--muted)">
+        <span><i class="far fa-thumbs-up"></i> <span id="postDetailUpvotes">0</span></span>
+        <span><i class="far fa-comment"></i> <span id="postDetailComments">0</span></span>
+        <span><i class="far fa-download"></i> <span id="postDetailDownloads">0</span></span>
+      </div>
+    </div>
       <h2 class="font-display text-xl">评论</h2>
       <button onclick="closeModal('commentsModal')" class="w-8 h-8 rounded-full flex items-center justify-center" style="background:var(--surface)"><i class="fas fa-times"></i></button>
     </div>
-    <div id="commentsList" class="space-y-3 max-h-64 overflow-y-auto mb-3"></div>
+    <div id="commentsList" class="space-y-3 max-h-88 overflow-y-auto mb-3"></div>
     <div class="flex gap-2 items-end">
       <div class="flex-1">
         <textarea id="commentInput" rows="2" placeholder="写评论... @提及用户" class="w-full text-sm"></textarea>
@@ -774,48 +1242,78 @@ tailwind.config = {
   </div>
 </div>
 
-<!-- ===== BGM 播放器 ===== -->
-<div class="bgm-player" id="bgmPlayer">
-  <div class="flex items-center gap-2">
-    <button onclick="bgmPrev()" class="text-xs" style="color:var(--muted)"><i class="fas fa-backward-step"></i></button>
-    <button onclick="bgmToggle()" class="w-8 h-8 rounded-full flex items-center justify-center" style="background:linear-gradient(135deg,#FF6B35,#FF4757)" id="bgmPlayBtn"><i class="fas fa-play text-white text-xs"></i></button>
-    <button onclick="bgmNext()" class="text-xs" style="color:var(--muted)"><i class="fas fa-forward-step"></i></button>
-    <div class="flex-1 min-w-0">
-      <div class="text-xs font-bold truncate" id="bgmTitle">未播放</div>
-      <div class="flex items-center gap-1 text-[10px]" style="color:var(--muted)">
-        <span id="bgmCurrentTime">0:00</span>
-        <div class="flex-1 h-1 rounded cursor-pointer" style="background:var(--surface)" onclick="bgmSeek(event)">
-          <div class="h-full rounded" style="background:linear-gradient(90deg,#FF6B35,#FFD700);width:0%" id="bgmProgressFill"></div>
-        </div>
-        <span id="bgmDuration">0:00</span>
-      </div>
-    </div>
-    <input type="range" min="0" max="100" value="50" class="w-12" style="accent-color:var(--accent)" onchange="bgmSetVolume(this.value)" id="bgmVol">
-    <button onclick="openModal('musicSearchModal')" class="text-xs" style="color:var(--muted)" title="搜索歌曲"><i class="fas fa-search"></i></button>
-    <button onclick="toggleBgmPlaylist()" class="text-xs" style="color:var(--muted)" title="播放列表"><i class="fas fa-list"></i></button>
+<!-- ===== BGM 播放器（可悬停展开） ===== -->
+<div class="bgm-player draggable" id="bgmPlayer">
+  <!-- 紧凑条：只显示播放按钮 -->
+  <div class="bgm-compact">
+    <button onclick="bgmToggle()" class="w-10 h-10 rounded-full flex items-center justify-center" style="background:linear-gradient(135deg,#FF6B35,#FF4757)" id="bgmPlayBtn">
+      <i class="fas fa-play text-white text-sm"></i>
+    </button>
   </div>
-  <div id="bgmPlaylist" style="display:none" class="mt-2 max-h-40 overflow-y-auto space-y-1"></div>
+
+  <!-- 悬停时展开的完整控件 -->
+  <div class="bgm-extended">
+    <div class="flex items-center gap-2">
+      <button onclick="bgmPrev()" class="text-xs" style="color:var(--muted)"><i class="fas fa-backward-step"></i></button>
+      <button onclick="bgmToggle()" class="w-8 h-8 rounded-full flex items-center justify-center" style="background:linear-gradient(135deg,#FF6B35,#FF4757)" id="bgmPlayBtnExtended">
+        <i class="fas fa-play text-white text-xs"></i>
+      </button>
+      <button onclick="bgmNext()" class="text-xs" style="color:var(--muted)"><i class="fas fa-forward-step"></i></button>
+      <div class="flex-1 min-w-0">
+        <div class="text-xs font-bold truncate" id="bgmTitle">未播放</div>
+        <div class="flex items-center gap-1 text-[10px]" style="color:var(--muted)">
+          <span id="bgmCurrentTime">0:00</span>
+          <div class="flex-1 h-1 rounded cursor-pointer" style="background:var(--surface)" onclick="bgmSeek(event)">
+            <div class="h-full rounded" style="background:linear-gradient(90deg,#FF6B35,#FFD700);width:0%" id="bgmProgressFill"></div>
+          </div>
+          <span id="bgmDuration">0:00</span>
+        </div>
+      </div>
+      <input type="range" min="0" max="100" value="50" class="w-12" style="accent-color:var(--accent)" onchange="bgmSetVolume(this.value)" id="bgmVol">
+      <button onclick="openModal('musicSearchModal')" class="text-xs" style="color:var(--muted)" title="搜索歌曲"><i class="fas fa-search"></i></button>
+      <button onclick="toggleBgmPlaylist()" class="text-xs" style="color:var(--muted)" title="播放列表"><i class="fas fa-list"></i></button>
+    </div>
+    <div id="bgmPlaylist" style="display:none" class="mt-2 max-h-40 overflow-y-auto space-y-1"></div>
+  </div>
 </div>
 
 <!-- 登录/注册弹窗 -->
 <!-- 登录/注册弹窗 -->
+<!-- 登录/注册弹窗 (增强版) -->
 <div class="modal-overlay" id="authModal">
-  <div class="modal-content" style="max-width:400px">
+  <div class="modal-content" style="max-width:420px">
     <div class="flex justify-between items-center mb-4">
       <h2 class="font-display text-xl" id="authModalTitle">登录</h2>
       <button onclick="closeModal('authModal')" class="w-8 h-8 rounded-full flex items-center justify-center" style="background:var(--surface)"><i class="fas fa-times"></i></button>
     </div>
     <div id="authFormArea">
+            <!-- 登录表单 -->
       <div id="loginForm" class="space-y-3">
-        <input type="email" id="loginEmail" placeholder="邮箱" class="w-full">
-        <input type="password" id="loginPassword" placeholder="密码" class="w-full">
+        <input type="text" id="loginEmail" placeholder="用户名 / 邮箱" class="w-full">
+        <div>
+          <input type="password" id="loginPassword" placeholder="密码" class="w-full">
+          <div class="flex justify-end mt-1">
+            <button class="text-xs underline" style="color:var(--accent)" onclick="openForgotModal()">忘记密码？</button>
+          </div>
+        </div>
         <button class="btn-warm w-full py-2" onclick="handleLogin()">登录</button>
         <p class="text-center text-xs" style="color:var(--muted)">没有账号？ <button class="text-sm underline" style="color:var(--accent)" onclick="switchAuthForm('register')">立即注册</button></p>
       </div>
+      <!-- 注册表单 -->
       <div id="registerForm" style="display:none" class="space-y-3">
         <input type="email" id="regEmail" placeholder="邮箱" class="w-full">
-        <input type="password" id="regPassword" placeholder="密码（至少6位）" class="w-full">
         <input type="text" id="regUsername" placeholder="昵称" class="w-full">
+        <div class="flex gap-2">
+          <input type="tel" id="regPhone" placeholder="手机号" class="flex-1">
+          <button class="btn-ghost text-xs whitespace-nowrap" onclick="sendSmsCode()">获取验证码</button>
+        </div>
+        <input type="text" id="regSmsCode" placeholder="短信验证码" class="w-full">
+        <div class="flex gap-2 items-center">
+          <input type="text" id="regCaptchaInput" placeholder="图形验证码" class="flex-1">
+          <canvas id="captchaCanvas" width="90" height="38" class="border rounded cursor-pointer" style="border-color:var(--border)" onclick="generateCaptcha()"></canvas>
+        </div>
+        <input type="password" id="regPassword" placeholder="密码（至少6位）" class="w-full">
+        <input type="password" id="regConfirmPwd" placeholder="确认密码" class="w-full">
         <button class="btn-warm w-full py-2" onclick="handleRegister()">注册</button>
         <p class="text-center text-xs" style="color:var(--muted)">已有账号？ <button class="text-sm underline" style="color:var(--accent)" onclick="switchAuthForm('login')">去登录</button></p>
       </div>
@@ -824,7 +1322,7 @@ tailwind.config = {
 </div>
 
 
-<!-- 管理员弹窗 -->
+<!-- 管理员弹窗（完整版：需密码验证） -->
 <div class="modal-overlay" id="adminModal">
   <div class="modal-content" style="max-width:600px">
     <div class="flex justify-between items-center mb-4">
@@ -836,7 +1334,7 @@ tailwind.config = {
       <input type="password" placeholder="输入管理员密码" id="adminPwd" class="w-full">
       <button class="btn-warm w-full py-2" onclick="adminLogin()">验证</button>
     </div>
-    <!-- 管理面板 -->
+    <!-- 管理面板（验证后显示） -->
     <div id="adminPanel" style="display:none" class="space-y-4">
       <div>
         <h3 class="font-bold mb-2">宣传二维码管理</h3>
@@ -846,7 +1344,7 @@ tailwind.config = {
         <div id="adminBannerList" class="mt-2 space-y-2"></div>
       </div>
       <div>
-        <h3 class="font-bold mb-2">修改密码</h3>
+        <h3 class="font-bold mb-2">修改管理员密码</h3>
         <input type="password" placeholder="新密码" id="newAdminPwd" class="w-full mb-2">
         <button class="btn-warm text-sm" onclick="changeAdminPwd()">修改密码</button>
       </div>
@@ -854,11 +1352,52 @@ tailwind.config = {
         <h3 class="font-bold mb-2">举报列表</h3>
         <div id="adminReports" class="space-y-2 max-h-60 overflow-y-auto"></div>
       </div>
+      <!-- 授予勋章区域（带搜索） -->
+      <div>
+        <h3 class="font-bold mb-2">授予勋章</h3>
+        <div class="flex gap-2 mb-2">
+          <input type="text" id="searchUserInput" placeholder="输入用户名搜索" class="flex-1 p-2 rounded">
+          <button class="btn-ghost text-sm whitespace-nowrap" onclick="searchUserForBadge()"><i class="fas fa-search mr-1"></i>搜索</button>
+        </div>
+        <select id="searchUserResult" class="w-full mb-2 p-2 rounded" size="1" onchange="onUserSelected()">
+          <option value="">-- 请先搜索用户 --</option>
+        </select>
+        <input type="text" id="grantUserId" placeholder="用户ID" class="w-full mb-2 p-2 rounded" readonly>
+        <select id="grantBadgeId" class="w-full mb-2 p-2 rounded">
+          <option value="badge_elite">⭐ 精英干员</option>
+          <option value="badge_hero">🏅 战场英雄</option>
+          <option value="badge_legend">👑 传奇战神</option>
+        </select>
+        <button class="btn-warm text-sm" onclick="grantBadge()">授予勋章</button>
+      </div>
     </div>
   </div>
 </div>
-
 <!-- 搜索音乐弹窗 -->
+<!-- 忘记密码弹窗（增强版：支持用户名/邮箱 + 验证码重置） -->
+<div class="modal-overlay" id="forgotModal">
+  <div class="modal-content" style="max-width:420px">
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="font-display text-xl">找回密码</h2>
+      <button onclick="closeModal('forgotModal')" class="w-8 h-8 rounded-full flex items-center justify-center" style="background:var(--surface)"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="space-y-3">
+      <!-- 步骤1：输入用户名或邮箱 -->
+      <div id="forgotStep1">
+        <input type="text" id="forgotAccount" placeholder="用户名 / 邮箱" class="w-full mb-3">
+        <button class="btn-warm w-full py-2" onclick="handleForgotSendCode()">发送验证码</button>
+      </div>
+      <!-- 步骤2：输入验证码和新密码（默认隐藏） -->
+      <div id="forgotStep2" style="display:none;">
+        <input type="text" id="forgotCode" placeholder="6位验证码" class="w-full mb-2">
+        <input type="password" id="forgotNewPwd" placeholder="新密码（至少6位）" class="w-full mb-2">
+        <input type="password" id="forgotConfirmPwd" placeholder="确认新密码" class="w-full mb-3">
+        <button class="btn-warm w-full py-2" onclick="handleForgotResetPassword()">重置密码</button>
+        <p class="text-xs text-center mt-2" style="color:var(--muted)">没有收到？ <button class="text-accent underline" onclick="handleForgotSendCode()">重新发送</button></p>
+      </div>
+    </div>
+  </div>
+</div>
 <div class="modal-overlay" id="musicSearchModal">
   <div class="modal-content" style="max-width:440px">
     <div class="flex justify-between items-center mb-4">
@@ -884,10 +1423,13 @@ try { sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY); } catc
 // 应用状态
 const APP = {
   user: null, profile: null, currentTab: 'home',
-  filters: { type: 'all', op: 'all', sort: 'latest', time: 'all' },
+ filters: { type: 'all', op: 'all', sort: 'latest', time: 'all', topic: 'all', keyword: '' },
   postsPage: 0, postsPerPage: 12, allPostsLoaded: false,
+  loading: false,
   currentPostId: null, isAdmin: false, notifications: [],
-  followedIds: [], myVoteMap: {}, myFavSet: new Set()
+  followedIds: [], myVoteMap: {}, myFavSet: new Set(),
+  spiritInteractCount: 0,   // 新增
+  spiritDate: ''            // 新增
 };
 
 // ==================== 工具函数 ====================
@@ -954,8 +1496,15 @@ function timeAgo(dateStr) {
       p.x += p.vx; p.y += p.vy;
       if (p.x < 0) p.x = W; if (p.x > W) p.x = 0;
       if (p.y < 0) p.y = H; if (p.y > H) p.y = 0;
-      ctx.beginPath(); ctx.arc(p.x, p.y, Math.max(0.5, p.r), 0, Math.PI*2);
-      ctx.fillStyle = p.color; ctx.globalAlpha = p.alpha; ctx.fill();
+            // 绘制三角形（弹壳碎片）
+      ctx.beginPath();
+      ctx.moveTo(p.x, p.y - p.r * 2);
+      ctx.lineTo(p.x + p.r * 1.5, p.y + p.r);
+      ctx.lineTo(p.x - p.r * 1.5, p.y + p.r);
+      ctx.closePath();
+      ctx.fillStyle = p.color;
+      ctx.globalAlpha = p.alpha;
+      ctx.fill();
       // 发光效果
       ctx.beginPath(); ctx.arc(p.x, p.y, Math.max(1, p.r*3), 0, Math.PI*2);
       const g = ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,Math.max(1,p.r*3));
@@ -1030,11 +1579,16 @@ async function initAuth() {
       APP.user = session.user;
       await loadOrCreateProfile();
       await afterAuthSuccess();
-    } else {
+        } else {
       $('authBtn').textContent = '登录/注册';
       $('navAvatarImg').src = dicebearUrl('guest');
-    initOnlinePresence();
+      initOnlinePresence();
+      // 未登录也加载公开帖子
+      loadPosts(true);
+      loadStories();
+      loadBanners();  // 未登录也加载底部宣传图
     }
+
   } catch(e) {
     console.error('初始化失败:', e);
     showToast('初始化失败，请刷新');
@@ -1049,6 +1603,7 @@ async function afterAuthSuccess() {
   await loadNotifications();
   subscribeRealtime();
   $('authBtn').textContent = APP.profile?.username || '个人中心';
+  $('logoutBtn').style.display = 'block';
   updateNavAvatar();
   if (APP.isAdmin) $('adminEntry').style.display = 'block';
   initOnlinePresence();
@@ -1086,11 +1641,34 @@ function switchAuthForm(type) {
 }
 
 async function handleLogin() {
-  const email = $('loginEmail').value.trim();
+  const account = $('loginEmail').value.trim();
   const password = $('loginPassword').value;
-  if (!email || !password) { showToast('请输入邮箱和密码'); return; }
+  if (!account || !password) { showToast('请输入账户和密码'); return; }
+
+  let email = account;
+  // 如果输入不含 @，则视为用户名，查询对应的邮箱
+  if (!account.includes('@')) {
+    const { data: profile, error } = await sb
+      .from('profiles')
+      .select('email')
+      .eq('username', account)
+      .single();
+    if (error || !profile || !profile.email) {
+      showToast('用户名不存在或未绑定邮箱');
+      return;
+    }
+    email = profile.email;
+  }
+
   const { data, error } = await sb.auth.signInWithPassword({ email, password });
-  if (error) { showToast('登录失败: ' + error.message); return; }
+  if (error) {
+    let msg = error.message;
+    if (msg.includes('Invalid login')) msg = '账户或密码错误';
+    else if (msg.includes('Email not confirmed')) msg = '请先验证邮箱后再登录';
+    else msg = '登录失败，请稍后重试';
+    showToast(msg);
+    return;
+  }
   APP.user = data.user;
   await loadOrCreateProfile();
   closeModal('authModal');
@@ -1098,25 +1676,159 @@ async function handleLogin() {
   await afterAuthSuccess();
   $('loginEmail').value = $('loginPassword').value = '';
 }
-
 async function handleRegister() {
   const email = $('regEmail').value.trim();
-  const password = $('regPassword').value;
   const username = $('regUsername').value.trim();
-  if (!email || !password || password.length < 6) { showToast('密码至少6位'); return; }
-  if (!username) { showToast('请输入昵称'); return; }
-  const { data, error } = await sb.auth.signUp({ email, password });
-  if (error) { showToast('注册失败: ' + error.message); return; }
+  const phone = $('regPhone').value.trim();
+  const smsCode = $('regSmsCode').value.trim();
+  const captchaInput = $('regCaptchaInput').value.trim().toUpperCase();
+  const password = $('regPassword').value;
+  const confirmPwd = $('regConfirmPwd').value;
+
+  // 1. 检查用户名是否已被占用
+  const { data: existingUser } = await sb
+    .from('profiles')
+    .select('username')
+    .eq('username', username)
+    .maybeSingle();
+  if (existingUser) {
+    showToast('用户名已被使用，请换一个');
+    return;
+  }
+
+  // 2. 邮箱格式校验
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    showToast('请输入正确的邮箱格式');
+    return;
+  }
+
+  if (!email || !username || !phone || !smsCode || !captchaInput || !password) {
+    showToast('请填写完整信息');
+    return;
+  }
+  if (password.length < 6) { showToast('密码至少6位'); return; }
+  if (password !== confirmPwd) { showToast('两次密码不一致'); return; }
+  if (captchaInput !== currentCaptcha) { showToast('图形验证码错误'); generateCaptcha(); return; }
+  if (smsCode !== smsCodeMock) { showToast('短信验证码错误'); return; }
+
+  // 3. 调用 Supabase 注册
+  const { data, error } = await sb.auth.signUp({
+    email,
+    password,
+    options: {
+      data: {
+        username: username,
+        phone: phone,
+        avatar_url: dicebearUrl(username)
+      }
+    }
+  });
+
+  if (error) {
+    let msg = error.message;
+    if (msg.includes('rate limit')) msg = '操作太频繁，请稍后再试';
+    else if (msg.includes('already registered')) msg = '该邮箱已被注册';
+    else msg = '注册失败，请稍后重试';
+    showToast(msg);
+    return;
+  }
+
   if (data.user) {
-    const avatar = dicebearUrl(username);
-    await sb.from('profiles').insert({ id: data.user.id, username, avatar_url: avatar, level:1, exp:0 });
+    // 4. 将邮箱存入 profiles 表，方便后续用户名登录和找回密码
+    await sb.from('profiles').update({ email: email }).eq('id', data.user.id);
+    
     showToast('注册成功，请登录');
     switchAuthForm('login');
-    $('regEmail').value = $('regPassword').value = $('regUsername').value = '';
+    $('regEmail').value = $('regUsername').value = $('regPhone').value = '';
+    $('regSmsCode').value = $('regCaptchaInput').value = $('regPassword').value = $('regConfirmPwd').value = '';
   }
 }
 
-function logout() {
+
+// 忘记密码相关变量
+// 忘记密码相关变量
+let forgotTargetEmail = '';
+
+// 打开忘记密码弹窗
+function openForgotModal() {
+  closeModal('authModal');
+  $('forgotStep1').style.display = 'block';
+  $('forgotStep2').style.display = 'none';
+  $('forgotAccount').value = '';
+  $('forgotCode').value = '';
+  $('forgotNewPwd').value = '';
+  $('forgotConfirmPwd').value = '';
+  openModal('forgotModal');
+}
+
+// 步骤1：发送验证码（演示模式，直接显示验证码）
+async function handleForgotSendCode() {
+  const account = $('forgotAccount').value.trim();
+  if (!account) { showToast('请输入用户名或邮箱'); return; }
+
+  let query = sb.from('profiles').select('email');
+  if (account.includes('@')) {
+    query = query.eq('email', account);
+  } else {
+    query = query.eq('username', account);
+  }
+  const { data, error } = await query.single();
+  if (error || !data) { showToast('账号不存在'); return; }
+  if (!data.email) { showToast('该账号未绑定邮箱，无法找回'); return; }
+
+  forgotTargetEmail = data.email;
+  const code = Math.floor(100000 + Math.random() * 900000).toString();
+  const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+
+  // 直接将验证码存入数据库（供后续验证）
+  const { error: insertError } = await sb.from('password_resets').insert({
+    email: forgotTargetEmail,
+    code: code,
+    expires_at: expiresAt
+  });
+
+  if (insertError) {
+    showToast('验证码存储失败');
+    return;
+  }
+
+  // 演示模式：Toast 显示验证码
+  showToast(`验证码已发送至邮箱 ${forgotTargetEmail}（临时验证码：${code}）`);
+  $('forgotStep1').style.display = 'none';
+  $('forgotStep2').style.display = 'block';
+}
+// 步骤2：验证验证码并重置密码
+async function handleForgotResetPassword() {
+  const code = $('forgotCode').value.trim();
+  const newPwd = $('forgotNewPwd').value;
+  const confirmPwd = $('forgotConfirmPwd').value;
+
+  if (!code || !newPwd || !confirmPwd) { showToast('请填写完整信息'); return; }
+  if (newPwd.length < 6) { showToast('密码至少6位'); return; }
+  if (newPwd !== confirmPwd) { showToast('两次密码不一致'); return; }
+
+  const { data: result, error } = await sb.rpc('reset_password_with_code', {
+    target_email: forgotTargetEmail,
+    input_code: code,
+    new_password: newPwd
+  });
+
+  if (error) {
+    showToast('重置失败：' + error.message);
+    return;
+  }
+
+  if (result.success) {
+    showToast('密码重置成功，请重新登录');
+    closeModal('forgotModal');
+    openModal('authModal');
+  } else {
+    showToast(result.message);
+  }
+}
+  function logout() {
+  $('logoutBtn').style.display = 'none';
   sb.auth.signOut().then(() => {
     APP.user = null; APP.profile = null;
     $('authBtn').textContent = '登录/注册';
@@ -1143,75 +1855,285 @@ function openNotifModal() {
   openModal('notifModal');
 }
  function switchTab(tab) {
-  APP.currentTab = tab;
-  ['homeTab','discoverTab','followingTab','profileTab'].forEach(id => $(id).style.display = 'none');
-  const map = { home:'homeTab', discover:'discoverTab', following:'followingTab', profile:'profileTab' };
-  if (map[tab]) $(map[tab]).style.display = 'block';
-  // 更新导航高亮
-  qsa('[id^="nav"],[id^="mob"]').forEach(b => b.style.color = 'var(--muted)');
-  const active = { home:['navHome','mobHome'], discover:['navDiscover','mobDiscover'], following:['navFollowing','mobFollowing'] };
-  (active[tab]||[]).forEach(id => { const el = $(id); if(el) el.style.color = 'var(--accent)'; });
+  // === 添加淡出动画 ===
+  const oldTab = $(APP.currentTab + 'Tab');
+  if (oldTab) {
+    oldTab.style.transition = 'opacity 0.2s';
+    oldTab.style.opacity = '0';
+  }
 
-  if (tab === 'discover') loadRanks();
-  if (tab === 'following') loadFollowingPosts();
-  if (tab === 'profile') renderProfile();
+  setTimeout(() => {
+    APP.currentTab = tab;
+   ['homeTab','discoverTab','followingTab','profileTab','topicDetailTab','searchTab'].forEach(id => {
+  const el = $(id);
+  if (el) el.style.display = 'none';
+});
+    const map = { home:'homeTab', discover:'discoverTab', following:'followingTab', profile:'profileTab' };
+    if (map[tab]) {
+      const newTab = $(map[tab]);
+      newTab.style.display = 'block';
+      newTab.style.opacity = '0';
+      newTab.style.transition = 'opacity 0.2s';
+      setTimeout(() => newTab.style.opacity = '1', 10);
+    }
+    
+    // 更新导航高亮
+    qsa('[id^="nav"],[id^="mob"]').forEach(b => b.style.color = 'var(--muted)');
+    const active = { home:['navHome','mobHome'], discover:['navDiscover','mobDiscover'], following:['navFollowing','mobFollowing'] };
+    (active[tab]||[]).forEach(id => { const el = $(id); if(el) el.style.color = 'var(--accent)'; });
+   if (tab === 'discover') loadRanks();
+    if (tab === 'following') loadFollowingPosts();
+   if (tab === 'home') {
+  // 清空搜索关键词和输入框
+  APP.filters.keyword = '';
+  const homeSearchInput = $('homeSearchInput');
+  if (homeSearchInput) homeSearchInput.value = '';
+  
+  renderTopicCloud();
+  loadHotRecommend();
+  loadPosts(true); // 确保刷新帖子列表（重置为全部内容）
+}
+    if (tab === 'profile') renderProfile();
+   }, 200);
+}
+async function loadHotRecommend() {
+  const list = $('hotRecommendList'); if (!list) return;
+  list.innerHTML = '<div class="col-span-full text-center py-4" style="color:var(--muted)"><i class="fas fa-spinner fa-pulse mr-2"></i>加载推荐...</div>';
+  const { data } = await sb.from('posts').select('id, title, upvotes, comments_count, downloads, profiles(username)').neq('post_type', 'story').order('hot_score', { ascending: false }).limit(20);
+  if (!data || data.length === 0) { list.innerHTML = '<div class="col-span-full text-center py-4" style="color:var(--muted)">暂无推荐内容</div>'; return; }
+  const shuffled = data.sort(() => Math.random() - 0.5).slice(0, 5);
+  list.innerHTML = shuffled.map(p => `<div class="hot-recommend-item card-base p-4" onclick="openComments('${p.id}')"><div class="flex items-start gap-3"><div class="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center"><i class="fas fa-fire text-white"></i></div><div class="flex-1 min-w-0"><div class="text-sm font-bold truncate">${p.title}</div><div class="flex items-center gap-3 mt-2 text-xs" style="color:var(--muted)"><span><i class="fas fa-user mr-1"></i>${p.profiles?.username || '干员'}</span><span><i class="fas fa-thumbs-up mr-1"></i>${p.upvotes || 0}</span><span><i class="fas fa-comment mr-1"></i>${p.comments_count || 0}</span></div></div></div></div>`).join('');
 }
 
-function openProfile() { switchTab('profile'); }
+function openProfile() {
+  if (!APP.user) {
+    openAuthModal();
+    return;
+  }
+  switchTab('profile');
+}
+let viewingUserId = null;
+async function viewUserProfile(userId) {
+  if (!userId) return;
+  viewingUserId = userId;
+  const { data: profile } = await sb.from('profiles').select('*').eq('id', userId).single();
+  if (!profile) { showToast('用户不存在'); return; }
+  
+  let modal = $('userProfileModal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'userProfileModal';
+    modal.className = 'modal-overlay';
+    modal.innerHTML = `
+      <div class="modal-content" style="max-width:480px">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="font-display text-xl" id="viewUserName">干员资料</h2>
+          <button onclick="closeModal('userProfileModal')" class="w-8 h-8 rounded-full flex items-center justify-center" style="background:var(--surface)"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="flex items-center gap-4 mb-4">
+          <img id="viewUserAvatar" class="w-16 h-16 rounded-full object-cover border-2" style="border-color:var(--accent)">
+          <div>
+            <div class="font-bold text-lg" id="viewUserDisplayName"></div>
+            <div class="text-sm" style="color:var(--muted)">Lv.<span id="viewUserLevel">1</span> · <span id="viewUserFollowers">0</span> 粉丝</div>
+          </div>
+          <button class="btn-ghost text-sm ml-auto" id="viewUserFollowBtn" onclick="toggleFollowFromModal()">+ 关注</button>
+        </div>
+        <div class="grid grid-cols-3 gap-2 text-center mb-4">
+          <div><span class="font-bold" id="viewUserPosts">0</span><span class="text-xs block">发帖</span></div>
+          <div><span class="font-bold" id="viewUserLikes">0</span><span class="text-xs block">获赞</span></div>
+          <div><span class="font-bold" id="viewUserBadges">0</span><span class="text-xs block">勋章</span></div>
+        </div>
+        <h3 class="font-bold mb-2">最新帖子</h3>
+        <div id="viewUserRecentPosts" class="space-y-2 max-h-60 overflow-y-auto"></div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+  }
+  $('viewUserName').textContent = profile.username;
+  $('viewUserAvatar').src = profile.avatar_url || dicebearUrl(profile.username);
+  $('viewUserDisplayName').textContent = profile.username;
+  $('viewUserLevel').textContent = profile.level || 1;
+  $('viewUserFollowers').textContent = profile.followers_count || 0;
+  $('viewUserPosts').textContent = profile.posts_count || 0;
+  $('viewUserLikes').textContent = profile.likes_received || 0;
+  $('viewUserBadges').textContent = (profile.badges?.length) || 0;
+  
+  const isFollowing = APP.followedIds.includes(userId);
+  $('viewUserFollowBtn').textContent = isFollowing ? '已关注' : '+ 关注';
+  $('viewUserFollowBtn').onclick = () => toggleFollowFromModal(userId);
+  
+  const { data: posts } = await sb.from('posts').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(5);
+  const container = $('viewUserRecentPosts');
+  container.innerHTML = '';
+  if (posts) {
+    posts.forEach(p => {
+      container.innerHTML += `<div class="p-2 rounded-lg text-sm cursor-pointer" style="background:var(--surface)" onclick="openComments('${p.id}'); closeModal('userProfileModal')">${p.title}</div>`;
+    });
+  }
+  openModal('userProfileModal');
+}
+
+function toggleFollowFromModal(uid) {
+  followUser(uid);
+  const isFollowing = APP.followedIds.includes(uid);
+  $('viewUserFollowBtn').textContent = isFollowing ? '已关注' : '+ 关注';
+  $('viewUserFollowers').textContent = (parseInt($('viewUserFollowers').textContent) + (isFollowing ? 1 : -1)) || 0;
+}
 function updateNavAvatar() {
   const url = APP.profile?.avatar_url || dicebearUrl('default');
   $('navAvatarImg').src = url;
 }
 
 // ==================== 筛选 ====================
-function setFilter(type, val, btn) {
-  APP.filters[type] = val;
-  qsa(`[data-filter="${type}"]`).forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
+// 下拉筛选控制
+function toggleFilterDropdown(id) {
+  const menu = document.querySelector(`#${id} .filter-menu`);
+  if (menu) {
+    // 关闭其他下拉
+    document.querySelectorAll('.filter-menu').forEach(m => { if (m !== menu) m.classList.add('hidden'); });
+    menu.classList.toggle('hidden');
+  }
+}
+
+function selectFilterType(val) {
+  APP.filters.type = val;
+  $('currentTypeLabel').textContent = {all:'全部', normal:'图文', vote:'投票', qa:'问答'}[val] || val;
+  document.querySelectorAll('.filter-menu').forEach(m => m.classList.add('hidden'));
   loadPosts(true);
 }
 
-// ==================== 帖子加载与渲染 ====================
-async function loadPosts(reset) {
-  if (reset) { APP.postsPage = 0; APP.allPostsLoaded = false; $('postsGrid').innerHTML = ''; }
-  if (APP.allPostsLoaded) return;
+function selectFilterOp(val) {
+  APP.filters.op = val;
+  $('currentOpLabel').textContent = val === 'all' ? '全兵种' : val;
+  document.querySelectorAll('.filter-menu').forEach(m => m.classList.add('hidden'));
+  loadPosts(true);
+}
 
-  let query = sb.from('posts').select('*, profiles(username, avatar_url, level)', { count: 'exact' })
+function selectFilterSort(val) {
+  APP.filters.sort = val;
+  $('currentSortLabel').textContent = {latest:'最新', hot:'热度', likes:'赞最多', downloads:'下载最多'}[val] || val;
+  document.querySelectorAll('.filter-menu').forEach(m => m.classList.add('hidden'));
+  loadPosts(true);
+}
+
+function selectFilterTopic(val) {
+  APP.filters.topic = val;
+  $('currentTopicLabel').textContent = val === 'all' ? '全话题' : val;
+  document.querySelectorAll('.filter-menu').forEach(m => m.classList.add('hidden'));
+  loadPosts(true);
+}
+
+// 点击其他地方关闭下拉
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.filter-dropdown')) {
+    document.querySelectorAll('.filter-menu').forEach(m => m.classList.add('hidden'));
+  }
+});
+
+// ==================== 帖子加载与渲染 ====================
+const HOT_TOPICS = ['战术研讨','新手攻略','武器评测','战队招募','精彩集锦','三角洲行动','每日打卡','求助大神','晒战绩','游戏资讯','版本更新','枪械配件','地图攻略','狙击教学','团队配合'];
+function renderTopicCloud() {
+  const cloud = $('topicCloud');
+  const topics = HOT_TOPICS.sort(() => Math.random() - 0.5).slice(0, 8);
+  cloud.innerHTML = topics.map(t => {
+    const size = Math.floor(Math.random() * 6) + 10; // 10-15px
+    return `<span class="topic-tag" style="font-size:${size}px;" onclick="selectTopicFromCloud('${t}')">#${t}</span>`;
+  }).join('');
+}
+
+function selectTopicFromCloud(topic) { 
+  openTopicDetail(topic); 
+}
+// 首页筛选栏搜索
+function performHomeSearch() {
+  const kw = $('homeSearchInput').value.trim();
+  APP.filters.keyword = kw;
+  // 同时可以清空话题筛选，避免混淆（可选）
+  // APP.filters.topic = 'all';
+  // $('currentTopicLabel').textContent = '全话题';
+  loadPosts(true);
+  // 更新当前筛选显示（可选）
+  showToast(kw ? `搜索：${kw}` : '显示全部帖子');
+}
+
+// 清空搜索关键词（在输入框旁边添加清除功能，可选）
+function clearHomeSearch() {
+  $('homeSearchInput').value = '';
+  APP.filters.keyword = '';
+  loadPosts(true);
+}
+function loadMoreTopics() {
+  renderTopicCloud();
+}
+async function loadPosts(reset) {
+  if (APP.loading) return;
+  APP.loading = true;
+  if ($('postsSkeleton')) $('postsSkeleton').style.display = 'block';
+
+  if (reset) { 
+    APP.postsPage = 0; 
+    APP.allPostsLoaded = false; 
+    $('postsGrid').innerHTML = ''; 
+  }
+  
+  if (APP.allPostsLoaded) {
+    if ($('postsSkeleton')) $('postsSkeleton').style.display = 'none';
+    setLoadingBar(100);
+    APP.loading = false;
+    return;
+  }
+
+  let query = sb.from('posts').select('*, profiles(username, avatar_url, level, display_badge, badges)', { count: 'exact' })
     .neq('post_type', 'story');
 
-  // 筛选
   if (APP.filters.type !== 'all') query = query.eq('post_type', APP.filters.type);
   if (APP.filters.op !== 'all') query = query.eq('operator_class', APP.filters.op);
+  // 关键词搜索（对标题和描述进行模糊匹配）
+  if (APP.filters.keyword && APP.filters.keyword.trim() !== '') {
+    const kw = APP.filters.keyword.trim();
+    query = query.or(`title.ilike.%${kw}%,description.ilike.%${kw}%`);
+  }
+if (APP.filters.topic && APP.filters.topic !== 'all') {
+  query = query.contains('tags', [APP.filters.topic]);
+}
 
-  // 排序
   const sortMap = { latest: 'created_at', hot: 'hot_score', likes: 'upvotes', downloads: 'downloads' };
   query = query.order(sortMap[APP.filters.sort] || 'created_at', { ascending: false });
 
   const from = APP.postsPage * APP.postsPerPage;
   query = query.range(from, from + APP.postsPerPage - 1);
 
-  const { data, error } = await query;
-  if (error) { console.error('加载帖子失败:', error); return; }
+  const { data, error, count } = await query;
+  if (error) { 
+    console.error('加载帖子失败:', error); 
+    APP.loading = false; 
+    if ($('postsSkeleton')) $('postsSkeleton').style.display = 'none';
+    return; 
+  }
 
-  // 加载置顶帖
+  // 更新右上角动态总数（仅在重置加载时更新）
+  if (reset && count !== null) {
+    const countEl = $('postCount');
+    if (countEl) countEl.textContent = count;
+  }
+
   await loadTopPost();
 
-  // 渲染
   (data || []).forEach((p, i) => {
     const el = createPostCard(p, i);
     $('postsGrid').appendChild(el);
   });
 
-  if ((data||[]).length < APP.postsPerPage) APP.allPostsLoaded = true;
+  if ((data || []).length < APP.postsPerPage) APP.allPostsLoaded = true;
   APP.postsPage++;
 
-  // 加载用户投票信息
   await loadUserVotes();
-}
-
-async function loadTopPost() {
+  
+  if ($('postsSkeleton')) $('postsSkeleton').style.display = 'none';
+  APP.loading = false;
+}async function loadTopPost() {
   const yesterday = new Date(Date.now() - 86400000).toISOString();
-  const { data } = await sb.from('posts').select('*, profiles(username, avatar_url, level)')
+    const { data } = await sb.from('posts').select('*, profiles(username, avatar_url, level, display_badge, badges)')
     .eq('is_top_today', true).gt('created_at', yesterday).limit(1);
   const area = $('topPostArea');
   if (data && data.length) {
@@ -1227,17 +2149,36 @@ function createPostCard(post, idx, isTop = false) {
   const div = document.createElement('div');
   div.className = 'masonry-item card-enter';
   div.style.animationDelay = (idx * 0.06) + 's';
+  // 获取用户展示的勋章
+  let displayBadgeHtml = '';
+  if (post.profiles?.display_badge && post.profiles?.badges) {
+    const badges = post.profiles.badges;
+    const activeBadge = badges.find(b => b.id === post.profiles.display_badge);
+    if (activeBadge) {
+      const rarityClass = activeBadge.rarity === 'legend' ? 'badge-legendary' : (activeBadge.rarity === 'epic' ? 'badge-epic' : 'badge-rare');
+      displayBadgeHtml = `<span class="badge-display ${rarityClass}" title="${activeBadge.name}" style="margin-left:6px; font-size:14px;">${activeBadge.icon}</span>`;
+    }
+  }
 
   const mediaHTML = (post.media_urls || []).slice(0,1).map(url => {
-    if (url.match(/\.(mp4|webm)$/i)) {
-      return `<video src="${url}" class="w-full rounded-lg" controls preload="metadata" style="max-height:300px"></video>`;
-    }
-    return `<img src="${url}" alt="" class="w-full rounded-lg cursor-pointer object-cover" style="max-height:320px" onclick="openLightbox('${url}')">`;
-  }).join('');
+  if (url.match(/\.(mp4|webm)$/i)) {
+    return `<video src="${url}" class="w-full rounded-lg" controls preload="metadata" style="max-height:300px"></video>`;
+  }
+  return `<img src="${url}" alt="" class="w-full rounded-lg cursor-pointer object-cover" style="max-height:320px" onclick="openLightbox('${url}')">`;
+}).join('');
 
   const topBadge = isTop ? `<span class="badge badge-gold text-xs"><i class="fas fa-trophy mr-1"></i>今日榜首</span>` : '';
   const typeLabel = { vote:'投票', qa:'问答', normal:'' }[post.post_type] || '';
-  const opLabel = post.operator_class ? `<span class="tag-pill">${post.operator_class}</span>` : '';
+  const opClass = post.operator_class || '全能';
+const opColorMap = {
+  '突击': '#e05a2f',
+  '工程': '#2ecc71',
+  '侦察': '#3498db',
+  '支援': '#f1c40f',
+  '全能': '#9b59b6'
+};
+const opColor = opColorMap[opClass] || '#9b59b6';
+const opLabel = `<span class="tag-pill" style="background:${opColor}20; color:${opColor}; border-color:${opColor}40; margin-left:4px; font-weight:600; padding:4px 10px;"><i class="fas fa-shield-alt mr-1"></i>${opClass}</span>`;
   const tagsHTML = (post.tags||[]).slice(0,3).map(t => `<span class="tag-pill">#${t}</span>`).join(' ');
 
   // 投票选项渲染
@@ -1257,16 +2198,24 @@ function createPostCard(post, idx, isTop = false) {
       <div class="flex items-center gap-2 mb-2">
         <img src="${post.profiles?.avatar_url || dicebearUrl('u')}" class="w-8 h-8 rounded-full object-cover">
         <div>
-          <div class="text-sm font-bold">${post.profiles?.username || '干员'}</div>
+          <div class="text-sm font-bold cursor-pointer hover:underline" onclick="viewUserProfile('${post.user_id}')">${post.profiles?.username || '干员'}${displayBadgeHtml}</div>
           <div class="text-xs" style="color:var(--muted)">${timeAgo(post.created_at)}</div>
 ${APP.user && APP.user.id !== post.user_id ? `<button class="text-xs mt-1 px-2 py-0.5 rounded-full" style="border:1px solid var(--accent);color:var(--accent)" onclick="followUser('${post.user_id}')">${APP.followedIds.includes(post.user_id) ? '已关注' : '+ 关注'}</button>` : ''}
         </div>
         ${topBadge}
         <div class="ml-auto relative">
           <button onclick="togglePostMenu(event,'${post.id}')" class="text-xs px-2 py-1 rounded" style="color:var(--muted)"><i class="fas fa-ellipsis-v"></i></button>
-          <div class="post-menu absolute right-0 top-6 card-base p-2 space-y-1 text-xs" style="display:none;z-index:50;min-width:100px" id="menu-${post.id}">
+                             <div class="post-menu absolute right-0 top-6 card-base p-2 space-y-1 text-xs" style="display:none;z-index:50;min-width:120px" id="menu-${post.id}">
             <button class="block w-full text-left px-2 py-1 rounded hover:bg-black/5" onclick="openReportModal('${post.id}')">举报</button>
-${(APP.user?.id === post.user_id || APP.isAdmin) ? `<button class="block w-full text-left px-2 py-1 rounded hover:bg-red-500/10 text-red-500" onclick="deletePost('${post.id}')">删除</button>` : ''}
+            ${(APP.user?.id === post.user_id || APP.isAdmin) ? `<button class="block w-full text-left px-2 py-1 rounded hover:bg-red-500/10 text-red-500" onclick="deletePost('${post.id}')">删除</button>` : ''}
+            ${APP.isAdmin ? `
+              <button class="block w-full text-left px-2 py-1 rounded hover:bg-yellow-500/10 text-yellow-500" onclick="adminToggleTop('${post.id}')">
+                <i class="fas fa-thumbtack mr-1"></i>${post.is_top_today ? '取消置顶' : '设为置顶'}
+              </button>
+              <button class="block w-full text-left px-2 py-1 rounded hover:bg-purple-500/10 text-purple-500" onclick="adminToggleFeatured('${post.id}')">
+                <i class="fas fa-star mr-1"></i>${post.featured ? '取消加精' : '设为加精'}
+              </button>
+            ` : ''}
           </div>
         </div>
       </div>
@@ -1316,6 +2265,12 @@ function addVoteOption() {
 }
 
 // 媒体预览
+// 首页搜索框监听回车
+$('homeSearchInput')?.addEventListener('keypress', function(e) {
+  if (e.key === 'Enter') {
+    performHomeSearch();
+  }
+});
 $('pubMedia')?.addEventListener('change', function() {
   $('pubMediaPreview').innerHTML = '';
   Array.from(this.files).forEach(f => {
@@ -1329,6 +2284,7 @@ $('pubMedia')?.addEventListener('change', function() {
 });
 // 上传媒体文件
 async function publishPost() {
+  if (!APP.user) { showToast('请先登录'); openAuthModal(); return; }
   const btn = event.target;
   if (btn.disabled) return;
   btn.disabled = true;
@@ -1381,7 +2337,6 @@ async function publishPost() {
   loadPosts(true);
   btn.disabled = false;
 }
-
 // ==================== 点赞/点踩 ====================
 async function loadUserVotes() {
   if (!APP.user) return;
@@ -1391,6 +2346,9 @@ async function loadUserVotes() {
 }
 
 async function votePost(pid, type) {
+  // === 添加震动效果 ===
+  if (navigator.vibrate) navigator.vibrate(10);
+  
   if (APP.myVoteMap[pid]) { showToast('你已经投过票了'); return; }
   const { error } = await sb.from('votes').insert({ user_id: APP.user.id, post_id: pid, vote_type: type });
   if (error) { showToast('投票失败'); return; }
@@ -1398,9 +2356,19 @@ async function votePost(pid, type) {
 
   // 更新计数
   const field = type === 'up' ? 'upvotes' : 'downvotes';
-  const { data: post } = await sb.from('posts').select(field).eq('id', pid).single();
+  const { data: post } = await sb.from('posts').select('upvotes, downvotes, comments_count, downloads').eq('id', pid).single();
   if (post) {
-    await sb.from('posts').update({ [field]: (post[field]||0) + 1 }).eq('id', pid);
+    const newUpvotes = (post.upvotes || 0) + (type === 'up' ? 1 : 0);
+    const newDownvotes = (post.downvotes || 0) + (type === 'down' ? 1 : 0);
+    
+    // 计算新的热度分数
+    const hotScore = (newUpvotes * 3) + ((post.comments_count || 0) * 2) + (post.downloads || 0);
+    
+    await sb.from('posts').update({ 
+      [field]: (post[field] || 0) + 1,
+      hot_score: hotScore
+    }).eq('id', pid);
+    
     const btn = $(type + '-' + pid);
     if (btn) btn.innerHTML = `<i class="fas fa-thumbs-${type==='up'?'up':'down'}"></i> ${(post[field]||0)+1}`;
     if (type === 'up') {
@@ -1413,10 +2381,32 @@ async function votePost(pid, type) {
       }
     }
   }
+  // 发送通知给帖子作者（仅当是点赞时）
+  if (type === 'up') {
+    const { data: postData } = await sb.from('posts').select('user_id').eq('id', pid).single();
+    if (postData && postData.user_id !== APP.user.id) {
+      await sb.from('notifications').insert({
+        recipient_id: postData.user_id,
+        sender_id: APP.user.id,
+        type: 'like',
+        content: `${APP.profile.username} 赞了你的帖子`,
+        link: `/post/${pid}`
+      });
+    }
+  }
 }
-
 // ==================== 收藏 ====================
 async function favPost(pid) {
+  const { data: postData } = await sb.from('posts').select('user_id').eq('id', pid).single();
+  if (postData && postData.user_id !== APP.user.id) {
+    await sb.from('notifications').insert({
+      recipient_id: postData.user_id,
+      sender_id: APP.user.id,
+      type: 'favorite',
+      content: `${APP.profile.username} 收藏了你的帖子`,
+      link: `/post/${pid}`
+    });
+  }
   if (APP.myFavSet.has(pid)) { showToast('已收藏'); return; }
   const { error } = await sb.from('favorites').insert({ user_id: APP.user.id, post_id: pid });
   if (error) { showToast('收藏失败'); return; }
@@ -1433,10 +2423,82 @@ async function favPost(pid) {
 // ==================== 评论系统 ====================
 async function openComments(pid) {
   APP.currentPostId = pid;
+  
+  // 获取帖子详情
+  const { data: post } = await sb.from('posts').select('*, profiles(username, avatar_url, level, display_badge, badges)').eq('id', pid).single();
+  
+  // 构建弹窗内容
+  const modal = $('commentsModal');
+  const contentDiv = modal.querySelector('.modal-content');
+  
+  // 保存原始评论列表区域（如果已存在则保留，否则创建结构）
+  let postPreviewEl = $('postPreviewSection');
+  if (!postPreviewEl) {
+    // 首次打开时，重构弹窗内部结构
+    const originalHTML = contentDiv.innerHTML;
+    contentDiv.innerHTML = `
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="font-display text-xl">帖子详情</h2>
+        <button onclick="closeModal('commentsModal')" class="w-8 h-8 rounded-full flex items-center justify-center" style="background:var(--surface)"><i class="fas fa-times"></i></button>
+      </div>
+      <div id="postPreviewSection" class="mb-4 p-3 rounded-xl" style="background:var(--surface); max-height: 40vh; overflow-y: auto;"></div>
+      <div id="commentsList" class="space-y-3 max-h-64 overflow-y-auto mb-3"></div>
+      <div class="flex gap-2 items-end">
+        <div class="flex-1">
+          <textarea id="commentInput" rows="2" placeholder="写评论... @提及用户" class="w-full text-sm"></textarea>
+          <div class="flex gap-1 mt-1">
+            <button class="text-xs px-2 py-1 rounded" style="background:var(--surface)" onclick="insertEmoji('👍')">👍</button>
+            <button class="text-xs px-2 py-1 rounded" style="background:var(--surface)" onclick="insertEmoji('🔥')">🔥</button>
+            <button class="text-xs px-2 py-1 rounded" style="background:var(--surface)" onclick="insertEmoji('😂')">😂</button>
+            <button class="text-xs px-2 py-1 rounded" style="background:var(--surface)" onclick="insertEmoji('❤️')">❤️</button>
+            <button class="text-xs px-2 py-1 rounded" style="background:var(--surface)" onclick="insertEmoji('🎯')">🎯</button>
+            <button class="text-xs px-2 py-1 rounded" style="background:var(--surface)" onclick="insertEmoji('💪')">💪</button>
+          </div>
+        </div>
+        <div class="flex flex-col gap-1">
+          <button class="btn-warm text-xs px-3 py-2" onclick="submitComment()"><i class="fas fa-paper-plane"></i></button>
+          <button class="btn-ghost text-xs px-3 py-2" id="voiceRecordBtn" onclick="toggleVoiceRecord()" title="语音评论（最长15秒）"><i class="fas fa-microphone"></i></button>
+        </div>
+      </div>
+      <div id="voiceRecordingIndicator" style="display:none" class="mt-2 text-center">
+        <span class="recording inline-block w-3 h-3 rounded-full bg-red-500 mr-1"></span>
+        <span class="text-sm text-red-500" id="voiceTimer">0s / 15s</span>
+        <button class="text-xs ml-2" style="color:var(--accent)" onclick="stopVoiceRecord()">停止</button>
+      </div>
+    `;
+    postPreviewEl = $('postPreviewSection');
+  }
+  
+  // 渲染帖子预览
+  if (post) {
+    const mediaHTML = (post.media_urls || []).map(url => {
+      if (url.match(/\.(mp4|webm|mov)$/i)) {
+        return `<video src="${url}" controls class="w-full rounded-lg" style="max-height:300px; object-fit:contain;"></video>`;
+      } else {
+        return `<img src="${url}" class="w-full rounded-lg cursor-pointer object-contain" style="max-height:300px;" onclick="openLightbox('${url}')">`;
+      }
+    }).join('');
+    
+    postPreviewEl.innerHTML = `
+      <div class="flex items-center gap-2 mb-2">
+        <img src="${post.profiles?.avatar_url || dicebearUrl('u')}" class="w-8 h-8 rounded-full object-cover">
+        <div>
+          <div class="text-sm font-bold">${post.profiles?.username || '干员'}</div>
+          <div class="text-xs" style="color:var(--muted)">${timeAgo(post.created_at)}</div>
+        </div>
+      </div>
+      <h3 class="font-bold text-base mb-1">${post.title}</h3>
+      ${post.description ? `<p class="text-sm mb-2" style="color:var(--muted)">${post.description}</p>` : ''}
+      ${mediaHTML ? `<div class="flex flex-col gap-2">${mediaHTML}</div>` : ''}
+    `;
+  }
+  
+  // 加载评论
   await loadComments(pid);
+  
   openModal('commentsModal');
+  setTimeout(() => $('commentInput')?.focus(), 100);
 }
-
 async function loadComments(pid) {
   const { data } = await sb.from('comments').select('*, profiles(username, avatar_url)').eq('post_id', pid).order('created_at', { ascending: true });
   const list = $('commentsList');
@@ -1482,8 +2544,8 @@ function replyTo(username, parentId) {
 function insertEmoji(emoji) {
   $('commentInput').value += emoji;
 }
-
 async function submitComment() {
+  if (!APP.user) { showToast('请先登录'); openAuthModal(); return; }
   const content = $('commentInput').value.trim();
   const voiceUrl = $('commentInput').dataset.voiceUrl || null;
   if (!content && !voiceUrl) { showToast('请输入评论内容'); return; }
@@ -1498,14 +2560,19 @@ async function submitComment() {
   if (error) { showToast('评论失败'); return; }
 
   // 更新评论计数
-  const { data: post } = await sb.from('posts').select('comments_count').eq('id', APP.currentPostId).single();
-  if (post) await sb.from('posts').update({ comments_count: (post.comments_count||0)+1 }).eq('id', APP.currentPostId);
+  const { data: post } = await sb.from('posts').select('comments_count, upvotes, downloads').eq('id', APP.currentPostId).single();
+  if (post) {
+    const newCommentCount = (post.comments_count || 0) + 1;
+    const hotScore = ((post.upvotes || 0) * 3) + (newCommentCount * 2) + (post.downloads || 0);
+    await sb.from('posts').update({ comments_count: newCommentCount, hot_score: hotScore }).eq('id', APP.currentPostId);
+  }
 
   showToast('评论成功');
-  $('commentInput').value = ''; $('commentInput').dataset.parentId = ''; $('commentInput').dataset.voiceUrl = '';
+  $('commentInput').value = ''; 
+  $('commentInput').dataset.parentId = ''; 
+  $('commentInput').dataset.voiceUrl = '';
   loadComments(APP.currentPostId);
 }
-
 async function likeComment(cid) {
   const { data: c } = await sb.from('comments').select('upvotes').eq('id', cid).single();
   if (c) await sb.from('comments').update({ upvotes: (c.upvotes||0)+1 }).eq('id', cid);
@@ -1561,16 +2628,13 @@ function stopVoiceRecord() {
 
 // ==================== 下载加水印 ====================
 async function downloadWithWatermark(pid) {
-  const { data: post } = await sb.from('posts').select('media_urls, downloads').eq('id', pid).single();
+  const { data: post } = await sb.from('posts').select('media_urls, downloads, upvotes, comments_count').eq('id', pid).single();
   if (!post || !post.media_urls || !post.media_urls.length) { showToast('无可下载内容'); return; }
 
   const url = post.media_urls[0];
-  
-  // 判断是否为管理员（从 APP.isAdmin 获取）
   const isAdmin = APP.isAdmin;
   
   if (url.match(/\.(mp4|webm)$/i)) {
-    // 视频直接下载（无水印）
     const a = document.createElement('a'); 
     a.href = url; 
     a.download = 'video.mp4'; 
@@ -1585,7 +2649,6 @@ async function downloadWithWatermark(pid) {
       const ctx = c.getContext('2d');
       ctx.drawImage(img, 0, 0);
       
-      // 如果不是管理员，添加水印
       if (!isAdmin) {
         ctx.font = `${Math.max(16, c.width * 0.03)}px "Noto Sans SC"`;
         ctx.fillStyle = 'rgba(255,255,255,0.4)';
@@ -1600,12 +2663,42 @@ async function downloadWithWatermark(pid) {
     };
     img.src = url;
   }
-  // 更新下载计数
-  await sb.from('posts').update({ downloads: (post.downloads||0)+1 }).eq('id', pid);
+  
+  // === 更新下载计数和热度 ===
+  const newDownloads = (post.downloads || 0) + 1;
+  const hotScore = ((post.upvotes || 0) * 3) + ((post.comments_count || 0) * 2) + newDownloads;
+  
+  await sb.from('posts').update({ 
+    downloads: newDownloads,
+    hot_score: hotScore
+  }).eq('id', pid);
+
+  // === 发送下载通知 ===
+  const { data: postData } = await sb.from('posts').select('user_id').eq('id', pid).single();
+  if (postData && postData.user_id !== APP.user.id) {
+    await sb.from('notifications').insert({
+      recipient_id: postData.user_id,
+      sender_id: APP.user.id,
+      type: 'download',
+      content: `${APP.profile.username} 下载了你的帖子`,
+      link: `/post/${pid}`
+    });
+  }
+  
   showToast('下载成功');
 }
 // ==================== 分享 ====================
 async function deletePost(pid) {
+  // 先获取帖子信息，确认权限
+  const { data: post, error: fetchError } = await sb.from('posts').select('user_id').eq('id', pid).single();
+  if (fetchError || !post) { showToast('帖子不存在'); return; }
+  
+  // 允许作者本人或管理员删除
+  if (post.user_id !== APP.user?.id && !APP.isAdmin) {
+    showToast('无权删除此帖子');
+    return;
+  }
+  
   if (!confirm('确定删除这篇帖子吗？')) return;
   const { error } = await sb.from('posts').delete().eq('id', pid);
   if (error) { showToast('删除失败: '+error.message); return; }
@@ -1617,6 +2710,29 @@ async function deletePost(pid) {
 function sharePost(pid) {
   const url = window.location.origin + window.location.pathname + '#post-' + pid;
   navigator.clipboard.writeText(url).then(() => showToast('链接已复制')).catch(() => showToast('复制失败'));
+}
+// 管理员置顶切换
+async function adminToggleTop(pid) {
+  if (!APP.isAdmin) { showToast('无权限'); return; }
+  const { data: post } = await sb.from('posts').select('is_top_today').eq('id', pid).single();
+  if (!post) return;
+  const newStatus = !post.is_top_today;
+  const { error } = await sb.from('posts').update({ is_top_today: newStatus }).eq('id', pid);
+  if (error) { showToast('操作失败'); return; }
+  showToast(newStatus ? '已设为置顶' : '已取消置顶');
+  loadPosts(true);
+}
+
+// 管理员加精切换
+async function adminToggleFeatured(pid) {
+  if (!APP.isAdmin) { showToast('无权限'); return; }
+  const { data: post } = await sb.from('posts').select('featured').eq('id', pid).single();
+  if (!post) return;
+  const newStatus = !post.featured;
+  const { error } = await sb.from('posts').update({ featured: newStatus }).eq('id', pid);
+  if (error) { showToast('操作失败'); return; }
+  showToast(newStatus ? '已加精' : '已取消加精');
+  loadPosts(true);
 }
 
 // ==================== 举报 ====================
@@ -1660,10 +2776,24 @@ function openLightbox(url) {
   $('lightboxImg').src = url;
   $('lightbox').classList.add('active');
 }
-function closeLightbox() { $('lightbox').classList.remove('active'); }
+function closeLightbox() { 
+$('lightbox').classList.remove('active'); }
 
 // ==================== 加载更多 ====================
-function loadMorePosts() { loadPosts(false); }
+function setLoadingBar(percent) {
+  const bar = $('loadingBar');
+  if (bar) {
+    bar.style.width = percent + '%';
+    if (percent >= 100) {
+      setTimeout(() => bar.style.width = '0%', 300);
+    }
+  }
+}
+function loadMorePosts() {
+  if (!APP.allPostsLoaded) {
+    loadPosts(false);
+  }
+}
 
 // ==================== 轮播图/Banner ====================
 async function loadBanners() {
@@ -1721,8 +2851,8 @@ function viewStory(story) {
   document.body.appendChild(overlay);
   setTimeout(() => overlay.remove(), 10000);
 }
-
 async function publishStory() {
+  if (!APP.user) { showToast('请先登录'); openAuthModal(); return; }
   const text = $('storyText').value.trim();
   if (!text) { showToast('请输入动态内容'); return; }
   let mediaUrls = [];
@@ -1742,12 +2872,19 @@ async function publishStory() {
     media_urls: mediaUrls, post_type: 'story', story_expires_at: expires
   });
   if (error) { showToast('发布失败'); return; }
+
+  // ===== 更新发帖计数 =====
+  const newPostCount = (APP.profile.posts_count || 0) + 1;
+  await sb.from('profiles').update({ posts_count: newPostCount }).eq('id', APP.user.id);
+  APP.profile.posts_count = newPostCount;
+  checkAchievement('first_post', newPostCount >= 1);
+  checkAchievement('50_posts', newPostCount >= 50);
+
   showToast('动态已发布');
   closeModal('storyPublishModal');
   $('storyText').value = ''; $('storyMedia').value = '';
   await loadStories();
-}
-// ==================== Story 限时动态结束 ====================
+}// ==================== Story 限时动态结束 ====================
 
 // ==================== 个人资料 ====================
 function renderProfile() {
@@ -1764,21 +2901,38 @@ function renderProfile() {
   $('statFollowers').textContent = APP.profile.followers_count || 0;
   $('statFollowing').textContent = APP.profile.following_count || 0;
 
-  // 勋章墙
+    // 勋章墙（包含系统成就和自定义勋章）
   const wall = $('achievementsWall');
   wall.innerHTML = '';
-  const badges = [
+  
+  // 1. 系统成就
+  const sysBadges = [
     { id:'first_post', name:'初出茅庐', icon:'fa-flag', cls:'badge-bronze' },
     { id:'10_likes', name:'小有名气', icon:'fa-fire', cls:'badge-silver' },
     { id:'100_likes', name:'声名远扬', icon:'fa-star', cls:'badge-gold' },
     { id:'7_checkin', name:'坚持不懈', icon:'fa-calendar-check', cls:'badge-silver' },
-    { id:'50_posts', name:' prolific', icon:'fa-pen', cls:'badge-gold' },
+    { id:'50_posts', name:'多产作者', icon:'fa-pen', cls:'badge-gold' },
   ];
   const achs = APP.profile.achievements || [];
-  badges.forEach(b => {
+  sysBadges.forEach(b => {
     const earned = achs.includes(b.id);
     wall.innerHTML += `<span class="badge ${b.cls}" style="${earned?'':'opacity:0.3;filter:grayscale(1)'}"><i class="fas ${b.icon} mr-1"></i>${b.name}</span>`;
   });
+  
+  // 2. 自定义勋章（管理员授予的）
+  const customBadges = APP.profile.badges || [];
+  customBadges.forEach(b => {
+    // 根据稀有度设置样式
+    let cls = 'badge-bronze';
+    if (b.rarity === 'epic') cls = 'badge-silver';
+    else if (b.rarity === 'legend') cls = 'badge-gold';
+    wall.innerHTML += `<span class="badge ${cls}" title="${b.name} (授予于 ${new Date(b.grantedAt).toLocaleDateString()})"><i class="fas fa-medal mr-1"></i>${b.icon} ${b.name}</span>`;
+  });
+  
+  // 如果没有任何勋章，显示提示
+  if (wall.innerHTML === '') {
+    wall.innerHTML = '<span class="text-xs" style="color:var(--muted)">暂无勋章，多多互动解锁吧！</span>';
+  }
 
   // 精灵
   loadSpirit();
@@ -1803,6 +2957,15 @@ function openEditProfile() {
     const url = dicebearUrl(p);
     grid.innerHTML += `<img src="${url}" class="w-12 h-12 rounded-full cursor-pointer border-2 border-transparent hover:border-orange-400 transition object-cover" onclick="selectPresetAvatar('${url}')">`;
   });
+  // 填充展示勋章下拉框
+  const badgeSelect = $('editDisplayBadge');
+  badgeSelect.innerHTML = '<option value="">不展示</option>';
+  if (APP.profile.badges) {
+    APP.profile.badges.forEach(b => {
+      badgeSelect.innerHTML += `<option value="${b.id}">${b.icon} ${b.name}</option>`;
+    });
+  }
+  badgeSelect.value = APP.profile.display_badge || '';
   openModal('editProfileModal');
 }
 // 覆盖顶部编辑按钮
@@ -1828,8 +2991,20 @@ const path = `${APP.user.id}/avatar_${Date.now()}_${Math.random().toString(36).s
   } else if ($('editAvatarFile').dataset.presetUrl) {
     avatarUrl = $('editAvatarFile').dataset.presetUrl;
   }
-  const newName = $('editName').value.trim() || APP.profile.username;
-  const { error } = await sb.from('profiles').update({ username: newName, avatar_url: avatarUrl }).eq('id', APP.user.id);
+    const newName = $('editName').value.trim() || APP.profile.username;
+  const displayBadge = $('editDisplayBadge').value;
+  
+  const updateData = { username: newName, avatar_url: avatarUrl };
+  if (displayBadge) {
+    updateData.display_badge = displayBadge;
+  } else {
+    updateData.display_badge = null;
+  }
+  
+  const { error } = await sb.from('profiles').update(updateData).eq('id', APP.user.id);
+  
+  // 同步更新本地 APP.profile 中的 display_badge
+  APP.profile.display_badge = displayBadge || null;
   if (error) { showToast('保存失败'); return; }
   APP.profile.username = newName;
   APP.profile.avatar_url = avatarUrl;
@@ -1924,15 +3099,30 @@ async function loadSpirit() {
 }
 
 async function interactSpirit() {
+  const today = new Date().toDateString();
+  // 初始化或重置每日计数
+  if (!APP.spiritDate) APP.spiritDate = today;
+  if (APP.spiritDate !== today) {
+    APP.spiritDate = today;
+    APP.spiritInteractCount = 0;
+  }
+  
+  if (APP.spiritInteractCount >= 3) {
+    showToast('今日互动已达上限（3次），明天再来吧！');
+    return;
+  }
+  
   const { data } = await sb.from('spirits').select('*').eq('owner_id', APP.user.id).single();
   if (!data) return;
   const newGrowth = Math.min(200, (data.growth || 0) + 5);
   await sb.from('spirits').update({ growth: newGrowth, last_interaction: new Date().toISOString() }).eq('owner_id', APP.user.id);
   $('spiritContainer').classList.remove('gray');
-  showToast(`小火人成长值 +5（当前 ${newGrowth}）`);
+  
+  APP.spiritInteractCount++;
+  const remain = 3 - APP.spiritInteractCount;
+  showToast(`小火人成长值 +5！（今日剩余 ${remain} 次）`);
   loadSpirit();
 }
-
 // ==================== 关注系统 ====================
 async function loadFollowingIds() {
   if (!APP.user) return;
@@ -1985,6 +3175,116 @@ async function loadFollowingPosts() {
   grid.innerHTML = '';
   (data||[]).forEach((p, i) => grid.appendChild(createPostCard(p, i)));
 }
+// ==================== 全话题详情页 ====================
+const topicDetailState = {
+  currentTopic: '', subType: 'all', sort: 'latest', page: 0, allLoaded: false, loading: false
+};
+
+async function openTopicDetail(topic) {
+  topicDetailState.currentTopic = topic;
+  topicDetailState.subType = 'all'; topicDetailState.sort = 'latest'; topicDetailState.page = 0; topicDetailState.allLoaded = false;
+  $('topicDetailTitle').textContent = '#' + topic;
+  $('currentTopicSubTypeLabel').textContent = '全部'; $('currentTopicSortLabel').textContent = '最新';
+  APP.currentTab = 'topicDetail';
+  ['homeTab','discoverTab','followingTab','profileTab','searchTab','topicDetailTab'].forEach(id => $(id).style.display = 'none');
+  $('topicDetailTab').style.display = 'block';
+  await loadTopicPosts(true);
+}
+
+async function loadTopicPosts(reset = false) {
+  if (topicDetailState.loading) return;
+  if (!reset && topicDetailState.allLoaded) return;
+  topicDetailState.loading = true;
+  const grid = $('topicPostsGrid');
+  if (reset) { topicDetailState.page = 0; topicDetailState.allLoaded = false; grid.innerHTML = '<div class="col-span-full text-center py-8" style="color:var(--muted)"><i class="fas fa-spinner fa-pulse mr-2"></i>加载中...</div>'; }
+  const pageSize = 12; const from = topicDetailState.page * pageSize; const to = from + pageSize - 1;
+  let query = sb.from('posts').select('*, profiles(username, avatar_url, level, display_badge, badges)', { count: 'exact' }).contains('tags', [topicDetailState.currentTopic]).neq('post_type', 'story');
+  if (topicDetailState.subType !== 'all') query = query.eq('post_type', topicDetailState.subType);
+  query = query.order(topicDetailState.sort === 'latest' ? 'created_at' : 'hot_score', { ascending: false }).range(from, to);
+  const { data, error, count } = await query;
+  if (error) { console.error('加载话题帖子失败:', error); if (reset) grid.innerHTML = '<div class="col-span-full text-center py-8" style="color:var(--muted)">加载失败，请刷新</div>'; topicDetailState.loading = false; return; }
+  if (reset) grid.innerHTML = '';
+  if (data && data.length > 0) { data.forEach((p, i) => { const el = createPostCard(p, i); grid.appendChild(el); }); }
+  else if (reset) { grid.innerHTML = '<div class="col-span-full text-center py-8" style="color:var(--muted)">暂无相关内容</div>'; }
+  if (count !== null) { $('topicPostCount').textContent = count; $('topicDetailCount').textContent = `${count} 篇帖子`; }
+  if (!data || data.length < pageSize) topicDetailState.allLoaded = true;
+  topicDetailState.page++; topicDetailState.loading = false;
+}
+
+function selectTopicSubType(val) { topicDetailState.subType = val; $('currentTopicSubTypeLabel').textContent = val==='all'?'全部':(val==='normal'?'图文':(val==='vote'?'投票':'问答')); document.querySelectorAll('.filter-menu').forEach(m => m.classList.add('hidden')); loadTopicPosts(true); }
+function selectTopicSort(val) { topicDetailState.sort = val; $('currentTopicSortLabel').textContent = val==='latest'?'最新':'最热'; document.querySelectorAll('.filter-menu').forEach(m => m.classList.add('hidden')); loadTopicPosts(true); }
+
+// ==================== 搜索页面逻辑 ====================
+const searchState = {
+  keyword: '', type: 'internal',
+  internal: { postType: 'all', sort: 'latest', page: 1, allLoaded: false, loading: false },
+  bilibili: { order: 'totalrank', duration: 0, page: 1, allLoaded: false, loading: false }
+};
+
+function openSearch() { APP.currentTab = 'search'; ['homeTab','discoverTab','followingTab','profileTab','topicDetailTab','searchTab'].forEach(id => {
+  const el = $(id);
+  if (el) el.style.display = 'none';
+});(id => $(id).style.display = 'none'); $('searchTab').style.display = 'block'; $('searchInput').focus(); }
+function switchSearchType(type) {
+  searchState.type = type;
+  document.querySelectorAll('.search-type-tab').forEach(tab => tab.classList.toggle('active', tab.dataset.type === type));
+  $('internalSearchFilters').style.display = type === 'internal' ? 'flex' : 'none';
+  $('bilibiliSearchFilters').style.display = type === 'bilibili' ? 'flex' : 'none';
+  $('searchResults').style.display = type === 'internal' ? 'block' : 'none';
+  $('bilibiliResults').style.display = type === 'bilibili' ? 'block' : 'none';
+  if ($('searchInput').value.trim()) performSearch();
+}
+function clearSearch() { $('searchInput').value = ''; $('searchClearBtn').style.display = 'none'; $('searchResults').innerHTML = ''; $('bilibiliResults').innerHTML = ''; $('searchEmpty').style.display = 'none'; $('searchLoadMore').style.display = 'none'; }
+async function performSearch() {
+  const keyword = $('searchInput').value.trim(); if (!keyword) { showToast('请输入搜索关键词'); return; }
+  searchState.keyword = keyword; $('searchClearBtn').style.display = 'flex';
+  if (searchState.type === 'internal') { searchState.internal.page = 1; searchState.internal.allLoaded = false; await searchInternalPosts(); }
+  else { searchState.bilibili.page = 1; searchState.bilibili.allLoaded = false; await searchBilibiliVideos(); }
+}
+async function searchInternalPosts() {
+  const state = searchState.internal; if (state.loading) return;
+  state.loading = true; $('searchLoading').style.display = 'block'; $('searchEmpty').style.display = 'none'; $('searchResults').innerHTML = ''; $('searchLoadMore').style.display = 'none';
+  const pageSize = 12; const from = (state.page - 1) * pageSize; const to = from + pageSize - 1;
+  let query = sb.from('posts').select('*, profiles(username, avatar_url, level)', { count: 'exact' }).or(`title.ilike.%${searchState.keyword}%,description.ilike.%${searchState.keyword}%`).neq('post_type', 'story');
+  if (state.postType !== 'all') query = query.eq('post_type', state.postType);
+  query = query.order(state.sort === 'latest' ? 'created_at' : 'hot_score', { ascending: false }).range(from, to);
+  const { data, error, count } = await query;
+  $('searchLoading').style.display = 'none';
+  if (error) { console.error('搜索失败:', error); $('searchEmpty').style.display = 'block'; state.loading = false; return; }
+  if (data && data.length > 0) { data.forEach(p => { const el = createPostCard(p, 0); $('searchResults').appendChild(el); }); $('searchResultCount').textContent = count || data.length; }
+  else { $('searchEmpty').style.display = 'block'; $('searchResultCount').textContent = '0'; }
+  if (data && data.length >= pageSize) { state.allLoaded = false; $('searchLoadMore').style.display = 'block'; } else { state.allLoaded = true; $('searchLoadMore').style.display = 'none'; }
+  state.loading = false;
+}
+async function searchBilibiliVideos() {
+  const state = searchState.bilibili; if (state.loading) return;
+  state.loading = true; $('searchLoading').style.display = 'block'; $('searchEmpty').style.display = 'none'; $('bilibiliResults').innerHTML = ''; $('searchLoadMore').style.display = 'none';
+  try {
+    const params = new URLSearchParams({ keyword: searchState.keyword, search_type: 'video', order: state.order, duration: state.duration, page: state.page });
+    const proxyUrl = 'https://api.allorigins.win/raw?url='; const apiUrl = `https://api.bilibili.com/x/web-interface/search/type?${params.toString()}`;
+    const response = await fetch(proxyUrl + encodeURIComponent(apiUrl), { headers: { 'Referer': 'https://www.bilibili.com', 'Origin': 'https://www.bilibili.com' } });
+    const result = await response.json();
+    $('searchLoading').style.display = 'none';
+    if (result.code === 0 && result.data?.result) {
+      const videos = result.data.result; $('bilibiliResultCount').textContent = result.data.numResults || videos.length;
+      videos.forEach(video => {
+        const card = document.createElement('div'); card.className = 'bilibili-video-card'; card.onclick = () => window.open(`https://www.bilibili.com/video/${video.bvid}`, '_blank');
+        const duration = video.duration || ''; const minutes = Math.floor(duration / 60); const seconds = duration % 60; const durationStr = duration ? `${minutes}:${seconds.toString().padStart(2, '0')}` : '';
+        card.innerHTML = `<img src="${video.pic || ''}" class="bilibili-video-cover" alt=""><div class="bilibili-video-info"><div class="bilibili-video-title">${video.title || ''}</div><div class="bilibili-video-meta"><span><i class="fas fa-user"></i>${video.author || ''}</span><span><i class="fas fa-play"></i>${formatNumber(video.play || 0)}</span><span><i class="fas fa-clock"></i>${durationStr || '--'}</span></div></div>`;
+        $('bilibiliResults').appendChild(card);
+      });
+      if (videos.length >= 20) { state.allLoaded = false; $('searchLoadMore').style.display = 'block'; } else { state.allLoaded = true; $('searchLoadMore').style.display = 'none'; }
+    } else { $('searchEmpty').style.display = 'block'; $('bilibiliResultCount').textContent = '0'; }
+  } catch (e) { $('searchLoading').style.display = 'none'; $('searchEmpty').style.display = 'block'; showToast('搜索失败，请稍后重试'); }
+  state.loading = false;
+}
+function formatNumber(num) { if (num >= 10000) return (num / 10000).toFixed(1) + '万'; return num.toString(); }
+function selectSearchType(val) { searchState.internal.postType = val; $('currentSearchTypeLabel').textContent = val==='all'?'全部':(val==='normal'?'图文':(val==='vote'?'投票':'问答')); document.querySelectorAll('.filter-menu').forEach(m => m.classList.add('hidden')); if (searchState.keyword) searchInternalPosts(); }
+function selectSearchSort(val) { searchState.internal.sort = val; $('currentSearchSortLabel').textContent = val==='latest'?'最新':'最热'; document.querySelectorAll('.filter-menu').forEach(m => m.classList.add('hidden')); if (searchState.keyword) searchInternalPosts(); }
+function selectBilibiliOrder(val) { searchState.bilibili.order = val; $('currentBilibiliOrderLabel').textContent = {totalrank:'综合排序', click:'最多播放', pubdate:'最新发布'}[val]; document.querySelectorAll('.filter-menu').forEach(m => m.classList.add('hidden')); if (searchState.keyword) searchBilibiliVideos(); }
+function selectBilibiliDuration(val) { searchState.bilibili.duration = parseInt(val); $('currentBilibiliDurationLabel').textContent = {0:'全部时长',1:'10分钟以下',2:'10-30分钟',3:'30-60分钟'}[val]; document.querySelectorAll('.filter-menu').forEach(m => m.classList.add('hidden')); if (searchState.keyword) searchBilibiliVideos(); }
+function loadMoreSearchResults() { if (searchState.type === 'internal') { if (!searchState.internal.allLoaded) { searchState.internal.page++; searchInternalPosts(); } } else { if (!searchState.bilibili.allLoaded) { searchState.bilibili.page++; searchBilibiliVideos(); } } }
+$('searchInput')?.addEventListener('input', function() { $('searchClearBtn').style.display = this.value ? 'flex' : 'none'; });
 // ==================== 排行榜 ====================
 async function loadRanks() {
   // 贡献榜：按获赞数
@@ -2022,8 +3322,9 @@ async function loadMyPosts() {
   const grid = $('myPostsGrid');
   grid.innerHTML = '';
   (data||[]).forEach((p, i) => {
-    const div = document.createElement('div');
-    div.className = 'masonry-item';
+       const div = document.createElement('div');
+    div.className = 'masonry-item cursor-pointer';
+    div.onclick = () => openComments(p.id);
     div.innerHTML = `<div class="card-base p-3"><h4 class="font-bold text-sm">${p.title}</h4><div class="text-xs mt-1" style="color:var(--muted)"><i class="fas fa-thumbs-up mr-1"></i>${p.upvotes||0} · <i class="fas fa-comment mr-1"></i>${p.comments_count||0}</div></div>`;
     grid.appendChild(div);
   });
@@ -2038,14 +3339,56 @@ async function loadMyFavorites() {
     APP.myFavSet.add(f.post_id);
     const p = f.posts;
     if (!p) return;
-    const div = document.createElement('div');
-    div.className = 'masonry-item';
+        const div = document.createElement('div');
+    div.className = 'masonry-item cursor-pointer';
+    div.onclick = () => openComments(f.post_id);
     div.innerHTML = `<div class="card-base p-3"><h4 class="font-bold text-sm">${p.title}</h4><div class="text-xs mt-1" style="color:var(--muted)"><i class="fas fa-thumbs-up mr-1"></i>${p.upvotes||0} · <i class="fas fa-comment mr-1"></i>${p.comments_count||0}</div></div>`;
     grid.appendChild(div);
   });
 }
+// ==================== 验证码相关 ====================
+let currentCaptcha = '';
+let smsCodeMock = '';// 模拟短信验证码
 
-// ==================== 管理员系统 ====================
+function generateCaptcha() {
+  currentCaptcha = Math.random().toString(36).substring(2, 6).toUpperCase();
+  const canvas = $('captchaCanvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = getComputedStyle(document.body).getPropertyValue('--surface');
+  ctx.fillRect(0, 0, 90, 38);
+  ctx.font = 'bold 22px "Noto Sans SC"';
+  ctx.fillStyle = getComputedStyle(document.body).getPropertyValue('--text');
+  ctx.fillText(currentCaptcha, 12, 28);
+}
+
+let smsCountdown = 0;
+let smsTimer = null;
+
+function sendSmsCode() {
+  const phone = $('regPhone').value.trim();
+  if (!/^1[3-9]\d{9}$/.test(phone)) { showToast('请输入正确的手机号'); return; }
+  if (smsCountdown > 0) { showToast(`请等待 ${smsCountdown} 秒后再试`); return; }
+  
+  // 生成6位随机验证码
+  smsCodeMock = Math.floor(100000 + Math.random() * 900000).toString();
+  showToast(`验证码已发送: ${smsCodeMock} (演示环境)`);
+  
+  // 倒计时60秒
+  smsCountdown = 60;
+  const btn = event.target;
+  btn.disabled = true;
+  smsTimer = setInterval(() => {
+    smsCountdown--;
+    if (smsCountdown <= 0) {
+      clearInterval(smsTimer);
+      btn.disabled = false;
+      btn.textContent = '获取验证码';
+    } else {
+      btn.textContent = `${smsCountdown}秒后重试`;
+    }
+  }, 1000);
+}// ==================== 管理员系统 ====================
 async function adminLogin() {
   const pwd = $('adminPwd').value;
   const { data } = await sb.from('profiles').select('admin_password, is_admin').eq('id', APP.user.id).single();
@@ -2120,6 +3463,65 @@ async function changeAdminPwd() {
   await sb.from('profiles').update({ admin_password: newPwd }).eq('id', APP.user.id);
   showToast('密码已修改');
   $('newAdminPwd').value = '';
+}
+// 搜索用户（用于授予勋章）
+// 渲染搜索结果下拉框
+function renderUserSearchResults(users) {
+  const select = $('searchUserResult');
+  select.innerHTML = '<option value="">-- 选择用户 --</option>';
+  if (!users || users.length === 0) {
+    showToast('未找到用户');
+    return;
+  }
+  users.forEach(u => {
+    select.innerHTML += `<option value="${u.id}">${u.username}</option>`;
+  });
+  showToast(`找到 ${users.length} 个用户`);
+}
+
+// 搜索用户（仅按用户名）
+async function searchUserForBadge() {
+  const keyword = $('searchUserInput').value.trim();
+  if (!keyword) { showToast('请输入用户名'); return; }
+  
+  const { data, error } = await sb.from('profiles')
+    .select('id, username')
+    .ilike('username', `%${keyword}%`)
+    .limit(10);
+  
+  if (error) { showToast('搜索失败: ' + error.message); return; }
+  renderUserSearchResults(data || []);
+}
+
+// 选择用户后自动填充ID
+function onUserSelected() {
+  const select = $('searchUserResult');
+  const userId = select.value;
+  if (userId) $('grantUserId').value = userId;
+}
+async function grantBadge() {
+  const userId = $('grantUserId').value.trim();
+  const badgeId = $('grantBadgeId').value;
+  if (!userId) { showToast('请输入用户ID'); return; }
+  const badgeDefs = {
+    badge_elite: { name: '精英干员', icon: '⭐', rarity: 'rare' },
+    badge_hero: { name: '战场英雄', icon: '🏅', rarity: 'epic' },
+    badge_legend: { name: '传奇战神', icon: '👑', rarity: 'legend' }
+  };
+  const newBadge = { id: badgeId, ...badgeDefs[badgeId], grantedAt: new Date().toISOString() };
+  const { data: profile } = await sb.from('profiles').select('badges').eq('id', userId).single();
+  let badges = profile?.badges || [];
+  if (!Array.isArray(badges)) badges = [];
+  if (badges.some(b => b.id === badgeId)) { showToast('用户已拥有该勋章'); return; }
+  badges.push(newBadge);
+  const { error } = await sb.from('profiles').update({ badges }).eq('id', userId);
+  if (error) { showToast('授予失败'); return; }
+  // 如果是给自己授予勋章，同步更新本地数据
+  if (userId === APP.user.id) {
+    if (!APP.profile.badges) APP.profile.badges = [];
+    APP.profile.badges.push(newBadge);
+  }
+  showToast('勋章已授予');
 }
 
 async function resolveReport(rid, status) {
@@ -2201,12 +3603,35 @@ const BGM_SONGS = [
 ];
 
 const bgmState = { playing: false, idx: 0, audio: null, volume: 0.5, playlist: [...BGM_SONGS], currentTime: 0, duration: 0 };
-
 function initBGM() {
+  const saved = localStorage.getItem('bgm_custom_playlist');
+  if (saved) {
+    try {
+      const parsed = JSON.parse(saved);
+      bgmState.playlist = parsed.playlist && parsed.playlist.length ? parsed.playlist : [...BGM_SONGS];
+      bgmState.idx = parsed.idx !== undefined ? parsed.idx : 0;
+      bgmState.volume = parsed.volume !== undefined ? parsed.volume : 0.5;
+      bgmState.currentTime = parsed.currentTime || 0;
+      bgmState.playing = false; // 不自动播放，避免浏览器限制
+    } catch(e) {
+      bgmState.playlist = [...BGM_SONGS];
+    }
+  } else {
+    bgmState.playlist = [...BGM_SONGS];
+  }
+
   bgmState.audio = new Audio();
-  bgmState.audio.volume = 0;
-  bgmState.idx = Math.floor(Math.random() * bgmState.playlist.length);
+  bgmState.audio.volume = bgmState.volume;
   loadBGMTrack();
+
+  // 恢复播放进度
+  bgmState.audio.addEventListener('loadedmetadata', () => {
+    if (bgmState.currentTime > 0 && bgmState.currentTime < bgmState.audio.duration) {
+      bgmState.audio.currentTime = bgmState.currentTime;
+    }
+    bgmState.duration = bgmState.audio.duration;
+    $('bgmDuration').textContent = formatTime(bgmState.duration);
+  });
 
   const unmute = () => {
     if (bgmState.audio && bgmState.audio.volume === 0) {
@@ -2218,12 +3643,27 @@ function initBGM() {
   document.addEventListener('click', unmute);
 
   bgmState.audio.addEventListener('timeupdate', updateBGMProgress);
-  bgmState.audio.addEventListener('loadedmetadata', () => {
-    bgmState.duration = bgmState.audio.duration;
-    $('bgmDuration').textContent = formatTime(bgmState.duration);
-  });
   bgmState.audio.addEventListener('ended', () => bgmNext());
 
+  // ========== 2. 保存状态的通用函数 ==========
+  window._bgmSaveState = () => {
+    const state = {
+      playlist: bgmState.playlist,
+      idx: bgmState.idx,
+      volume: bgmState.volume,
+      currentTime: bgmState.audio.currentTime,
+    };
+    localStorage.setItem('bgm_custom_playlist', JSON.stringify(state));
+  };
+
+  // 节流保存（避免高频写入）
+  let saveTimer;
+  bgmState.audio.addEventListener('timeupdate', () => {
+    if (saveTimer) clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => window._bgmSaveState(), 1000);
+  });
+
+  // 视频播放时自动暂停BGM
   document.addEventListener('play', e => {
     if (e.target.tagName === 'VIDEO') { if (bgmState.playing) { bgmState.audio.pause(); bgmState.playing = false; updateBGMBtn(); } }
   }, true);
@@ -2232,6 +3672,25 @@ function initBGM() {
   }, true);
 
   renderBGMPlaylist();
+  $('bgmVol').value = bgmState.volume * 100;
+
+  // ===== 拖拽功能（保持不变）=====
+  interact('#bgmPlayer').draggable({
+
+    inertia: true,
+    modifiers: [interact.modifiers.restrictRect({ restriction: 'parent', endOnly: true })],
+    autoScroll: true,
+    listeners: {
+      move: function (event) {
+        var target = event.target;
+        var x = (parseFloat(target.getAttribute('data-x')) || 0) + event.dx;
+        var y = (parseFloat(target.getAttribute('data-y')) || 0) + event.dy;
+        target.style.transform = 'translate(' + x + 'px, ' + y + 'px)';
+        target.setAttribute('data-x', x);
+        target.setAttribute('data-y', y);
+      }
+    }
+  });
 }
 
 function formatTime(sec) {
@@ -2269,10 +3728,12 @@ function bgmToggle() {
     bgmState.playing = true;
   }
   updateBGMBtn();
+  if(window._bgmSaveState) window._bgmSaveState();
 }
-
 function updateBGMBtn() {
-  $('bgmPlayBtn').innerHTML = `<i class="fas fa-${bgmState.playing?'pause':'play'} text-white text-xs"></i>`;
+  const iconHTML = `<i class="fas fa-${bgmState.playing ? 'pause' : 'play'} text-white text-xs"></i>`;
+  if ($('bgmPlayBtn')) $('bgmPlayBtn').innerHTML = iconHTML;
+  if ($('bgmPlayBtnExtended')) $('bgmPlayBtnExtended').innerHTML = iconHTML;
 }
 
 function bgmNext() {
@@ -2282,8 +3743,8 @@ function bgmNext() {
   bgmState.playing = true;
   updateBGMBtn();
   renderBGMPlaylist();
+  if(window._bgmSaveState) window._bgmSaveState();
 }
-
 function bgmPrev() {
   bgmState.idx = (bgmState.idx - 1 + bgmState.playlist.length) % bgmState.playlist.length;
   loadBGMTrack();
@@ -2291,13 +3752,13 @@ function bgmPrev() {
   bgmState.playing = true;
   updateBGMBtn();
   renderBGMPlaylist();
+  if(window._bgmSaveState) window._bgmSaveState();
 }
-
 function bgmSetVolume(val) {
   bgmState.volume = val / 100;
   bgmState.audio.volume = bgmState.volume;
+  if(window._bgmSaveState) window._bgmSaveState();
 }
-
 function bgmSeek(e) {
   if (!bgmState.audio.duration) return;
   const rect = e.currentTarget.getBoundingClientRect();
@@ -2327,8 +3788,8 @@ function playBGMIdx(i) {
   bgmState.playing = true;
   updateBGMBtn();
   renderBGMPlaylist();
+  if(window._bgmSaveState) window._bgmSaveState();
 }
-
 async function searchMusic() {
   const keyword = $('musicSearchInput').value.trim();
   if (!keyword) { showToast('请输入搜索关键词'); return; }
@@ -2337,22 +3798,49 @@ async function searchMusic() {
     const data = await resp.json();
     const results = $('musicSearchResults');
     results.innerHTML = '';
-    (data || []).slice(0, 10).forEach(s => {
-      const name = s.name || s.title || '未知歌曲';
-      const artist = s.artist || '';
-      const url = s.url;
-      results.innerHTML += `<div class="flex items-center gap-2 p-2 rounded-lg cursor-pointer hover:bg-black/5" style="background:var(--surface)" onclick="playNeteaseSong('${name.replace(/'/g, "\\'")}', '${url}')">
-        <i class="fas fa-music" style="color:var(--accent)"></i>
-        <div class="flex-1 min-w-0"><div class="text-sm font-bold truncate">${name}</div><div class="text-xs truncate" style="color:var(--muted)">${artist}</div></div>
-        <button class="text-xs" style="color:var(--accent)"><i class="fas fa-play"></i></button>
-      </div>`;
-    });
+    // 原代码类似：
+// results.innerHTML += `<div class="flex items-center gap-2 ..."> ... </div>`;
+
+// 请用下面的代码替换整段 results.innerHTML += 的循环：
+(data || []).slice(0, 10).forEach(s => {
+  const name = s.name || s.title || '未知歌曲';
+  const artist = s.artist || '';
+  const url = s.url;
+  results.innerHTML += `<div class="flex items-center gap-2 p-2 rounded-lg cursor-pointer hover:bg-black/5" style="background:var(--surface)">
+    <i class="fas fa-music" style="color:var(--accent)"></i>
+    <div class="flex-1 min-w-0" onclick="playNeteaseSong('${name.replace(/'/g, "\\'")}', '${url}')">
+      <div class="text-sm font-bold truncate">${name}</div>
+      <div class="text-xs truncate" style="color:var(--muted)">${artist}</div>
+    </div>
+    <button class="text-xs px-2 py-1 rounded-full hover:bg-white/10" style="color:var(--accent)" onclick="addToPlaylist('${name.replace(/'/g, "\\'")}', '${url}'); event.stopPropagation();" title="加入歌单">
+      <i class="fas fa-plus"></i>
+    </button>
+    <button class="text-xs" style="color:var(--accent)" onclick="playNeteaseSong('${name.replace(/'/g, "\\'")}', '${url}')">
+      <i class="fas fa-play"></i>
+    </button>
+  </div>`;
+});
     if (!data || !data.length) results.innerHTML = '<p class="text-center py-4" style="color:var(--muted)">无搜索结果</p>';
   } catch(e) {
     showToast('搜索失败');
   }
 }
+function addToPlaylist(name, url) {
+  if (!name || !url) { showToast('无法添加该歌曲'); return; }
+  // 避免重复添加（可选）
+  const exists = bgmState.playlist.some(s => s.url === url);
+  if (exists) { showToast('歌曲已在歌单中'); return; }
 
+  bgmState.playlist.push({ name, url });
+  // 如果之前歌单为空，则设置当前索引
+  if (bgmState.playlist.length === 1) {
+    bgmState.idx = 0;
+    loadBGMTrack();
+  }
+  renderBGMPlaylist();
+  if (window._bgmSaveState) window._bgmSaveState();
+  showToast(`已添加：${name}`);
+}
 function playNeteaseSong(name, url) {
   if (!url) { showToast('无法播放该歌曲'); return; }
   bgmState.playlist = [{ name, url }];
@@ -2368,12 +3856,9 @@ function playNeteaseSong(name, url) {
 // ==================== 每日榜首统计 ====================
 async function calculateTopPost() {
   const yesterday = new Date(Date.now() - 86400000).toISOString();
-  // 清除旧置顶
   await sb.from('posts').update({ is_top_today: false }).eq('is_top_today', true);
-  // 计算最热帖子
-  const { data } = await sb.from('posts').select('id, hot_score, upvotes, comments_count').gte('created_at', yesterday).neq('post_type', 'story');
+  const { data } = await sb.from('posts').select('id, upvotes, comments_count, downloads').gte('created_at', yesterday).neq('post_type', 'story');
   if (!data || !data.length) return;
-  // 计算 hot_score = upvotes*3 + comments*2 + downloads
   let topPost = null, topScore = -1;
   for (const p of data) {
     const score = (p.upvotes||0)*3 + (p.comments_count||0)*2 + (p.downloads||0);
@@ -2383,8 +3868,19 @@ async function calculateTopPost() {
     await sb.from('posts').update({ is_top_today: true, hot_score: topScore }).eq('id', topPost.id);
   }
 }
-
 // ==================== 初始化 ====================
+  // 开场动画
+  const overlay = $('introOverlay');
+  const circle = $('introCircle');
+  if (overlay && circle) {
+    setTimeout(() => {
+      circle.style.transform = 'scale(200)';
+      overlay.style.opacity = '0';
+      setTimeout(() => {
+        overlay.style.display = 'none';
+      }, 800);
+    }, 100);
+  }
 window.addEventListener('DOMContentLoaded', () => {
   initBGM();
   initAuth();
@@ -2416,6 +3912,21 @@ document.addEventListener('click', () => {
     // BGM 将在点击后恢复音量
   }
 }, { once: false });
+window.addEventListener('scroll', () => {
+  // 只有当“当前标签是首页”、“不在加载中”、“没有全部加载完”时，才继续执行
+  if (APP.currentTab !== 'home' || APP.loading || APP.allLoaded) return;
+
+  // 获取页面滚动信息
+  const { scrollTop, scrollHeight, clientHeight } = document.documentElement;
+  // scrollTop: 已滚动的距离
+  // scrollHeight: 页面总高度
+  // clientHeight: 浏览器窗口可见高度
+
+  // 如果滚动距离 + 窗口高度 ≥ 页面总高度 - 500像素，说明快到低了
+  if (scrollTop + clientHeight >= scrollHeight - 500) {
+    loadMorePosts(); // 调用加载更多函数
+  }
+});
 </script>
 </body>
 </html>
