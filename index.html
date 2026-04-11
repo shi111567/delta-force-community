@@ -1967,8 +1967,19 @@ async function viewUserProfile(userId) {
   $('viewUserLikes').textContent = profile.likes_received || 0;
   $('viewUserBadges').textContent = (profile.badges?.length) || 0;
   
-  const isFollowing = APP.followedIds.includes(userId);
+  async function toggleFollowFromModal(uid) {
+  // 等待关注/取关操作完成
+  await followUser(uid);
+  
+  // 从数据库获取该用户的最新粉丝数
+  const { data: profile } = await sb.from('profiles').select('followers_count').eq('id', uid).single();
+  const realFollowers = profile?.followers_count || 0;
+  $('viewUserFollowers').textContent = realFollowers;
+  
+  // 更新按钮文字
+  const isFollowing = APP.followedIds.includes(uid);
   $('viewUserFollowBtn').textContent = isFollowing ? '已关注' : '+ 关注';
+}
   $('viewUserFollowBtn').onclick = () => toggleFollowFromModal(userId);
   
   const { data: posts } = await sb.from('posts').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(5);
