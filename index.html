@@ -3175,29 +3175,51 @@ async function loadFollowingIds() {
 
 async function followUser(userId) {
   if (!APP.user) { showToast('请先登录'); openAuthModal(); return; }
+  
   const isFollowed = APP.followedIds.includes(userId);
   
   if (isFollowed) {
-    const { error } = await sb.from('follows').delete().eq('follower_id', APP.user.id).eq('followed_id', userId);
+    // 取关
+    const { error } = await sb.from('follows').delete()
+      .eq('follower_id', APP.user.id)
+      .eq('followed_id', userId);
     if (error) { showToast('取消失败'); return; }
+    
     APP.followedIds = APP.followedIds.filter(id => id !== userId);
-    // 更新计数
-    await sb.rpc('decrement_follow_counts', { follower_id: APP.user.id, followed_id: userId });
+    await sb.rpc('decrement_follow_counts', { 
+      follower_id: APP.user.id, 
+      followed_id: userId 
+    });
     showToast('已取消关注');
   } else {
-    const { error } = await sb.from('follows').insert({ follower_id: APP.user.id, followed_id: userId });
+    // 关注
+    const { error } = await sb.from('follows').insert({ 
+      follower_id: APP.user.id, 
+      followed_id: userId 
+    });
     if (error) { 
       if (error.code === '23505') showToast('已经关注过了');
       else showToast('关注失败');
       return; 
     }
+    
     APP.followedIds.push(userId);
-    await sb.rpc('increment_follow_counts', { follower_id: APP.user.id, followed_id: userId });
+    await sb.rpc('increment_follow_counts', { 
+      follower_id: APP.user.id, 
+      followed_id: userId 
+    });
     showToast('关注成功');
   }
   
-  renderProfile(); // 刷新个人主页计数
-  loadPosts(true); // 刷新帖子列表中的关注按钮状态
+  // 刷新个人主页计数
+  renderProfile();
+  // 刷新当前列表
+  if (APP.currentTab === 'following') loadFollowingPosts();
+  // 重新获取最新的用户资料，确保计数准确
+  const { data: freshProfile } = await sb.from('profiles').select('*').eq('id', APP.user.id).single();
+  if (freshProfile) APP.profile = freshProfile;
+renderProfile();
+  loadPosts(true);
 }
 async function loadFollowingPosts() {
   if (!APP.followedIds.length) {
