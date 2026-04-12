@@ -199,6 +199,13 @@ tailwind.config = {
 </script>
 
 <style>
+.mobile-nav {
+  align-items: flex-end;
+  padding-bottom: 4px;
+}
+.mobile-nav button {
+  min-width: 64px;
+}
 .achievement-progress {
   background: var(--surface);
   border-radius: 20px;
@@ -235,9 +242,10 @@ tailwind.config = {
   backdrop-filter: blur(8px);
 }
 .post-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 16px 32px var(--glow);
+  transform: translateY(-6px) scale(1.01);
+  box-shadow: 0 24px 40px -12px var(--glow), 0 8px 16px -8px var(--shadow);
   border-color: var(--accent);
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 /* 新增：内容区域自然分隔 */
@@ -555,6 +563,13 @@ touch-action: none; /* 禁止浏览器默认的滚动、缩放等触摸行为 */
   /* 移动端底部导航 */
 /* 原始代码可能类似这样，如果没有请直接添加以下新样式 */
 .mobile-nav button {
+.mobile-nav button:active {
+  transform: scale(0.9);
+}
+.mobile-nav button:active i {
+  transform: scale(1.2);
+  color: var(--accent) !important;
+}
   /* ... 保留原有的样式 ... */
   transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1); /* 增加弹性动画 */
 }
@@ -1074,6 +1089,90 @@ touch-action: none; /* 禁止浏览器默认的滚动、缩放等触摸行为 */
   .more-btn span { display: none; }
   .more-btn i { margin-right: 0; }
 }
+.escort-filter-btn {
+  padding: 6px 16px;
+  border-radius: 20px;
+  background: var(--surface);
+  color: var(--muted);
+  border: 1.5px solid var(--border);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.escort-filter-btn.active {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+}
+.escort-video-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  overflow: hidden;
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 16px var(--shadow);
+}
+.escort-video-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 32px var(--glow);
+  border-color: var(--accent);
+}
+.escort-video-thumbnail {
+  position: relative;
+  width: 100%;
+  height: 160px;
+  background: var(--surface);
+}
+.escort-duration-badge {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  background: rgba(0,0,0,0.7);
+  color: white;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  backdrop-filter: blur(4px);
+}
+.escort-status-badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  backdrop-filter: blur(4px);
+}
+.escort-status-badge.passed { background: rgba(46, 204, 113, 0.9); color: white; }
+.escort-status-badge.pending { background: rgba(231, 76, 60, 0.9); color: white; }
+.escort-status-badge.reviewing { background: rgba(241, 196, 15, 0.9); color: #3D2B1F; }
+.video-player-overlay {
+  position: fixed;
+  inset: 0;
+  background: #000;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.video-player-overlay.hidden {
+  display: none;
+}
+.video-player-container {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+.admin-review-panel {
+  background: rgba(255, 107, 53, 0.05);
+  border-radius: 12px;
+}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/interactjs@1.10.27/dist/interact.min.js"></script>
 </head>
@@ -1375,6 +1474,17 @@ touch-action: none; /* 禁止浏览器默认的滚动、缩放等触摸行为 */
   </div>
 
   <!-- 护航考核 Tab -->
+<!-- 功能引导横幅（首次显示，可关闭） -->
+<div id="escortGuideBanner" class="card-base p-3 mb-4 flex items-center justify-between" style="background: linear-gradient(135deg, var(--accent)20, var(--accent2)20); border-left: 4px solid var(--accent);">
+  <div class="flex items-center gap-3">
+    <i class="fas fa-info-circle fa-lg" style="color: var(--accent);"></i>
+    <div>
+      <div class="font-bold text-sm">护航员考核专区</div>
+      <div class="text-xs" style="color: var(--muted);">上传你的护航录像，通过审核即可成为认证护航员</div>
+    </div>
+  </div>
+  <button onclick="$('escortGuideBanner').style.display='none'; localStorage.setItem('escortGuideClosed', 'true');" class="text-xs" style="color: var(--muted);"><i class="fas fa-times"></i></button>
+</div>
 <div id="escortTab" style="display:none">
   <!-- 顶部统计卡片 -->
   <div class="grid grid-cols-3 gap-3 mb-4">
@@ -1421,9 +1531,6 @@ touch-action: none; /* 禁止浏览器默认的滚动、缩放等触摸行为 */
 </div>
     <!-- 顶部统计卡片 -->
     <div class="grid grid-cols-3 gap-3 mb-4">
-      ...
-    </div>
-    ...
   </div>
 
   <!-- 个人主页 -->
@@ -1492,7 +1599,11 @@ touch-action: none; /* 禁止浏览器默认的滚动、缩放等触摸行为 */
 <div class="mobile-nav justify-around items-center">
   <button onclick="switchTab('home')" class="flex flex-col items-center gap-0.5 py-1 px-3" id="mobHome"><i class="fas fa-home text-lg" style="color:var(--accent)"></i><span class="text-[10px]">首页</span></button>
   <button onclick="switchTab('discover')" class="flex flex-col items-center gap-0.5 py-1 px-3" id="mobDiscover"><i class="fas fa-compass text-lg" style="color:var(--muted)"></i><span class="text-[10px]">发现</span></button>
-  <button onclick="openModal('publishModal')" class="flex flex-col items-center gap-0.5 py-1 px-3"><div class="w-10 h-10 rounded-full flex items-center justify-center" style="background:linear-gradient(135deg,#FF6B35,#FF4757)"><i class="fas fa-plus text-white"></i></div></button>
+  <button onclick="openModal('publishModal')" class="flex flex-col items-center justify-center gap-0.5 py-1 px-3">
+    <div class="w-12 h-12 rounded-full flex items-center justify-center" style="background:linear-gradient(135deg,#FF6B35,#FF4757); margin-top: -8px;">
+      <i class="fas fa-plus text-white text-lg"></i>
+    </div>
+  </button>
   <button onclick="switchTab('following')" class="flex flex-col items-center gap-0.5 py-1 px-3" id="mobFollowing"><i class="fas fa-heart text-lg" style="color:var(--muted)"></i><span class="text-[10px]">关注</span></button>
   <button onclick="switchTab('escort')" class="flex flex-col items-center gap-0.5 py-1 px-3" id="mobEscort"><i class="fas fa-shield-halved text-lg" style="color:var(--muted)"></i><span class="text-[10px]">护航</span></button>
   <button onclick="openProfile()" class="flex flex-col items-center gap-0.5 py-1 px-3" id="mobProfile"><i class="fas fa-user text-lg" style="color:var(--muted)"></i><span class="text-[10px]">我的</span></button>
@@ -1503,7 +1614,30 @@ touch-action: none; /* 禁止浏览器默认的滚动、缩放等触摸行为 */
 </button>
 
 <!-- 图片放大查看 -->
-<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+<!-- 沉浸式视频播放器 -->
+<div class="video-player-overlay hidden" id="videoPlayerOverlay" style="z-index: 9999; background: #000;">
+  <div class="video-player-container" style="width: 100%; height: 100%; position: relative;">
+    <!-- 顶部返回按钮 -->
+    <button class="video-player-close" onclick="closeVideoPlayer()" style="position: absolute; top: 20px; left: 20px; z-index: 10000; background: rgba(0,0,0,0.5); color: white; border: none; width: 40px; height: 40px; border-radius: 50%; backdrop-filter: blur(4px); cursor: pointer;">
+      <i class="fas fa-chevron-down"></i>
+    </button>
+    
+    <!-- 视频播放区 -->
+    <video id="videoPlayer" class="video-player" controls controlsList="nodownload" style="width: 100%; height: 100%; object-fit: contain;"></video>
+    
+    <!-- 视频信息栏 -->
+    <div class="video-player-info" style="position: absolute; bottom: 30px; left: 20px; right: 20px; display: flex; align-items: center; gap: 12px; background: rgba(0,0,0,0.6); padding: 12px 16px; border-radius: 40px; backdrop-filter: blur(8px); color: white; z-index: 10000;">
+      <img id="videoPlayerAvatar" class="w-10 h-10 rounded-full" style="border: 2px solid var(--accent);">
+      <div class="flex-1">
+        <div class="font-bold" id="videoPlayerAuthor"></div>
+        <div class="text-xs opacity-80" id="videoPlayerTitle"></div>
+      </div>
+      <button class="btn-warm text-sm px-4" id="videoPlayerLikeBtn" style="background: var(--accent);">
+        <i class="far fa-heart"></i> <span id="videoPlayerLikes">0</span>
+      </button>
+    </div>
+  </div>
+</div><div class="lightbox" id="lightbox" onclick="closeLightbox()">
   <img src="" alt="放大查看" id="lightboxImg">
 </div>
 
@@ -1898,6 +2032,15 @@ const APP = {
   spiritInteractCount: 0,   // 新增
   spiritDate: ''            // 新增
 };
+// 护航专区状态
+const escortState = {
+  videos: [],
+  filter: 'all',
+  page: 0,
+  pageSize: 12,
+  allLoaded: false,
+  loading: false
+};
 
 // ==================== 工具函数 ====================
 function $(id) { return document.getElementById(id); }
@@ -1905,14 +2048,25 @@ function qs(sel) { return document.querySelector(sel); }
 function qsa(sel) { return document.querySelectorAll(sel); }
 
 // Toast 提示
-function showToast(msg) {
+function showToast(msg, type = 'info') {
   const t = document.createElement('div');
   t.className = 'toast';
-  t.textContent = msg;
+  
+  const iconMap = {
+    success: '<i class="fas fa-check-circle mr-2" style="color: #2ecc71;"></i>',
+    error: '<i class="fas fa-times-circle mr-2" style="color: #e74c3c;"></i>',
+    warning: '<i class="fas fa-exclamation-triangle mr-2" style="color: #f1c40f;"></i>',
+    info: '<i class="fas fa-info-circle mr-2"></i>'
+  };
+  
+  t.innerHTML = `${iconMap[type] || iconMap.info}${msg}`;
+  t.style.background = type === 'error' ? 'linear-gradient(135deg, #e74c3c, #c0392b)' : 
+                       type === 'success' ? 'linear-gradient(135deg, #2ecc71, #27ae60)' : 
+                       'linear-gradient(135deg, #FF6B35, #FF4757)';
+  
   $('toastContainer').appendChild(t);
   setTimeout(() => t.remove(), 3200);
 }
-
 // ==================== 弹窗控制 ====================
 function openModal(id) { 
   $(id).classList.add('active'); 
@@ -2377,43 +2531,67 @@ function openNotifModal() {
       APP.filters.keyword = '';
       const homeSearchInput = $('homeSearchInput');
       if (homeSearchInput) homeSearchInput.value = '';
+     renderTopicCards(); 
       renderTopicCloud();
+      loadOnlineEscorts(); 
       loadHotRecommend();
       loadPosts(true);
     }
     if (tab === 'profile') renderProfile();
     if (tab === 'escort') loadEscortVideos();
-// 护航专区状态
-const escortState = {
-  videos: [],
-  filter: 'all',
-  page: 0,
-  pageSize: 12,
-  allLoaded: false,
-  loading: false
-};
+
   }, 200);
 }
-async function loadHotRecommend() {
+
 // 在线护航员横条
 async function loadOnlineEscorts() {
   const bar = $('onlineEscortBar');
   if (!bar) return;
   
-  // 获取最近活跃的护航员（这里简化为随机用户，实际可关联 escort_videos 表）
-  const { data } = await sb.from('profiles').select('id, username, avatar_url').limit(8);
+  // 显示加载占位
+  bar.innerHTML = Array(6).fill(0).map(() => `
+    <div class="flex flex-col items-center gap-1 flex-shrink-0">
+      <div class="w-14 h-14 rounded-full skeleton-bg"></div>
+      <div class="skeleton-line w-10 h-3"></div>
+    </div>
+  `).join('');
   
-  bar.innerHTML = (data || []).map(u => `
+  // 获取上传过护航视频的用户
+  const { data } = await sb
+    .from('escort_videos')
+    .select('user_id, profiles!escort_videos_user_id_fkey(username, avatar_url)')
+    .order('created_at', { ascending: false })
+    .limit(10);
+  
+  // 去重
+  const uniqueUsers = [];
+  const seenIds = new Set();
+  (data || []).forEach(item => {
+    const profile = item.profiles;
+    if (profile && !seenIds.has(profile.username)) {
+      seenIds.add(profile.username);
+      uniqueUsers.push(profile);
+    }
+  });
+  
+  bar.innerHTML = uniqueUsers.slice(0, 8).map(u => `
     <div class="flex flex-col items-center gap-1 cursor-pointer flex-shrink-0" onclick="viewUserProfile('${u.id}')">
       <div style="position: relative;">
         <img src="${u.avatar_url || dicebearUrl(u.username)}" class="w-14 h-14 rounded-full object-cover border-2" style="border-color: var(--accent);">
-        <span class="online-indicator" style="position: absolute; bottom: 2px; right: 2px;"></span>
+        <span class="online-indicator"></span>
       </div>
       <span class="text-xs" style="color: var(--muted);">${u.username}</span>
     </div>
   `).join('');
+  
+  if (uniqueUsers.length === 0) {
+    bar.innerHTML = `<div class="text-xs p-4" style="color: var(--muted);">暂无在线护航员，快去上传视频成为第一个！</div>`;
+  }
 }
-  const list = $('hotRecommendList'); if (!list) return;
+async function loadHotRecommend() {
+  const list = $('hotRecommendList');
+
+ if (!list) return;
   list.innerHTML = '<div class="col-span-full text-center py-4" style="color:var(--muted)"><i class="fas fa-spinner fa-pulse mr-2"></i>加载推荐...</div>';
   const { data } = await sb.from('posts').select('id, title, upvotes, comments_count, downloads, profiles(username)').neq('post_type', 'story').order('hot_score', { ascending: false }).limit(20);
   if (!data || data.length === 0) { list.innerHTML = '<div class="col-span-full text-center py-4" style="color:var(--muted)">暂无推荐内容</div>'; return; }
@@ -2567,11 +2745,12 @@ const HOT_TOPICS = ['战术研讨','新手攻略','武器评测','战队招募',
 // 修改话题云的渲染，增加点击计数（mock数据）和热度火焰icon
 function renderTopicCloud() {
 // 话题卡片化渲染
-function renderTopicCards() {
   const grid = $('topicCardGrid');
   if (!grid) return;
   
-  const topics = HOT_TOPICS.slice(0, 4).map(t => ({
+  // 随机打乱并取前4个
+  const shuffled = [...HOT_TOPICS].sort(() => Math.random() - 0.5);
+  const topics = shuffled.slice(0, 4).map(t => ({
     name: t,
     cover: `https://picsum.photos/seed/${t}/200/120`,
     heat: Math.floor(Math.random() * 5000) + 500,
@@ -2589,6 +2768,7 @@ function renderTopicCards() {
     </div>
   `).join('');
 }
+function renderTopicCards() {
   const cloud = $('topicCloud');
   // 使用带热度的mock数据，未来可从数据库获取真实热度
   const topics = HOT_TOPICS.map(t => {
@@ -2664,7 +2844,7 @@ function clearHomeSearch() {
   loadPosts(true);
 }
 function loadMoreTopics() {
-  renderTopicCloud();
+  renderTopicCards();  // 刷新话题卡片
 }
 async function loadPosts(reset) {
   if (APP.loading) return;
@@ -2889,6 +3069,9 @@ const opLabel = `<span class="tag-pill" style="background:${opColor}20; color:${
             <button class="w-full text-left px-3 py-2 rounded-lg text-sm hover:bg-black/5 flex items-center gap-2" onclick="event.stopPropagation(); sharePost('${post.id}')">
               <i class="fas fa-share-alt"></i> <span>分享</span>
             </button>
+            <button class="w-full text-left px-3 py-2 rounded-lg text-sm hover:bg-black/5 flex items-center gap-2" onclick="event.stopPropagation(); notInterested('${post.id}')">
+              <i class="fas fa-eye-slash"></i> <span>不感兴趣</span>
+            </button>
             <button class="w-full text-left px-3 py-2 rounded-lg text-sm hover:bg-black/5 flex items-center gap-2" onclick="event.stopPropagation(); downloadWithWatermark('${post.id}')">
               <i class="fas fa-download"></i> <span>下载</span>
             </button>
@@ -2958,79 +3141,6 @@ $('pubMedia')?.addEventListener('change', function() {
 });
 // 上传媒体文件
 async function publishPost() {
-// 护航视频上传
-async function uploadEscortVideo() {
-  if (!APP.user) { showToast('请先登录'); openAuthModal(); return; }
-  
-  const title = $('escortTitle').value.trim();
-  const desc = $('escortDesc').value.trim();
-  const opClass = $('escortOpClass').value;
-  const file = $('escortVideoFile').files[0];
-  
-  if (!title) { showToast('请输入视频标题'); return; }
-  if (!opClass) { showToast('请选择兵种'); return; }
-  if (!file) { showToast('请选择视频文件'); return; }
-  
-  const btn = event.target;
-  btn.disabled = true;
-  btn.textContent = '上传中...';
-  
-  $('escortUploadProgress').classList.remove('hidden');
-  const progressFill = $('escortProgressFill');
-  const progressText = $('escortProgressText');
-  
-  const ext = file.name.split('.').pop();
-  const path = `${APP.user.id}/escort_${Date.now()}.${ext}`;
-  
-  const { error, data } = await sb.storage.from('posts').upload(path, file, {
-    cacheControl: '3600',
-    upsert: false,
-    onUploadProgress: (progress) => {
-      const percent = Math.round((progress.loaded / progress.total) * 100);
-      progressFill.style.width = percent + '%';
-      progressText.textContent = percent + '%';
-    }
-  });
-  
-  if (error) {
-    showToast('上传失败: ' + error.message);
-    btn.disabled = false;
-    btn.textContent = '开始上传';
-    $('escortUploadProgress').classList.add('hidden');
-    return;
-  }
-  
-  const { data: { publicUrl } } = sb.storage.from('posts').getPublicUrl(path);
-  
-  // 获取视频时长（需要后端支持，这里简化）
-  const duration = 0; // 可通过后端 ffprobe 获取
-  
-  const { error: insertError } = await sb.from('escort_videos').insert({
-    user_id: APP.user.id,
-    title,
-    description: desc,
-    video_url: publicUrl,
-    operator_class: opClass,
-    status: 'pending',
-    duration
-  });
-  
-  if (insertError) {
-    showToast('保存失败: ' + insertError.message);
-  } else {
-    showToast('视频已提交，等待审核！');
-    closeModal('escortUploadModal');
-    $('escortTitle').value = '';
-    $('escortDesc').value = '';
-    $('escortOpClass').value = '';
-    $('escortVideoFile').value = '';
-    if (APP.currentTab === 'escort') loadEscortVideos(true);
-  }
-  
-  btn.disabled = false;
-  btn.textContent = '开始上传';
-  $('escortUploadProgress').classList.add('hidden');
-}
   if (!APP.user) { showToast('请先登录'); openAuthModal(); return; }
   const btn = event.target;
   if (btn.disabled) return;
@@ -3064,13 +3174,13 @@ async function uploadEscortVideo() {
 
   const postData = {
     user_id: APP.user.id, 
-     title: title,
+    title: title,
     description: $('pubDesc').value.trim(),
     media_urls: mediaUrls, 
     post_type: $('pubType').value,
     operator_class: $('pubOpClass').value || null,
-      tags: tags,
-     vote_options: voteOptions
+    tags: tags,
+    vote_options: voteOptions
   };
 
   const { error } = await sb.from('posts').insert(postData);
@@ -3497,6 +3607,13 @@ async function deletePost(pid) {
 function sharePost(pid) {
   const url = window.location.origin + window.location.pathname + '#post-' + pid;
   navigator.clipboard.writeText(url).then(() => showToast('链接已复制')).catch(() => showToast('复制失败'));
+}
+// 不感兴趣
+function notInterested(pid) {
+  const card = document.querySelector(`[data-post-id="${pid}"]`);
+  if (card) card.style.display = 'none';
+  showToast('已屏蔽，将减少类似内容推荐');
+  // 实际开发中可记录到数据库
 }
 // ==================== 快速回复功能 ====================
 
@@ -3931,6 +4048,11 @@ const path = `${APP.user.id}/avatar_${Date.now()}_${Math.random().toString(36).s
 
 // 挂载编辑按钮
 document.addEventListener('DOMContentLoaded', () => {
+// 护航引导横幅记忆
+if (localStorage.getItem('escortGuideClosed') === 'true') {
+  const banner = $('escortGuideBanner');
+  if (banner) banner.style.display = 'none';
+}
 // 护航筛选按钮事件
 document.addEventListener('click', (e) => {
   if (e.target.classList.contains('escort-filter-btn')) {
@@ -4127,6 +4249,17 @@ renderProfile();
   loadPosts(true);
 }
 async function loadFollowingPosts() {
+if (!APP.followedIds.length) {
+    $('followingGrid').innerHTML = '';
+    $('emptyFollowing').style.display = 'block';
+    return;
+  }
+  $('emptyFollowing').style.display = 'none';
+  const { data } = await sb.from('posts').select('*, profiles(username, avatar_url, level)').in('user_id', APP.followedIds).neq('post_type','story').order('created_at', { ascending: false }).limit(20);
+  const grid = $('followingGrid');
+  grid.innerHTML = '';
+  (data||[]).forEach((p, i) => grid.appendChild(createPostCard(p, i)));
+}
 // ==================== 护航专区 ====================
 async function loadEscortVideos(reset = true) {
   if (escortState.loading) return;
@@ -4143,7 +4276,7 @@ async function loadEscortVideos(reset = true) {
     return;
   }
   
-  let query = sb.from('escort_videos').select('*, profiles(username, avatar_url)', { count: 'exact' });
+  let query = sb.from('escort_videos').select('*, profiles!escort_videos_user_id_fkey(username, avatar_url)', { count: 'exact' });
   
   // 筛选条件
   if (escortState.filter === 'pending') query = query.eq('status', 'pending');
@@ -4158,12 +4291,13 @@ async function loadEscortVideos(reset = true) {
   const { data, error, count } = await query
     .order('created_at', { ascending: false })
     .range(from, to);
-    
-  if (error) {
-    console.error('加载护航视频失败:', error);
-    escortState.loading = false;
-    return;
-  }
+  
+ if (error) {
+  console.error('加载护航视频失败，错误详情:', error);
+  showToast('加载视频失败: ' + error.message, 'error');
+  escortState.loading = false;
+  return;
+}
   
   if (data && data.length > 0) {
     data.forEach(video => {
@@ -4208,15 +4342,21 @@ function createEscortVideoCard(video) {
   
   const duration = video.duration ? `${Math.floor(video.duration / 60)}:${String(video.duration % 60).padStart(2, '0')}` : '';
   
-  div.innerHTML = `
+   div.innerHTML = `
     <div class="escort-video-card" onclick="viewEscortVideo('${video.id}')">
       <div class="escort-video-thumbnail">
-        ${video.thumbnail_url ? `<img src="${video.thumbnail_url}" style="width:100%;height:100%;object-fit:cover;">` : '<div style="width:100%;height:100%;background:linear-gradient(135deg, var(--accent)30, var(--accent2)30);display:flex;align-items:center;justify-content:center;"><i class="fas fa-play-circle fa-2x" style="color:white;opacity:0.6;"></i></div>'}
+        ${video.thumbnail_url ? `<img src="${video.thumbnail_url}" style="width:100%;height:100%;object-fit:cover;">` : `<div style="width:100%;height:100%;background:linear-gradient(135deg, var(--accent)40, var(--accent2)60);display:flex;flex-direction:column;align-items:center;justify-content:center;color:white;"><i class="fas fa-video fa-2x mb-1" style="opacity:0.8;"></i><span style="font-size:12px;opacity:0.8;">预览生成中</span></div>`}
         ${duration ? `<span class="escort-duration-badge">${duration}</span>` : ''}
         <span class="escort-status-badge ${status.class}">${status.text}</span>
       </div>
       <div class="p-3">
         <div class="font-bold text-sm line-clamp-2">${video.title}</div>
+        ${video.status === 'passed' && video.score ? `
+        <div class="flex items-center gap-1 mt-1">
+          <span class="text-xs" style="color: #FFD700;">${'★'.repeat(Math.floor(video.score / 20))}${'☆'.repeat(5 - Math.floor(video.score / 20))}</span>
+          <span class="text-xs" style="color: var(--muted);">${video.score}分</span>
+        </div>
+        ` : ''}
         <div class="flex items-center gap-2 mt-2">
           <img src="${video.profiles?.avatar_url || dicebearUrl('u')}" class="w-5 h-5 rounded-full">
           <span class="text-xs" style="color: var(--muted);">${video.profiles?.username || '干员'}</span>
@@ -4225,6 +4365,21 @@ function createEscortVideoCard(video) {
           <span><i class="far fa-eye"></i> ${video.views || 0}</span>
           <span><i class="far fa-heart"></i> ${video.likes || 0}</span>
         </div>
+                ${APP.isAdmin ? `
+        <div class="admin-review-panel mt-3 pt-3 border-t" style="border-color: var(--border);">
+          <div class="flex items-center gap-2 flex-wrap">
+            <select id="reviewStatus-${video.id}" class="text-xs p-1 rounded" style="background: var(--surface); color: var(--text); border: 1px solid var(--border);">
+              <option value="pending" ${video.status === 'pending' ? 'selected' : ''}>待审核</option>
+              <option value="passed" ${video.status === 'passed' ? 'selected' : ''}>✅ 通过</option>
+              <option value="rejected" ${video.status === 'rejected' ? 'selected' : ''}>❌ 未通过</option>
+            </select>
+            <input type="number" id="reviewScore-${video.id}" placeholder="评分(0-100)" min="0" max="100" value="${video.score || 0}" class="text-xs p-1 rounded w-20" style="background: var(--surface); color: var(--text); border: 1px solid var(--border);">
+            <button class="btn-warm text-xs px-3 py-1" onclick="submitReview('${video.id}')">提交审核</button>
+            <button class="btn-ghost text-xs px-3 py-1" style="color: #e74c3c; border-color: #e74c3c;" onclick="deleteEscortVideo('${video.id}')"><i class="fas fa-trash mr-1"></i>删除</button>
+          </div>
+          ${video.review_comment ? `<div class="text-xs mt-1" style="color: var(--accent);">审核意见：${video.review_comment}</div>` : ''}
+        </div>
+        ` : ''}
       </div>
     </div>
   `;
@@ -4232,19 +4387,293 @@ function createEscortVideoCard(video) {
 }
 
 function viewEscortVideo(videoId) {
-  // 打开视频播放弹窗（后续可扩展）
-  showToast('视频播放功能开发中');
+  sb.from('escort_videos')
+    .select('*, profiles!escort_videos_user_id_fkey(username, avatar_url)')
+    .eq('id', videoId)
+    .single()
+    .then(({ data, error }) => {
+      if (error) {
+        showToast('加载视频失败: ' + error.message, 'error');
+        return;
+      }
+      if (data) {
+        $('videoPlayer').src = data.video_url;
+        $('videoPlayerAvatar').src = data.profiles?.avatar_url || dicebearUrl('u');
+        $('videoPlayerAuthor').textContent = data.profiles?.username || '干员';
+        $('videoPlayerTitle').textContent = data.title;
+        $('videoPlayerLikes').textContent = data.likes || 0;
+        $('videoPlayerOverlay').classList.remove('hidden');
+        $('videoPlayer').play().catch(e => showToast('自动播放被阻止，请手动点击播放', 'warning'));
+      }
+    })
+    .catch(err => {
+      console.error('获取视频详情失败:', err);
+      showToast('加载视频失败', 'error');
+    });
 }
-  if (!APP.followedIds.length) {
-    $('followingGrid').innerHTML = '';
-    $('emptyFollowing').style.display = 'block';
+function closeVideoPlayer() {
+  $('videoPlayer').pause();
+  $('videoPlayerOverlay').classList.add('hidden');
+}  
+// 管理员提交审核（评分 + 状态）
+// 删除护航视频（上传者或管理员）
+async function deleteEscortVideo(videoId) {
+  if (!APP.user) {
+    showToast('请先登录', 'error');
     return;
   }
-  $('emptyFollowing').style.display = 'none';
-  const { data } = await sb.from('posts').select('*, profiles(username, avatar_url, level)').in('user_id', APP.followedIds).neq('post_type','story').order('created_at', { ascending: false }).limit(20);
-  const grid = $('followingGrid');
-  grid.innerHTML = '';
-  (data||[]).forEach((p, i) => grid.appendChild(createPostCard(p, i)));
+
+  // 获取视频信息确认权限
+  const { data: video, error: fetchError } = await sb
+    .from('escort_videos')
+    .select('user_id, video_url, thumbnail_url')
+    .eq('id', videoId)
+    .single();
+
+  if (fetchError || !video) {
+    showToast('视频不存在', 'error');
+    return;
+  }
+
+  // 权限判断：必须是上传者本人或管理员
+  if (video.user_id !== APP.user.id && !APP.isAdmin) {
+    showToast('无权删除此视频', 'error');
+    return;
+  }
+
+  if (!confirm('确定要删除这个视频吗？此操作不可恢复。')) return;
+
+  showToast('正在删除...', 'info');
+
+  // 1. 删除数据库记录
+  const { error: deleteError } = await sb
+    .from('escort_videos')
+    .delete()
+    .eq('id', videoId);
+
+  if (deleteError) {
+    showToast('删除失败: ' + deleteError.message, 'error');
+    return;
+  }
+
+  // 2. 尝试删除存储中的视频文件和缩略图（可选，不影响主要功能）
+  try {
+    // 提取文件路径（从完整URL中解析）
+    if (video.video_url) {
+      const videoPath = video.video_url.split('/').pop();
+      if (videoPath) {
+        await sb.storage.from('posts').remove([`${video.user_id}/${videoPath}`]);
+      }
+    }
+    if (video.thumbnail_url) {
+      const thumbPath = video.thumbnail_url.split('/').pop();
+      if (thumbPath) {
+        await sb.storage.from('posts').remove([`${video.user_id}/${thumbPath}`]);
+      }
+    }
+  } catch (storageError) {
+    console.warn('存储文件删除失败（可忽略）:', storageError);
+  }
+
+  showToast('视频已删除', 'success');
+  
+  // 刷新当前列表
+  if (APP.currentTab === 'escort') {
+    loadEscortVideos(true);
+  }
+}
+async function submitReview(videoId) {
+  if (!APP.isAdmin) {
+    showToast('无权限操作', 'error');
+    return;
+  }
+  
+  const statusSelect = $(`reviewStatus-${videoId}`);
+  const scoreInput = $(`reviewScore-${videoId}`);
+  
+  if (!statusSelect || !scoreInput) {
+    showToast('找不到审核控件', 'error');
+    return;
+  }
+  
+  const status = statusSelect.value;
+  const score = parseInt(scoreInput.value) || 0;
+  
+  if (score < 0 || score > 100) {
+    showToast('评分需在 0-100 之间', 'error');
+    return;
+  }
+  
+  const updateData = {
+    status: status,
+    score: score,
+    reviewer_id: APP.user.id,
+    reviewed_at: new Date().toISOString()
+  };
+  
+  const { error } = await sb.from('escort_videos')
+    .update(updateData)
+    .eq('id', videoId);
+  
+  if (error) {
+    showToast('审核失败: ' + error.message, 'error');
+  } else {
+    showToast(`审核完成：${status === 'passed' ? '已通过' : '未通过'}，评分 ${score}`, 'success');
+    // 刷新护航视频列表
+    loadEscortVideos(true);
+  }
+}
+// 生成视频第一帧缩略图
+async function generateVideoThumbnail(file) {
+  return new Promise((resolve, reject) => {
+    const video = document.createElement('video');
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    // 创建临时 URL
+    const url = URL.createObjectURL(file);
+    video.src = url;
+    video.crossOrigin = 'anonymous';
+    video.muted = true;
+    video.preload = 'metadata';
+    
+    video.addEventListener('loadeddata', () => {
+      // 确保视频元数据已加载，设置当前时间为0（第一帧）
+      video.currentTime = 0;
+    });
+    
+    video.addEventListener('seeked', () => {
+      // 视频已跳转到第一帧，绘制到 canvas
+      canvas.width = video.videoWidth || 640;
+      canvas.height = video.videoHeight || 360;
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      
+      // 转换为 Blob 并释放 URL
+      canvas.toBlob((blob) => {
+        URL.revokeObjectURL(url);
+        if (blob) {
+          resolve(blob);
+        } else {
+          reject(new Error('生成缩略图失败'));
+        }
+      }, 'image/png');
+    }, { once: true });
+    
+    video.addEventListener('error', (e) => {
+      URL.revokeObjectURL(url);
+      reject(new Error('视频加载失败'));
+    });
+    
+    // 超时处理（30秒）
+    setTimeout(() => {
+      URL.revokeObjectURL(url);
+      reject(new Error('生成缩略图超时'));
+    }, 30000);
+  });
+}
+// 护航视频上传（带自动封面生成）
+async function uploadEscortVideo() {
+  if (!APP.user) { showToast('请先登录', 'error'); openAuthModal(); return; }
+  
+  const title = $('escortTitle').value.trim();
+  const desc = $('escortDesc').value.trim();
+  const opClass = $('escortOpClass').value;
+  const file = $('escortVideoFile').files[0];
+  
+  if (!title) { showToast('请输入视频标题', 'error'); return; }
+  if (!opClass) { showToast('请选择兵种', 'error'); return; }
+  if (!file) { showToast('请选择视频文件', 'error'); return; }
+  
+  const btn = event.target;
+  btn.disabled = true;
+  btn.textContent = '生成封面中...';
+  
+  $('escortUploadProgress').classList.remove('hidden');
+  const progressFill = $('escortProgressFill');
+  const progressText = $('escortProgressText');
+  
+  let thumbnailUrl = null;
+  
+  // 第一步：生成视频第一帧缩略图
+  try {
+    progressText.textContent = '正在生成封面...';
+    const thumbnailBlob = await generateVideoThumbnail(file);
+    
+    // 上传缩略图到 storage
+    const thumbExt = 'png';
+    const thumbPath = `${APP.user.id}/thumb_${Date.now()}.${thumbExt}`;
+    const { error: thumbError } = await sb.storage.from('posts').upload(thumbPath, thumbnailBlob, {
+      contentType: 'image/png',
+      cacheControl: '3600'
+    });
+    
+    if (!thumbError) {
+      const { data: { publicUrl } } = sb.storage.from('posts').getPublicUrl(thumbPath);
+      thumbnailUrl = publicUrl;
+      progressText.textContent = '封面生成成功，开始上传视频...';
+    } else {
+      console.warn('封面上传失败，继续上传视频:', thumbError);
+      progressText.textContent = '封面生成失败，继续上传视频...';
+    }
+  } catch (e) {
+    console.warn('封面生成异常，继续上传视频:', e);
+    progressText.textContent = '封面生成失败，继续上传视频...';
+  }
+  
+  // 第二步：上传视频文件
+  btn.textContent = '上传视频中...';
+  const ext = file.name.split('.').pop();
+  const path = `${APP.user.id}/escort_${Date.now()}.${ext}`;
+  
+  const { error, data } = await sb.storage.from('posts').upload(path, file, {
+    cacheControl: '3600',
+    upsert: false,
+    onUploadProgress: (progress) => {
+      const percent = Math.round((progress.loaded / progress.total) * 100);
+      progressFill.style.width = percent + '%';
+      progressText.textContent = `上传视频中 ${percent}%`;
+    }
+  });
+  
+  if (error) {
+    showToast('上传失败: ' + error.message, 'error');
+    btn.disabled = false;
+    btn.textContent = '开始上传';
+    $('escortUploadProgress').classList.add('hidden');
+    return;
+  }
+  
+  const { data: { publicUrl } } = sb.storage.from('posts').getPublicUrl(path);
+  
+  // 第三步：保存到数据库（状态为 pending 待审核）
+  progressText.textContent = '保存中...';
+  const { error: insertError } = await sb.from('escort_videos').insert({
+    user_id: APP.user.id,
+    title,
+    description: desc,
+    video_url: publicUrl,
+    thumbnail_url: thumbnailUrl,
+    operator_class: opClass,
+    status: 'pending',           // 待审核状态
+    duration: 0,
+    score: 0                     // 初始评分
+  });
+  
+  if (insertError) {
+    showToast('保存失败: ' + insertError.message, 'error');
+  } else {
+    showToast('视频已提交，等待管理员审核！', 'success');
+    closeModal('escortUploadModal');
+    $('escortTitle').value = '';
+    $('escortDesc').value = '';
+    $('escortOpClass').value = '';
+    $('escortVideoFile').value = '';
+    if (APP.currentTab === 'escort') loadEscortVideos(true);
+  }
+  
+  btn.disabled = false;
+  btn.textContent = '开始上传';
+  $('escortUploadProgress').classList.add('hidden');
 }
 // ==================== 全话题详情页 ====================
 const topicDetailState = {
@@ -4611,6 +5040,10 @@ async function initOnlinePresence() {
       const state = onlineChannel.presenceState();
       const count = Object.keys(state).length;
       $('onlineCount').textContent = count;
+      // 刷新护航员在线横条
+      if (APP.currentTab === 'home') {
+        loadOnlineEscorts();
+      }
       
       // 更新所有在线用户绿点
       const onlineUserIds = new Set();
