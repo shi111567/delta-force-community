@@ -2769,30 +2769,28 @@ function renderTopicCloud() {
   `).join('');
 }
 function renderTopicCards() {
-  const cloud = $('topicCloud');
-  // 使用带热度的mock数据，未来可从数据库获取真实热度
-  const topics = HOT_TOPICS.map(t => {
-    return {
-      name: t,
-      // 模拟热度，用于展示火焰和不同大小
-      heat: Math.floor(Math.random() * 1000) + 100,
-    };
-  }).sort((a, b) => b.heat - a.heat).slice(0, 8); // 取前8个最热话题
-
-  cloud.innerHTML = topics.map((t, index) => {
-    // 根据热度调整字体大小（14px 到 24px）
-    const size = 14 + Math.min(10, Math.floor(t.heat / 150));
-    // 前三名显示奖杯图标，其他的显示火焰
-    const icon = index < 3 ? '<i class="fas fa-trophy"></i>' : '<i class="fas fa-fire"></i>';
-    return `
-      <span class="topic-tag" style="font-size:${size}px;" onclick="selectTopicFromCloud('${t.name}')">
-        ${icon} #${t.name}
-        <span style="font-size:0.8em; margin-left: 4px; color: var(--muted);">${t.heat}</span>
-      </span>
-    `;
-  }).join('');
+  const grid = $('topicCardGrid');
+  if (!grid) return;
+  
+  const shuffled = [...HOT_TOPICS].sort(() => Math.random() - 0.5);
+  const topics = shuffled.slice(0, 4).map(t => ({
+    name: t,
+    cover: `https://picsum.photos/seed/${t}/200/120`,
+    heat: Math.floor(Math.random() * 5000) + 500,
+    posts: Math.floor(Math.random() * 200) + 20
+  }));
+  
+  grid.innerHTML = topics.map(t => `
+    <div class="topic-card" onclick="selectTopicFromCloud('${t.name}')">
+      <img src="${t.cover}" class="topic-card-cover">
+      <div class="topic-card-name"><i class="fas fa-hashtag" style="color: var(--accent);"></i>${t.name}</div>
+      <div class="topic-card-stats">
+        <span><i class="fas fa-fire"></i> ${formatNumber(t.heat)}</span>
+        <span><i class="fas fa-file"></i> ${t.posts}</span>
+      </div>
+    </div>
+  `).join('');
 }
-
 // 增强话题点击功能，让它和热门推荐、筛选联动
 function selectTopicFromCloud(topic) {
   // 1. 更新筛选栏的“话题”下拉菜单，选中该话题
