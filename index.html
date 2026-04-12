@@ -199,6 +199,181 @@ tailwind.config = {
 </script>
 
 <style>
+.achievement-progress {
+  background: var(--surface);
+  border-radius: 20px;
+  padding: 16px;
+  margin: 16px 0;
+}
+.achievement-progress-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.progress-bar-container {
+  flex: 1;
+  height: 12px;
+  background: var(--border);
+  border-radius: 20px;
+  overflow: hidden;
+}
+.progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #FFD700, var(--accent));
+  border-radius: 20px;
+  transition: width 0.6s;
+}
+/* ===== 重构：帖子卡片排版 ===== */
+.post-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  padding: 20px;
+  transition: all 0.25s ease;
+  box-shadow: 0 8px 20px var(--shadow);
+  backdrop-filter: blur(8px);
+}
+.post-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 32px var(--glow);
+  border-color: var(--accent);
+}
+
+/* 新增：内容区域自然分隔 */
+.post-card > * + * {
+  margin-top: 12px;
+}
+
+/* 卡片头部：作者信息 */
+.post-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.post-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--accent);
+}
+.online-indicator {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  width: 12px;
+  height: 12px;
+  background-color: #2ecc71;
+  border: 2px solid var(--card);
+  border-radius: 50%;
+  display: inline-block;
+}
+.online-indicator.hidden {
+  display: none;
+}
+.post-author-info {
+  flex: 1;
+}
+.post-author-name {
+  font-weight: 700;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.post-meta {
+  font-size: 12px;
+  color: var(--muted);
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+/* 卡片内容区 */
+.post-title {
+  font-size: 20px;
+  font-weight: 800;
+  margin-bottom: 8px;
+  line-height: 1.4;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+.post-description {
+  font-size: 14px;
+  color: var(--muted);
+  margin-bottom: 12px;
+  line-height: 1.6;
+  opacity: 0.9;
+}
+/* 卡片标签区 */
+.post-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.post-tag {
+  background: var(--surface);
+  color: var(--text);
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  border: 1px solid var(--border);
+  transition: all 0.2s;
+}
+.post-tag:hover {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+}
+
+/* 卡片操作栏 */
+.post-actions {
+  display: flex;
+  justify-content: space-around;
+  padding-top: 16px;
+  border-top: 1px dashed var(--border);
+}
+.post-action-btn {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  padding: 8px 14px;
+  border-radius: 30px;
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.post-action-btn:hover {
+  background: var(--surface);
+  color: var(--accent);
+  transform: scale(1.05);
+}
+.post-action-btn:active {
+  transform: scale(0.95);
+}
+.post-action-btn i {
+  font-size: 18px;
+  transition: transform 0.15s;
+}
+.post-action-btn:hover i {
+  transform: scale(1.1);
+}
+.post-action-btn:hover {
+  background: var(--surface);
+  color: var(--accent);
+  transform: scale(1.05);
+}
+.post-action-btn i {
+  font-size: 18px;
+}
 @media (max-width: 640px) {
   #notifModal .modal-content {
     max-width: 95%;
@@ -208,18 +383,33 @@ tailwind.config = {
     max-height: 70vh;
   }
 }
-  :root {
-    --bg: #FFF5E8; --card: rgba(255,240,220,0.85); --surface: #FFEFD5;
-    --text: #3D2B1F; --muted: #8B7355; --accent: #FF6B35;
-    --accent2: #FF4757; --gold: #FFD700; --border: rgba(255,107,53,0.2);
-    --glow: rgba(255,107,53,0.3); --shadow: rgba(60,30,10,0.1);
-  }
-  [data-theme="dark"] {
-    --bg: #0F0906; --card: rgba(28,18,13,0.9); --surface: #2A1A12;
-    --text: #F5E6D3; --muted: #A0897A; --accent: #FF8C5A;
-    --accent2: #FF6B8A; --gold: #FFD700; --border: rgba(255,140,90,0.15);
-    --glow: rgba(255,140,90,0.2); --shadow: rgba(0,0,0,0.4);
-  }
+ :root {
+  --bg: #F8F9FA; /* 更柔和的背景 */
+  --card: rgba(255, 255, 255, 0.9);
+  --surface: #FFFFFF;
+  --text: #212529;
+  --muted: #6C757D;
+  --accent: #FF6B35; /* 保持活力橙色 */
+  --accent2: #FF4757;
+  --gold: #FFD700;
+  --border: rgba(0, 0, 0, 0.05);
+  --glow: rgba(255, 107, 53, 0.15);
+  --shadow: rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="dark"] {
+  --bg: #0B090A;
+  --card: rgba(28, 18, 13, 0.95);
+  --surface: #1C120D;
+  --text: #F5E6D3;
+  --muted: #A0897A;
+  --accent: #FF8C5A;
+  --accent2: #FF6B8A;
+  --gold: #FFD700;
+  --border: rgba(255, 140, 90, 0.15);
+  --glow: rgba(255, 140, 90, 0.25);
+  --shadow: rgba(0, 0, 0, 0.5);
+}
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
     font-family: 'Noto Sans SC', sans-serif; background: var(--bg);
@@ -341,12 +531,13 @@ word-wrap: break-word;
     border-radius: 20px; backdrop-filter: blur(12px);
     box-shadow: 0 8px 30px var(--glow); padding: 12px 16px;
     transition: all 0.3s; max-width: 340px;
+touch-action: none; /* 禁止浏览器默认的滚动、缩放等触摸行为 */
   }
     /* 悬停展开控制 */
   .bgm-compact { display: flex; }
   .bgm-extended { display: none; }
-  #bgmPlayer:hover .bgm-compact { display: none; }
-  #bgmPlayer:hover .bgm-extended { display: block; }important; }
+    #bgmPlayer:hover .bgm-compact { display: none; }
+  #bgmPlayer:hover .bgm-extended { display: block; }
 }
   .bgm-player.minimized { width: 48px; height: 48px; padding: 0; border-radius: 50%; overflow: hidden; cursor: pointer; }
 
@@ -362,6 +553,26 @@ word-wrap: break-word;
   .scroll-btn:hover { transform: scale(1.15); box-shadow: 0 6px 30px rgba(255,107,53,0.6); }
 
   /* 移动端底部导航 */
+/* 原始代码可能类似这样，如果没有请直接添加以下新样式 */
+.mobile-nav button {
+  /* ... 保留原有的样式 ... */
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1); /* 增加弹性动画 */
+}
+
+/* 新增：按钮点击/激活时的发光效果 */
+.mobile-nav button.active {
+  color: var(--accent) !important;
+  transform: scale(1.1); /* 点击时轻微放大 */
+  text-shadow: 0 0 8px var(--glow); /* 文字发光效果 */
+}
+
+/* 新增：桌面端顶部导航按钮激活效果 */
+.top-nav .btn-ghost.active {
+  color: var(--accent) !important;
+  border-bottom: 2px solid var(--accent); /* 加下划线强调 */
+  font-weight: 700;
+  transform: translateY(-2px); /* 轻微上浮 */
+}
   .mobile-nav {
     display: none; position: fixed; bottom: 0; left: 0; right: 0;
     background: var(--card); border-top: 1px solid var(--border);
@@ -385,11 +596,15 @@ word-wrap: break-word;
   @keyframes flameFloat { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
   .spirit-flame.gray { filter: grayscale(1) brightness(0.5); }
 
-  /* 顶部导航 */
+   /* 顶部导航 */
   .top-nav {
     position: fixed; top: 0; left: 0; right: 0; z-index: 800;
     background: var(--card); border-bottom: 1px solid var(--border);
-    backdrop-filter: blur(16px); transition: all 0.3s;
+    backdrop-filter: blur(16px); transition: transform 0.3s ease;
+    transform: translateY(0);
+  }
+  .top-nav.hidden-nav {
+    transform: translateY(-100%);
   }
 
   /* 图片放大查看 */
@@ -401,11 +616,19 @@ word-wrap: break-word;
   .lightbox img { max-width: 95%; max-height: 95%; object-fit: contain; border-radius: 8px; }
 
   /* 投票选项 */
-  .vote-option {
-    position: relative; padding: 10px 16px; border: 1.5px solid var(--border);
-    border-radius: 10px; cursor: pointer; overflow: hidden; transition: all 0.2s;
-  }
-  .vote-option:hover { border-color: var(--accent); }
+ .vote-option {
+  position: relative;
+  padding: 12px 16px;
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  cursor: pointer;
+  overflow: hidden;
+  transition: all 0.2s;
+}
+.vote-option:hover {
+  border-color: var(--accent);
+  background: rgba(255, 107, 53, 0.05);
+}
   .vote-bar {
     position: absolute; left: 0; top: 0; height: 100%;
     background: linear-gradient(90deg, rgba(255,107,53,0.15), rgba(255,71,87,0.1));
@@ -452,30 +675,26 @@ word-wrap: break-word;
   @keyframes recordPulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
 
   /* 排行榜 */
-/* ===== 优化热门话题标签 ===== */
-.topic-tag {
-  display: inline-block;
-  padding: 8px 18px;
-  border-radius: 30px;
-  background: var(--surface);
-  color: var(--text);
-  font-weight: 600;
-  cursor: pointer;
-  border: 1.5px solid var(--border);
-  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
-  box-shadow: 0 2px 8px var(--shadow);
-  text-decoration: none;
-  user-select: none;
-}
-.topic-tag i { margin-right: 6px; }
-.topic-tag:hover {
-  background: var(--accent);
-  color: white;
-  border-color: var(--accent);
-  transform: translateY(-4px) scale(1.02);
-  box-shadow: 0 12px 20px var(--glow);
+
+/* 话题广场容器，增加呼吸感 */
+#topicCloud {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
 }
 
+/* 热门推荐卡片，增强冲击力 */
+.hot-recommend-item {
+  cursor: pointer;
+  transition: all 0.25s ease;
+  border: 2px solid transparent;
+}
+.hot-recommend-item:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 16px 32px var(--glow);
+  border-color: var(--accent);
+}
 /* ===== 热门推荐卡片动效 ===== */
 .hot-recommend-item {
   cursor: pointer;
@@ -710,6 +929,151 @@ word-wrap: break-word;
   transform: translateY(-3px);
   box-shadow: 0 8px 16px var(--glow);
 }
+/* ===== 一键三连 · 极致融合与自适应 ===== */
+.triple-action-btn {
+  background: transparent !important;
+  color: var(--text) !important;
+  font-weight: 600;
+  border: 1.5px solid var(--border) !important;
+  border-radius: 40px !important;
+  padding: 8px 18px !important;
+  box-shadow: none !important;
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  position: relative;
+  backdrop-filter: blur(4px);
+}
+
+/* 图标和文字基础样式 */
+.triple-action-btn i {
+  margin-right: 6px;
+  font-size: 15px;
+  color: var(--accent);
+  transition: transform 0.2s, color 0.2s;
+}
+.triple-action-btn span {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
+/* 悬停：按钮整体上浮，边框变为主题色，文字变白，背景出现渐变 */
+.triple-action-btn:hover {
+  transform: translateY(-3px) scale(1.02);
+  border-color: var(--accent) !important;
+  background: linear-gradient(145deg, var(--accent), var(--accent2)) !important;
+  color: white !important;
+  box-shadow: 0 10px 20px -8px var(--accent) !important;
+}
+.triple-action-btn:hover i {
+  color: white;
+  transform: rotate(8deg) scale(1.1);
+}
+.triple-action-btn:hover span {
+  color: white;
+}
+
+/* 点击缩小 */
+.triple-action-btn:active {
+  transform: translateY(0) scale(0.96);
+  box-shadow: 0 4px 8px var(--accent) !important;
+}
+
+/* 暗色模式适配 */
+[data-theme="dark"] .triple-action-btn {
+  border-color: rgba(255, 140, 90, 0.3) !important;
+}
+[data-theme="dark"] .triple-action-btn:hover {
+  box-shadow: 0 10px 20px -8px #FF8C5A !important;
+}
+
+/* ===== 三端自适应优化 ===== */
+/* 平板端：适当缩小 */
+@media (max-width: 768px) {
+  .triple-action-btn {
+    padding: 6px 14px !important;
+  }
+  .triple-action-btn i {
+    font-size: 14px;
+  }
+  .triple-action-btn span {
+    font-size: 13px;
+  }
+}
+
+/* 手机端：只显示图标，并且图标居中、圆润 */
+@media (max-width: 480px) {
+  .triple-action-btn {
+    padding: 0 !important;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 30px !important;
+  }
+  .triple-action-btn span {
+    display: none;
+  }
+  .triple-action-btn i {
+    margin-right: 0;
+    font-size: 20px;
+  }
+}
+
+/* 极小屏手机：隐藏文字，只显示图标（保持空间） */
+@media (max-width: 480px) {
+  .triple-action-btn span {
+    display: none;
+  }
+  .triple-action-btn i {
+    margin-right: 0;
+    font-size: 16px;
+  }
+  .triple-action-btn {
+    padding: 8px 12px !important;
+    min-width: 44px; /* 保证点击区域 */
+  }
+}
+/* ===== 沉浸式阅读模式 ===== */
+.modal-overlay.immersive {
+  background: rgba(0, 0, 0, 0.85) !important;
+  backdrop-filter: blur(12px) !important;
+}
+/* 让弹窗内容在沉浸模式下有更强的发光边框 */
+.modal-overlay.immersive .modal-content {
+  box-shadow: 0 0 40px rgba(255, 107, 53, 0.3);
+  border: 1px solid var(--accent);
+}
+/* ===== 快速回复功能样式 ===== */
+.quick-reply-btn i {
+  color: var(--muted);
+  transition: color 0.2s;
+}
+.quick-reply-btn:hover i {
+  color: var(--accent);
+}
+.quick-reply-area {
+  animation: slideDown 0.2s ease;
+}
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.quick-comment-preview {
+  scrollbar-width: thin;
+}
+/* 更多操作按钮 */
+.more-btn i { color: var(--muted); }
+.more-btn:hover i { color: var(--accent); }
+.more-menu { animation: fadeIn 0.15s ease; }
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@media (max-width: 480px) {
+  .more-btn span { display: none; }
+  .more-btn i { margin-right: 0; }
+}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/interactjs@1.10.27/dist/interact.min.js"></script>
 </head>
@@ -732,7 +1096,7 @@ word-wrap: break-word;
       <button onclick="switchTab('home')" class="btn-ghost text-sm" id="navHome">首页</button>
       <button onclick="switchTab('discover')" class="btn-ghost text-sm" id="navDiscover">发现</button>
       <button onclick="switchTab('following')" class="btn-ghost text-sm" id="navFollowing">关注</button>
-
+<button onclick="switchTab('escort')" class="btn-ghost text-sm" id="navEscort"><i class="fas fa-shield-halved mr-1"></i>护航</button>
       <button onclick="openModal('publishModal')" class="btn-warm text-sm">发布</button>
     </div>
     <div class="flex items-center gap-3">
@@ -849,18 +1213,30 @@ word-wrap: break-word;
       </div>
       <span class="text-xs ml-auto" style="color:var(--muted)"><span id="postCount">0</span> 条动态</span>
     </div>
+<!-- 横向快捷功能区：在线护航员 + 常看博主 -->
+<section class="mb-4">
+  <div class="flex items-center justify-between mb-2">
+    <h3 class="font-display text-sm flex items-center gap-2"><i class="fas fa-shield-alt" style="color: var(--accent);"></i> 在线护航员</h3>
+    <span class="text-xs" style="color: var(--muted);">滑动查看更多 <i class="fas fa-arrow-right ml-1"></i></span>
+  </div>
+  <div class="flex gap-3 overflow-x-auto pb-2" style="scrollbar-width: none;" id="onlineEscortBar">
+    <!-- 动态渲染，稍后通过JS生成 -->
+  </div>
+</section>
 <!-- 话题广场 -->
-<!-- 热门推荐精简版 -->
+<!-- 热门话题 · 卡片化升级版 -->
+<div class="mb-6">
+  <div class="flex items-center justify-between mb-3">
+    <h3 class="font-display text-base flex items-center gap-2"><i class="fas fa-fire" style="color: var(--accent);"></i> 热门话题</h3>
+    <button class="text-xs btn-ghost px-3 py-1" onclick="loadMoreTopics()"><i class="fas fa-sync-alt mr-1"></i>换一批</button>
+  </div>
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-3" id="topicCardGrid">
+    <!-- 动态渲染话题卡片 -->
+  </div>
+</div>
 <div class="mb-6">
   <h3 class="font-display text-lg mb-2 flex items-center gap-2"><i class="fas fa-fire" style="color:#FF4757"></i>热门推荐</h3>
   <div id="hotRecommendList" class="grid grid-cols-1 md:grid-cols-2 gap-2"></div>
-</div>
-<div class="mb-6">
-  <div class="flex items-center justify-between mb-2">
-    <h3 class="font-display text-lg flex items-center gap-2"><i class="fas fa-hashtag" style="color:var(--accent)"></i>热门话题</h3>
-    <button class="text-xs" style="color:var(--muted)" onclick="loadMoreTopics()"><i class="fas fa-sync-alt mr-1"></i>换一批</button>
-  </div>
-  <div class="flex flex-wrap gap-2" id="topicCloud"></div>
 </div>
     <!-- 置顶帖 -->
     <div id="topPostArea" class="mb-4"></div>
@@ -994,6 +1370,61 @@ word-wrap: break-word;
     </div>
   </div>
   </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 护航考核 Tab -->
+<div id="escortTab" style="display:none">
+  <!-- 顶部统计卡片 -->
+  <div class="grid grid-cols-3 gap-3 mb-4">
+    <div class="card-base p-4 text-center">
+      <div class="text-2xl font-bold" style="color: var(--accent);" id="escortTotalVideos">0</div>
+      <div class="text-xs" style="color: var(--muted);">考核视频</div>
+    </div>
+    <div class="card-base p-4 text-center">
+      <div class="text-2xl font-bold" style="color: #2ecc71;" id="escortPassedCount">0</div>
+      <div class="text-xs" style="color: var(--muted);">已通过</div>
+    </div>
+    <div class="card-base p-4 text-center">
+      <div class="text-2xl font-bold" style="color: #e74c3c;" id="escortPendingCount">0</div>
+      <div class="text-xs" style="color: var(--muted);">待审核</div>
+    </div>
+  </div>
+  
+  <!-- 分类快速筛选 -->
+  <div class="flex gap-2 mb-4 overflow-x-auto pb-2" id="escortFilterBar">
+    <button class="escort-filter-btn active" data-filter="all">全部</button>
+    <button class="escort-filter-btn" data-filter="pending">待审核</button>
+    <button class="escort-filter-btn" data-filter="passed">已通过</button>
+    <button class="escort-filter-btn" data-filter="突击">突击</button>
+    <button class="escort-filter-btn" data-filter="工程">工程</button>
+    <button class="escort-filter-btn" data-filter="侦察">侦察</button>
+    <button class="escort-filter-btn" data-filter="支援">支援</button>
+  </div>
+  
+  <!-- 上传入口 -->
+  <div class="card-base p-4 mb-4 flex items-center justify-between">
+    <div>
+      <h3 class="font-bold"><i class="fas fa-upload mr-2" style="color: var(--accent);"></i>提交考核视频</h3>
+      <p class="text-xs" style="color: var(--muted);">上传护航录像，等待考官审核</p>
+    </div>
+    <button class="btn-warm" onclick="openModal('escortUploadModal')"><i class="fas fa-plus mr-1"></i>上传视频</button>
+  </div>
+  
+  <!-- 视频卡片瀑布流 -->
+  <div class="masonry" id="escortVideoGrid"></div>
+  <div id="escortEmpty" class="text-center py-16 hidden" style="color: var(--muted);">
+    <i class="fas fa-video text-4xl mb-3 opacity-30"></i>
+    <p>暂无考核视频</p>
+  </div>
+</div>
+    <!-- 顶部统计卡片 -->
+    <div class="grid grid-cols-3 gap-3 mb-4">
+      ...
+    </div>
+    ...
+  </div>
 
   <!-- 个人主页 -->
   <div id="profileTab" style="display:none">
@@ -1063,9 +1494,9 @@ word-wrap: break-word;
   <button onclick="switchTab('discover')" class="flex flex-col items-center gap-0.5 py-1 px-3" id="mobDiscover"><i class="fas fa-compass text-lg" style="color:var(--muted)"></i><span class="text-[10px]">发现</span></button>
   <button onclick="openModal('publishModal')" class="flex flex-col items-center gap-0.5 py-1 px-3"><div class="w-10 h-10 rounded-full flex items-center justify-center" style="background:linear-gradient(135deg,#FF6B35,#FF4757)"><i class="fas fa-plus text-white"></i></div></button>
   <button onclick="switchTab('following')" class="flex flex-col items-center gap-0.5 py-1 px-3" id="mobFollowing"><i class="fas fa-heart text-lg" style="color:var(--muted)"></i><span class="text-[10px]">关注</span></button>
+  <button onclick="switchTab('escort')" class="flex flex-col items-center gap-0.5 py-1 px-3" id="mobEscort"><i class="fas fa-shield-halved text-lg" style="color:var(--muted)"></i><span class="text-[10px]">护航</span></button>
   <button onclick="openProfile()" class="flex flex-col items-center gap-0.5 py-1 px-3" id="mobProfile"><i class="fas fa-user text-lg" style="color:var(--muted)"></i><span class="text-[10px]">我的</span></button>
 </div>
-
 <!-- 回到顶部/底部悬浮按钮 -->
 <button class="scroll-btn" id="scrollBtn" onclick="smartScroll()" aria-label="滚动到顶部或底部">
   <i class="fas fa-arrow-up" id="scrollIcon"></i>
@@ -1232,7 +1663,33 @@ word-wrap: break-word;
     </div>
   </div>
 </div>
-
+<!-- 护航视频上传弹窗 -->
+<div class="modal-overlay" id="escortUploadModal">
+  <div class="modal-content" style="max-width:500px">
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="font-display text-xl">提交考核视频</h2>
+      <button onclick="closeModal('escortUploadModal')" class="w-8 h-8 rounded-full flex items-center justify-center" style="background:var(--surface)"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="space-y-3">
+      <input type="text" placeholder="视频标题" id="escortTitle" class="w-full">
+      <textarea placeholder="视频描述（选填）" id="escortDesc" class="w-full" rows="3"></textarea>
+      <select id="escortOpClass" class="w-full">
+        <option value="">选择兵种</option>
+        <option value="突击">突击</option>
+        <option value="工程">工程</option>
+        <option value="侦察">侦察</option>
+        <option value="支援">支援</option>
+        <option value="全能">全能</option>
+      </select>
+      <input type="file" id="escortVideoFile" accept="video/*" class="w-full text-sm">
+      <div id="escortUploadProgress" class="hidden">
+        <div class="exp-bar mt-2"><div class="exp-fill" id="escortProgressFill" style="width:0%"></div></div>
+        <p class="text-xs mt-1" id="escortProgressText">0%</p>
+      </div>
+      <button class="btn-warm w-full py-2" onclick="uploadEscortVideo()">开始上传</button>
+    </div>
+  </div>
+</div>
 <!-- 举报弹窗 -->
 <div class="modal-overlay" id="reportModal">
   <div class="modal-content" style="max-width:400px">
@@ -1431,6 +1888,7 @@ try { sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY); } catc
 
 // 应用状态
 const APP = {
+
   user: null, profile: null, currentTab: 'home',
  filters: { type: 'all', op: 'all', sort: 'latest', time: 'all', topic: 'all', keyword: '' },
   postsPage: 0, postsPerPage: 12, allPostsLoaded: false,
@@ -1455,10 +1913,17 @@ function showToast(msg) {
   setTimeout(() => t.remove(), 3200);
 }
 
-// 弹窗控制
-function openModal(id) { $(id).classList.add('active'); }
+// ==================== 弹窗控制 ====================
+function openModal(id) { 
+  $(id).classList.add('active'); 
+}
+
 function closeModal(id) { 
   $(id).classList.remove('active'); 
+  // 如果是关闭评论弹窗，同时移除沉浸模式
+  if (id === 'commentsModal') {
+    $('commentsModal').classList.remove('immersive');
+  }
   if (id === 'musicSearchModal') {
     // 可选：关闭搜索弹窗时不清除播放器，保持后台播放
   }
@@ -1864,7 +2329,7 @@ function openNotifModal() {
   openModal('notifModal');
 }
  function switchTab(tab) {
-  // === 添加淡出动画 ===
+  // 淡出动画
   const oldTab = $(APP.currentTab + 'Tab');
   if (oldTab) {
     oldTab.style.transition = 'opacity 0.2s';
@@ -1873,11 +2338,12 @@ function openNotifModal() {
 
   setTimeout(() => {
     APP.currentTab = tab;
-   ['homeTab','discoverTab','followingTab','profileTab','topicDetailTab','searchTab'].forEach(id => {
-  const el = $(id);
-  if (el) el.style.display = 'none';
-});
-    const map = { home:'homeTab', discover:'discoverTab', following:'followingTab', profile:'profileTab' };
+    ['homeTab','discoverTab','followingTab','profileTab','topicDetailTab','searchTab','escortTab'].forEach(id => {
+      const el = $(id);
+      if (el) el.style.display = 'none';
+    });
+    
+        const map = { home:'homeTab', discover:'discoverTab', following:'followingTab', profile:'profileTab', escort:'escortTab' };
     if (map[tab]) {
       const newTab = $(map[tab]);
       newTab.style.display = 'block';
@@ -1886,26 +2352,67 @@ function openNotifModal() {
       setTimeout(() => newTab.style.opacity = '1', 10);
     }
     
-    // 更新导航高亮
-    qsa('[id^="nav"],[id^="mob"]').forEach(b => b.style.color = 'var(--muted)');
-    const active = { home:['navHome','mobHome'], discover:['navDiscover','mobDiscover'], following:['navFollowing','mobFollowing'] };
-    (active[tab]||[]).forEach(id => { const el = $(id); if(el) el.style.color = 'var(--accent)'; });
-   if (tab === 'discover') loadRanks();
+    // --- 导航高亮 ---
+    qsa('.top-nav .btn-ghost, .mobile-nav button').forEach(el => {
+      el.classList.remove('active');
+      if (el.classList.contains('btn-ghost')) el.style.color = '';
+    });
+    const activeSelectors = {
+      home: ['#navHome', '#mobHome'],
+      discover: ['#navDiscover', '#mobDiscover'],
+      following: ['#navFollowing', '#mobFollowing'],
+      escort: ['#navEscort', '#mobEscort']
+    };
+    (activeSelectors[tab] || []).forEach(selector => {
+      const el = qs(selector);
+      if (el) {
+        el.classList.add('active');
+        if (el.classList.contains('btn-ghost')) el.style.color = 'var(--accent)';
+      }
+    });
+    
+    if (tab === 'discover') loadRanks();
     if (tab === 'following') loadFollowingPosts();
-   if (tab === 'home') {
-  // 清空搜索关键词和输入框
-  APP.filters.keyword = '';
-  const homeSearchInput = $('homeSearchInput');
-  if (homeSearchInput) homeSearchInput.value = '';
-  
-  renderTopicCloud();
-  loadHotRecommend();
-  loadPosts(true); // 确保刷新帖子列表（重置为全部内容）
-}
+    if (tab === 'home') {
+      APP.filters.keyword = '';
+      const homeSearchInput = $('homeSearchInput');
+      if (homeSearchInput) homeSearchInput.value = '';
+      renderTopicCloud();
+      loadHotRecommend();
+      loadPosts(true);
+    }
     if (tab === 'profile') renderProfile();
-   }, 200);
+    if (tab === 'escort') loadEscortVideos();
+// 护航专区状态
+const escortState = {
+  videos: [],
+  filter: 'all',
+  page: 0,
+  pageSize: 12,
+  allLoaded: false,
+  loading: false
+};
+  }, 200);
 }
 async function loadHotRecommend() {
+// 在线护航员横条
+async function loadOnlineEscorts() {
+  const bar = $('onlineEscortBar');
+  if (!bar) return;
+  
+  // 获取最近活跃的护航员（这里简化为随机用户，实际可关联 escort_videos 表）
+  const { data } = await sb.from('profiles').select('id, username, avatar_url').limit(8);
+  
+  bar.innerHTML = (data || []).map(u => `
+    <div class="flex flex-col items-center gap-1 cursor-pointer flex-shrink-0" onclick="viewUserProfile('${u.id}')">
+      <div style="position: relative;">
+        <img src="${u.avatar_url || dicebearUrl(u.username)}" class="w-14 h-14 rounded-full object-cover border-2" style="border-color: var(--accent);">
+        <span class="online-indicator" style="position: absolute; bottom: 2px; right: 2px;"></span>
+      </div>
+      <span class="text-xs" style="color: var(--muted);">${u.username}</span>
+    </div>
+  `).join('');
+}
   const list = $('hotRecommendList'); if (!list) return;
   list.innerHTML = '<div class="col-span-full text-center py-4" style="color:var(--muted)"><i class="fas fa-spinner fa-pulse mr-2"></i>加载推荐...</div>';
   const { data } = await sb.from('posts').select('id, title, upvotes, comments_count, downloads, profiles(username)').neq('post_type', 'story').order('hot_score', { ascending: false }).limit(20);
@@ -2017,9 +2524,14 @@ function toggleFilterDropdown(id) {
 
 function selectFilterType(val) {
   APP.filters.type = val;
+  // 更新标签显示
   $('currentTypeLabel').textContent = {all:'全部', normal:'图文', vote:'投票', qa:'问答'}[val] || val;
+  // 关闭下拉菜单
   document.querySelectorAll('.filter-menu').forEach(m => m.classList.add('hidden'));
+  // 刷新帖子
   loadPosts(true);
+  // 额外联动：可以在此处更新热门推荐等，让筛选更有整体感
+  // loadHotRecommend(); // 如果你想每次筛选都刷新推荐
 }
 
 function selectFilterOp(val) {
@@ -2052,18 +2564,87 @@ document.addEventListener('click', (e) => {
 
 // ==================== 帖子加载与渲染 ====================
 const HOT_TOPICS = ['战术研讨','新手攻略','武器评测','战队招募','精彩集锦','三角洲行动','每日打卡','求助大神','晒战绩','游戏资讯','版本更新','枪械配件','地图攻略','狙击教学','团队配合'];
+// 修改话题云的渲染，增加点击计数（mock数据）和热度火焰icon
 function renderTopicCloud() {
+// 话题卡片化渲染
+function renderTopicCards() {
+  const grid = $('topicCardGrid');
+  if (!grid) return;
+  
+  const topics = HOT_TOPICS.slice(0, 4).map(t => ({
+    name: t,
+    cover: `https://picsum.photos/seed/${t}/200/120`,
+    heat: Math.floor(Math.random() * 5000) + 500,
+    posts: Math.floor(Math.random() * 200) + 20
+  }));
+  
+  grid.innerHTML = topics.map(t => `
+    <div class="topic-card" onclick="selectTopicFromCloud('${t.name}')">
+      <img src="${t.cover}" class="topic-card-cover">
+      <div class="topic-card-name"><i class="fas fa-hashtag" style="color: var(--accent);"></i>${t.name}</div>
+      <div class="topic-card-stats">
+        <span><i class="fas fa-fire"></i> ${formatNumber(t.heat)}</span>
+        <span><i class="fas fa-file"></i> ${t.posts}</span>
+      </div>
+    </div>
+  `).join('');
+}
   const cloud = $('topicCloud');
-  const topics = HOT_TOPICS.sort(() => Math.random() - 0.5).slice(0, 8);
-  cloud.innerHTML = topics.map(t => {
-    const size = Math.floor(Math.random() * 6) + 10; // 10-15px
-    return `<span class="topic-tag" style="font-size:${size}px;" onclick="selectTopicFromCloud('${t}')">#${t}</span>`;
+  // 使用带热度的mock数据，未来可从数据库获取真实热度
+  const topics = HOT_TOPICS.map(t => {
+    return {
+      name: t,
+      // 模拟热度，用于展示火焰和不同大小
+      heat: Math.floor(Math.random() * 1000) + 100,
+    };
+  }).sort((a, b) => b.heat - a.heat).slice(0, 8); // 取前8个最热话题
+
+  cloud.innerHTML = topics.map((t, index) => {
+    // 根据热度调整字体大小（14px 到 24px）
+    const size = 14 + Math.min(10, Math.floor(t.heat / 150));
+    // 前三名显示奖杯图标，其他的显示火焰
+    const icon = index < 3 ? '<i class="fas fa-trophy"></i>' : '<i class="fas fa-fire"></i>';
+    return `
+      <span class="topic-tag" style="font-size:${size}px;" onclick="selectTopicFromCloud('${t.name}')">
+        ${icon} #${t.name}
+        <span style="font-size:0.8em; margin-left: 4px; color: var(--muted);">${t.heat}</span>
+      </span>
+    `;
   }).join('');
 }
 
-function selectTopicFromCloud(topic) { 
-  openTopicDetail(topic); 
+// 增强话题点击功能，让它和热门推荐、筛选联动
+function selectTopicFromCloud(topic) {
+  // 1. 更新筛选栏的“话题”下拉菜单，选中该话题
+  APP.filters.topic = topic;
+  $('currentTopicLabel').textContent = topic;
+  document.querySelectorAll('.filter-menu').forEach(m => m.classList.add('hidden')); // 关闭下拉菜单
+
+  // 2. 刷新帖子列表（主页瀑布流）
+  loadPosts(true);
+
+  // 3. 同时刷新“热门推荐”，让它展示与该话题相关的内容
+  // 这里我们模拟一个按话题筛选的热门推荐，实际实现时需要修改 loadHotRecommend 函数
+  loadHotRecommendByTopic(topic);
+
+  // 4. 提供一个视觉反馈
+  showToast(`正在浏览 #${topic} 的内容`);
 }
+
+// 新增函数：按话题加载热门推荐（实际开发中需替换为真实数据库查询）
+async function loadHotRecommendByTopic(topic) {
+  const list = $('hotRecommendList');
+  list.innerHTML = '<div class="col-span-full text-center py-4" style="color:var(--muted)"><i class="fas fa-spinner fa-pulse mr-2"></i>加载推荐...</div>';
+  // 这里只是模拟，未来替换为：sb.from('posts').select(...).contains('tags', [topic])...
+  const { data } = await sb.from('posts').select('id, title, upvotes, comments_count, downloads, profiles(username)').neq('post_type', 'story').contains('tags', [topic]).order('hot_score', { ascending: false }).limit(5);
+  if (!data || data.length === 0) {
+    list.innerHTML = '<div class="col-span-full text-center py-4" style="color:var(--muted)">暂无推荐内容</div>';
+    return;
+  }
+  list.innerHTML = data.map(p => `<div class="hot-recommend-item card-base p-4" onclick="openComments('${p.id}')">...</div>`).join('');
+}
+
+
 // 首页筛选栏搜索
 function performHomeSearch() {
   const kw = $('homeSearchInput').value.trim();
@@ -2099,6 +2680,22 @@ async function loadPosts(reset) {
   if (APP.allPostsLoaded) {
     if ($('postsSkeleton')) $('postsSkeleton').style.display = 'none';
     setLoadingBar(100);
+// 在 loadPosts 函数的最后，APP.loading = false; 之前，新增高亮逻辑
+if (APP.filters.keyword && APP.filters.keyword.trim() !== '') {
+    highlightKeywords(APP.filters.keyword);
+}
+
+// 在文件任意位置添加高亮函数
+function highlightKeywords(keyword) {
+    const cards = qsa('.post-card .post-title, .post-card .post-description');
+    cards.forEach(el => {
+        let html = el.innerHTML;
+        // 简单的关键词高亮，避免破坏 HTML 结构
+        const regex = new RegExp(`(${keyword})`, 'gi');
+        html = html.replace(regex, '<span style="background-color: #FFD700; color: #3D2B1F; font-weight: 700;">$1</span>');
+        el.innerHTML = html;
+    });
+}
     APP.loading = false;
     return;
   }
@@ -2213,49 +2810,106 @@ const opLabel = `<span class="tag-pill" style="background:${opColor}20; color:${
     `).join('')}</div>`;
   }
 
+    // ========== 替换开始 ==========
   div.innerHTML = `
-    <div class="card-base p-4 relative">
-      <div class="flex items-center gap-2 mb-2">
-        <img src="${post.profiles?.avatar_url || dicebearUrl('u')}" class="w-8 h-8 rounded-full object-cover">
-        <div>
-          <div class="text-sm font-bold cursor-pointer hover:underline" onclick="viewUserProfile('${post.user_id}')">${post.profiles?.username || '干员'}${displayBadgeHtml}</div>
-          <div class="text-xs" style="color:var(--muted)">${timeAgo(post.created_at)}</div>
-${APP.user && APP.user.id !== post.user_id ? `<button class="text-xs mt-1 px-2 py-0.5 rounded-full" style="border:1px solid var(--accent);color:var(--accent)" onclick="followUser('${post.user_id}')">${APP.followedIds.includes(post.user_id) ? '已关注' : '+ 关注'}</button>` : ''}
+        <div class="post-card">
+      <div class="post-header">
+        <div style="position: relative; display: inline-block;">
+          <img src="${post.profiles?.avatar_url || dicebearUrl('u')}" class="post-avatar" onclick="event.stopPropagation(); viewUserProfile('${post.user_id}')">
+          <span class="online-indicator ${post.profiles?.is_online ? '' : 'hidden'}" id="online-${post.user_id}"></span>
         </div>
-        ${topBadge}
-        <div class="ml-auto relative">
-          <button onclick="togglePostMenu(event,'${post.id}')" class="text-xs px-2 py-1 rounded" style="color:var(--muted)"><i class="fas fa-ellipsis-v"></i></button>
-                             <div class="post-menu absolute right-0 top-6 card-base p-2 space-y-1 text-xs" style="display:none;z-index:50;min-width:120px" id="menu-${post.id}">
-            <button class="block w-full text-left px-2 py-1 rounded hover:bg-black/5" onclick="openReportModal('${post.id}')">举报</button>
-            ${(APP.user?.id === post.user_id || APP.isAdmin) ? `<button class="block w-full text-left px-2 py-1 rounded hover:bg-red-500/10 text-red-500" onclick="deletePost('${post.id}')">删除</button>` : ''}
+        <div class="post-author-info">
+          <div class="post-author-name">
+            ${post.profiles?.username || '干员'} ${displayBadgeHtml}
+            ${APP.user && APP.user.id !== post.user_id ? `<button class="text-xs px-2 py-0.5 rounded-full" style="border:1px solid var(--accent);color:var(--accent); background: transparent;" onclick="event.stopPropagation(); followUser('${post.user_id}')">${APP.followedIds.includes(post.user_id) ? '已关注' : '+ 关注'}</button>` : ''}
+          </div>
+          <div class="post-meta">
+            <span><i class="far fa-clock"></i> ${timeAgo(post.created_at)}</span>
+            <span>·</span>
+            <span>${opLabel}</span>
+            ${typeLabel ? `<span>·</span><span>${typeLabel}</span>` : ''}
+          </div>
+        </div>
+        <div class="relative" style="margin-left: auto;">
+          <button onclick="event.stopPropagation(); togglePostMenu(event,'${post.id}')" class="text-xs px-2 py-1 rounded" style="color:var(--muted); background: var(--surface); border: none;"><i class="fas fa-ellipsis-v"></i></button>
+          <!-- 菜单保持原有逻辑，无需改动 -->
+          <div class="post-menu absolute right-0 top-6 card-base p-2 space-y-1 text-xs" style="display:none;z-index:50;min-width:120px" id="menu-${post.id}">
+            <button class="block w-full text-left px-2 py-1 rounded hover:bg-black/5" onclick="event.stopPropagation(); openReportModal('${post.id}')">举报</button>
+            ${(APP.user?.id === post.user_id || APP.isAdmin) ? `<button class="block w-full text-left px-2 py-1 rounded hover:bg-red-500/10 text-red-500" onclick="event.stopPropagation(); deletePost('${post.id}')">删除</button>` : ''}
             ${APP.isAdmin ? `
-              <button class="block w-full text-left px-2 py-1 rounded hover:bg-yellow-500/10 text-yellow-500" onclick="adminToggleTop('${post.id}')">
+              <button class="block w-full text-left px-2 py-1 rounded hover:bg-yellow-500/10 text-yellow-500" onclick="event.stopPropagation(); adminToggleTop('${post.id}')">
                 <i class="fas fa-thumbtack mr-1"></i>${post.is_top_today ? '取消置顶' : '设为置顶'}
               </button>
-              <button class="block w-full text-left px-2 py-1 rounded hover:bg-purple-500/10 text-purple-500" onclick="adminToggleFeatured('${post.id}')">
+              <button class="block w-full text-left px-2 py-1 rounded hover:bg-purple-500/10 text-purple-500" onclick="event.stopPropagation(); adminToggleFeatured('${post.id}')">
                 <i class="fas fa-star mr-1"></i>${post.featured ? '取消加精' : '设为加精'}
               </button>
             ` : ''}
           </div>
         </div>
       </div>
-      ${typeLabel ? `<span class="tag-pill mb-1">${typeLabel}</span>` : ''}
-      ${opLabel}
-      <h3 class="font-bold mt-1 mb-1">${post.title}</h3>
-      ${post.description ? `<p class="text-sm mb-2" style="color:var(--muted)">${post.description.substring(0,120)}${post.description.length>120?'...':''}</p>` : ''}
-      ${mediaHTML}
-      ${voteHTML}
-      <div class="flex flex-wrap gap-1 mt-2">${tagsHTML}</div>
-      <div class="flex items-center gap-3 mt-3 text-xs" style="color:var(--muted)">
-        <button onclick="votePost('${post.id}','up')" class="flex items-center gap-1 hover:text-orange-500 transition" id="up-${post.id}"><i class="fas fa-thumbs-up"></i> ${post.upvotes||0}</button>
-        <button onclick="votePost('${post.id}','down')" class="flex items-center gap-1 hover:text-blue-500 transition" id="down-${post.id}"><i class="fas fa-thumbs-down"></i> ${post.downvotes||0}</button>
-        <button onclick="favPost('${post.id}')" class="flex items-center gap-1 hover:text-pink-500 transition" id="fav-${post.id}"><i class="fas fa-heart"></i> ${post.favorites_count||0}</button>
-        <button onclick="openComments('${post.id}')" class="flex items-center gap-1 hover:text-green-500 transition"><i class="fas fa-comment"></i> ${post.comments_count||0}</button>
-        <button onclick="downloadWithWatermark('${post.id}')" class="flex items-center gap-1 hover:text-purple-500 transition"><i class="fas fa-download"></i> ${post.downloads||0}</button>
-        <button onclick="sharePost('${post.id}')" class="flex items-center gap-1 hover:text-teal-500 transition"><i class="fas fa-share-alt"></i></button>
+
+      <h3 class="post-title">${isTop ? '<i class="fas fa-thumbtack" style="color: var(--accent); margin-right: 8px;"></i>' : ''}${post.title}</h3>
+      ${post.description ? `<p class="post-description">${post.description.substring(0,150)}${post.description.length>150?'...':''}</p>` : ''}
+
+      <!-- 媒体区保持不变 -->
+      ${mediaHTML ? `<div class="mb-4 post-media">${mediaHTML}</div>` : ''}
+
+      <!-- 标签区 -->
+      <div class="post-tags">
+        ${tagsHTML}
       </div>
+
+      <!-- 投票区保持不变 -->
+      ${voteHTML ? `<div class="mb-4 post-vote-area">${voteHTML}</div>` : ''}
+
+      <!-- 操作栏（全新设计） -->
+            <!-- 操作栏（折叠优化版） -->
+      <div class="post-actions">
+        <button onclick="event.stopPropagation(); votePost('${post.id}','up')" class="post-action-btn" id="up-${post.id}">
+          <i class="far fa-thumbs-up"></i> <span>${post.upvotes||0}</span>
+        </button>
+        <button onclick="event.stopPropagation(); tripleAction('${post.id}')" class="post-action-btn triple-action-btn" id="triple-${post.id}">
+          <i class="fas fa-gem"></i> <span>三连</span>
+        </button>
+        <button onclick="event.stopPropagation(); openComments('${post.id}')" class="post-action-btn">
+          <i class="far fa-comment"></i> <span>${post.comments_count||0}</span>
+        </button>
+        <button onclick="event.stopPropagation(); toggleQuickReply('${post.id}')" class="post-action-btn quick-reply-btn" id="quickReplyBtn-${post.id}">
+          <i class="far fa-comment-dots"></i> <span>回复</span>
+        </button>
+        
+        <div class="relative">
+          <button onclick="event.stopPropagation(); toggleMoreMenu(event, '${post.id}')" class="post-action-btn more-btn">
+            <i class="fas fa-ellipsis-h"></i> <span>更多</span>
+          </button>
+          <div class="more-menu absolute bottom-full right-0 mb-2 card-base p-2 space-y-1 hidden" id="moreMenu-${post.id}" style="z-index:50; min-width:140px;">
+            <button class="w-full text-left px-3 py-2 rounded-lg text-sm hover:bg-black/5 flex items-center gap-2" onclick="event.stopPropagation(); favPost('${post.id}')">
+              <i class="far fa-heart" style="color:#FF4757;"></i> <span>收藏 ${post.favorites_count||0}</span>
+            </button>
+            <button class="w-full text-left px-3 py-2 rounded-lg text-sm hover:bg-black/5 flex items-center gap-2" onclick="event.stopPropagation(); sharePost('${post.id}')">
+              <i class="fas fa-share-alt"></i> <span>分享</span>
+            </button>
+            <button class="w-full text-left px-3 py-2 rounded-lg text-sm hover:bg-black/5 flex items-center gap-2" onclick="event.stopPropagation(); downloadWithWatermark('${post.id}')">
+              <i class="fas fa-download"></i> <span>下载</span>
+            </button>
+          </div>
+        </div>
+      </div>
+  <!-- 快速回复区域（默认隐藏） -->
+  <div class="quick-reply-area hidden" id="quickReply-${post.id}" style="margin-top: 12px;">
+    <!-- 评论预览区 -->
+    <div class="quick-comment-preview mb-2 p-2 rounded-lg" style="background: var(--surface); max-height: 120px; overflow-y: auto;" id="quickCommentPreview-${post.id}">
+      <div class="text-xs text-center" style="color: var(--muted);">加载中...</div>
+    </div>
+    <!-- 输入区 -->
+    <div class="flex gap-2">
+      <input type="text" placeholder="发表友善的回复..." class="quick-reply-input flex-1" id="quickReplyInput-${post.id}" style="background: var(--surface); border: 1.5px solid var(--border); border-radius: 24px; padding: 10px 16px; color: var(--text);">
+      <button class="btn-warm text-sm px-4" onclick="submitQuickReply('${post.id}')">发送</button>
+    </div>
+  </div>
     </div>
   `;
+  // ========== 替换结束 ==========
   div.dataset.postId = post.id;
   return div;
 }
@@ -2304,6 +2958,79 @@ $('pubMedia')?.addEventListener('change', function() {
 });
 // 上传媒体文件
 async function publishPost() {
+// 护航视频上传
+async function uploadEscortVideo() {
+  if (!APP.user) { showToast('请先登录'); openAuthModal(); return; }
+  
+  const title = $('escortTitle').value.trim();
+  const desc = $('escortDesc').value.trim();
+  const opClass = $('escortOpClass').value;
+  const file = $('escortVideoFile').files[0];
+  
+  if (!title) { showToast('请输入视频标题'); return; }
+  if (!opClass) { showToast('请选择兵种'); return; }
+  if (!file) { showToast('请选择视频文件'); return; }
+  
+  const btn = event.target;
+  btn.disabled = true;
+  btn.textContent = '上传中...';
+  
+  $('escortUploadProgress').classList.remove('hidden');
+  const progressFill = $('escortProgressFill');
+  const progressText = $('escortProgressText');
+  
+  const ext = file.name.split('.').pop();
+  const path = `${APP.user.id}/escort_${Date.now()}.${ext}`;
+  
+  const { error, data } = await sb.storage.from('posts').upload(path, file, {
+    cacheControl: '3600',
+    upsert: false,
+    onUploadProgress: (progress) => {
+      const percent = Math.round((progress.loaded / progress.total) * 100);
+      progressFill.style.width = percent + '%';
+      progressText.textContent = percent + '%';
+    }
+  });
+  
+  if (error) {
+    showToast('上传失败: ' + error.message);
+    btn.disabled = false;
+    btn.textContent = '开始上传';
+    $('escortUploadProgress').classList.add('hidden');
+    return;
+  }
+  
+  const { data: { publicUrl } } = sb.storage.from('posts').getPublicUrl(path);
+  
+  // 获取视频时长（需要后端支持，这里简化）
+  const duration = 0; // 可通过后端 ffprobe 获取
+  
+  const { error: insertError } = await sb.from('escort_videos').insert({
+    user_id: APP.user.id,
+    title,
+    description: desc,
+    video_url: publicUrl,
+    operator_class: opClass,
+    status: 'pending',
+    duration
+  });
+  
+  if (insertError) {
+    showToast('保存失败: ' + insertError.message);
+  } else {
+    showToast('视频已提交，等待审核！');
+    closeModal('escortUploadModal');
+    $('escortTitle').value = '';
+    $('escortDesc').value = '';
+    $('escortOpClass').value = '';
+    $('escortVideoFile').value = '';
+    if (APP.currentTab === 'escort') loadEscortVideos(true);
+  }
+  
+  btn.disabled = false;
+  btn.textContent = '开始上传';
+  $('escortUploadProgress').classList.add('hidden');
+}
   if (!APP.user) { showToast('请先登录'); openAuthModal(); return; }
   const btn = event.target;
   if (btn.disabled) return;
@@ -2336,10 +3063,14 @@ async function publishPost() {
   const tags = $('pubTags').value.split(/[,，]/).map(t => t.trim()).filter(Boolean);
 
   const postData = {
-    user_id: APP.user.id, title, description: $('pubDesc').value.trim(),
-    media_urls: mediaUrls, post_type: $('pubType').value,
+    user_id: APP.user.id, 
+     title: title,
+    description: $('pubDesc').value.trim(),
+    media_urls: mediaUrls, 
+    post_type: $('pubType').value,
     operator_class: $('pubOpClass').value || null,
-    tags, vote_options: voteOptions
+      tags: tags,
+     vote_options: voteOptions
   };
 
   const { error } = await sb.from('posts').insert(postData);
@@ -2477,6 +3208,7 @@ async function favPost(pid) {
 // ==================== 评论系统 ====================
 async function openComments(pid) {
   APP.currentPostId = pid;
+
   
   // 获取帖子详情
   const { data: post } = await sb.from('posts').select('*, profiles(username, avatar_url, level, display_badge, badges)').eq('id', pid).single();
@@ -2549,7 +3281,8 @@ async function openComments(pid) {
   
   // 加载评论
   await loadComments(pid);
-  
+    // 开启沉浸式阅读模式
+  $('commentsModal').classList.add('immersive');
   openModal('commentsModal');
   setTimeout(() => $('commentInput')?.focus(), 100);
 }
@@ -2764,6 +3497,134 @@ async function deletePost(pid) {
 function sharePost(pid) {
   const url = window.location.origin + window.location.pathname + '#post-' + pid;
   navigator.clipboard.writeText(url).then(() => showToast('链接已复制')).catch(() => showToast('复制失败'));
+}
+// ==================== 快速回复功能 ====================
+
+// 切换快速回复框的显示/隐藏，并加载评论预览
+async function toggleQuickReply(pid) {
+  const area = $(`quickReply-${pid}`);
+  const input = $(`quickReplyInput-${pid}`);
+  
+  // 关闭其他可能打开的快速回复框
+  qsa('.quick-reply-area').forEach(el => {
+    if (el.id !== `quickReply-${pid}`) el.classList.add('hidden');
+  });
+  
+  const isHidden = area.classList.contains('hidden');
+  area.classList.toggle('hidden');
+  
+  if (!isHidden) {
+    // 展开时加载评论预览
+    await loadQuickCommentPreview(pid);
+    setTimeout(() => input.focus(), 50);
+  }
+}
+
+// 加载评论预览（最多3条）
+async function loadQuickCommentPreview(pid) {
+  const previewContainer = $(`quickCommentPreview-${pid}`);
+  if (!previewContainer) return;
+  
+  previewContainer.innerHTML = '<div class="text-xs text-center" style="color: var(--muted);"><i class="fas fa-spinner fa-pulse"></i> 加载中...</div>';
+  
+  const { data } = await sb.from('comments')
+    .select('*, profiles(username, avatar_url)')
+    .eq('post_id', pid)
+    .order('created_at', { ascending: false })
+    .limit(3);
+    
+  if (data && data.length) {
+    previewContainer.innerHTML = data.map(c => `
+      <div class="flex items-start gap-2 text-xs py-1">
+        <img src="${c.profiles?.avatar_url || dicebearUrl('c')}" class="w-5 h-5 rounded-full object-cover">
+        <div class="flex-1 min-w-0">
+          <span class="font-bold">${c.profiles?.username || '干员'}</span>
+          <span class="ml-1" style="color: var(--text); word-break: break-word;">${c.content.substring(0, 60)}${c.content.length > 60 ? '...' : ''}</span>
+        </div>
+      </div>
+    `).join('');
+    previewContainer.innerHTML += `<div class="text-xs mt-1 text-right" style="color: var(--accent); cursor: pointer;" onclick="openComments('${pid}')">查看全部 →</div>`;
+  } else {
+    previewContainer.innerHTML = '<div class="text-xs text-center" style="color: var(--muted);">✨ 暂无评论，快来抢沙发！</div>';
+  }
+}
+
+// 提交快速回复
+async function submitQuickReply(pid) {
+  const input = $(`quickReplyInput-${pid}`);
+  const content = input.value.trim();
+  if (!content) { showToast('请输入回复内容'); return; }
+  if (!APP.user) { openAuthModal(); showToast('请先登录'); return; }
+  
+  // 禁用按钮防止重复提交
+  const btn = event.target;
+  btn.disabled = true;
+  btn.textContent = '发送中';
+  
+  const { error } = await sb.from('comments').insert({
+    user_id: APP.user.id,
+    post_id: pid,
+    content: content
+  });
+  
+  if (error) { 
+    showToast('回复失败: ' + error.message); 
+    btn.disabled = false;
+    btn.textContent = '发送';
+    return; 
+  }
+  
+  // 更新帖子评论计数
+  const { data: post } = await sb.from('posts').select('comments_count, upvotes, downloads').eq('id', pid).single();
+  if (post) {
+    const newCommentCount = (post.comments_count || 0) + 1;
+    const hotScore = ((post.upvotes || 0) * 3) + (newCommentCount * 2) + (post.downloads || 0);
+    await sb.from('posts').update({ 
+      comments_count: newCommentCount, 
+      hot_score: hotScore 
+    }).eq('id', pid);
+    
+    // 更新卡片上的评论数显示（如果有的话）
+    const commentSpan = qs(`#quickReplyBtn-${pid}`)?.parentElement?.querySelector('.post-action-btn span');
+    // 简单起见，我们可以不实时更新数字，下次刷新时会正确
+  }
+  
+  showToast('回复成功！');
+  input.value = '';
+  $(`quickReply-${pid}`).classList.add('hidden');
+  btn.disabled = false;
+  btn.textContent = '发送';
+  
+  // 可选：发送后重新加载预览，显示最新评论
+  // await loadQuickCommentPreview(pid);
+}
+
+// 切换“更多”菜单
+function toggleMoreMenu(e, pid) {
+  e.stopPropagation();
+  const menu = $(`moreMenu-${pid}`);
+  qsa('.more-menu').forEach(m => {
+    if (m.id !== `moreMenu-${pid}`) m.classList.add('hidden');
+  });
+  menu.classList.toggle('hidden');
+}
+document.addEventListener('click', () => {
+  qsa('.more-menu').forEach(m => m.classList.add('hidden'));
+});
+if (navigator.vibrate) navigator.vibrate(20); // 轻微震动 20ms
+async function tripleAction(pid) {
+  if (!APP.user) {
+    openAuthModal();
+    showToast('请先登录才能三连哦');
+    return;
+  }
+  if (navigator.vibrate) navigator.vibrate(20);
+  showToast('⚡ 一键三连！作战支援已送达 ⚡');
+  await Promise.all([
+    votePost(pid, 'up'),
+    favPost(pid)
+  ]);
+  openComments(pid);
 }
 // 管理员置顶切换
 async function adminToggleTop(pid) {
@@ -3070,7 +3931,40 @@ const path = `${APP.user.id}/avatar_${Date.now()}_${Math.random().toString(36).s
 
 // 挂载编辑按钮
 document.addEventListener('DOMContentLoaded', () => {
+// 护航筛选按钮事件
+document.addEventListener('click', (e) => {
+  if (e.target.classList.contains('escort-filter-btn')) {
+    const filter = e.target.dataset.filter;
+    escortState.filter = filter;
+    
+    // 更新按钮激活状态
+    qsa('.escort-filter-btn').forEach(btn => btn.classList.remove('active'));
+    e.target.classList.add('active');
+    
+    // 重新加载
+    loadEscortVideos(true);
+  }
+});
   const editBtn = qs('#editProfileModal') ? null : null;
+});
+let lastScrollY = window.scrollY;
+let navHidden = false;
+window.addEventListener('scroll', () => {
+  const currentScrollY = window.scrollY;
+  const nav = $('topNav');
+  if (!nav) return;
+  
+  // 向下滚动超过 100px 且导航未隐藏，则隐藏
+  if (currentScrollY > lastScrollY && currentScrollY > 100 && !navHidden) {
+    nav.classList.add('hidden-nav');
+    navHidden = true;
+  } 
+  // 向上滚动或滚动到顶部附近，则显示
+  else if (currentScrollY < lastScrollY || currentScrollY < 50) {
+    nav.classList.remove('hidden-nav');
+    navHidden = false;
+  }
+  lastScrollY = currentScrollY;
 });
 
 // ==================== 签到系统 ====================
@@ -3233,6 +4127,114 @@ renderProfile();
   loadPosts(true);
 }
 async function loadFollowingPosts() {
+// ==================== 护航专区 ====================
+async function loadEscortVideos(reset = true) {
+  if (escortState.loading) return;
+  escortState.loading = true;
+  
+  if (reset) {
+    escortState.page = 0;
+    escortState.allLoaded = false;
+    $('escortVideoGrid').innerHTML = '';
+  }
+  
+  if (escortState.allLoaded) {
+    escortState.loading = false;
+    return;
+  }
+  
+  let query = sb.from('escort_videos').select('*, profiles(username, avatar_url)', { count: 'exact' });
+  
+  // 筛选条件
+  if (escortState.filter === 'pending') query = query.eq('status', 'pending');
+  else if (escortState.filter === 'passed') query = query.eq('status', 'passed');
+  else if (['突击','工程','侦察','支援','全能'].includes(escortState.filter)) {
+    query = query.eq('operator_class', escortState.filter);
+  }
+  
+  const from = escortState.page * escortState.pageSize;
+  const to = from + escortState.pageSize - 1;
+  
+  const { data, error, count } = await query
+    .order('created_at', { ascending: false })
+    .range(from, to);
+    
+  if (error) {
+    console.error('加载护航视频失败:', error);
+    escortState.loading = false;
+    return;
+  }
+  
+  if (data && data.length > 0) {
+    data.forEach(video => {
+      const card = createEscortVideoCard(video);
+      $('escortVideoGrid').appendChild(card);
+    });
+    $('escortEmpty').classList.add('hidden');
+  } else if (reset) {
+    $('escortEmpty').classList.remove('hidden');
+  }
+  
+  // 更新统计
+  if (reset && count !== null) {
+    const { data: stats } = await sb.from('escort_videos').select('status');
+    if (stats) {
+      $('escortTotalVideos').textContent = stats.length;
+      $('escortPassedCount').textContent = stats.filter(v => v.status === 'passed').length;
+      $('escortPendingCount').textContent = stats.filter(v => v.status === 'pending').length;
+    }
+  }
+  
+  if (data && data.length >= escortState.pageSize) {
+    escortState.page++;
+  } else {
+    escortState.allLoaded = true;
+  }
+  
+  escortState.loading = false;
+}
+
+function createEscortVideoCard(video) {
+  const div = document.createElement('div');
+  div.className = 'masonry-item';
+  
+  const statusMap = {
+    pending: { text: '待审核', class: 'pending' },
+    reviewing: { text: '审核中', class: 'reviewing' },
+    passed: { text: '已通过', class: 'passed' },
+    rejected: { text: '未通过', class: 'pending' }
+  };
+  const status = statusMap[video.status] || statusMap.pending;
+  
+  const duration = video.duration ? `${Math.floor(video.duration / 60)}:${String(video.duration % 60).padStart(2, '0')}` : '';
+  
+  div.innerHTML = `
+    <div class="escort-video-card" onclick="viewEscortVideo('${video.id}')">
+      <div class="escort-video-thumbnail">
+        ${video.thumbnail_url ? `<img src="${video.thumbnail_url}" style="width:100%;height:100%;object-fit:cover;">` : '<div style="width:100%;height:100%;background:linear-gradient(135deg, var(--accent)30, var(--accent2)30);display:flex;align-items:center;justify-content:center;"><i class="fas fa-play-circle fa-2x" style="color:white;opacity:0.6;"></i></div>'}
+        ${duration ? `<span class="escort-duration-badge">${duration}</span>` : ''}
+        <span class="escort-status-badge ${status.class}">${status.text}</span>
+      </div>
+      <div class="p-3">
+        <div class="font-bold text-sm line-clamp-2">${video.title}</div>
+        <div class="flex items-center gap-2 mt-2">
+          <img src="${video.profiles?.avatar_url || dicebearUrl('u')}" class="w-5 h-5 rounded-full">
+          <span class="text-xs" style="color: var(--muted);">${video.profiles?.username || '干员'}</span>
+        </div>
+        <div class="flex items-center gap-3 mt-2 text-xs" style="color: var(--muted);">
+          <span><i class="far fa-eye"></i> ${video.views || 0}</span>
+          <span><i class="far fa-heart"></i> ${video.likes || 0}</span>
+        </div>
+      </div>
+    </div>
+  `;
+  return div;
+}
+
+function viewEscortVideo(videoId) {
+  // 打开视频播放弹窗（后续可扩展）
+  showToast('视频播放功能开发中');
+}
   if (!APP.followedIds.length) {
     $('followingGrid').innerHTML = '';
     $('emptyFollowing').style.display = 'block';
@@ -3290,7 +4292,7 @@ const searchState = {
   bilibili: { order: 'totalrank', duration: 0, page: 1, allLoaded: false, loading: false }
 };
 
-function openSearch() { APP.currentTab = 'search'; ['homeTab','discoverTab','followingTab','profileTab','topicDetailTab','searchTab'].forEach(id => {
+function openSearch() { APP.currentTab = 'search';     ['homeTab','discoverTab','followingTab','profileTab','topicDetailTab','searchTab','escortTab'].forEach(id => {
   const el = $(id);
   if (el) el.style.display = 'none';
 });(id => $(id).style.display = 'none'); $('searchTab').style.display = 'block'; $('searchInput').focus(); }
@@ -3609,6 +4611,16 @@ async function initOnlinePresence() {
       const state = onlineChannel.presenceState();
       const count = Object.keys(state).length;
       $('onlineCount').textContent = count;
+      
+      // 更新所有在线用户绿点
+      const onlineUserIds = new Set();
+      Object.values(state).forEach(presences => {
+        presences.forEach(p => onlineUserIds.add(p.user_id));
+      });
+      onlineUserIds.forEach(uid => {
+        const indicator = $(`online-${uid}`);
+        if (indicator) indicator.classList.remove('hidden');
+      });
     })
     .subscribe(async (status) => {
       if (status === 'SUBSCRIBED') {
@@ -3619,7 +4631,6 @@ async function initOnlinePresence() {
       }
     });
 }
-
 window.addEventListener('beforeunload', () => {
   if (onlineChannel) {
     onlineChannel.untrack();
@@ -3765,14 +4776,22 @@ function initBGM() {
     inertia: true,
     modifiers: [interact.modifiers.restrictRect({ restriction: 'parent', endOnly: true })],
     autoScroll: true,
-    listeners: {
-      move: function (event) {
-        var target = event.target;
-        var x = (parseFloat(target.getAttribute('data-x')) || 0) + event.dx;
-        var y = (parseFloat(target.getAttribute('data-y')) || 0) + event.dy;
-        target.style.transform = 'translate(' + x + 'px, ' + y + 'px)';
-        target.setAttribute('data-x', x);
-        target.setAttribute('data-y', y);
+     listeners: {
+    start: function (event) {
+      // 开始拖动时，可以加一个视觉反馈，比如轻微放大
+      event.target.style.transition = 'transform 0.2s';
+    },
+    move: function (event) {
+      // 关键：阻止触摸移动时的默认行为（页面滚动）
+      if (event.interaction.pointerType === 'touch') {
+        event.preventDefault();
+      }
+      var target = event.target;
+      var x = (parseFloat(target.getAttribute('data-x')) || 0) + event.dx;
+      var y = (parseFloat(target.getAttribute('data-y')) || 0) + event.dy;
+      target.style.transform = 'translate(' + x + 'px, ' + y + 'px)';
+      target.setAttribute('data-x', x);
+      target.setAttribute('data-y', y);
       }
     }
   });
@@ -3966,6 +4985,37 @@ async function calculateTopPost() {
       }, 800);
     }, 100);
   }
+// 在 window.addEventListener('DOMContentLoaded', () => { 之前添加
+function addMouseGlowEffect() {
+  const glowDiv = document.createElement('div');
+  glowDiv.style.cssText = `
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 1;
+    background: radial-gradient(circle 400px at 50% 50%, var(--glow), transparent 80%);
+    opacity: 0.3;
+    transition: opacity 0.3s;
+  `;
+  document.body.appendChild(glowDiv);
+
+  window.addEventListener('mousemove', (e) => {
+    glowDiv.style.background = `radial-gradient(circle 400px at ${e.clientX}px ${e.clientY}px, var(--glow), transparent 80%)`;
+  });
+
+  // 鼠标离开窗口时淡出
+  window.addEventListener('mouseleave', () => {
+    glowDiv.style.opacity = '0';
+  });
+  window.addEventListener('mouseenter', () => {
+    glowDiv.style.opacity = '0.3';
+  });
+}
+// 在 initAuth() 之后调用此函数
+// addMouseGlowEffect();
 window.addEventListener('DOMContentLoaded', () => {
   initBGM();
   initAuth();
