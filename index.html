@@ -654,15 +654,43 @@ touch-action: none; /* 禁止浏览器默认的滚动、缩放等触摸行为 */
   @keyframes flameFloat { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
   .spirit-flame.gray { filter: grayscale(1) brightness(0.5); }
 
-   /* 顶部导航 */
+      /* 顶部导航 */
   .top-nav {
-    position: fixed; top: 0; left: 0; right: 0; z-index: 800;
-    background: var(--card); border-bottom: 1px solid var(--border);
-    backdrop-filter: blur(16px); transition: transform 0.3s ease;
+    position: fixed; 
+    top: 0; 
+    left: 0; 
+    right: 0; 
+    z-index: 800;
+    background: var(--card); 
+    border-bottom: 1px solid var(--border);
+    backdrop-filter: blur(16px); 
+    transition: transform 0.3s ease;
     transform: translateY(0);
+    width: 100%;
+    box-sizing: border-box;
   }
   .top-nav.hidden-nav {
     transform: translateY(-100%);
+  }
+  /* 确保导航栏内容在小屏幕上也居中且不溢出 */
+  .top-nav .max-w-7xl {
+    width: 100%;
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+  /* 移动端标题文字缩小 */
+  @media (max-width: 640px) {
+    .top-nav .font-display {
+      font-size: 16px !important;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 140px;
+    }
+    .top-nav .btn-ghost {
+      padding: 4px 8px;
+      font-size: 12px;
+    }
   }
 
   /* 图片放大查看 */
