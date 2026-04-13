@@ -130,6 +130,37 @@ CREATE TABLE reports (
   status TEXT DEFAULT 'pending' CHECK (status IN ('pending','resolved','dismissed')),
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+-- 护航视频表
+CREATE TABLE escort_videos (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
+  title TEXT NOT NULL,
+  description TEXT,
+  video_url TEXT NOT NULL,
+  thumbnail_url TEXT,
+  operator_class TEXT CHECK (operator_class IN ('突击','工程','侦察','支援','全能')),
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending','reviewing','passed','rejected')),
+  score INT DEFAULT 0,
+  duration INT DEFAULT 0,
+  views INT DEFAULT 0,
+  likes INT DEFAULT 0,
+  reviewer_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
+  review_comment TEXT,
+  reviewed_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 通知表
+CREATE TABLE notifications (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  recipient_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
+  sender_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
+  type TEXT NOT NULL CHECK (type IN ('like','comment','follow','favorite','download','system')),
+  content TEXT NOT NULL,
+  link TEXT,
+  is_read BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
 
 -- RLS 策略示例
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
@@ -164,6 +195,17 @@ ALTER TABLE spirits ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users manage own spirit" ON spirits FOR ALL USING (auth.uid() = owner_id);
 
 ALTER TABLE reports ENABLE ROW LEVEL SECURITY;
+-- 护航视频 RLS 策略
+ALTER TABLE escort_videos ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Public read escort videos" ON escort_videos FOR SELECT USING (true);
+CREATE POLICY "Authenticated insert escort videos" ON escort_videos FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users update own videos" ON escort_videos FOR UPDATE USING (auth.uid() = user_id);
+
+-- 通知表 RLS 策略
+ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users see own notifications" ON notifications FOR SELECT USING (auth.uid() = recipient_id);
+CREATE POLICY "System insert notifications" ON notifications FOR INSERT WITH CHECK (true);
+CREATE POLICY "Users update own notifications" ON notifications FOR UPDATE USING (auth.uid() = recipient_id);
 CREATE POLICY "Users submit reports" ON reports FOR INSERT WITH CHECK (auth.uid() = reporter_id);
 
 -- 存储桶
@@ -198,6 +240,28 @@ tailwind.config = {
 }
 </script>
 <style>
+/* ===== 战术板样式 ===== */
+.tactical-tool-btn {
+  padding: 8px 16px;
+  border-radius: 30px;
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  color: var(--text);
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.tactical-tool-btn.active {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+  box-shadow: 0 4px 12px var(--glow);
+}
+.tactical-tool-btn i { font-size: 14px; }
 
 /* ===== 移动端优化 ===== */
 @media (max-width: 640px) {
@@ -467,6 +531,101 @@ tailwind.config = {
   ::-webkit-scrollbar { width: 6px; }
   ::-webkit-scrollbar-track { background: var(--bg); }
   ::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 3px; }
+/* ===== 组队地图/难度按钮 ===== */
+.map-select-btn, .diff-select-btn {
+  padding: 8px 8px;
+  border-radius: 12px;
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: center;
+}
+.map-select-btn.active, .diff-select-btn.active {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+  box-shadow: 0 4px 8px var(--glow);
+}
+.map-select-btn i, .diff-select-btn i { margin-right: 4px; }
+
+/* 招募卡片 */
+.squad-item {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 12px;
+  transition: all 0.2s;
+}
+.squad-item:hover { border-color: var(--accent); }
+.squad-map-tag {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  background: var(--accent);
+  color: white;
+}
+.squad-diff-tag {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 700;
+}
+.diff-普通 { background: #7f8c8d; color: white; }
+.diff-机密 { background: #e67e22; color: white; }
+.diff-绝密 { background: #e74c3c; color: white; }
+/* ===== 工具箱样式 ===== */
+.tool-item {
+pointer-events: auto !important;
+  z-index: 10;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-width: 72px;
+  cursor: pointer;
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  flex-shrink: 0;
+}
+.tool-item:active { transform: scale(0.92); }
+.tool-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 20px;
+  background: linear-gradient(145deg, var(--card), var(--surface));
+  box-shadow: 0 8px 16px var(--shadow), 0 0 0 1.5px var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.tool-item:hover .tool-icon {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 28px var(--glow), 0 0 0 2px var(--accent);
+  border-color: transparent;
+}
+.tool-icon i {
+  font-size: 26px;
+  color: var(--accent);
+  filter: drop-shadow(0 2px 4px rgba(255,107,53,0.3));
+}
+.tool-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: 0.3px;
+}
+@media (max-width: 640px) {
+  .tool-icon { width: 52px; height: 52px; }
+  .tool-icon i { font-size: 24px; }
+}
 
     /* 卡片基础样式 */
   .card-base {
@@ -597,9 +756,7 @@ touch-action: none; /* 禁止浏览器默认的滚动、缩放等触摸行为 */
   }
   .scroll-btn:hover { transform: scale(1.15); box-shadow: 0 6px 30px rgba(255,107,53,0.6); }
 
-  /* 移动端底部导航 */
-/* 原始代码可能类似这样，如果没有请直接添加以下新样式 */
-.mobile-nav button {
+/* 移动端底部导航 */
 .mobile-nav button:active {
   transform: scale(0.9);
 }
@@ -678,20 +835,151 @@ touch-action: none; /* 禁止浏览器默认的滚动、缩放等触摸行为 */
     padding-left: 16px;
     padding-right: 16px;
   }
-  /* 移动端标题文字缩小 */
-  @media (max-width: 640px) {
-    .top-nav .font-display {
-      font-size: 16px !important;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      max-width: 140px;
-    }
-    .top-nav .btn-ghost {
-      padding: 4px 8px;
-      font-size: 12px;
-    }
+/* 顶部导航栏自适应 */
+.top-nav {
+  padding: 0 8px;
+}
+.top-nav .max-w-7xl {
+  width: 100%;
+  padding-left: 8px;
+  padding-right: 8px;
+}
+.top-nav .font-display {
+  font-size: 22px;
+  font-weight: 700;
+  white-space: nowrap;
+  background: linear-gradient(135deg, #FF6B35, #FF4757);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  letter-spacing: 1px;
+}
+
+/* 平板端 */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .top-nav .font-display {
+    font-size: 18px !important;
+    max-width: 180px;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
+}
+
+/* 手机端 */
+@media (max-width: 768px) {
+  .top-nav .font-display {
+    font-size: 16px !important;
+    max-width: 140px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+/* 极小屏 */
+@media (max-width: 480px) {
+  .top-nav .font-display {
+    font-size: 14px !important;
+    max-width: 110px;
+  }
+}/* 默认隐藏部分元素，PC 端显示 */
+.top-nav .desktop-only {
+  display: inline-flex;
+}
+.top-nav .mobile-hide {
+  display: inline-flex;
+}
+
+/* 平板端 (768px - 1024px) */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .top-nav .font-display {
+    font-size: 16px !important;
+    max-width: 160px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .top-nav .btn-ghost {
+    padding: 4px 10px;
+    font-size: 12px;
+  }
+  .top-nav .hidden.md\\:flex {
+    gap: 4px;
+  }
+}
+
+/* 手机端 (最大 768px) */
+@media (max-width: 768px) {
+  .top-nav {
+    padding: 0 4px;
+  }
+  .top-nav .max-w-7xl {
+    padding-left: 4px;
+    padding-right: 4px;
+  }
+  .top-nav .font-display {
+    font-size: 14px !important;
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .top-nav .btn-ghost {
+    padding: 4px 6px;
+    font-size: 11px;
+  }
+  /* 手机端隐藏部分不重要的元素 */
+  .top-nav #bjTime,
+  .top-nav .hidden.sm\\:flex {
+    display: none !important;
+  }
+  /* 发布按钮缩小 */
+  .top-nav .btn-warm {
+    padding: 4px 8px;
+    font-size: 11px;
+  }
+  /* 头像缩小 */
+  .top-nav #navAvatar {
+    width: 28px;
+    height: 28px;
+  }
+  .top-nav #navAvatarImg {
+    width: 100%;
+    height: 100%;
+  }
+}
+
+/* 极小屏 (最大 480px) */
+@media (max-width: 480px) {
+  .top-nav .font-display {
+    font-size: 13px !important;
+    max-width: 100px;
+  }
+  .top-nav .btn-ghost {
+    padding: 3px 5px;
+    font-size: 10px;
+  }
+  .top-nav .hidden.md\\:flex .btn-ghost {
+    display: none;
+  }
+  /* 只保留发布按钮和头像 */
+  .top-nav .hidden.md\\:flex {
+    gap: 2px;
+  }
+  /* 主题切换按钮缩小 */
+  .top-nav #themeBtn {
+    width: 28px;
+    height: 28px;
+    font-size: 14px;
+  }
+}
+  .top-nav .max-w-7xl {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+  /* 隐藏部分按钮文字，只保留图标（可选） */
+  .top-nav .btn-ghost span:not(.icon-only) {
+    display: none;
+  }
+}
 
   /* 图片放大查看 */
   .lightbox {
@@ -1610,6 +1898,71 @@ body::before {
   align-items: center;
   gap: 4px;
 }
+/* ===== 组队卡片折叠动画 ===== */
+.squad-card-collapsible {
+  transition: all 0.3s ease;
+}
+.squad-card-header {
+  cursor: pointer;
+  user-select: none;
+}
+.squad-card-header:hover {
+  background: rgba(255, 107, 53, 0.05);
+}
+.squad-card-body {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  padding: 0 8px;
+  margin: 0 -8px;
+  border-radius: 0 0 12px 12px;
+}
+.squad-card-body.expanded {
+  max-height: 300px;  /* 足够容纳内容 */
+  padding: 8px;
+  margin-top: 8px;
+  background: var(--surface);
+  border-top: 1px dashed var(--border);
+}
+.squad-expand-icon {
+  transition: transform 0.25s ease;
+  font-size: 14px;
+  color: var(--accent);
+}
+.squad-expand-icon.rotated {
+  transform: rotate(180deg);
+}
+/* ===== 组队大厅总折叠栏 ===== */
+.squad-section-body {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  padding: 0;
+  margin: 0;
+  border-radius: 0 0 16px 16px;
+}
+.squad-section-body.expanded {
+  max-height: 2000px; /* 足够大以容纳所有卡片 */
+  padding: 4px 0 0 0;
+}
+.squad-section-icon {
+  transition: transform 0.3s ease;
+  color: var(--accent);
+  font-size: 14px;
+}
+.squad-section-icon.rotated {
+  transform: rotate(180deg);
+}
+#squadSectionHeader {
+  user-select: none;
+  transition: background 0.2s;
+  padding: 4px 8px;
+  border-radius: 30px;
+  margin: -4px -8px;
+}
+#squadSectionHeader:hover {
+  background: rgba(255, 107, 53, 0.05);
+}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/interactjs@1.10.27/dist/interact.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/tus-js-client@4.1.0/dist/tus.min.js"></script>
@@ -1617,8 +1970,11 @@ body::before {
 
 <body>
 <!-- 开场动画遮罩 -->
-<div id="introOverlay" style="position:fixed; inset:0; z-index:99999; background:var(--bg); display:flex; align-items:center; justify-content:center; pointer-events:none; transition:opacity 0.8s;">
-  <div id="introCircle" style="width:10px; height:10px; background:linear-gradient(135deg, var(--accent), var(--accent2)); border-radius:50%; box-shadow:0 0 60px var(--accent); transition:transform 0.8s cubic-bezier(0.25,0.46,0.45,0.94);"></div>
+<div id="introOverlay" style="position:fixed; inset:0; z-index:99999; background:#0a0503; display:flex; align-items:center; justify-content:center; pointer-events:none; transition:opacity 1s ease;">
+  <div style="text-align:center;">
+    <div id="introCircle" style="width:8px; height:8px; background:linear-gradient(135deg, #FF6B35, #FFD700); border-radius:50%; box-shadow:0 0 80px #FF6B35; margin:0 auto; transition:transform 1s cubic-bezier(0.25,0.46,0.45,0.94);"></div>
+    <div id="introText" style="margin-top:30px; opacity:0; transition:opacity 0.6s 0.3s; color:#F5E6D3; font-family:'ZCOOL QingKe HuangYou',sans-serif; font-size:24px; letter-spacing:8px; text-shadow:0 0 30px #FF6B35;">三角洲·墨辰电竞</div>
+  </div>
 </div>
 <!-- Canvas 粒子背景 -->
 <canvas id="particle-canvas"></canvas>
@@ -1671,7 +2027,16 @@ body::before {
   <div class="relative" id="bannerContainer"></div>
 </section>
 -->
-
+<!-- 快捷工具坞 -->
+<section class="mb-4">
+  <div class="flex items-center justify-between mb-2">
+    <h3 class="font-display text-sm flex items-center gap-2"><i class="fas fa-toolbox" style="color: var(--accent);"></i> 干员工具箱</h3>
+    <span class="text-xs" style="color: var(--muted);">滑动查看更多 <i class="fas fa-arrow-right ml-1"></i></span>
+  </div>
+  <div class="flex gap-3 overflow-x-auto pb-2" id="toolboxBar" style="scrollbar-width: none; cursor: grab;">
+    <!-- 动态渲染 -->
+  </div>
+</section>
   <!-- Story 限时动态 -->
   <section class="mb-6">
     <div class="flex gap-4 overflow-x-auto py-2" id="storiesBar" style="scrollbar-width:none">
@@ -1796,7 +2161,30 @@ body::before {
   <h3 class="font-display text-lg mb-2 flex items-center gap-2"><i class="fas fa-fire" style="color:#FF4757"></i>热门推荐</h3>
   <div id="hotRecommendList" class="grid grid-cols-1 md:grid-cols-2 gap-2"></div>
 </div>
+<!-- 组队大厅展示区 -->
+<div id="squadListSection" class="mb-4">
+  <!-- 总折叠栏头部 -->
+  <div class="flex items-center justify-between mb-2 cursor-pointer" id="squadSectionHeader" onclick="toggleSquadSection()">
+    <h3 class="font-display text-sm flex items-center gap-2">
+      <i class="fas fa-users" style="color: var(--accent);"></i> 
+      组队大厅
+      <span id="squadCountBadge" class="text-xs px-2 py-0.5 rounded-full" style="background: var(--surface); color: var(--accent);">0</span>
+    </h3>
+    <div class="flex items-center gap-2">
+      <button class="text-xs btn-ghost px-2 py-1" onclick="event.stopPropagation(); loadSquads()">
+        <i class="fas fa-sync-alt mr-1"></i>刷新
+      </button>
+      <i class="fas fa-chevron-down squad-section-icon" id="squadSectionIcon"></i>
+    </div>
+  </div>
 
+  <!-- 可折叠的内容区域 -->
+  <div id="squadSectionBody" class="squad-section-body">
+    <div id="squadListContainer" class="space-y-2">
+      <div class="text-center py-4 text-xs" style="color:var(--muted);">点击下方「发布组队」开始招募</div>
+    </div>
+  </div>
+</div>
     <!-- 置顶帖 -->
     <div id="topPostArea" class="mb-4"></div>
 
@@ -1941,6 +2329,32 @@ body::before {
   </div>
 
   <!-- 护航考核 Tab -->
+<!-- 战术板 Tab -->
+<div id="tacticalTab" style="display:none">
+  <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+    <h2 class="font-display text-xl"><i class="fas fa-draw-polygon mr-2" style="color:var(--accent);"></i>战术板</h2>
+    <div class="flex gap-2">
+      <button class="btn-ghost text-sm" onclick="clearTacticalCanvas()"><i class="fas fa-trash-alt"></i> 清空</button>
+      <button class="btn-warm text-sm" onclick="saveTactical()"><i class="fas fa-camera"></i> 截图分享</button>
+    </div>
+  </div>
+  <div class="card-base p-3" style="touch-action: none;">
+    <canvas id="tacticalCanvas" width="800" height="500" style="width:100%; height:auto; background: #1a1a1a; border-radius: 16px; cursor: crosshair;"></canvas>
+  </div>
+  <div class="flex flex-wrap gap-2 mt-4 justify-center">
+    <button class="tactical-tool-btn" data-tool="pen"><i class="fas fa-pencil"></i> 画笔</button>
+    <button class="tactical-tool-btn" data-tool="arrow"><i class="fas fa-arrow-right"></i> 箭头</button>
+    <button class="tactical-tool-btn" data-tool="text"><i class="fas fa-font"></i> 文字</button>
+    <button class="tactical-tool-btn" data-tool="erase"><i class="fas fa-eraser"></i> 橡皮</button>
+    <input type="color" id="tacticalColor" value="#FF6B35" class="w-10 h-10 rounded-full border-0 p-1 cursor-pointer">
+    <select id="tacticalSize" class="px-3 py-1 rounded-full text-sm" style="background:var(--surface); border:1px solid var(--border);">
+      <option value="2">细</option><option value="5" selected>中</option><option value="10">粗</option>
+    </select>
+  </div>
+  <div class="text-xs text-center mt-2" style="color:var(--muted);">
+    <i class="fas fa-map-pin"></i> 背景为「零号大坝」战术地图 · 可自由标注
+  </div>
+</div>
 <!-- 功能引导横幅（首次显示，可关闭） -->
 <div id="escortGuideBanner" class="card-base p-3 mb-4 flex items-center justify-between" style="background: linear-gradient(135deg, var(--accent)20, var(--accent2)20); border-left: 4px solid var(--accent);">
   <div class="flex items-center gap-3">
@@ -2093,6 +2507,10 @@ body::before {
 <!-- 回到顶部/底部悬浮按钮 -->
 <button class="scroll-btn" id="scrollBtn" onclick="smartScroll()" aria-label="滚动到顶部或底部">
   <i class="fas fa-arrow-up" id="scrollIcon"></i>
+</button>
+<!-- 组队招募悬浮按钮 -->
+<button class="scroll-btn" id="squadFloatBtn" style="bottom: 90px; right: 24px;" onclick="openSquadModal()" title="快速组队">
+  <i class="fas fa-user-plus"></i>
 </button>
 
 <!-- 图片放大查看 -->
@@ -2328,7 +2746,59 @@ body::before {
     </div>
   </div>
 </div>
-
+<!-- 组队招募弹窗（增强版·地图分类） -->
+<div class="modal-overlay" id="squadModal">
+  <div class="modal-content" style="max-width:480px">
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="font-display text-xl"><i class="fas fa-users mr-2" style="color:var(--accent);"></i>发布组队</h2>
+      <button onclick="closeModal('squadModal')" class="w-8 h-8 rounded-full flex items-center justify-center" style="background:var(--surface)"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="space-y-3">
+      <!-- 地图选择（快速标签） -->
+      <div>
+        <label class="text-sm font-bold block mb-2">选择地图</label>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2" id="squadMapOptions">
+          <button type="button" class="map-select-btn active" data-map="大坝">🏭 大坝</button>
+          <button type="button" class="map-select-btn" data-map="航天基地">🚀 航天基地</button>
+          <button type="button" class="map-select-btn" data-map="长弓溪谷">🏹 长弓溪谷</button>
+          <button type="button" class="map-select-btn" data-map="巴克什">🏛️ 巴克什</button>
+        </div>
+        <input type="hidden" id="squadMap" value="大坝">
+      </div>
+      <!-- 难度选择 -->
+      <div>
+        <label class="text-sm font-bold block mb-2">难度</label>
+        <div class="flex gap-2" id="squadDifficultyOptions">
+          <button type="button" class="diff-select-btn active" data-diff="普通">普通</button>
+          <button type="button" class="diff-select-btn" data-diff="机密">机密</button>
+          <button type="button" class="diff-select-btn" data-diff="绝密">绝密</button>
+        </div>
+        <input type="hidden" id="squadDifficulty" value="普通">
+      </div>
+<!-- 组队标题 -->
+<input type="text" id="squadTitle" placeholder="输入组队标题，例如：来枪硬的" class="w-full" autocomplete="off">
+      <!-- 需求兵种 -->
+      <select id="squadNeedOp" class="w-full">
+        <option value="">需求兵种（选填）</option>
+        <option value="突击">突击</option>
+        <option value="工程">工程</option>
+        <option value="侦察">侦察</option>
+        <option value="支援">支援</option>
+      </select>
+      <!-- 语音频道 -->
+      <input type="text" id="squadVoice" placeholder="语音频道号（选填）" class="w-full">
+      <!-- 备注 -->
+      <textarea id="squadNote" placeholder="备注（例如：来枪硬的，心态好）" class="w-full" rows="2"></textarea>
+      <!-- 仅限麦克风 -->
+      <div class="flex items-center gap-2">
+        <input type="checkbox" id="squadMicOnly" checked> 
+        <label for="squadMicOnly" class="text-sm">仅限有麦克风</label>
+      </div>
+      <button class="btn-warm w-full py-2" onclick="publishSquad()"><i class="fas fa-bullhorn mr-1"></i>发布招募</button>
+      <p class="text-xs text-center" style="color:var(--muted);">招募信息将在「组队大厅」展示2小时</p>
+    </div>
+  </div>
+</div>
 <!-- ===== BGM 播放器（可悬停展开） ===== -->
 <div class="bgm-player draggable" id="bgmPlayer">
   <!-- 紧凑条：只显示播放按钮 -->
@@ -2482,6 +2952,57 @@ body::before {
         <button class="btn-warm w-full py-2" onclick="handleForgotResetPassword()">重置密码</button>
         <p class="text-xs text-center mt-2" style="color:var(--muted)">没有收到？ <button class="text-accent underline" onclick="handleForgotSendCode()">重新发送</button></p>
       </div>
+    </div>
+  </div>
+</div>
+<!-- 配装推荐弹窗 -->
+<div class="modal-overlay" id="loadoutModal">
+  <div class="modal-content" style="max-width:400px">
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="font-display text-xl">配装推荐</h2>
+      <button onclick="closeModal('loadoutModal')" class="w-8 h-8 rounded-full flex items-center justify-center" style="background:var(--surface)"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="space-y-3">
+      <div class="p-3 rounded-lg" style="background:var(--surface);">
+        <div class="font-bold mb-2"><i class="fas fa-crosshairs mr-2"></i>热门配装方案</div>
+        <div class="space-y-2 text-sm">
+          <div class="flex justify-between"><span>M4A1 突击步枪</span><span class="text-accent">高稳定性</span></div>
+          <div class="flex justify-between"><span>MP5 冲锋枪</span><span class="text-accent">近战爆发</span></div>
+          <div class="flex justify-between"><span>SR-25 射手步枪</span><span class="text-accent">中远压制</span></div>
+          <div class="flex justify-between"><span>Vector 冲锋枪</span><span class="text-accent">极高射速</span></div>
+        </div>
+      </div>
+      <p class="text-xs text-center" style="color:var(--muted);">更多配装请关注官方公众号</p>
+    </div>
+  </div>
+</div>
+
+<!-- 枪械数据弹窗 -->
+<div class="modal-overlay" id="weaponModal">
+  <div class="modal-content" style="max-width:400px">
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="font-display text-xl">枪械数据</h2>
+      <button onclick="closeModal('weaponModal')" class="w-8 h-8 rounded-full flex items-center justify-center" style="background:var(--surface)"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="grid grid-cols-2 gap-2">
+      <div class="p-2 rounded-lg text-center" style="background:var(--surface);"><div class="font-bold">M4A1</div><div class="text-xs">伤害:42</div><div class="text-xs">射速:750</div><div class="text-xs">精准:82</div></div>
+      <div class="p-2 rounded-lg text-center" style="background:var(--surface);"><div class="font-bold">AKM</div><div class="text-xs">伤害:48</div><div class="text-xs">射速:600</div><div class="text-xs">精准:75</div></div>
+      <div class="p-2 rounded-lg text-center" style="background:var(--surface);"><div class="font-bold">MP5</div><div class="text-xs">伤害:35</div><div class="text-xs">射速:800</div><div class="text-xs">精准:70</div></div>
+      <div class="p-2 rounded-lg text-center" style="background:var(--surface);"><div class="font-bold">AWM</div><div class="text-xs">伤害:105</div><div class="text-xs">射速:40</div><div class="text-xs">精准:95</div></div>
+    </div>
+    <p class="text-xs text-center mt-3" style="color:var(--muted);">数据仅供参考</p>
+  </div>
+</div>
+
+<!-- 战绩卡片弹窗 -->
+<div class="modal-overlay" id="statsModal">
+  <div class="modal-content" style="max-width:400px">
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="font-display text-xl">战绩卡片</h2>
+      <button onclick="closeModal('statsModal')" class="w-8 h-8 rounded-full flex items-center justify-center" style="background:var(--surface)"><i class="fas fa-times"></i></button>
+    </div>
+    <div id="statsModalContent">
+      <p class="text-center" style="color:var(--muted);">请先登录查看战绩</p>
     </div>
   </div>
 </div>
@@ -2709,6 +3230,7 @@ function applyTheme(t) {
   document.documentElement.setAttribute('data-theme', t);
   $('themeBtn').textContent = map[localStorage.getItem('themePref') || 'light'];
 }
+// ==================== 主题切换辅助函数 ====================
 function toggleTheme() {
   const order = ['light','dark','system'];
   const cur = order.indexOf(localStorage.getItem('themePref') || 'light');
@@ -3017,12 +3539,12 @@ async function loadNotifications() {
   const { data } = await sb.from('notifications').select('*').eq('recipient_id', APP.user.id).order('created_at', { ascending: false }).limit(20);
   APP.notifications = data || [];
   renderNotifications();
-  if (APP.notifications.some(n => !n.read)) $('notifDot').style.display = 'block';
+  if (APP.notifications.some(n => !n.is_read)) $('notifDot').style.display = 'block';
 }
 
 function openNotifModal() {
   if (APP.user) {
-    sb.from('notifications').update({ read: true }).eq('recipient_id', APP.user.id).then(() => {
+    sb.from('notifications').update({ is_read: true }).eq('recipient_id', APP.user.id).then(() => {
       $('notifDot').style.display = 'none';
     });
   }
@@ -3038,7 +3560,7 @@ function openNotifModal() {
 
   setTimeout(() => {
     APP.currentTab = tab;
-    ['homeTab','discoverTab','followingTab','profileTab','topicDetailTab','searchTab','escortTab'].forEach(id => {
+    ['homeTab','discoverTab','followingTab','profileTab','topicDetailTab','searchTab','escortTab','tacticalTab'].forEach(id => {
       const el = $(id);
       if (el) el.style.display = 'none';
     });
@@ -3095,17 +3617,30 @@ if (mobileBtn) {
     if (tab === 'discover') loadRanks();
     if (tab === 'following') loadFollowingPosts();
     if (tab === 'home') {
-      APP.filters.keyword = '';
-      const homeSearchInput = $('homeSearchInput');
-      if (homeSearchInput) homeSearchInput.value = '';
-     renderTopicCards(); 
-      renderTopicCloud();
-      loadOnlineEscorts(); 
-      loadHotRecommend();
-      loadPosts(true);
-    }
+  bindSquadModalEvents();
+  initSquadRealtime();
+  APP.filters.keyword = '';
+  const homeSearchInput = $('homeSearchInput');
+  if (homeSearchInput) homeSearchInput.value = '';
+  renderToolbox();  // ← 新增这一行
+  renderTopicCards(); 
+  renderTopicCloud();
+  loadOnlineEscorts(); 
+  loadHotRecommend();
+setTimeout(() => loadSquads(), 50);
+  loadSquads();
+  loadPosts(true);
+// 确保工具箱在首页可见时一定渲染
+setTimeout(() => {
+  const bar = document.getElementById('toolboxBar');
+  if (bar && bar.children.length === 0 && typeof renderToolbox === 'function') {
+    renderToolbox();
+  }
+}, 100);
+}
     if (tab === 'profile') renderProfile();
     if (tab === 'escort') loadEscortVideos(true);
+    if (tab === 'tactical') initTactical();
 
   }, 200);
 }
@@ -3182,7 +3717,8 @@ async function loadOnlineEscorts() {
     console.error('加载在线护航员异常:', err);
     bar.innerHTML = `<div class="text-xs p-4" style="color: var(--muted);">加载失败，请稍后重试</div>`;
   }
-}async function loadHotRecommend() {
+}
+async function loadHotRecommend() {
   const list = $('hotRecommendList');
 
  if (!list) return;
@@ -4065,41 +4601,7 @@ async function loadUserVotes() {
   APP.myVoteMap = {};
   (data||[]).forEach(v => APP.myVoteMap[v.post_id] = v.vote_type);
 }
-async function votePost(pid, type) {
-  if (!APP.user) { showToast('请先登录'); openAuthModal(); return; }
-  if (navigator.vibrate) navigator.vibrate(10);
 
-  // 防重复：检查是否已投过票
-  if (APP.myVoteMap[pid]) { showToast('你已经投过票了'); return; }
-
-  const { error } = await sb.from('votes').insert({ user_id: APP.user.id, post_id: pid, vote_type: type });
-  if (error) { 
-    if (error.code === '23505') { showToast('你已经投过票了'); }
-    else { showToast('投票失败'); }
-    return; 
-  }
-
-  APP.myVoteMap[pid] = type;
-  // 更新 UI 计数
-  const field = type === 'up' ? 'upvotes' : 'downvotes';
-  const { data: post } = await sb.from('posts').select(field).eq('id', pid).single();
-  if (post) {
-    const newVal = (post[field] || 0) + 1;
-    await sb.from('posts').update({ [field]: newVal }).eq('id', pid);
-    const btn = $(type + '-' + pid);
-    if (btn) btn.innerHTML = `<i class="fas fa-thumbs-${type}"></i> ${newVal}`;
-    if (type === 'up') btn.style.color = '#FF6B35';
-  }
-
-  // 更新发布者获赞总数
-  if (type === 'up') {
-    const { data: p } = await sb.from('posts').select('user_id').eq('id', pid).single();
-    if (p) {
-      const { data: prof } = await sb.from('profiles').select('likes_received').eq('id', p.user_id).single();
-      if (prof) await sb.from('profiles').update({ likes_received: (prof.likes_received||0)+1 }).eq('id', p.user_id);
-    }
-  }
-}
 async function votePost(pid, type) {
   // === 添加震动效果 ===
   if (navigator.vibrate) navigator.vibrate(10);
@@ -5887,7 +6389,627 @@ function selectBilibiliOrder(val) { searchState.bilibili.order = val; $('current
 function selectBilibiliDuration(val) { searchState.bilibili.duration = parseInt(val); $('currentBilibiliDurationLabel').textContent = {0:'全部时长',1:'10分钟以下',2:'10-30分钟',3:'30-60分钟'}[val]; document.querySelectorAll('.filter-menu').forEach(m => m.classList.add('hidden')); if (searchState.keyword) searchBilibiliVideos(); }
 function loadMoreSearchResults() { if (searchState.type === 'internal') { if (!searchState.internal.allLoaded) { searchState.internal.page++; searchInternalPosts(); } } else { if (!searchState.bilibili.allLoaded) { searchState.bilibili.page++; searchBilibiliVideos(); } } }
 $('searchInput')?.addEventListener('input', function() { $('searchClearBtn').style.display = this.value ? 'flex' : 'none'; });
-// ==================== 排行榜 ====================
+// ==================== 工具箱渲染 ====================
+// 初始化工具箱
+function initToolbox() {
+  renderToolbox();
+}
+function renderToolbox() {
+  const TOOLBOX_TOOLS = [
+    { id: 'loadout', icon: 'fa-gun', name: '配装推荐', desc: '查看武器配件推荐' },
+    { id: 'weapon', icon: 'fa-chart-simple', name: '枪械数据', desc: '枪械详细数据对比' },
+    { id: 'squad', icon: 'fa-users', name: '组队大厅', desc: '发布/加入组队' },
+    { id: 'stats', icon: 'fa-id-card', name: '战绩卡片', desc: '查看个人战绩' },
+    { id: 'tactical', icon: 'fa-map', name: '战术板', desc: '绘制战术路线图' },
+    { id: 'tasks', icon: 'fa-calendar-check', name: '每日任务', desc: '查看日常任务' },
+    { id: 'damage', icon: 'fa-calculator', name: '伤害计算', desc: '计算武器伤害' },
+    { id: 'timer', icon: 'fa-stopwatch', name: '撤离计时', desc: '撤离时间倒计时' }
+  ];
+
+  const bar = document.getElementById('toolboxBar');
+  if (!bar) {
+    console.error('工具箱容器 #toolboxBar 不存在');
+    return;
+  }
+
+  bar.innerHTML = TOOLBOX_TOOLS.map(t => `
+    <div class="tool-item" onclick="handleToolAction('${t.id}')">
+      <div class="tool-icon"><i class="fas ${t.icon}"></i></div>
+      <span class="tool-label">${t.name}</span>
+    </div>
+  `).join('');
+  
+  console.log('工具箱已渲染，子元素数量:', bar.children.length);
+  
+  // 添加横向拖拽滚动支持（放在函数内部）
+  if (typeof enableHorizontalDragScroll === 'function') {
+    enableHorizontalDragScroll(bar);
+  }
+}function handleToolAction(type) {
+  if (navigator.vibrate) navigator.vibrate(10); // 震动反馈
+
+  switch (type) {
+    case 'tactical':
+      switchTab('tactical');
+      break;
+    case 'squad':
+      openSquadModal();
+      break;
+    case 'tasks':
+      if (!APP.user) { openAuthModal(); showToast('请先登录'); return; }
+      switchTab('profile');
+      setTimeout(() => $('#dailyTasksSection')?.scrollIntoView({ behavior: 'smooth' }), 100);
+      showToast('每日任务功能开发中', 'info');
+      break;
+    case 'loadout':
+      openModal('loadoutModal');
+      break;
+    case 'weapon':
+      openModal('weaponModal');
+      break;
+    case 'stats':
+      if (!APP.user) { openAuthModal(); showToast('请先登录查看战绩'); return; }
+      showStatsModal();
+      break;
+    case 'damage':
+      openDamageCalculatorModal();
+      break;
+    case 'timer':
+      openExtractionTimerModal();
+      break;
+    default:
+      showToast('该功能正在开发中', 'info');
+  }
+}
+function showStatsModal() {
+  if (!APP.profile) return;
+  
+  // 使用原生方法获取元素，增加容错
+  const contentEl = document.getElementById('statsModalContent');
+  if (!contentEl) {
+    console.error('找不到 #statsModalContent 元素');
+    showToast('战绩卡片加载失败', 'error');
+    return;
+  }
+  
+  contentEl.innerHTML = `
+    <div class="space-y-3">
+      <div class="flex items-center gap-3 p-3 rounded-lg" style="background:var(--surface);">
+        <img src="${APP.profile.avatar_url || dicebearUrl('default')}" class="w-12 h-12 rounded-full">
+        <div>
+          <div class="font-bold">${APP.profile.username}</div>
+          <div class="text-xs" style="color:var(--muted);">Lv.${APP.profile.level || 1}</div>
+        </div>
+      </div>
+      <div class="grid grid-cols-3 gap-2 text-center">
+        <div class="p-2 rounded-lg" style="background:var(--surface);">
+          <div class="text-lg font-bold">${APP.profile.posts_count || 0}</div>
+          <div class="text-xs">发帖</div>
+        </div>
+        <div class="p-2 rounded-lg" style="background:var(--surface);">
+          <div class="text-lg font-bold">${APP.profile.likes_received || 0}</div>
+          <div class="text-xs">获赞</div>
+        </div>
+        <div class="p-2 rounded-lg" style="background:var(--surface);">
+          <div class="text-lg font-bold">${APP.profile.followers_count || 0}</div>
+          <div class="text-xs">粉丝</div>
+        </div>
+      </div>
+    </div>
+  `;
+  openModal('statsModal');
+}
+// 组队表单临时存储
+let selectedMap = '大坝';
+let selectedDifficulty = '普通';
+// ==================== 组队大厅（完整版·数据库） ====================
+let squadChannel = null;
+
+function initSquadRealtime() {
+  if (!sb) return;
+  if (squadChannel) sb.removeChannel(squadChannel);
+  squadChannel = sb.channel('public:squads')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'squads' }, () => {
+      if (APP.currentTab === 'home') loadSquads();
+    })
+    .subscribe();
+}
+
+async function loadSquads() {
+  const container = document.getElementById('squadListContainer');
+  if (!container) return;
+
+  container.innerHTML = '<div class="text-center py-4 text-xs" style="color:var(--muted);"><i class="fas fa-spinner fa-pulse mr-1"></i>加载中...</div>';
+  
+  const now = new Date().toISOString();
+  const { data, error } = await sb.from('squads')
+    .select('*, creator_id(username, avatar_url)')
+    .gt('expires_at', now)
+    .order('created_at', { ascending: false })
+    .limit(10);
+  
+  if (error) {
+    container.innerHTML = '<div class="text-center py-4 text-xs" style="color:var(--muted);">加载失败，请刷新</div>';
+    if (typeof updateSquadCountBadge === 'function') updateSquadCountBadge(0);
+    return;
+  }
+  
+  if (typeof updateSquadCountBadge === 'function') updateSquadCountBadge(data ? data.length : 0);
+
+  if (!data || data.length === 0) {
+    container.innerHTML = '<div class="text-center py-4 text-xs" style="color:var(--muted);">暂无招募，快来发布第一个吧！</div>';
+    return;
+  }
+
+  container.innerHTML = data.map(s => {
+    const creator = s.creator_id || {};
+    const members = s.members || [];
+    const isFull = members.length >= (s.max_members || 3);
+    const isJoined = APP.user && members.includes(APP.user.id);
+    const isCreator = APP.user && creator.id === APP.user.id;
+    const cardId = 'squad-' + s.id;
+
+    return `
+    <div class="squad-item squad-card-collapsible" id="${cardId}">
+      <div class="squad-card-header flex items-center gap-2" onclick="toggleSquadCard('${cardId}')">
+        <img src="${creator.avatar_url || dicebearUrl(creator.username || 'default')}" class="w-6 h-6 rounded-full">
+        <span class="text-sm font-bold truncate">${creator.username || '干员'}</span>
+        <span class="squad-map-tag text-xs"><i class="fas fa-map-marker-alt mr-1"></i>${s.map}</span>
+        <span class="squad-diff-tag diff-${s.difficulty} text-xs">${s.difficulty}</span>
+        <span class="tag-pill text-xs"><i class="fas fa-user"></i> ${members.length}/${s.max_members || 3}</span>
+        <span class="ml-auto text-xs" style="color:var(--muted);">${timeAgo(s.created_at)}</span>
+        <i class="fas fa-chevron-down squad-expand-icon" id="icon-${cardId}"></i>
+      </div>
+      <div class="squad-card-body" id="body-${cardId}">
+        <div class="flex flex-wrap gap-2 mb-2">
+          ${s.need_op ? `<span class="tag-pill"><i class="fas fa-user-tag mr-1"></i>需求: ${s.need_op}</span>` : ''}
+          ${s.mic_only ? '<span class="tag-pill"><i class="fas fa-microphone"></i> 需麦克风</span>' : ''}
+          ${s.voice_channel ? `<span class="tag-pill"><i class="fas fa-headset"></i> ${s.voice_channel}</span>` : ''}
+        </div>
+        ${s.note ? `<p class="text-xs mb-2 p-2 rounded-lg" style="background:var(--surface);"><i class="fas fa-sticky-note mr-1"></i>${s.note}</p>` : ''}
+        <div class="flex gap-2 justify-end">
+          ${!APP.user ? '<button class="btn-ghost text-xs px-3 py-1" onclick="openAuthModal()">登录后加入</button>' :
+            isCreator ? '<button class="btn-ghost text-xs px-3 py-1" onclick="deleteSquad(\'' + s.id + '\')"><i class="fas fa-trash"></i> 解散</button>' :
+            isJoined ? '<button class="btn-ghost text-xs px-3 py-1" onclick="leaveSquad(\'' + s.id + '\')"><i class="fas fa-sign-out-alt"></i> 退出</button>' :
+            isFull ? '<button class="btn-ghost text-xs px-3 py-1" disabled style="opacity:0.5;">队伍已满</button>' :
+            '<button class="btn-warm text-xs px-3 py-1" onclick="joinSquad(\'' + s.id + '\')"><i class="fas fa-hand-fist"></i> 加入</button>'
+          }
+        </div>
+      </div>
+    </div>
+  `}).join('');
+}function openSquadModal() {
+  if (!APP.user) { 
+    openAuthModal(); 
+    showToast('请先登录'); 
+    return; 
+  }
+  resetSquadForm();  // ← 先清空表单
+  openModal('squadModal');
+  setTimeout(() => bindSquadModalEvents(), 50);
+}
+
+function bindSquadModalEvents() {
+  // 地图按钮点击
+  document.querySelectorAll('#squadMapOptions .map-select-btn').forEach(btn => {
+    btn.removeEventListener('click', btn._mapHandler); // 防止重复绑定
+    const handler = function() {
+      document.querySelectorAll('#squadMapOptions .map-select-btn').forEach(b => b.classList.remove('active'));
+      this.classList.add('active');
+      const mapInput = $('#squadMap');
+      if (mapInput) mapInput.value = this.dataset.map;
+    };
+    btn._mapHandler = handler;
+    btn.addEventListener('click', handler);
+  });
+  
+  // 难度按钮点击
+  document.querySelectorAll('#squadDifficultyOptions .diff-select-btn').forEach(btn => {
+    btn.removeEventListener('click', btn._diffHandler);
+    const handler = function() {
+      document.querySelectorAll('#squadDifficultyOptions .diff-select-btn').forEach(b => b.classList.remove('active'));
+      this.classList.add('active');
+      const diffInput = $('#squadDifficulty');
+      if (diffInput) diffInput.value = this.dataset.diff;
+    };
+    btn._diffHandler = handler;
+    btn.addEventListener('click', handler);
+  });
+}
+
+async function publishSquad() {
+  // 1. 登录检查
+  if (!APP.user) {
+    showToast('请先登录后再发布组队');
+    openAuthModal();
+    return;
+  }
+
+  // 2. 获取表单元素
+  const titleEl = $('squadTitle');
+  const needOpEl = $('squadNeedOp');
+  const voiceEl = $('squadVoice');
+  const noteEl = $('squadNote');
+  const micEl = $('squadMicOnly');
+
+  // 3. 获取值
+  const title = titleEl?.value?.trim() || '';
+  // 从表单中获取当前选中的地图和难度
+const activeMapBtn = document.querySelector('#squadMapOptions .map-select-btn.active');
+const activeDiffBtn = document.querySelector('#squadDifficultyOptions .diff-select-btn.active');
+const map = activeMapBtn?.dataset.map || '大坝';
+const difficulty = activeDiffBtn?.dataset.diff || '普通';
+  const needOp = needOpEl?.value?.trim() || '';
+  const voice = voiceEl?.value?.trim() || '';
+  const note = noteEl?.value?.trim() || '';
+  const micOnly = micEl?.checked ?? true;
+
+  // 4. 表单验证
+  const errors = [];
+
+  // 验证标题
+  if (!title) {
+    errors.push('请输入组队标题');
+    if (titleEl) titleEl.classList.add('border-red-500');
+  } else if (title.length < 4) {
+    errors.push('组队标题至少4个字符');
+    if (titleEl) titleEl.classList.add('border-red-500');
+  } else if (title.length > 30) {
+    errors.push('组队标题不能超过30个字符');
+    if (titleEl) titleEl.classList.add('border-red-500');
+  } else {
+    if (titleEl) titleEl.classList.remove('border-red-500');
+  }
+
+    // 验证地图
+  if (!map) {
+    errors.push('请选择作战地图');
+  }
+
+  // 验证难度
+  if (!difficulty) {
+    errors.push('请选择作战难度');
+  }
+
+  // 显示验证错误
+  if (errors.length > 0) {
+    showToast(errors[0], 'error');
+    return;
+  }
+
+  // 5. 防止重复提交
+  const btn = event?.target;
+  if (btn && btn.disabled) return;
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = '发布中...';
+  }
+
+  try {
+    showToast('正在发布组队信息...', 'info');
+
+    // 6. 设置过期时间（2小时）
+    const expiresAt = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString();
+
+    // 7. 构建组队数据
+   const squadData = {
+  creator_id: APP.user.id,
+  map: map,                 // ✅ 使用从激活按钮读取的值
+  difficulty: difficulty,   // ✅ 使用从激活按钮读取的值
+  need_op: needOp || null,
+  voice_channel: voice || null,
+  note: note || null,
+  mic_only: micOnly,
+  members: [APP.user.id],
+  max_members: 3,
+  expires_at: expiresAt
+};
+
+    // 8. 插入数据库
+    const { data, error } = await sb.from('squads').insert(squadData);
+
+    if (error) {
+      console.error('组队发布失败:', error);
+      showToast('发布失败: ' + error.message, 'error');
+      return;
+    }
+
+    // 9. 成功反馈
+    showToast('⚡ 组队信息已发布！等待战友响应 ⚡', 'success');
+
+    // 全屏动画效果
+    const flash = document.createElement('div');
+    flash.style.cssText = `
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: linear-gradient(135deg, #FF6B35, #F7931E);
+      color: white;
+      font-size: 24px;
+      font-weight: 800;
+      padding: 20px 40px;
+      border-radius: 60px;
+      z-index: 10000;
+      box-shadow: 0 0 60px rgba(255, 107, 53, 0.6);
+      animation: commandFlash 1.2s ease-out forwards;
+      pointer-events: none;
+      font-family: 'ZCOOL QingKe HuangYou', sans-serif;
+      letter-spacing: 4px;
+    `;
+    flash.textContent = '🎯 战友招募令已发出 🎯';
+    document.body.appendChild(flash);
+    setTimeout(() => flash.remove(), 1200);
+
+    // 10. 重置表单并关闭弹窗
+    closeModal('squadModal');
+    resetSquadForm();
+
+    // 11. 刷新组队列表
+    loadSquads();
+
+  } catch (err) {
+    console.error('发布组队异常:', err);
+    showToast('发布失败，请稍后重试', 'error');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = '发布招募';
+    }
+  }
+}
+// 重置组队表单
+function resetSquadForm() {
+  const titleEl = $('squadTitle');
+  const needOpEl = $('squadNeedOp');
+  const voiceEl = $('squadVoice');
+  const noteEl = $('squadNote');
+  const micEl = $('squadMicOnly');
+
+  // 清空输入框
+  if (titleEl) titleEl.value = '';
+  if (needOpEl) needOpEl.value = '';
+  if (voiceEl) voiceEl.value = '';
+  if (noteEl) noteEl.value = '';
+  if (micEl) micEl.checked = true;
+
+  // 重置选中状态变量
+  selectedMap = '大坝';
+  selectedDifficulty = '普通';
+
+  // 重置地图按钮样式
+  document.querySelectorAll('#squadMapOptions .map-select-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.map === '大坝');
+  });
+
+  // 重置难度按钮样式
+  document.querySelectorAll('#squadDifficultyOptions .diff-select-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.diff === '普通');
+  });
+
+  // 移除标题输入框的错误红框
+  if (titleEl) titleEl.classList.remove('border-red-500');
+}
+// 切换组队大厅总折叠栏
+function toggleSquadSection() {
+  const body = document.getElementById('squadSectionBody');
+  const icon = document.getElementById('squadSectionIcon');
+  if (!body || !icon) return;
+  
+  body.classList.toggle('expanded');
+  icon.classList.toggle('rotated');
+}
+
+// 根据当前数据更新折叠栏上的队伍数量徽章
+function updateSquadCountBadge(count) {
+  const badge = document.getElementById('squadCountBadge');
+  if (badge) badge.textContent = count || 0;
+}async function joinSquad(squadId) {
+  if (!APP.user) { openAuthModal(); return; }
+  
+  const { data: squad, error: fetchError } = await sb.from('squads').select('members, max_members, creator_id').eq('id', squadId).single();
+  if (fetchError) { showToast('队伍不存在'); return; }
+  
+  if (squad.members?.includes(APP.user.id)) { showToast('你已经在队伍中了'); return; }
+  if (squad.members?.length >= (squad.max_members || 3)) { showToast('队伍已满'); return; }
+  
+  const newMembers = [...(squad.members || []), APP.user.id];
+  const { error } = await sb.from('squads').update({ members: newMembers }).eq('id', squadId);
+  
+  if (error) { showToast('加入失败'); return; }
+  
+  showToast('加入成功！');
+  loadSquads();
+}
+
+async function leaveSquad(squadId) {
+  if (!APP.user) return;
+  
+  const { data: squad } = await sb.from('squads').select('members, creator_id').eq('id', squadId).single();
+  if (!squad) return;
+  
+  if (squad.creator_id === APP.user.id) {
+    if (!confirm('你是队长，退出将解散队伍，确定吗？')) return;
+    await sb.from('squads').delete().eq('id', squadId);
+    showToast('队伍已解散');
+  } else {
+    const newMembers = squad.members.filter(id => id !== APP.user.id);
+    await sb.from('squads').update({ members: newMembers }).eq('id', squadId);
+    showToast('已退出队伍');
+  }
+  loadSquads();
+}
+
+async function deleteSquad(squadId) {
+  if (!confirm('确定解散队伍吗？')) return;
+  await sb.from('squads').delete().eq('id', squadId);
+  showToast('队伍已解散');
+  loadSquads();
+}// ==================== 排行榜 ====================
+// ==================== 战术板 ====================
+let tacCanvas, tacCtx, tacPainting = false, tacTool = 'pen', tacColor = '#FF6B35', tacSize = 5;
+let tacStartX, tacStartY;
+let tacDrawingData = []; // 保存绘图数据
+
+function initTactical() {
+  tacCanvas = $('#tacticalCanvas');
+  if (!tacCanvas) return;
+  tacCtx = tacCanvas.getContext('2d');
+  
+  // 绘制底图（模拟地图）
+  drawTacticalBaseMap();
+  
+  // 绑定事件
+  const getXY = (e) => {
+    const rect = tacCanvas.getBoundingClientRect();
+    const scaleX = tacCanvas.width / rect.width;
+    const scaleY = tacCanvas.height / rect.height;
+    let clientX, clientY;
+    if (e.touches) {
+      clientX = e.touches[0].clientX;
+      clientY = e.touches[0].clientY;
+    } else {
+      clientX = e.clientX;
+      clientY = e.clientY;
+    }
+    return {
+      x: (clientX - rect.left) * scaleX,
+      y: (clientY - rect.top) * scaleY
+    };
+  };
+  
+  const start = (e) => {
+    e.preventDefault();
+    const pos = getXY(e);
+    tacStartX = pos.x;
+    tacStartY = pos.y;
+    tacPainting = true;
+    if (tacTool === 'text') {
+      const text = prompt('输入文字 (最多5个字):');
+      if (text) {
+        tacCtx.font = `bold ${tacSize * 3}px "Noto Sans SC"`;
+        tacCtx.fillStyle = tacColor;
+        tacCtx.fillText(text.substring(0,5), tacStartX, tacStartY);
+      }
+      tacPainting = false;
+    }
+  };
+  
+  const move = (e) => {
+    if (!tacPainting) return;
+    e.preventDefault();
+    const pos = getXY(e);
+    if (tacTool === 'pen' || tacTool === 'erase') {
+      tacCtx.beginPath();
+      tacCtx.moveTo(tacStartX, tacStartY);
+      tacCtx.lineTo(pos.x, pos.y);
+      tacCtx.strokeStyle = tacTool === 'erase' ? '#1a1a1a' : tacColor;
+      tacCtx.lineWidth = tacSize;
+      tacCtx.lineCap = 'round';
+      tacCtx.stroke();
+      tacStartX = pos.x;
+      tacStartY = pos.y;
+    }
+  };
+  
+  const end = (e) => {
+    if (tacTool === 'arrow' && tacPainting) {
+      const pos = getXY(e);
+      drawArrow(tacStartX, tacStartY, pos.x, pos.y, tacColor, tacSize);
+    }
+    tacPainting = false;
+  };
+  
+  tacCanvas.addEventListener('mousedown', start);
+  tacCanvas.addEventListener('mousemove', move);
+  tacCanvas.addEventListener('mouseup', end);
+  tacCanvas.addEventListener('mouseleave', end);
+  tacCanvas.addEventListener('touchstart', start, {passive: false});
+  tacCanvas.addEventListener('touchmove', move, {passive: false});
+  tacCanvas.addEventListener('touchend', end);
+  
+  // 工具切换
+  document.querySelectorAll('.tactical-tool-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tactical-tool-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      tacTool = btn.dataset.tool;
+    });
+  });
+  $('#tacticalColor').addEventListener('input', e => tacColor = e.target.value);
+  $('#tacticalSize').addEventListener('change', e => tacSize = parseInt(e.target.value));
+  // 默认激活画笔
+  document.querySelector('[data-tool="pen"]').classList.add('active');
+}
+
+function drawTacticalBaseMap() {
+  // 绘制模拟地图背景
+  const grad = tacCtx.createLinearGradient(0, 0, 800, 500);
+  grad.addColorStop(0, '#2a3a2a');
+  grad.addColorStop(1, '#1a2a1a');
+  tacCtx.fillStyle = grad;
+  tacCtx.fillRect(0, 0, 800, 500);
+  // 画网格
+  tacCtx.strokeStyle = '#3a5a3a';
+  tacCtx.lineWidth = 0.5;
+  for (let i = 0; i < 800; i += 40) {
+    tacCtx.beginPath();
+    tacCtx.moveTo(i, 0);
+    tacCtx.lineTo(i, 500);
+    tacCtx.stroke();
+  }
+  for (let i = 0; i < 500; i += 40) {
+    tacCtx.beginPath();
+    tacCtx.moveTo(0, i);
+    tacCtx.lineTo(800, i);
+    tacCtx.stroke();
+  }
+  // 画几个标记点
+  tacCtx.fillStyle = '#FFD700';
+  tacCtx.beginPath();
+  tacCtx.arc(200, 150, 10, 0, 2*Math.PI);
+  tacCtx.fill();
+  tacCtx.fillStyle = '#FF4757';
+  tacCtx.beginPath();
+  tacCtx.arc(600, 350, 12, 0, 2*Math.PI);
+  tacCtx.fill();
+  tacCtx.font = '12px "Noto Sans SC"';
+  tacCtx.fillStyle = '#fff';
+  tacCtx.fillText('A点', 190, 130);
+  tacCtx.fillText('B点', 590, 330);
+}
+
+function drawArrow(fromX, fromY, toX, toY, color, width) {
+  const headlen = 15;
+  const angle = Math.atan2(toY - fromY, toX - fromX);
+  tacCtx.beginPath();
+  tacCtx.moveTo(fromX, fromY);
+  tacCtx.lineTo(toX, toY);
+  tacCtx.strokeStyle = color;
+  tacCtx.lineWidth = width;
+  tacCtx.stroke();
+  // 箭头
+  tacCtx.beginPath();
+  tacCtx.moveTo(toX, toY);
+  tacCtx.lineTo(toX - headlen * Math.cos(angle - Math.PI/6), toY - headlen * Math.sin(angle - Math.PI/6));
+  tacCtx.lineTo(toX - headlen * Math.cos(angle + Math.PI/6), toY - headlen * Math.sin(angle + Math.PI/6));
+  tacCtx.lineTo(toX, toY);
+  tacCtx.fillStyle = color;
+  tacCtx.fill();
+}
+
+function clearTacticalCanvas() {
+  drawTacticalBaseMap();
+}
+
+function saveTactical() {
+  const canvas = $('#tacticalCanvas');
+  const link = document.createElement('a');
+  link.download = `tactical_${Date.now()}.png`;
+  link.href = canvas.toDataURL();
+  link.click();
+  showToast('战术板已保存为图片', 'success');
+}
 async function loadRanks() {
   // 贡献榜：按获赞数
   const { data: contribute } = await sb.from('profiles').select('id, username, avatar_url, likes_received').order('likes_received', { ascending: false }).limit(10);
@@ -6312,9 +7434,17 @@ function initBGM() {
   player.style.transform = 'none';
   player.setAttribute('data-x', -player.offsetWidth + 60);
   player.setAttribute('data-y', window.innerHeight - 80);
+  // 阻止音量滑块触发拖拽
+  const volSlider = $('#bgmVol');
+  if (volSlider) {
+    volSlider.addEventListener('mousedown', (e) => e.stopPropagation());
+    volSlider.addEventListener('touchstart', (e) => e.stopPropagation());
+    volSlider.addEventListener('input', (e) => e.stopPropagation());
+  }
 
   // ========== 拖拽与吸附（使用 interact.js） ==========
   interact('#bgmPlayer').draggable({
+ignoreFrom: 'input, button, #bgmPlaylist, #bgmPlaylist *',
     inertia: true,
     autoScroll: true,
     listeners: {
@@ -6504,66 +7634,6 @@ function playBGMIdx(i) {
   renderBGMPlaylist();
   if(window._bgmSaveState) window._bgmSaveState();
 }
-function updateBGMBtn() {
-  const iconHTML = `<i class="fas fa-${bgmState.playing ? 'pause' : 'play'} text-white text-xs"></i>`;
-  if ($('bgmPlayBtn')) $('bgmPlayBtn').innerHTML = iconHTML;
-  if ($('bgmPlayBtnExtended')) $('bgmPlayBtnExtended').innerHTML = iconHTML;
-}
-
-function bgmNext() {
-  bgmState.idx = (bgmState.idx + 1) % bgmState.playlist.length;
-  loadBGMTrack();
-  bgmState.audio.play().catch(()=>{});
-  bgmState.playing = true;
-  updateBGMBtn();
-  renderBGMPlaylist();
-  if(window._bgmSaveState) window._bgmSaveState();
-}
-function bgmPrev() {
-  bgmState.idx = (bgmState.idx - 1 + bgmState.playlist.length) % bgmState.playlist.length;
-  loadBGMTrack();
-  bgmState.audio.play().catch(()=>{});
-  bgmState.playing = true;
-  updateBGMBtn();
-  renderBGMPlaylist();
-  if(window._bgmSaveState) window._bgmSaveState();
-}
-function bgmSetVolume(val) {
-  bgmState.volume = val / 100;
-  bgmState.audio.volume = bgmState.volume;
-  if(window._bgmSaveState) window._bgmSaveState();
-}
-function bgmSeek(e) {
-  if (!bgmState.audio.duration) return;
-  const rect = e.currentTarget.getBoundingClientRect();
-  const pct = (e.clientX - rect.left) / rect.width;
-  bgmState.audio.currentTime = pct * bgmState.audio.duration;
-}
-
-function toggleBgmPlaylist() {
-  const pl = $('bgmPlaylist');
-  pl.style.display = pl.style.display === 'none' ? 'block' : 'none';
-}
-
-function renderBGMPlaylist() {
-  const pl = $('bgmPlaylist');
-  pl.innerHTML = bgmState.playlist.map((s, i) => `
-    <div class="flex items-center gap-2 p-1.5 rounded text-xs cursor-pointer hover:bg-black/5 ${i === bgmState.idx ? 'font-bold' : ''}" onclick="playBGMIdx(${i})" style="${i === bgmState.idx ? 'color:var(--accent)' : 'color:var(--muted)'}">
-      <i class="fas fa-${i===bgmState.idx && bgmState.playing ? 'volume-up' : 'music'}"></i>
-      <span class="truncate flex-1">${s.name}</span>
-    </div>
-  `).join('');
-}
-
-function playBGMIdx(i) {
-  bgmState.idx = i;
-  loadBGMTrack();
-  bgmState.audio.play().catch(()=>{});
-  bgmState.playing = true;
-  updateBGMBtn();
-  renderBGMPlaylist();
-  if(window._bgmSaveState) window._bgmSaveState();
-}
 async function searchMusic() {
   const keyword = $('musicSearchInput').value.trim();
   if (!keyword) { showToast('请输入搜索关键词'); return; }
@@ -6644,17 +7714,22 @@ async function calculateTopPost() {
 }
 // ==================== 初始化 ====================
   // 开场动画
-  const overlay = $('introOverlay');
-  const circle = $('introCircle');
-  if (overlay && circle) {
+const overlay = $('introOverlay');
+const circle = $('introCircle');
+const introText = $('introText');
+if (overlay && circle) {
+  setTimeout(() => {
+    introText.style.opacity = '1';
     setTimeout(() => {
-      circle.style.transform = 'scale(200)';
+      circle.style.transform = 'scale(250)';
+      introText.style.opacity = '0';
       overlay.style.opacity = '0';
       setTimeout(() => {
         overlay.style.display = 'none';
-      }, 800);
-    }, 100);
-  }
+      }, 1000);
+    }, 600);
+  }, 100);
+}
 // 在 window.addEventListener('DOMContentLoaded', () => { 之前添加
 function addMouseGlowEffect() {
   const glowDiv = document.createElement('div');
@@ -6689,6 +7764,14 @@ function addMouseGlowEffect() {
 window.addEventListener('DOMContentLoaded', () => {
   initBGM();
   initAuth();
+initToolbox();
+// 增加备用延迟渲染，防止容器未就绪
+  setTimeout(() => {
+    if ($('#toolboxBar') && $('#toolboxBar').children.length === 0) {
+      console.warn('工具箱容器为空，尝试重新渲染');
+      renderToolbox();
+    }
+  }, 200);
   // 管理员弹窗特殊处理
   const adminBtn = qs('#adminEntry button');
   if (adminBtn) adminBtn.onclick = () => {
@@ -6733,6 +7816,156 @@ window.addEventListener('scroll', () => {
     loadMorePosts(); // 调用加载更多函数
   }
 });
+// ==================== 伤害计算器 ====================
+let selectedMultiplier = 1.0;
+
+function openDamageCalculatorModal() {
+  const content = `
+    <div class="space-y-4">
+      <div>
+        <label class="text-sm font-bold mb-1 block">武器伤害</label>
+        <input type="number" id="calcDamage" value="40" min="1" max="200"
+               class="w-full p-3 rounded-lg text-lg" style="background:var(--surface);"
+               oninput="calculateDamage()">
+      </div>
+      <div>
+        <label class="text-sm font-bold mb-2 block">目标部位</label>
+        <div class="grid grid-cols-5 gap-2">
+          <button class="body-btn p-2 rounded text-xs" data-multi="2.5" style="background:var(--surface);" onclick="selectBodyPart(this)">
+            <div class="text-lg">💀</div><div>头部</div><div class="text-xs opacity-70">2.5x</div>
+          </button>
+          <button class="body-btn p-2 rounded text-xs active" data-multi="1.0" style="background:var(--surface);" onclick="selectBodyPart(this)">
+            <div class="text-lg">🫁</div><div>胸部</div><div class="text-xs opacity-70">1.0x</div>
+          </button>
+          <button class="body-btn p-2 rounded text-xs" data-multi="1.2" style="background:var(--surface);" onclick="selectBodyPart(this)">
+            <div class="text-lg">🧠</div><div>腹部</div><div class="text-xs opacity-70">1.2x</div>
+          </button>
+          <button class="body-btn p-2 rounded text-xs" data-multi="0.7" style="background:var(--surface);" onclick="selectBodyPart(this)">
+            <div class="text-lg">💪</div><div>手臂</div><div class="text-xs opacity-70">0.7x</div>
+          </button>
+          <button class="body-btn p-2 rounded text-xs" data-multi="0.8" style="background:var(--surface);" onclick="selectBodyPart(this)">
+            <div class="text-lg">🦵</div><div>腿部</div><div class="text-xs opacity-70">0.8x</div>
+          </button>
+        </div>
+      </div>
+      <div>
+        <label class="text-sm font-bold mb-1 block">护甲减伤: <span id="armorPercent">30</span>%</label>
+        <input type="range" id="calcArmor" value="30" min="0" max="70"
+               class="w-full" oninput="document.getElementById('armorPercent').textContent = this.value; calculateDamage()">
+      </div>
+      <div class="p-4 rounded-xl text-center" style="background: linear-gradient(135deg, #FF6B35, #F7931E);">
+        <div class="text-xs mb-1 opacity-80">预估伤害</div>
+        <div id="damageResult" class="text-5xl font-bold">28</div>
+      </div>
+      <div class="text-xs text-center" style="color:var(--muted);">* 计算结果仅供参考</div>
+    </div>
+  `;
+  openToolModal('伤害计算器', content);
+  setTimeout(calculateDamage, 100);
+}
+
+function selectBodyPart(btn) {
+  document.querySelectorAll('.body-btn').forEach(b => b.classList.remove('active', 'border', 'border-orange-500'));
+  btn.classList.add('active', 'border', 'border-orange-500');
+  selectedMultiplier = parseFloat(btn.dataset.multi);
+  calculateDamage();
+}
+
+function calculateDamage() {
+  const damage = parseInt(document.getElementById('calcDamage')?.value) || 0;
+  const armor = (parseInt(document.getElementById('calcArmor')?.value) || 0) / 100;
+  const result = Math.round(damage * selectedMultiplier * (1 - armor));
+  const resultEl = document.getElementById('damageResult');
+  if (resultEl) {
+    resultEl.textContent = result;
+    resultEl.style.color = result >= 100 ? '#FF4757' : result >= 50 ? '#FFA502' : '#FFFFFF';
+  }
+}
+
+// ==================== 撤离计时器 ====================
+let extractionTimer = null;
+let extractionSeconds = 300;
+
+function openExtractionTimerModal() {
+  const content = `
+    <div class="text-center">
+      <div id="timerDisplay" class="text-6xl font-bold mb-4" style="font-family: monospace;">05:00</div>
+      <div class="flex justify-center gap-3 mb-4">
+        <button class="btn-warm px-4 py-2" onclick="startExtractionTimer()"><i class="fas fa-play mr-1"></i>开始</button>
+        <button class="btn-ghost px-4 py-2" onclick="pauseExtractionTimer()"><i class="fas fa-pause mr-1"></i>暂停</button>
+        <button class="btn-ghost px-4 py-2" onclick="resetExtractionTimer()"><i class="fas fa-redo mr-1"></i>重置</button>
+      </div>
+      <div class="flex items-center justify-center gap-2">
+        <input type="number" id="timerMinutes" value="5" min="1" max="30"
+               class="w-20 p-2 rounded-lg text-center" style="background:var(--surface);">
+        <span>分钟</span>
+      </div>
+      <div class="mt-4 p-3 rounded-lg text-xs" style="background:var(--surface); color:var(--muted);">
+        💡 设置撤离时间，计时结束后会提醒你撤离
+      </div>
+    </div>
+  `;
+  openToolModal('撤离计时器', content);
+}
+
+function startExtractionTimer() {
+  if (extractionTimer) clearInterval(extractionTimer);
+  const minutes = parseInt(document.getElementById('timerMinutes')?.value) || 5;
+  extractionSeconds = minutes * 60;
+  extractionTimer = setInterval(() => {
+    extractionSeconds--;
+    if (extractionSeconds <= 0) {
+      clearInterval(extractionTimer);
+      showToast('⚠️ 撤离时间到！', 'warning');
+      if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+    }
+    updateTimerDisplay();
+  }, 1000);
+  showToast('计时开始', 'success');
+}
+
+function pauseExtractionTimer() {
+  if (extractionTimer) { clearInterval(extractionTimer); extractionTimer = null; showToast('计时暂停', 'info'); }
+}
+
+function resetExtractionTimer() {
+  pauseExtractionTimer();
+  extractionSeconds = (parseInt(document.getElementById('timerMinutes')?.value) || 5) * 60;
+  updateTimerDisplay();
+  showToast('计时已重置', 'info');
+}
+
+function updateTimerDisplay() {
+  const mins = Math.floor(extractionSeconds / 60);
+  const secs = extractionSeconds % 60;
+  const display = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+  const timerEl = document.getElementById('timerDisplay');
+  if (timerEl) {
+    timerEl.textContent = display;
+    timerEl.style.color = extractionSeconds <= 60 ? '#FF4757' : 'var(--text)';
+  }
+}
+
+// 通用工具模态框
+function openToolModal(title, content) {
+  let modal = document.getElementById('toolModal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'toolModal';
+    modal.className = 'modal-overlay';
+    modal.innerHTML = `<div class="modal-content" style="max-width:400px;"></div>`;
+    document.body.appendChild(modal);
+  }
+  const contentDiv = modal.querySelector('.modal-content');
+  contentDiv.innerHTML = `
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="font-display text-xl">${title}</h2>
+      <button onclick="closeModal('toolModal')" class="w-8 h-8 rounded-full flex items-center justify-center" style="background:var(--surface);"><i class="fas fa-times"></i></button>
+    </div>
+    ${content}
+  `;
+  openModal('toolModal');
+}
 // 横向拖拽滚动功能（用于电脑端）
 function enableHorizontalDragScroll(element) {
   if (!element) return;
@@ -6780,6 +8013,37 @@ function enableHorizontalDragScroll(element) {
   `;
   document.head.appendChild(style);
 }
+// ==================== 强制挂载折叠函数 ====================
+window.toggleSquadCard = function(cardId) {
+  console.log('toggleSquadCard 被调用, cardId:', cardId);
+  const body = document.getElementById('body-' + cardId);
+  const icon = document.getElementById('icon-' + cardId);
+  if (!body) {
+    console.error('找不到 body 元素: body-' + cardId);
+    return;
+  }
+  if (!icon) {
+    console.error('找不到 icon 元素: icon-' + cardId);
+    return;
+  }
+  body.classList.toggle('expanded');
+  icon.classList.toggle('rotated');
+};
+
+window.toggleSquadSection = function() {
+  const body = document.getElementById('squadSectionBody');
+  const icon = document.getElementById('squadSectionIcon');
+  if (!body || !icon) return;
+  body.classList.toggle('expanded');
+  icon.classList.toggle('rotated');
+};
+
+window.updateSquadCountBadge = function(count) {
+  const badge = document.getElementById('squadCountBadge');
+  if (badge) badge.textContent = count || 0;
+};
+
+console.log('折叠函数已强制挂载到 window 对象');
 </script>
 </body>
 </html>
