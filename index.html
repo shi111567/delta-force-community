@@ -197,13 +197,11 @@ tailwind.config = {
   }
 }
 </script>
-.escort-video-thumbnail {
-  cursor: pointer;
-}
 <style>
 
 /* ===== 移动端优化 ===== */
 @media (max-width: 640px) {
+
   .post-card {
     padding: 14px;
   }
@@ -221,6 +219,14 @@ tailwind.config = {
   }
   .grid-cols-5 .text-xs {
     font-size: 10px;
+  }
+/* 移动端操作栏折叠 */
+  .post-actions .triple-action-btn,
+  .post-actions .quick-reply-btn {
+    display: none !important;
+  }
+  .post-actions .more-btn {
+    display: flex !important;
   }
 }
 
@@ -1383,6 +1389,199 @@ body::before {
 #escortProgressFill {
   transition: width 0.3s ease;
 }
+/* 护航员呼吸光环 */
+.escort-card .escort-avatar {
+  position: relative;
+  z-index: 2;
+}
+.escort-card::before {
+  content: '';
+  position: absolute;
+  top: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 62px;
+  height: 62px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--accent) 0%, transparent 70%);
+  opacity: 0.6;
+  animation: escortBreath 2s ease-in-out infinite;
+  z-index: 1;
+}
+@keyframes escortBreath {
+  0%, 100% { transform: translateX(-50%) scale(1); opacity: 0.4; }
+  50% { transform: translateX(-50%) scale(1.15); opacity: 0.8; }
+}
+@keyframes commandFlash {
+  0% { opacity: 0; transform: translate(-50%, -30%); }
+  20% { opacity: 1; transform: translate(-50%, -50%); }
+  80% { opacity: 1; transform: translate(-50%, -50%); }
+  100% { opacity: 0; transform: translate(-50%, -70%); }
+}
+#homeSearchInput {
+  transition: box-shadow 0.3s, border-color 0.3s;
+}
+#homeSearchInput:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px var(--glow), 0 0 20px var(--accent);
+  outline: none;
+}
+.mobile-nav {
+  will-change: transform;
+}
+/* ===== 操作按钮动效强化 ===== */
+.post-action-btn {
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+}
+.post-action-btn:active {
+  transform: scale(0.9) !important;
+}
+
+/* 点赞按钮专属动效 */
+.post-action-btn[id^="up-"] {
+  position: relative;
+}
+.post-action-btn[id^="up-"].liked {
+  color: #FF6B35 !important;
+  animation: heartBeat 0.6s ease;
+}
+@keyframes heartBeat {
+  0%, 100% { transform: scale(1); }
+  25% { transform: scale(1.2); }
+  50% { transform: scale(0.95); }
+}
+
+/* 爱心飘出效果 */
+.like-float-heart {
+  position: absolute;
+  color: #FF4757;
+  font-size: 20px;
+  pointer-events: none;
+  animation: floatUp 0.8s ease-out forwards;
+  z-index: 100;
+}
+@keyframes floatUp {
+  0% { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(-40px) scale(0.5); }
+}
+
+/* 三连按钮旋转发光 */
+.triple-action-btn:active i {
+  animation: spinGlow 0.4s ease;
+}
+@keyframes spinGlow {
+  0% { transform: rotate(0deg); text-shadow: 0 0 5px var(--accent); }
+  50% { transform: rotate(15deg); text-shadow: 0 0 20px var(--accent); }
+  100% { transform: rotate(0deg); text-shadow: 0 0 5px var(--accent); }
+}
+/* ===== 护航视频卡片悬停增强 ===== */
+.escort-video-thumbnail {
+  position: relative;
+  overflow: hidden;
+}
+.escort-video-thumbnail::after {
+  content: "▶";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 40px;
+  color: white;
+  background: rgba(0,0,0,0.4);
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(4px);
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+  box-shadow: 0 0 20px rgba(0,0,0,0.3);
+  animation: playPulse 1.8s infinite;
+}
+.escort-video-card:hover .escort-video-thumbnail::after {
+  opacity: 1;
+}
+@keyframes playPulse {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); }
+  50% { transform: translate(-50%, -50%) scale(1.1); }
+}
+
+/* 视频时长标签强化 */
+.escort-duration-badge {
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+/* ===== 筛选抽屉 ===== */
+.filter-chip {
+  padding: 6px 14px;
+  border-radius: 30px;
+  background: var(--surface);
+  color: var(--text);
+  border: 1.5px solid var(--border);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.filter-chip.active {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+}
+.filter-chip:hover {
+  border-color: var(--accent);
+}
+#filterDrawerOverlay .modal-content {
+  transform: translateX(100%);
+  transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+}
+#filterDrawerOverlay.active .modal-content {
+  transform: translateX(0);
+}
+/* ===== 阅读历史抽屉 ===== */
+#historyDrawerOverlay .modal-content {
+  transform: translateX(100%);
+  transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+}
+#historyDrawerOverlay.active .modal-content {
+  transform: translateX(0);
+}
+.history-item {
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--surface);
+  cursor: pointer;
+  transition: all 0.15s;
+  border: 1px solid transparent;
+}
+.history-item:hover {
+  border-color: var(--accent);
+  transform: translateX(-4px);
+}
+.history-title {
+  font-weight: 600;
+  font-size: 14px;
+  margin-bottom: 4px;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.history-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.history-time {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/interactjs@1.10.27/dist/interact.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/tus-js-client@4.1.0/dist/tus.min.js"></script>
@@ -1421,6 +1620,11 @@ body::before {
         </button>
         <div class="notif-dot" id="notifDot" style="display:none"></div>
       </div>
+      <div class="relative">
+        <button onclick="openHistoryDrawer()" class="w-8 h-8 rounded-full flex items-center justify-center" style="background:var(--surface);border:1px solid var(--border)" aria-label="阅读历史">
+          <i class="fas fa-history text-sm" style="color:var(--muted)"></i>
+        </button>
+      </div>
 <button onclick="openAuthModal()" class="btn-ghost text-sm" id="authBtn">登录/注册</button>
       <button onclick="openProfile()" class="w-8 h-8 rounded-full overflow-hidden" style="border:2px solid var(--accent)" id="navAvatar" aria-label="个人主页">
         <img src="" alt="头像" class="w-full h-full object-cover" id="navAvatarImg">
@@ -1455,81 +1659,86 @@ body::before {
   <!-- 首页 Tab -->
   <div id="homeTab">
 
-        <!-- 筛选栏（下拉菜单版·增强） -->
-    <div class="flex flex-wrap items-center gap-2 mb-4">
-      <!-- 类型下拉 -->
-      <div class="filter-dropdown" id="typeDropdown">
-        <button class="btn-ghost text-sm px-4 py-2 flex items-center gap-1" onclick="toggleFilterDropdown('typeDropdown')">
-          <span id="currentTypeLabel">全部</span> <i class="fas fa-chevron-down text-xs"></i>
-        </button>
-        <div class="filter-menu hidden">
-          <button class="filter-option" data-type="all" onclick="selectFilterType('all')"><i class="fas fa-globe"></i>全部</button>
-          <button class="filter-option" data-type="normal" onclick="selectFilterType('normal')"><i class="fas fa-image"></i>图文</button>
-          <button class="filter-option" data-type="vote" onclick="selectFilterType('vote')"><i class="fas fa-chart-bar"></i>投票</button>
-          <button class="filter-option" data-type="qa" onclick="selectFilterType('qa')"><i class="fas fa-question-circle"></i>问答</button>
-        </div>
+        <!-- 筛选栏（精简版 + 更多筛选抽屉） -->
+<div class="flex items-center gap-2 mb-4">
+  <!-- 排序下拉（保留） -->
+  <div class="filter-dropdown" id="sortDropdown">
+    <button class="btn-ghost text-sm px-4 py-2 flex items-center gap-1" onclick="toggleFilterDropdown('sortDropdown')">
+      <span id="currentSortLabel">最新</span> <i class="fas fa-chevron-down text-xs"></i>
+    </button>
+    <div class="filter-menu hidden">
+      <button class="filter-option" data-sort="latest" onclick="selectFilterSort('latest')"><i class="fas fa-clock"></i>最新</button>
+      <button class="filter-option" data-sort="hot" onclick="selectFilterSort('hot')"><i class="fas fa-fire"></i>热度</button>
+      <button class="filter-option" data-sort="likes" onclick="selectFilterSort('likes')"><i class="fas fa-thumbs-up"></i>赞最多</button>
+      <button class="filter-option" data-sort="downloads" onclick="selectFilterSort('downloads')"><i class="fas fa-download"></i>下载最多</button>
+    </div>
+  </div>
+  
+  <!-- 搜索输入框（保留） -->
+  <div class="flex items-center gap-1 flex-1">
+    <div class="relative flex-1">
+      <input type="text" id="homeSearchInput" placeholder="搜索帖子..." class="w-full pl-9 pr-3 py-2 text-sm rounded-xl" style="background:var(--surface);border:1.5px solid var(--border);color:var(--text)">
+      <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-sm" style="color:var(--accent)"></i>
+      <div id="homeSearchSuggestions" class="absolute top-full left-0 right-0 mt-1 card-base p-2 hidden" style="z-index:100; max-height:300px; overflow-y:auto;">
+        <div class="text-xs font-bold px-2 py-1" style="color:var(--muted);">热门搜索</div>
+        <div id="hotSearchList" class="space-y-1"></div>
+        <div id="searchHistoryList" class="space-y-1 mt-2 hidden"></div>
       </div>
-      
-      <!-- 兵种下拉 -->
-      <div class="filter-dropdown" id="opDropdown">
-        <button class="btn-ghost text-sm px-4 py-2 flex items-center gap-1" onclick="toggleFilterDropdown('opDropdown')">
-          <span id="currentOpLabel">全兵种</span> <i class="fas fa-chevron-down text-xs"></i>
-        </button>
-        <div class="filter-menu hidden">
-          <button class="filter-option" data-op="all" onclick="selectFilterOp('all')"><i class="fas fa-users"></i>全兵种</button>
-          <button class="filter-option" data-op="突击" onclick="selectFilterOp('突击')"><i class="fas fa-fist-raised"></i>突击</button>
-          <button class="filter-option" data-op="工程" onclick="selectFilterOp('工程')"><i class="fas fa-tools"></i>工程</button>
-          <button class="filter-option" data-op="侦察" onclick="selectFilterOp('侦察')"><i class="fas fa-eye"></i>侦察</button>
-          <button class="filter-option" data-op="支援" onclick="selectFilterOp('支援')"><i class="fas fa-medkit"></i>支援</button>
-        </div>
-      </div>
-      
-      <!-- 排序下拉 -->
-      <div class="filter-dropdown" id="sortDropdown">
-        <button class="btn-ghost text-sm px-4 py-2 flex items-center gap-1" onclick="toggleFilterDropdown('sortDropdown')">
-          <span id="currentSortLabel">最新</span> <i class="fas fa-chevron-down text-xs"></i>
-        </button>
-        <div class="filter-menu hidden">
-          <button class="filter-option" data-sort="latest" onclick="selectFilterSort('latest')"><i class="fas fa-clock"></i>最新</button>
-          <button class="filter-option" data-sort="hot" onclick="selectFilterSort('hot')"><i class="fas fa-fire"></i>热度</button>
-          <button class="filter-option" data-sort="likes" onclick="selectFilterSort('likes')"><i class="fas fa-thumbs-up"></i>赞最多</button>
-          <button class="filter-option" data-sort="downloads" onclick="selectFilterSort('downloads')"><i class="fas fa-download"></i>下载最多</button>
-        </div>
-      </div>
-      <!-- 话题下拉 -->
-<div class="filter-dropdown" id="topicDropdown">
-  <button class="btn-ghost text-sm px-4 py-2 flex items-center gap-1" onclick="toggleFilterDropdown('topicDropdown')">
-    <span id="currentTopicLabel">全话题</span> <i class="fas fa-chevron-down text-xs"></i>
+    </div>
+    <button class="btn-ghost text-sm px-3 py-2" onclick="performHomeSearch()">
+      <i class="fas fa-arrow-right"></i>
+    </button>
+  </div>
+  
+  <!-- 更多筛选按钮（打开抽屉） -->
+  <button class="btn-ghost text-sm px-4 py-2 flex items-center gap-1" onclick="openFilterDrawer()">
+    <i class="fas fa-sliders-h"></i> <span class="hidden sm:inline">筛选</span>
   </button>
-  <div class="filter-menu hidden">
-    <button class="filter-option" data-topic="all" onclick="selectFilterTopic('all')"><i class="fas fa-hashtag"></i>全话题</button>
-    <button class="filter-option" data-topic="战术研讨" onclick="selectFilterTopic('战术研讨')"><i class="fas fa-crosshairs"></i>战术研讨</button>
-    <button class="filter-option" data-topic="新手攻略" onclick="selectFilterTopic('新手攻略')"><i class="fas fa-graduation-cap"></i>新手攻略</button>
-    <button class="filter-option" data-topic="武器评测" onclick="selectFilterTopic('武器评测')"><i class="fas fa-gun"></i>武器评测</button>
-    <button class="filter-option" data-topic="战队招募" onclick="selectFilterTopic('战队招募')"><i class="fas fa-users"></i>战队招募</button>
-    <button class="filter-option" data-topic="精彩集锦" onclick="selectFilterTopic('精彩集锦')"><i class="fas fa-video"></i>精彩集锦</button>
+  
+  <span class="text-xs ml-auto" style="color:var(--muted)"><span id="postCount">0</span> 条动态</span>
+</div>
+
+<!-- 更多筛选抽屉（默认隐藏） -->
+<div id="filterDrawerOverlay" class="modal-overlay" style="z-index:1001;" onclick="closeFilterDrawer()">
+  <div class="modal-content" style="max-width:360px; margin-left:auto; margin-right:0; height:100%; max-height:100%; border-radius:20px 0 0 20px;" onclick="event.stopPropagation()">
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="font-display text-lg">筛选</h2>
+      <button onclick="closeFilterDrawer()" class="w-8 h-8 rounded-full flex items-center justify-center" style="background:var(--surface)"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="space-y-4">
+      <div>
+        <label class="text-sm font-bold block mb-2">内容类型</label>
+        <div class="flex flex-wrap gap-2" id="filterDrawerType">
+          <button class="filter-chip" data-type="all" onclick="setDrawerFilter('type','all')">全部</button>
+          <button class="filter-chip" data-type="normal" onclick="setDrawerFilter('type','normal')">图文</button>
+          <button class="filter-chip" data-type="vote" onclick="setDrawerFilter('type','vote')">投票</button>
+          <button class="filter-chip" data-type="qa" onclick="setDrawerFilter('type','qa')">问答</button>
+        </div>
+      </div>
+      <div>
+        <label class="text-sm font-bold block mb-2">兵种</label>
+        <div class="flex flex-wrap gap-2" id="filterDrawerOp">
+          <button class="filter-chip" data-op="all" onclick="setDrawerFilter('op','all')">全兵种</button>
+          <button class="filter-chip" data-op="突击" onclick="setDrawerFilter('op','突击')">突击</button>
+          <button class="filter-chip" data-op="工程" onclick="setDrawerFilter('op','工程')">工程</button>
+          <button class="filter-chip" data-op="侦察" onclick="setDrawerFilter('op','侦察')">侦察</button>
+          <button class="filter-chip" data-op="支援" onclick="setDrawerFilter('op','支援')">支援</button>
+        </div>
+      </div>
+      <div>
+        <label class="text-sm font-bold block mb-2">话题</label>
+        <div class="flex flex-wrap gap-2 max-h-48 overflow-y-auto p-1" id="filterDrawerTopic">
+          <button class="filter-chip" data-topic="all" onclick="setDrawerFilter('topic','all')">全话题</button>
+          <!-- 动态生成话题列表 -->
+        </div>
+      </div>
+      <div class="pt-4 border-t" style="border-color:var(--border);">
+        <button class="btn-warm w-full py-2" onclick="applyDrawerFilters()">应用筛选</button>
+        <button class="btn-ghost w-full py-2 mt-2" onclick="resetDrawerFilters()">重置</button>
+      </div>
+    </div>
   </div>
 </div>
-      <!-- 搜索输入框（集成在筛选栏） -->
-      <div class="flex items-center gap-1 ml-2">
-        <div class="relative">
-          <input type="text" id="homeSearchInput" placeholder="搜索帖子..." class="w-48 md:w-56 pl-9 pr-3 py-2 text-sm rounded-xl" style="background:var(--surface);border:1.5px solid var(--border);color:var(--text)">
-<!-- 搜索建议下拉 -->
-<div id="homeSearchSuggestions" class="absolute top-full left-0 right-0 mt-1 card-base p-2 hidden" style="z-index:100; max-height:300px; overflow-y:auto;">
-  <div class="text-xs font-bold px-2 py-1" style="color:var(--muted);">热门搜索</div>
-  <div id="hotSearchList" class="space-y-1"></div>
-  <div id="searchHistoryList" class="space-y-1 mt-2 hidden"></div>
-</div>
-          <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-sm" style="color:var(--accent)"></i>
-        </div>
-        <button class="btn-ghost text-sm px-3 py-2" onclick="performHomeSearch()">
-          <i class="fas fa-arrow-right"></i>
-        </button>
-        <!-- 装饰小图片（增强沉浸感） -->
-        <img src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/1f3ae.svg" class="w-8 h-8 hidden md:block ml-1" alt="game" title="搜索游戏内容">
-      </div>
-      <span class="text-xs ml-auto" style="color:var(--muted)"><span id="postCount">0</span> 条动态</span>
-    </div>
 <!-- 横向快捷功能区：在线护航员 + 常看博主 -->
 <section class="mb-4">
   <div class="flex items-center justify-between mb-2">
@@ -1818,6 +2027,21 @@ body::before {
     </div>
   </div>
 </main>
+<!-- 阅读历史抽屉 -->
+<div id="historyDrawerOverlay" class="modal-overlay" style="z-index:1002;" onclick="closeHistoryDrawer()">
+  <div class="modal-content" style="max-width:380px; margin-left:auto; margin-right:0; height:100%; max-height:100%; border-radius:20px 0 0 20px;" onclick="event.stopPropagation()">
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="font-display text-lg"><i class="fas fa-history mr-2" style="color:var(--accent);"></i>阅读历史</h2>
+      <button onclick="closeHistoryDrawer()" class="w-8 h-8 rounded-full flex items-center justify-center" style="background:var(--surface)"><i class="fas fa-times"></i></button>
+    </div>
+    <div id="historyList" class="space-y-2 max-h-full overflow-y-auto pr-1" style="max-height:calc(100% - 60px);">
+      <!-- 动态渲染历史记录 -->
+    </div>
+    <div class="pt-4 border-t mt-4" style="border-color:var(--border);">
+      <button class="btn-ghost w-full py-2 text-sm" onclick="clearHistory()"><i class="fas fa-trash-alt mr-2"></i>清空历史</button>
+    </div>
+  </div>
+</div>
 
 <!-- 底部宣传横幅 -->
 <footer class="relative z-10 py-6 text-center" style="background:var(--card);border-top:1px solid var(--border)" id="footerBanner">
@@ -2338,6 +2562,62 @@ function timeAgo(dateStr) {
   return d.toLocaleDateString('zh-CN');
 }
 
+// ==================== 阅读历史功能 ====================
+const HISTORY_MAX = 20;
+let historyRecords = JSON.parse(localStorage.getItem('postHistory') || '[]');
+
+function addToHistory(postId, postTitle, postAuthor, authorAvatar) {
+  if (!postId) return;
+  historyRecords = historyRecords.filter(r => r.id !== postId);
+  historyRecords.unshift({
+    id: postId, title: postTitle, author: postAuthor, avatar: authorAvatar,
+    time: new Date().toISOString()
+  });
+  if (historyRecords.length > HISTORY_MAX) historyRecords.pop();
+  localStorage.setItem('postHistory', JSON.stringify(historyRecords));
+}
+
+function openHistoryDrawer() {
+  renderHistoryList();
+  openModal('historyDrawerOverlay');
+}
+
+function closeHistoryDrawer() {
+  closeModal('historyDrawerOverlay');
+}
+
+function renderHistoryList() {
+  const container = $('#historyList');
+  if (!container) return;
+  if (historyRecords.length === 0) {
+    container.innerHTML = '<div class="text-center py-8" style="color:var(--muted);"><i class="fas fa-history text-3xl mb-2 opacity-30"></i><p>暂无浏览历史</p></div>';
+    return;
+  }
+  container.innerHTML = historyRecords.map(r => `
+    <div class="history-item" onclick="openComments('${r.id}'); closeHistoryDrawer();">
+      <div class="history-title">${r.title}</div>
+      <div class="history-meta">
+        <span><i class="fas fa-user-circle"></i> ${r.author || '干员'}</span>
+        <span class="history-time"><i class="far fa-clock"></i> ${formatHistoryTime(r.time)}</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+function formatHistoryTime(isoString) {
+  const d = new Date(isoString), now = new Date(), diff = now - d;
+  if (diff < 3600000) return Math.floor(diff / 60000) + '分钟前';
+  if (diff < 86400000) return Math.floor(diff / 3600000) + '小时前';
+  if (diff < 604800000) return Math.floor(diff / 86400000) + '天前';
+  return d.toLocaleDateString('zh-CN');
+}
+
+function clearHistory() {
+  historyRecords = [];
+  localStorage.removeItem('postHistory');
+  renderHistoryList();
+  showToast('历史记录已清空', 'info');
+}
 // ==================== 粒子背景 ====================
 (function initParticles() {
   const canvas = $('particle-canvas'), ctx = canvas.getContext('2d');
@@ -3022,14 +3302,138 @@ function selectFilterTopic(val) {
   document.querySelectorAll('.filter-menu').forEach(m => m.classList.add('hidden'));
   loadPosts(true);
 }
-
-// 点击其他地方关闭下拉
-document.addEventListener('click', (e) => {
-  if (!e.target.closest('.filter-dropdown')) {
-    document.querySelectorAll('.filter-menu').forEach(m => m.classList.add('hidden'));
+// ==================== 筛选抽屉 ====================
+function openFilterDrawer() {
+  // 确保话题列表已初始化
+  if ($('#filterDrawerTopic') && $('#filterDrawerTopic').children.length <= 1) {
+    initFilterDrawerTopics();
   }
-});
+  
+  // 同步当前筛选状态到抽屉按钮
+  document.querySelectorAll('#filterDrawerType .filter-chip').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.type === APP.filters.type);
+  });
+  document.querySelectorAll('#filterDrawerOp .filter-chip').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.op === APP.filters.op);
+  });
+  document.querySelectorAll('#filterDrawerTopic .filter-chip').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.topic === APP.filters.topic);
+  });
+  openModal('filterDrawerOverlay');
+}
 
+function closeFilterDrawer() {
+  closeModal('filterDrawerOverlay');
+}
+
+function setDrawerFilter(type, value) {
+  if (type === 'type') {
+    document.querySelectorAll('#filterDrawerType .filter-chip').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.type === value);
+    });
+  } else if (type === 'op') {
+    document.querySelectorAll('#filterDrawerOp .filter-chip').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.op === value);
+    });
+  } else if (type === 'topic') {
+    document.querySelectorAll('#filterDrawerTopic .filter-chip').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.topic === value);
+    });
+  }
+}
+
+function applyDrawerFilters() {
+  const activeType = document.querySelector('#filterDrawerType .filter-chip.active');
+  const activeOp = document.querySelector('#filterDrawerOp .filter-chip.active');
+  const activeTopic = document.querySelector('#filterDrawerTopic .filter-chip.active');
+  
+  // 更新 APP.filters
+  if (activeType) {
+    APP.filters.type = activeType.dataset.type;
+  }
+  if (activeOp) {
+    APP.filters.op = activeOp.dataset.op;
+  }
+  if (activeTopic) {
+    APP.filters.topic = activeTopic.dataset.topic;
+  }
+  
+  // 尝试更新筛选栏标签（如果元素存在的话）
+  if ($('currentTypeLabel')) {
+    $('currentTypeLabel').textContent = {all:'全部', normal:'图文', vote:'投票', qa:'问答'}[APP.filters.type] || APP.filters.type;
+  }
+  if ($('currentOpLabel')) {
+    $('currentOpLabel').textContent = APP.filters.op === 'all' ? '全兵种' : APP.filters.op;
+  }
+  if ($('currentTopicLabel')) {
+    $('currentTopicLabel').textContent = APP.filters.topic === 'all' ? '全话题' : APP.filters.topic;
+  }
+  
+  closeFilterDrawer();
+  loadPosts(true);
+  showToast('筛选已应用', 'success');
+}
+
+function resetDrawerFilters() {
+  // 重置为默认值 'all'
+  APP.filters.type = 'all';
+  APP.filters.op = 'all';
+  APP.filters.topic = 'all';
+  
+  // 更新 UI 按钮状态
+  document.querySelectorAll('#filterDrawerType .filter-chip').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.type === 'all');
+  });
+  document.querySelectorAll('#filterDrawerOp .filter-chip').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.op === 'all');
+  });
+  document.querySelectorAll('#filterDrawerTopic .filter-chip').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.topic === 'all');
+  });
+  
+  // 更新标签（如果存在）
+  if ($('currentTypeLabel')) $('currentTypeLabel').textContent = '全部';
+  if ($('currentOpLabel')) $('currentOpLabel').textContent = '全兵种';
+  if ($('currentTopicLabel')) $('currentTopicLabel').textContent = '全话题';
+  
+  closeFilterDrawer();
+  loadPosts(true);
+  showToast('筛选已重置', 'info');
+}
+
+// 初始化筛选抽屉的话题列表
+function initFilterDrawerTopics() {
+  const container = $('#filterDrawerTopic');
+  if (!container) return;
+  
+  // 使用全局 HOT_TOPICS 数组
+  const topics = typeof HOT_TOPICS !== 'undefined' ? HOT_TOPICS : ['战术研讨','新手攻略','武器评测','战队招募','精彩集锦','三角洲行动'];
+  
+  // 保留第一个“全话题”按钮，清空其余
+  const allBtn = container.querySelector('[data-topic="all"]');
+  container.innerHTML = '';
+  if (allBtn) {
+    container.appendChild(allBtn.cloneNode(true));
+    container.firstChild.onclick = () => setDrawerFilter('topic', 'all');
+  } else {
+    const newAllBtn = document.createElement('button');
+    newAllBtn.className = 'filter-chip';
+    newAllBtn.dataset.topic = 'all';
+    newAllBtn.onclick = () => setDrawerFilter('topic', 'all');
+    newAllBtn.textContent = '全话题';
+    container.appendChild(newAllBtn);
+  }
+  
+  // 添加其他话题
+  topics.forEach(t => {
+    const btn = document.createElement('button');
+    btn.className = 'filter-chip';
+    btn.dataset.topic = t;
+    btn.onclick = () => setDrawerFilter('topic', t);
+    btn.textContent = t;
+    container.appendChild(btn);
+  });
+}
 // ==================== 帖子加载与渲染 ====================
 const HOT_TOPICS = ['战术研讨','新手攻略','武器评测','战队招募','精彩集锦','三角洲行动','每日打卡','求助大神','晒战绩','游戏资讯','版本更新','枪械配件','地图攻略','狙击教学','团队配合'];
 // 修改话题云的渲染，增加点击计数（mock数据）和热度火焰icon
@@ -3596,7 +4000,29 @@ async function publishPost() {
   APP.profile.posts_count = (APP.profile.posts_count||0) + 1;
 
   checkAchievement('first_post', APP.profile.posts_count >= 1);
-
+  // 全屏微动效
+  const flash = document.createElement('div');
+  flash.style.cssText = `
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    color: white;
+    font-size: 24px;
+    font-weight: 800;
+    padding: 20px 40px;
+    border-radius: 60px;
+    z-index: 10000;
+    box-shadow: 0 0 60px var(--glow);
+    animation: commandFlash 1.2s ease-out forwards;
+    pointer-events: none;
+    font-family: 'ZCOOL QingKe HuangYou', sans-serif;
+    letter-spacing: 4px;
+  `;
+  flash.textContent = '⚡ 作战指令已发出 ⚡';
+  document.body.appendChild(flash);
+  setTimeout(() => flash.remove(), 1200);
   showToast('发布成功！');
   closeModal('publishModal');
   $('pubTitle').value = ''; $('pubDesc').value = ''; $('pubTags').value = '';
@@ -3674,6 +4100,21 @@ async function votePost(pid, type) {
     if (btn) btn.innerHTML = `<i class="fas fa-thumbs-${type==='up'?'up':'down'}"></i> ${(post[field]||0)+1}`;
     if (type === 'up') {
       btn.style.color = '#FF6B35';
+      // 添加爱心飘出动效
+      const btnElement = $(`up-${pid}`);
+      if (btnElement) {
+        btnElement.classList.add('liked');
+        setTimeout(() => btnElement.classList.remove('liked'), 600);
+        
+        const heart = document.createElement('span');
+        heart.className = 'like-float-heart';
+        heart.innerHTML = '❤️';
+        heart.style.left = (event?.clientX ? event.clientX - btnElement.getBoundingClientRect().left : 20) + 'px';
+        heart.style.top = (event?.clientY ? event.clientY - btnElement.getBoundingClientRect().top : 10) + 'px';
+        btnElement.style.position = 'relative';
+        btnElement.appendChild(heart);
+        setTimeout(() => heart.remove(), 800);
+      }
       // 更新发布者获赞数
       const { data: p2 } = await sb.from('posts').select('user_id').eq('id', pid).single();
       if (p2) {
@@ -3728,6 +4169,10 @@ async function openComments(pid) {
   
   // 获取帖子详情
   const { data: post } = await sb.from('posts').select('*, profiles(username, avatar_url, level, display_badge, badges)').eq('id', pid).single();
+  // 记录浏览历史
+  if (post) {
+    addToHistory(pid, post.title, post.profiles?.username || '干员', post.profiles?.avatar_url);
+  }
   
   // 构建弹窗内容
   const modal = $('commentsModal');
@@ -4605,6 +5050,16 @@ window.addEventListener('scroll', () => {
     navHidden = false;
   }
   lastScrollY = currentScrollY;
+  // 底部移动导航智能隐藏
+  const mobileNav = qs('.mobile-nav');
+  if (mobileNav) {
+    if (currentScrollY > lastScrollY && currentScrollY > 100) {
+      mobileNav.style.transform = 'translateY(100%)';
+      mobileNav.style.transition = 'transform 0.3s ease';
+    } else {
+      mobileNav.style.transform = 'translateY(0)';
+    }
+  }
 });
 
 // ==================== 签到系统 ====================
@@ -5751,6 +6206,7 @@ const BGM_SONGS = [
 ];
 
 const bgmState = { playing: false, idx: 0, audio: null, volume: 0.5, playlist: [...BGM_SONGS], currentTime: 0, duration: 0 };
+
 function initBGM() {
   const saved = localStorage.getItem('bgm_custom_playlist');
   if (saved) {
@@ -5760,7 +6216,7 @@ function initBGM() {
       bgmState.idx = parsed.idx !== undefined ? parsed.idx : 0;
       bgmState.volume = parsed.volume !== undefined ? parsed.volume : 0.5;
       bgmState.currentTime = parsed.currentTime || 0;
-      bgmState.playing = false; // 不自动播放，避免浏览器限制
+      bgmState.playing = false;
     } catch(e) {
       bgmState.playlist = [...BGM_SONGS];
     }
@@ -5772,7 +6228,6 @@ function initBGM() {
   bgmState.audio.volume = bgmState.volume;
   loadBGMTrack();
 
-  // 恢复播放进度
   bgmState.audio.addEventListener('loadedmetadata', () => {
     if (bgmState.currentTime > 0 && bgmState.currentTime < bgmState.audio.duration) {
       bgmState.audio.currentTime = bgmState.currentTime;
@@ -5793,7 +6248,6 @@ function initBGM() {
   bgmState.audio.addEventListener('timeupdate', updateBGMProgress);
   bgmState.audio.addEventListener('ended', () => bgmNext());
 
-  // ========== 2. 保存状态的通用函数 ==========
   window._bgmSaveState = () => {
     const state = {
       playlist: bgmState.playlist,
@@ -5804,14 +6258,12 @@ function initBGM() {
     localStorage.setItem('bgm_custom_playlist', JSON.stringify(state));
   };
 
-  // 节流保存（避免高频写入）
   let saveTimer;
   bgmState.audio.addEventListener('timeupdate', () => {
     if (saveTimer) clearTimeout(saveTimer);
     saveTimer = setTimeout(() => window._bgmSaveState(), 1000);
   });
 
-  // 视频播放时自动暂停BGM
   document.addEventListener('play', e => {
     if (e.target.tagName === 'VIDEO') { if (bgmState.playing) { bgmState.audio.pause(); bgmState.playing = false; updateBGMBtn(); } }
   }, true);
@@ -5822,31 +6274,112 @@ function initBGM() {
   renderBGMPlaylist();
   $('bgmVol').value = bgmState.volume * 100;
 
-  // ===== 拖拽功能（保持不变）=====
-  interact('#bgmPlayer').draggable({
+    // ========== 初始化播放器位置（左侧，保留 60px 露出） ==========
+  var player = $('bgmPlayer');
+  player.style.position = 'fixed';
+  player.style.left = (-player.offsetWidth + 60) + 'px';  // 左侧吸附状态，右边露出60px
+  player.style.top = (window.innerHeight - 80) + 'px';
+  player.style.right = 'auto';
+  player.style.bottom = 'auto';
+  player.style.transform = 'none';
+  player.setAttribute('data-x', -player.offsetWidth + 60);
+  player.setAttribute('data-y', window.innerHeight - 80);
 
+  // ========== 拖拽与吸附（使用 interact.js） ==========
+  interact('#bgmPlayer').draggable({
     inertia: true,
-    modifiers: [interact.modifiers.restrictRect({ restriction: 'parent', endOnly: true })],
     autoScroll: true,
-     listeners: {
-    start: function (event) {
-      // 开始拖动时，可以加一个视觉反馈，比如轻微放大
-      event.target.style.transition = 'transform 0.2s';
-    },
-    move: function (event) {
-      // 关键：阻止触摸移动时的默认行为（页面滚动）
-      if (event.interaction.pointerType === 'touch') {
-        event.preventDefault();
-      }
-      var target = event.target;
-      var x = (parseFloat(target.getAttribute('data-x')) || 0) + event.dx;
-      var y = (parseFloat(target.getAttribute('data-y')) || 0) + event.dy;
-      target.style.transform = 'translate(' + x + 'px, ' + y + 'px)';
-      target.setAttribute('data-x', x);
-      target.setAttribute('data-y', y);
+    listeners: {
+      start: function (event) {
+        event.target.style.transition = 'none';
+      },
+      move: function (event) {
+        var target = event.target;
+        var x = (parseFloat(target.getAttribute('data-x')) || 0) + event.dx;
+        var y = (parseFloat(target.getAttribute('data-y')) || 0) + event.dy;
+        target.style.left = x + 'px';
+        target.style.top = y + 'px';
+        target.setAttribute('data-x', x);
+        target.setAttribute('data-y', y);
+      },
+                  end: function (event) {
+        var target = event.target;
+        var x = parseFloat(target.getAttribute('data-x')) || 0;
+        var y = parseFloat(target.getAttribute('data-y')) || 0;
+        var playerWidth = target.offsetWidth || 200;
+        var screenWidth = window.innerWidth;
+        var screenHeight = window.innerHeight;
+        var playerHeight = target.offsetHeight || 80;
+        
+        var EDGE_OFFSET = 60;        // 吸附后保留露出的宽度
+        var SNAP_THRESHOLD = 150;    // 距离边缘小于此值时触发吸附
+        
+        var currentX = x;
+        var currentY = y;
+        
+        // 计算播放器左右边缘距离屏幕边缘的距离
+        var distToLeft = currentX + playerWidth;   // 播放器左边隐藏了多少（负值表示完全在屏幕内）
+        var distToRight = screenWidth - (currentX + playerWidth); // 播放器右边距离屏幕右边缘
+        
+        var targetX = currentX;  // 默认保持原位
+        var targetY = Math.max(60, Math.min(currentY, screenHeight - playerHeight - 20)); // Y轴始终限制
+        
+        // 判断是否靠近左边：播放器右边距离屏幕左边缘小于阈值
+        if (currentX + playerWidth < SNAP_THRESHOLD) {
+          targetX = -playerWidth + EDGE_OFFSET;  // 吸附到左边
+        }
+        // 判断是否靠近右边：播放器左边距离屏幕右边缘小于阈值
+        else if (screenWidth - currentX < SNAP_THRESHOLD) {
+          targetX = screenWidth - EDGE_OFFSET;   // 吸附到右边
+        }
+        // 否则 targetX 保持 currentX，即不吸附
+        
+        target.style.transition = 'left 0.3s ease, top 0.3s ease';
+        target.style.left = targetX + 'px';
+        target.style.top = targetY + 'px';
+        target.setAttribute('data-x', targetX);
+        target.setAttribute('data-y', targetY);
+        
+        setTimeout(function() { target.style.transition = ''; }, 300);
       }
     }
   });
+
+  // 窗口大小变化时修正位置
+    window.addEventListener('resize', function() {
+    var player = $('bgmPlayer');
+    if (!player) return;
+    var x = parseFloat(player.getAttribute('data-x')) || 0;
+    var y = parseFloat(player.getAttribute('data-y')) || 0;
+    var screenWidth = window.innerWidth;
+    var screenHeight = window.innerHeight;
+    var playerWidth = player.offsetWidth || 200;
+    var playerHeight = player.offsetHeight || 80;
+    var EDGE_OFFSET = 60;
+    var SNAP_THRESHOLD = 150;
+    
+    var targetX = x;
+    var targetY = Math.max(60, Math.min(y, screenHeight - playerHeight - 20));
+    
+    // 如果当前处于吸附状态或靠近边缘，则重新吸附；否则保持原位
+    if (x + playerWidth < SNAP_THRESHOLD) {
+      targetX = -playerWidth + EDGE_OFFSET;
+    } else if (screenWidth - x < SNAP_THRESHOLD) {
+      targetX = screenWidth - EDGE_OFFSET;
+    }
+    
+    player.style.left = targetX + 'px';
+    player.style.top = targetY + 'px';
+    player.setAttribute('data-x', targetX);
+    player.setAttribute('data-y', targetY);
+  });
+}
+
+function loadBGMTrack() {
+  if (!bgmState.playlist.length) return;
+  const song = bgmState.playlist[bgmState.idx % bgmState.playlist.length];
+  bgmState.audio.src = song.url;
+  $('bgmTitle').textContent = song.name;
 }
 
 function formatTime(sec) {
@@ -5867,13 +6400,6 @@ function updateBGMProgress() {
   }
 }
 
-function loadBGMTrack() {
-  if (!bgmState.playlist.length) return;
-  const song = bgmState.playlist[bgmState.idx % bgmState.playlist.length];
-  bgmState.audio.src = song.url;
-  $('bgmTitle').textContent = song.name;
-}
-
 function bgmToggle() {
   if (bgmState.playing) {
     bgmState.audio.pause();
@@ -5884,6 +6410,70 @@ function bgmToggle() {
     bgmState.playing = true;
   }
   updateBGMBtn();
+  if(window._bgmSaveState) window._bgmSaveState();
+}
+
+function updateBGMBtn() {
+  const iconHTML = `<i class="fas fa-${bgmState.playing ? 'pause' : 'play'} text-white text-xs"></i>`;
+  if ($('bgmPlayBtn')) $('bgmPlayBtn').innerHTML = iconHTML;
+  if ($('bgmPlayBtnExtended')) $('bgmPlayBtnExtended').innerHTML = iconHTML;
+}
+
+function bgmNext() {
+  bgmState.idx = (bgmState.idx + 1) % bgmState.playlist.length;
+  loadBGMTrack();
+  bgmState.audio.play().catch(()=>{});
+  bgmState.playing = true;
+  updateBGMBtn();
+  renderBGMPlaylist();
+  if(window._bgmSaveState) window._bgmSaveState();
+}
+
+function bgmPrev() {
+  bgmState.idx = (bgmState.idx - 1 + bgmState.playlist.length) % bgmState.playlist.length;
+  loadBGMTrack();
+  bgmState.audio.play().catch(()=>{});
+  bgmState.playing = true;
+  updateBGMBtn();
+  renderBGMPlaylist();
+  if(window._bgmSaveState) window._bgmSaveState();
+}
+
+function bgmSetVolume(val) {
+  bgmState.volume = val / 100;
+  bgmState.audio.volume = bgmState.volume;
+  if(window._bgmSaveState) window._bgmSaveState();
+}
+
+function bgmSeek(e) {
+  if (!bgmState.audio.duration) return;
+  const rect = e.currentTarget.getBoundingClientRect();
+  const pct = (e.clientX - rect.left) / rect.width;
+  bgmState.audio.currentTime = pct * bgmState.audio.duration;
+}
+
+function toggleBgmPlaylist() {
+  const pl = $('bgmPlaylist');
+  pl.style.display = pl.style.display === 'none' ? 'block' : 'none';
+}
+
+function renderBGMPlaylist() {
+  const pl = $('bgmPlaylist');
+  pl.innerHTML = bgmState.playlist.map((s, i) => `
+    <div class="flex items-center gap-2 p-1.5 rounded text-xs cursor-pointer hover:bg-black/5 ${i === bgmState.idx ? 'font-bold' : ''}" onclick="playBGMIdx(${i})" style="${i === bgmState.idx ? 'color:var(--accent)' : 'color:var(--muted)'}">
+      <i class="fas fa-${i===bgmState.idx && bgmState.playing ? 'volume-up' : 'music'}"></i>
+      <span class="truncate flex-1">${s.name}</span>
+    </div>
+  `).join('');
+}
+
+function playBGMIdx(i) {
+  bgmState.idx = i;
+  loadBGMTrack();
+  bgmState.audio.play().catch(()=>{});
+  bgmState.playing = true;
+  updateBGMBtn();
+  renderBGMPlaylist();
   if(window._bgmSaveState) window._bgmSaveState();
 }
 function updateBGMBtn() {
@@ -6088,6 +6678,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
   // 定时计算榜首（每小时检查）
   calculateTopPost();
+initFilterDrawerTopics();
   setInterval(calculateTopPost, 3600000);
 });
 
