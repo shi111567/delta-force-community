@@ -2,7 +2,7 @@
 <html lang="zh-CN" data-theme="light">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
 <title>三角洲墨辰电竞 - 玩家社区</title>
 <script src="https://cdn.tailwindcss.com/3.4.1"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -3706,6 +3706,10 @@ document.querySelectorAll('.filter-menu').forEach(m => m.classList.add('hidden')
   setTimeout(() => loadSquads(), 50);
   // 刷新帖子列表（重置分页）
   loadPosts(true);
+// 强制浏览器重新计算布局，修复移动端样式异常
+document.body.style.display = 'none';
+document.body.offsetHeight; // 触发重绘
+document.body.style.display = '';
   // 滚动到页面顶部
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
