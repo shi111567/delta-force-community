@@ -2,7 +2,7 @@
 <html lang="zh-CN" data-theme="light">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>三角洲墨辰电竞 - 玩家社区</title>
 <script src="https://cdn.tailwindcss.com/3.4.1"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -864,23 +864,51 @@ touch-action: none; /* 禁止浏览器默认的滚动、缩放等触摸行为 */
   }
 }
 
-/* 手机端 */
+/* ===== 手机端导航栏自适应（内容完整保留，仅缩小字体和间距） ===== */
 @media (max-width: 768px) {
-  .top-nav .font-display {
-    font-size: 16px !important;
-    max-width: 140px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
+    .top-nav .max-w-7xl {
+        padding-left: 8px;
+        padding-right: 8px;
+    }
+    .top-nav .font-display {
+        font-size: 15px !important;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 160px;
+    }
+    .top-nav .btn-ghost {
+        padding: 4px 8px;
+        font-size: 12px;
+    }
+    .top-nav .btn-warm {
+        padding: 4px 10px;
+        font-size: 12px;
+    }
+    #bjTime, .text-xs.font-mono {
+        font-size: 10px !important;
+        white-space: nowrap;
+    }
 }
 
-/* 极小屏 */
+/* ===== 极小屏进一步压缩（依然不隐藏任何按钮） ===== */
 @media (max-width: 480px) {
-  .top-nav .font-display {
-    font-size: 14px !important;
-    max-width: 110px;
-  }
+    .top-nav .font-display {
+        font-size: 13px !important;
+        max-width: 120px;
+    }
+    .top-nav .btn-ghost {
+        padding: 4px 6px;
+        font-size: 11px;
+    }
+    .top-nav .btn-warm {
+        padding: 4px 8px;
+        font-size: 11px;
+    }
+    #navAvatar {
+        width: 28px;
+        height: 28px;
+    }
 }/* 默认隐藏部分元素，PC 端显示 */
 .top-nav .desktop-only {
   display: inline-flex;
