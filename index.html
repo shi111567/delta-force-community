@@ -3706,16 +3706,10 @@ document.querySelectorAll('.filter-menu').forEach(m => m.classList.add('hidden')
   setTimeout(() => loadSquads(), 50);
   // 刷新帖子列表（重置分页）
   loadPosts(true);
-    // 移动端适配：强制重绘顶部导航栏，确保响应式类正确应用
-  const nav = $('topNav');
-  if (nav) {
-    nav.style.display = 'none';
-    nav.offsetHeight; // 触发浏览器重绘
-    nav.style.display = '';
-  }
-  // 使用 requestAnimationFrame 确保在渲染完成后滚动到顶部
-  requestAnimationFrame(() => window.scrollTo(0, 0));
-  
+      
+  // 移动端适配：温和地触发重绘，避免破坏导航栏响应式
+  window.dispatchEvent(new Event('resize'));
+
   // 确保移动端底部导航栏正确显示且激活状态正确
   const mobileNav = document.querySelector('.mobile-nav');
   if (mobileNav && window.innerWidth <= 768) {
