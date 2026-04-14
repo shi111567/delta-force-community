@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>三角洲墨辰电竞 - 玩家社区</title>
-<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.tailwindcss.com/3.4.1"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700;900&family=ZCOOL+QingKe+HuangYou&display=swap" rel="stylesheet">
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
@@ -523,7 +523,7 @@ tailwind.config = {
   body {
     font-family: 'Noto Sans SC', sans-serif; background: var(--bg);
     color: var(--text); transition: background 0.4s, color 0.4s;
-    min-height: 100vh; overflow-x: hidden;
+    min-height: 100vh;  overflow-x: hidden;overflow-y: auto;
   }
   #particle-canvas { position: fixed; top:0; left:0; width:100%; height:100%; z-index:0; pointer-events:none; }
 
@@ -981,14 +981,45 @@ touch-action: none; /* 禁止浏览器默认的滚动、缩放等触摸行为 */
   }
 }
 
-  /* 图片放大查看 */
-  .lightbox {
-    position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 2000;
-    display: none; align-items: center; justify-content: center; cursor: zoom-out;
-  }
-  .lightbox.active { display: flex; }
-  .lightbox img { max-width: 95%; max-height: 95%; object-fit: contain; border-radius: 8px; }
-
+  /* ===== 图片放大 Lightbox (终极防污染版) ===== */
+.lightbox {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  background: rgba(0, 0, 0, 0.95) !important;
+  backdrop-filter: blur(12px) !important;
+  z-index: 100000 !important; /* 提高到最大，盖过一切 */
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+  cursor: zoom-out;
+  margin: 0 !important;
+  padding: 0 !important;
+  transform: none !important; /* 重置任何可能的 transform 污染 */
+  will-change: auto !important; /* 覆盖继承的 will-change */
+  contain: strict; /* 创建独立的渲染层，彻底隔离 */
+}
+.lightbox.active {
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+.lightbox img {
+  max-width: 90vw !important;
+  max-height: 90vh !important;
+  object-fit: contain !important;
+  border-radius: 12px;
+  box-shadow: 0 0 40px rgba(0,0,0,0.5);
+  transform: scale(0.92) !important;
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+}
+.lightbox.active img {
+  transform: scale(1) !important;
+}
   /* 投票选项 */
  .vote-option {
   position: relative;
@@ -1042,6 +1073,19 @@ touch-action: none; /* 禁止浏览器默认的滚动、缩放等触摸行为 */
   background: var(--accent);
   color: white;
   transform: scale(1.05);
+}
+/* ===== 移动端悬浮按钮位置修复 ===== */
+@media (max-width: 768px) {
+  .scroll-btn {
+    bottom: 90px !important;
+    width: 52px;
+    height: 52px;
+  }
+  #squadFloatBtn {
+    bottom: 150px !important;
+    width: 52px;
+    height: 52px;
+  }
 }
 
   /* 录音动画 */
@@ -1963,6 +2007,19 @@ body::before {
 #squadSectionHeader:hover {
   background: rgba(255, 107, 53, 0.05);
 }
+/* 优化切换闪烁：提升合成层 */
+#mainContent, .top-nav, .mobile-nav {
+  will-change: transform;
+  transform: translateZ(0);
+}
+.tab-content {
+  transition: opacity 0.15s ease;
+}
+button, .btn-ghost, .btn-warm {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
 </style>
 <script src="https://cdn.jsdelivr.net/npm/interactjs@1.10.27/dist/interact.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/tus-js-client@4.1.0/dist/tus.min.js"></script>
@@ -2028,7 +2085,7 @@ body::before {
 </section>
 -->
 <!-- 快捷工具坞 -->
-<section class="mb-4">
+<section class="mb-4" id="toolboxSection">
   <div class="flex items-center justify-between mb-2">
     <h3 class="font-display text-sm flex items-center gap-2"><i class="fas fa-toolbox" style="color: var(--accent);"></i> 干员工具箱</h3>
     <span class="text-xs" style="color: var(--muted);">滑动查看更多 <i class="fas fa-arrow-right ml-1"></i></span>
@@ -2179,7 +2236,7 @@ body::before {
   </div>
 
   <!-- 可折叠的内容区域 -->
-  <div id="squadSectionBody" class="squad-section-body">
+  <div id="squadSectionBody" class="squad-section-body expanded">
     <div id="squadListContainer" class="space-y-2">
       <div class="text-center py-4 text-xs" style="color:var(--muted);">点击下方「发布组队」开始招募</div>
     </div>
@@ -2221,7 +2278,7 @@ body::before {
     </div>
   </div>
 
-  <!-- 关注 Tab -->
+       <!-- 关注 Tab -->
   <div id="followingTab" style="display:none">
     <h2 class="font-display text-2xl mb-4" style="color:var(--accent)">关注动态</h2>
     <div class="masonry" id="followingGrid"></div>
@@ -2229,6 +2286,8 @@ body::before {
       <i class="fas fa-user-plus text-4xl mb-3 block" style="color:var(--border)"></i>
       <p>关注其他干员，查看他们的最新动态</p>
     </div>
+  </div>
+
   <!-- 搜索 Tab（发现页） -->
   <div id="searchTab" style="display:none">
     <!-- 搜索头部 -->
@@ -2323,10 +2382,6 @@ body::before {
       <button class="btn-ghost text-sm px-6 py-2" onclick="loadMoreSearchResults()"><i class="fas fa-chevron-down mr-2"></i>加载更多</button>
     </div>
   </div>
-  </div>
-      </div>
-    </div>
-  </div>
 
   <!-- 护航考核 Tab -->
 <!-- 战术板 Tab -->
@@ -2339,13 +2394,16 @@ body::before {
     </div>
   </div>
   <div class="card-base p-3" style="touch-action: none;">
+<input type="file" id="tacticalBgInput" accept="image/*" style="display:none;">
     <canvas id="tacticalCanvas" width="800" height="500" style="width:100%; height:auto; background: #1a1a1a; border-radius: 16px; cursor: crosshair;"></canvas>
   </div>
   <div class="flex flex-wrap gap-2 mt-4 justify-center">
     <button class="tactical-tool-btn" data-tool="pen"><i class="fas fa-pencil"></i> 画笔</button>
     <button class="tactical-tool-btn" data-tool="arrow"><i class="fas fa-arrow-right"></i> 箭头</button>
     <button class="tactical-tool-btn" data-tool="text"><i class="fas fa-font"></i> 文字</button>
-    <button class="tactical-tool-btn" data-tool="erase"><i class="fas fa-eraser"></i> 橡皮</button>
+    <button class="tactical-tool-btn" data-tool="erase"><i class="fas fa-eraser"></i> 橡皮</button><button class="tactical-tool-btn" onclick="uploadTacticalBackground()"><i class="fas fa-upload"></i> 上传底图</button>
+
+<input type="file" id="tacticalBgInput" accept="image/*" style="display:none">
     <input type="color" id="tacticalColor" value="#FF6B35" class="w-10 h-10 rounded-full border-0 p-1 cursor-pointer">
     <select id="tacticalSize" class="px-3 py-1 rounded-full text-sm" style="background:var(--surface); border:1px solid var(--border);">
       <option value="2">细</option><option value="5" selected>中</option><option value="10">粗</option>
@@ -2537,10 +2595,7 @@ body::before {
       </button>
     </div>
   </div>
-</div><div class="lightbox" id="lightbox" onclick="closeLightbox()">
-  <img src="" alt="放大查看" id="lightboxImg">
 </div>
-
 <!-- Toast 容器 -->
 <div class="toast-container" id="toastContainer"></div>
 
@@ -2790,6 +2845,11 @@ body::before {
       <!-- 备注 -->
       <textarea id="squadNote" placeholder="备注（例如：来枪硬的，心态好）" class="w-full" rows="2"></textarea>
       <!-- 仅限麦克风 -->
+<!-- 需要审核 -->
+<div class="flex items-center gap-2 mt-2">
+  <input type="checkbox" id="squadNeedApproval" checked> 
+  <label for="squadNeedApproval" class="text-sm">需要队长审核</label>
+</div>
       <div class="flex items-center gap-2">
         <input type="checkbox" id="squadMicOnly" checked> 
         <label for="squadMicOnly" class="text-sm">仅限有麦克风</label>
@@ -3013,7 +3073,7 @@ body::before {
       <button onclick="closeModal('musicSearchModal')" class="w-8 h-8 rounded-full flex items-center justify-center" style="background:var(--surface)"><i class="fas fa-times"></i></button>
     </div>
     <div class="flex gap-2 mb-3">
-      <input type="text" placeholder="搜索网易云歌曲..." id="musicSearchInput" class="flex-1">
+      <input type="text" placeholder="搜索网易云歌曲..." id="musicSearchInput" class="flex-1" onkeypress="if(event.key==='Enter') searchMusic()">
       <button class="btn-warm text-sm" onclick="searchMusic()">搜索</button>
     </div>
     <div id="musicSearchResults" class="space-y-2 max-h-60 overflow-y-auto"></div>
@@ -3551,98 +3611,108 @@ function openNotifModal() {
   openModal('notifModal');
 }
  function switchTab(tab) {
-  // 淡出动画
-  const oldTab = $(APP.currentTab + 'Tab');
-  if (oldTab) {
-    oldTab.style.transition = 'opacity 0.2s';
-    oldTab.style.opacity = '0';
-  }
+  // 防止重复切换同一Tab造成闪烁
+  if (APP.currentTab === tab && tab !== 'profile') return;
 
-  setTimeout(() => {
-    APP.currentTab = tab;
-    ['homeTab','discoverTab','followingTab','profileTab','topicDetailTab','searchTab','escortTab','tacticalTab'].forEach(id => {
+  const oldTabEl = $(APP.currentTab + 'Tab');
+  const newTabEl = $(tab + 'Tab');
+  const toolbox = $('toolboxSection');
+
+  // 优化1：使用 requestAnimationFrame 减少重绘卡顿
+  requestAnimationFrame(() => {
+    // 隐藏所有Tab
+    ['homeTab','discoverTab','followingTab','profileTab','searchTab','escortTab','tacticalTab'].forEach(id => {
       const el = $(id);
       if (el) el.style.display = 'none';
     });
-    
-        const map = { home:'homeTab', discover:'discoverTab', following:'followingTab', profile:'profileTab', escort:'escortTab' };
-    if (map[tab]) {
-      const newTab = $(map[tab]);
-      newTab.style.display = 'block';
-      newTab.style.opacity = '0';
-      newTab.style.transition = 'opacity 0.2s';
-      setTimeout(() => newTab.style.opacity = '1', 10);
+
+    // 显示目标Tab
+    if (newTabEl) {
+      newTabEl.style.display = 'block';
+      newTabEl.style.opacity = '0';
+      requestAnimationFrame(() => {
+        newTabEl.style.transition = 'opacity 0.2s';
+        newTabEl.style.opacity = '1';
+      });
     }
-    
-    // --- 导航高亮 ---
-    // 移除所有导航按钮的高亮状态
-document.querySelectorAll('.top-nav .btn-ghost, .mobile-nav button').forEach(el => {
-  el.classList.remove('active');
-  el.style.color = '';
-  el.style.borderBottom = 'none';
-  el.style.fontWeight = 'normal';
-});
 
-// 桌面端导航按钮ID映射
-const desktopNavMap = {
-  home: 'navHome',
-  discover: 'navDiscover',
-  following: 'navFollowing',
-  escort: 'navEscort'
-};
-// 移动端导航按钮ID映射
-const mobileNavMap = {
-  home: 'mobHome',
-  discover: 'mobDiscover',
-  following: 'mobFollowing',
-  escort: 'mobEscort'
-};
+    // === 工具箱控制：仅在首页显示 ===
+    if (toolbox) {
+      toolbox.style.display = tab === 'home' ? 'block' : 'none';
+    }
 
-// 高亮桌面端按钮
-const desktopBtn = $(desktopNavMap[tab]);
-if (desktopBtn) {
-  desktopBtn.classList.add('active');
-  desktopBtn.style.color = 'var(--accent)';
-  desktopBtn.style.borderBottom = '2px solid var(--accent)';
-  desktopBtn.style.fontWeight = '700';
-}
+    APP.currentTab = tab;
 
-// 高亮移动端按钮
-const mobileBtn = $(mobileNavMap[tab]);
-if (mobileBtn) {
-  mobileBtn.classList.add('active');
-  // 移动端通过CSS类控制高亮，我们在style中已定义 .mobile-nav button.active
-}
-    
+    // 导航高亮（保持原有逻辑）
+    document.querySelectorAll('.top-nav .btn-ghost, .mobile-nav button').forEach(el => {
+      el.classList.remove('active');
+      el.style.color = '';
+      el.style.borderBottom = 'none';
+      el.style.fontWeight = 'normal';
+    });
+    const desktopBtn = $({
+      home: 'navHome', discover: 'navDiscover', following: 'navFollowing', escort: 'navEscort'
+    }[tab]);
+    if (desktopBtn) {
+      desktopBtn.classList.add('active');
+      desktopBtn.style.color = 'var(--accent)';
+      desktopBtn.style.borderBottom = '2px solid var(--accent)';
+      desktopBtn.style.fontWeight = '700';
+    }
+    const mobileBtn = $({
+      home: 'mobHome', discover: 'mobDiscover', following: 'mobFollowing', escort: 'mobEscort'
+    }[tab]);
+    if (mobileBtn) mobileBtn.classList.add('active');
+
+    // 加载各Tab数据
     if (tab === 'discover') loadRanks();
     if (tab === 'following') loadFollowingPosts();
     if (tab === 'home') {
   bindSquadModalEvents();
   initSquadRealtime();
-  APP.filters.keyword = '';
-  const homeSearchInput = $('homeSearchInput');
-  if (homeSearchInput) homeSearchInput.value = '';
-  renderToolbox();  // ← 新增这一行
-  renderTopicCards(); 
+  // === 重置所有筛选条件 ===
+  APP.filters = {
+    type: 'all',
+    op: 'all',
+    sort: 'latest',
+    time: 'all',
+    topic: 'all',
+    keyword: ''
+  };
+  // 清空搜索框
+  if ($('homeSearchInput')) $('homeSearchInput').value = '';
+// 重置所有筛选条件
+APP.filters.type = 'all';
+APP.filters.op = 'all';
+APP.filters.sort = 'latest';
+APP.filters.topic = 'all';
+// 更新筛选栏标签
+if ($('currentSortLabel')) $('currentSortLabel').textContent = '最新';
+// 关闭所有下拉菜单
+document.querySelectorAll('.filter-menu').forEach(m => m.classList.add('hidden'));
+  // 同步更新所有筛选下拉的显示文本
+  if ($('currentTypeLabel')) $('currentTypeLabel').textContent = '全部';
+  if ($('currentOpLabel')) $('currentOpLabel').textContent = '全兵种';
+  if ($('currentSortLabel')) $('currentSortLabel').textContent = '最新';
+  if ($('currentTopicLabel')) $('currentTopicLabel').textContent = '全话题';
+  // 关闭所有可能打开的下拉菜单
+  document.querySelectorAll('.filter-menu').forEach(m => m.classList.add('hidden'));
+  // 重新渲染话题区（换一批）
+  renderToolbox();
+  renderTopicCards();
   renderTopicCloud();
-  loadOnlineEscorts(); 
+  loadOnlineEscorts();
   loadHotRecommend();
-setTimeout(() => loadSquads(), 50);
-  loadSquads();
+  setTimeout(() => loadSquads(), 50);
+  // 刷新帖子列表（重置分页）
   loadPosts(true);
-// 确保工具箱在首页可见时一定渲染
-setTimeout(() => {
-  const bar = document.getElementById('toolboxBar');
-  if (bar && bar.children.length === 0 && typeof renderToolbox === 'function') {
-    renderToolbox();
-  }
-}, 100);
+  // 滚动到页面顶部
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
     if (tab === 'profile') renderProfile();
     if (tab === 'escort') loadEscortVideos(true);
     if (tab === 'tactical') initTactical();
-
-  }, 200);
+  });
 }
 
 // 在线护航员横条
@@ -4076,8 +4146,9 @@ function getTopicIcon(topic) {
 // 增强话题点击功能，让它和热门推荐、筛选联动
 function selectTopicFromCloud(topic) {
   // 1. 更新筛选栏的“话题”下拉菜单，选中该话题
-  APP.filters.topic = topic;
-  $('currentTopicLabel').textContent = topic;
+ APP.filters.topic = topic;
+const labelEl = $('currentTopicLabel');
+if (labelEl) labelEl.textContent = topic;
   document.querySelectorAll('.filter-menu').forEach(m => m.classList.add('hidden')); // 关闭下拉菜单
 
   // 2. 刷新帖子列表（主页瀑布流）
@@ -4095,15 +4166,13 @@ function selectTopicFromCloud(topic) {
 async function loadHotRecommendByTopic(topic) {
   const list = $('hotRecommendList');
   list.innerHTML = '<div class="col-span-full text-center py-4" style="color:var(--muted)"><i class="fas fa-spinner fa-pulse mr-2"></i>加载推荐...</div>';
-  // 这里只是模拟，未来替换为：sb.from('posts').select(...).contains('tags', [topic])...
   const { data } = await sb.from('posts').select('id, title, upvotes, comments_count, downloads, profiles(username)').neq('post_type', 'story').contains('tags', [topic]).order('hot_score', { ascending: false }).limit(5);
   if (!data || data.length === 0) {
     list.innerHTML = '<div class="col-span-full text-center py-4" style="color:var(--muted)">暂无推荐内容</div>';
     return;
   }
-  list.innerHTML = data.map(p => `<div class="hot-recommend-item card-base p-4" onclick="openComments('${p.id}')">...</div>`).join('');
+  list.innerHTML = data.map(p => `<div class="hot-recommend-item card-base p-4" onclick="openComments('${p.id}')"><div class="flex items-start gap-3"><div class="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center"><i class="fas fa-fire text-white"></i></div><div class="flex-1 min-w-0"><div class="text-sm font-bold truncate">${p.title}</div><div class="flex items-center gap-3 mt-2 text-xs" style="color:var(--muted)"><span><i class="fas fa-user mr-1"></i>${p.profiles?.username || '干员'}</span><span><i class="fas fa-thumbs-up mr-1"></i>${p.upvotes || 0}</span><span><i class="fas fa-comment mr-1"></i>${p.comments_count || 0}</span></div></div></div></div>`).join('');
 }
-
 // ==================== 搜索建议 ====================
 const searchHistory = JSON.parse(localStorage.getItem('searchHistory') || '[]').slice(0, 5);
 const HOT_SEARCHES = ['三角洲行动', '战术研讨', '新手攻略', '武器评测', '护航员', '精彩集锦'];
@@ -4317,9 +4386,9 @@ function createPostCard(post, idx, isTop = false) {
   }
 
   const mediaHTML = (post.media_urls || []).slice(0,1).map(url => {
-  if (url.match(/\.(mp4|webm)$/i)) {
-    return `<video src="${url}" class="w-full rounded-lg" controls preload="metadata" style="max-height:300px"></video>`;
-  }
+  if (url.match(/\.(mp4|webm|mov)$/i)) {
+  return `<video src="${url}" class="w-full rounded-lg cursor-pointer object-cover" style="max-height:300px" onclick="openVideoLightbox('${url}')" preload="metadata"></video>`;
+}
   return `<img src="${url}" alt="" class="w-full rounded-lg cursor-pointer object-cover" style="max-height:320px" onclick="openLightbox('${url}')">`;
 }).join('');
 
@@ -4755,7 +4824,7 @@ async function openComments(pid) {
   if (post) {
     const mediaHTML = (post.media_urls || []).map(url => {
       if (url.match(/\.(mp4|webm|mov)$/i)) {
-        return `<video src="${url}" controls class="w-full rounded-lg" style="max-height:300px; object-fit:contain;"></video>`;
+        return `<video src="${url}" class="w-full rounded-lg cursor-pointer" style="max-height:300px; object-fit:contain;" onclick="openVideoLightbox('${url}'); event.stopPropagation();"></video>`;
       } else {
         return `<img src="${url}" class="w-full rounded-lg cursor-pointer object-contain" style="max-height:300px;" onclick="openLightbox('${url}')">`;
       }
@@ -5273,14 +5342,173 @@ async function castVote(optIdx, pid) {
   showToast('投票成功');
 }
 
-// ==================== 图片放大 ====================
-function openLightbox(url) {
-  $('lightboxImg').src = url;
-  $('lightbox').classList.add('active');
-}
-function closeLightbox() { 
-$('lightbox').classList.remove('active'); }
+// 动态创建 Lightbox，彻底避免 CSS 污染
+let lightboxInstance = null;
 
+function openLightbox(url) {
+  // 如果已存在实例，先移除
+  if (lightboxInstance) {
+    lightboxInstance.remove();
+  }
+  
+  // 创建 lightbox 容器
+  const lightbox = document.createElement('div');
+  lightbox.className = 'lightbox-dynamic';
+  lightbox.style.cssText = `
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    background: rgba(0, 0, 0, 0.95) !important;
+    backdrop-filter: blur(12px) !important;
+    z-index: 999999 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    opacity: 0;
+    transition: opacity 0.25s ease;
+    cursor: zoom-out;
+    margin: 0 !important;
+    padding: 0 !important;
+    transform: none !important;
+    pointer-events: auto;
+  `;
+  
+  // 创建图片元素
+  const img = document.createElement('img');
+  img.src = url;
+  img.style.cssText = `
+    max-width: 90vw !important;
+    max-height: 90vh !important;
+    object-fit: contain !important;
+    border-radius: 12px;
+    box-shadow: 0 0 40px rgba(0,0,0,0.5);
+    transform: scale(0.92);
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    cursor: default;
+  `;
+  
+  lightbox.appendChild(img);
+  
+  // 点击背景关闭
+  lightbox.addEventListener('click', function(e) {
+    if (e.target === lightbox) {
+      closeLightbox();
+    }
+  });
+  
+  // 挂载到 body
+  document.body.appendChild(lightbox);
+  lightboxInstance = lightbox;
+  
+  // 强制重绘后添加 active 类
+  requestAnimationFrame(() => {
+    lightbox.style.opacity = '1';
+    img.style.transform = 'scale(1)';
+  });
+  
+  // 阻止事件冒泡
+  if (event) {
+    event.stopPropagation();
+  }
+}
+
+function closeLightbox() {
+  if (lightboxInstance) {
+    lightboxInstance.style.opacity = '0';
+    const img = lightboxInstance.querySelector('img');
+    if (img) img.style.transform = 'scale(0.92)';
+    setTimeout(() => {
+      if (lightboxInstance) {
+        lightboxInstance.remove();
+        lightboxInstance = null;
+      }
+    }, 250);
+  }
+}
+// ==================== ESC 关闭弹窗 ====================
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    if (typeof closeLightbox === 'function') closeLightbox();
+    if (typeof closeVideoLightbox === 'function') closeVideoLightbox();
+  }
+});
+// ==================== 视频弹窗 ====================
+let videoLightboxInstance = null;
+
+function openVideoLightbox(videoUrl) {
+  if (videoLightboxInstance) {
+    videoLightboxInstance.remove();
+    videoLightboxInstance = null;
+  }
+  
+  const lightbox = document.createElement('div');
+  lightbox.style.cssText = `
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    background: rgba(0, 0, 0, 0.95) !important;
+    backdrop-filter: blur(12px) !important;
+    z-index: 999999 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    opacity: 0;
+    transition: opacity 0.25s ease;
+    cursor: zoom-out;
+  `;
+  
+  const video = document.createElement('video');
+  video.src = videoUrl;
+  video.controls = true;
+  video.autoplay = true;
+  video.style.cssText = `
+    max-width: 90vw !important;
+    max-height: 90vh !important;
+    border-radius: 12px;
+    box-shadow: 0 0 40px rgba(0,0,0,0.5);
+    transform: scale(0.92);
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    outline: none;
+  `;
+  
+  lightbox.appendChild(video);
+  
+  lightbox.addEventListener('click', function(e) {
+    if (e.target === lightbox) {
+      closeVideoLightbox();
+    }
+  });
+  
+  document.body.appendChild(lightbox);
+  videoLightboxInstance = lightbox;
+  
+  requestAnimationFrame(() => {
+    lightbox.style.opacity = '1';
+    video.style.transform = 'scale(1)';
+  });
+  
+  if (event) event.stopPropagation();
+}
+
+function closeVideoLightbox() {
+  if (videoLightboxInstance) {
+    const lightbox = videoLightboxInstance;
+    const video = lightbox.querySelector('video');
+    lightbox.style.opacity = '0';
+    if (video) {
+      video.pause();
+      video.style.transform = 'scale(0.92)';
+    }
+    setTimeout(() => {
+      if (lightbox && lightbox.parentNode) lightbox.remove();
+      if (videoLightboxInstance === lightbox) videoLightboxInstance = null;
+    }, 250);
+  }
+}
 // ==================== 加载更多 ====================
 function setLoadingBar(percent) {
   const bar = $('loadingBar');
@@ -5564,34 +5792,47 @@ document.addEventListener('click', (e) => {
 });
 let lastScrollY = window.scrollY;
 let navHidden = false;
-window.addEventListener('scroll', () => {
-  const currentScrollY = window.scrollY;
+let ticking = false;
+
+function updateNavVisibility() {
   const nav = $('topNav');
+  const mobileNav = document.querySelector('.mobile-nav');
   if (!nav) return;
   
-  // 向下滚动超过 100px 且导航未隐藏，则隐藏
-  if (currentScrollY > lastScrollY && currentScrollY > 100 && !navHidden) {
+  const currentScrollY = window.scrollY;
+  const scrollDiff = currentScrollY - lastScrollY;
+  
+  // 向下滚动超过 80px 且滚动量足够大时才隐藏（避免微小滚动触发）
+  if (currentScrollY > 80 && scrollDiff > 5 && !navHidden) {
     nav.classList.add('hidden-nav');
     navHidden = true;
   } 
-  // 向上滚动或滚动到顶部附近，则显示
-  else if (currentScrollY < lastScrollY || currentScrollY < 50) {
+  // 向上滚动超过 10px 或滚动到顶部附近时显示
+  else if ((scrollDiff < -5 || currentScrollY < 50) && navHidden) {
     nav.classList.remove('hidden-nav');
     navHidden = false;
   }
-  lastScrollY = currentScrollY;
-  // 底部移动导航智能隐藏
-  const mobileNav = qs('.mobile-nav');
+  
+  // 移动端底部导航同样处理（保留原有逻辑）
   if (mobileNav) {
-    if (currentScrollY > lastScrollY && currentScrollY > 100) {
+    if (currentScrollY > 80 && scrollDiff > 5) {
       mobileNav.style.transform = 'translateY(100%)';
       mobileNav.style.transition = 'transform 0.3s ease';
-    } else {
+    } else if (scrollDiff < -5 || currentScrollY < 50) {
       mobileNav.style.transform = 'translateY(0)';
     }
   }
-});
+  
+  lastScrollY = currentScrollY;
+  ticking = false;
+}
 
+window.addEventListener('scroll', () => {
+  if (!ticking) {
+    requestAnimationFrame(updateNavVisibility);
+    ticking = true;
+  }
+});
 // ==================== 签到系统 ====================
 async function checkIn() {
   const today = new Date().toISOString().split('T')[0];
@@ -5850,11 +6091,17 @@ function createEscortVideoCard(video) {
   
   div.innerHTML = `
     <div class="escort-video-card">
-      <div class="escort-video-thumbnail" onclick="viewEscortVideo('${video.id}')">
-        ${video.thumbnail_url ? `<img src="${video.thumbnail_url}" style="width:100%;height:100%;object-fit:cover;">` : `<div style="width:100%;height:100%;background:linear-gradient(135deg, var(--accent)40, var(--accent2)60);display:flex;flex-direction:column;align-items:center;justify-content:center;color:white;"><i class="fas fa-video fa-2x mb-1" style="opacity:0.8;"></i><span style="font-size:12px;opacity:0.8;">预览生成中</span></div>`}
-        ${duration ? `<span class="escort-duration-badge">${duration}</span>` : ''}
-        <span class="escort-status-badge ${status.class}">${status.text}</span>
-      </div>
+      <div class="escort-video-thumbnail" onclick="openVideoLightbox('${video.video_url}'); event.stopPropagation();">
+  ${video.thumbnail_url ? 
+    `<img src="${video.thumbnail_url}" style="width:100%;height:100%;object-fit:cover; cursor:pointer;">` : 
+    `<div style="width:100%;height:100%;background:linear-gradient(135deg, var(--accent)40, var(--accent2)60);display:flex;flex-direction:column;align-items:center;justify-content:center;color:white; cursor:pointer;">
+      <i class="fas fa-video fa-2x mb-1" style="opacity:0.8;"></i>
+      <span style="font-size:12px;opacity:0.8;">点击播放</span>
+    </div>`
+  }
+  ${duration ? `<span class="escort-duration-badge">${duration}</span>` : ''}
+  <span class="escort-status-badge ${status.class}">${status.text}</span>
+</div>
       <div class="p-3">
         <div class="font-bold text-sm line-clamp-2">${video.title}</div>
         ${video.status === 'passed' && video.score ? `
@@ -5920,7 +6167,13 @@ function viewEscortVideo(videoId) {
 function closeVideoPlayer() {
   $('videoPlayer').pause();
   $('videoPlayerOverlay').classList.add('hidden');
-}  
+  // 视频关闭后自动恢复BGM播放
+  if (!bgmState.playing && bgmState.audio) {
+    bgmState.audio.play().catch(() => {});
+    bgmState.playing = true;
+    updateBGMBtn();
+  }
+}
 // 管理员提交审核（评分 + 状态）
 // 删除护航视频（上传者或管理员）
 async function deleteEscortVideo(videoId) {
@@ -6328,7 +6581,7 @@ const searchState = {
 function openSearch() { APP.currentTab = 'search';     ['homeTab','discoverTab','followingTab','profileTab','topicDetailTab','searchTab','escortTab'].forEach(id => {
   const el = $(id);
   if (el) el.style.display = 'none';
-});(id => $(id).style.display = 'none'); $('searchTab').style.display = 'block'; $('searchInput').focus(); }
+}); $('searchTab').style.display = 'block'; $('searchInput').focus(); }
 function switchSearchType(type) {
   searchState.type = type;
   document.querySelectorAll('.search-type-tab').forEach(tab => tab.classList.toggle('active', tab.dataset.type === type));
@@ -6502,19 +6755,27 @@ function showStatsModal() {
 // 组队表单临时存储
 let selectedMap = '大坝';
 let selectedDifficulty = '普通';
-// ==================== 组队大厅（完整版·数据库） ====================
+// ==================== 组队大厅实时订阅 ====================
 let squadChannel = null;
 
 function initSquadRealtime() {
   if (!sb) return;
   if (squadChannel) sb.removeChannel(squadChannel);
+  
   squadChannel = sb.channel('public:squads')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'squads' }, () => {
       if (APP.currentTab === 'home') loadSquads();
     })
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'squad_messages' }, (payload) => {
+      const squadId = payload.new.squad_id;
+      const cardId = 'squad-' + squadId;
+      const body = $(`body-${cardId}`);
+      if (body && body.classList.contains('expanded')) {
+        loadSquadMessages(squadId);
+      }
+    })
     .subscribe();
-}
-
+} 
 async function loadSquads() {
   const container = document.getElementById('squadListContainer');
   if (!container) return;
@@ -6523,12 +6784,16 @@ async function loadSquads() {
   
   const now = new Date().toISOString();
   const { data, error } = await sb.from('squads')
-    .select('*, creator_id(username, avatar_url)')
+    .select(`
+      *,
+      creator:creator_id ( username, avatar_url )
+    `)
     .gt('expires_at', now)
     .order('created_at', { ascending: false })
     .limit(10);
   
   if (error) {
+    console.error('加载组队失败:', error);
     container.innerHTML = '<div class="text-center py-4 text-xs" style="color:var(--muted);">加载失败，请刷新</div>';
     if (typeof updateSquadCountBadge === 'function') updateSquadCountBadge(0);
     return;
@@ -6542,7 +6807,7 @@ async function loadSquads() {
   }
 
   container.innerHTML = data.map(s => {
-    const creator = s.creator_id || {};
+    const creator = s.creator || {};
     const members = s.members || [];
     const isFull = members.length >= (s.max_members || 3);
     const isJoined = APP.user && members.includes(APP.user.id);
@@ -6567,6 +6832,13 @@ async function loadSquads() {
           ${s.voice_channel ? `<span class="tag-pill"><i class="fas fa-headset"></i> ${s.voice_channel}</span>` : ''}
         </div>
         ${s.note ? `<p class="text-xs mb-2 p-2 rounded-lg" style="background:var(--surface);"><i class="fas fa-sticky-note mr-1"></i>${s.note}</p>` : ''}
+        <!-- 成员列表（简略显示） -->
+        <div class="mb-2">
+          <div class="text-xs font-bold mb-1">队伍成员 (${members.length})</div>
+          <div class="flex flex-wrap gap-1" id="members-${s.id}">
+            ${members.slice(0, 5).map(uid => `<span class="text-xs bg-gray-500/20 px-2 py-0.5 rounded-full">${uid === creator.id ? '👑' : ''} ${uid.substring(0,6)}</span>`).join('')}
+          </div>
+        </div>
         <div class="flex gap-2 justify-end">
           ${!APP.user ? '<button class="btn-ghost text-xs px-3 py-1" onclick="openAuthModal()">登录后加入</button>' :
             isCreator ? '<button class="btn-ghost text-xs px-3 py-1" onclick="deleteSquad(\'' + s.id + '\')"><i class="fas fa-trash"></i> 解散</button>' :
@@ -6575,6 +6847,18 @@ async function loadSquads() {
             '<button class="btn-warm text-xs px-3 py-1" onclick="joinSquad(\'' + s.id + '\')"><i class="fas fa-hand-fist"></i> 加入</button>'
           }
         </div>
+     <!-- 队伍聊天区域 -->
+     <div class="mt-3 pt-2 border-t" style="border-color:var(--border);">
+       <div class="text-xs font-bold mb-1"><i class="fas fa-comments mr-1"></i>队伍消息</div>
+       <div class="squad-messages max-h-24 overflow-y-auto text-xs p-1 rounded" style="background:var(--surface);" id="msg-${s.id}">
+         <div class="text-center" style="color:var(--muted);">暂无消息</div>
+       </div>
+       <div class="flex gap-1 mt-1">
+         <input type="text" placeholder="发送消息..." class="flex-1 text-xs p-1.5 rounded" id="msgInput-${s.id}" style="background:var(--card); border:1px solid var(--border);">
+         <button class="btn-ghost text-xs px-2" onclick="startSquadVoice('${s.id}')" title="按住说话"><i class="fas fa-microphone"></i></button>
+         <button class="btn-ghost text-xs px-2" onclick="sendSquadMessage('${s.id}')"><i class="fas fa-paper-plane"></i></button>
+       </div>
+     </div>
       </div>
     </div>
   `}).join('');
@@ -6643,6 +6927,8 @@ const difficulty = activeDiffBtn?.dataset.diff || '普通';
   const voice = voiceEl?.value?.trim() || '';
   const note = noteEl?.value?.trim() || '';
   const micOnly = micEl?.checked ?? true;
+const needApprovalEl = $('squadNeedApproval');
+const needApproval = needApprovalEl?.checked ?? true;
 
   // 4. 表单验证
   const errors = [];
@@ -6702,6 +6988,7 @@ const difficulty = activeDiffBtn?.dataset.diff || '普通';
   mic_only: micOnly,
   members: [APP.user.id],
   max_members: 3,
+need_approval: needApproval, 
   expires_at: expiresAt
 };
 
@@ -6807,12 +7094,30 @@ function updateSquadCountBadge(count) {
 }async function joinSquad(squadId) {
   if (!APP.user) { openAuthModal(); return; }
   
-  const { data: squad, error: fetchError } = await sb.from('squads').select('members, max_members, creator_id').eq('id', squadId).single();
-  if (fetchError) { showToast('队伍不存在'); return; }
+  const { data: squad, error: fetchError } = await sb.from('squads').select('members, max_members, creator_id, need_approval').eq('id', squadId).single();
+  if (fetchError || !squad) { showToast('队伍不存在'); return; }
   
-  if (squad.members?.includes(APP.user.id)) { showToast('你已经在队伍中了'); return; }
+  if (squad.members?.includes(APP.user.id)) { showToast('你已经在队伍中'); return; }
   if (squad.members?.length >= (squad.max_members || 3)) { showToast('队伍已满'); return; }
   
+  // 如果队长设置了需要审核（默认 true）
+  const needApproval = squad.need_approval !== false;
+  
+  if (needApproval && squad.creator_id !== APP.user.id) {
+    // 发送申请通知
+    const { error: notifError } = await sb.from('notifications').insert({
+      recipient_id: squad.creator_id,
+      sender_id: APP.user.id,
+      type: 'system',
+      content: `${APP.profile.username} 申请加入你的队伍`,
+      link: `/squad/${squadId}`
+    });
+    if (notifError) console.error('通知发送失败:', notifError);
+    showToast('申请已发送，等待队长同意');
+    return;
+  }
+  
+  // 无需审核或队长本人操作时直接加入
   const newMembers = [...(squad.members || []), APP.user.id];
   const { error } = await sb.from('squads').update({ members: newMembers }).eq('id', squadId);
   
@@ -6845,21 +7150,132 @@ async function deleteSquad(squadId) {
   await sb.from('squads').delete().eq('id', squadId);
   showToast('队伍已解散');
   loadSquads();
-}// ==================== 排行榜 ====================
+}
+
+// ==================== 队伍聊天功能 ====================
+async function sendSquadMessage(squadId) {
+  if (!APP.user) {
+    openAuthModal();
+    return;
+  }
+  const input = $(`msgInput-${squadId}`);
+  if (!input) return;
+  const content = input.value.trim();
+  if (!content) return;
+  
+  const { error } = await sb.from('squad_messages').insert({
+    squad_id: squadId,
+    user_id: APP.user.id,
+    content: content
+  });
+  if (error) {
+    console.error('发送消息失败:', error);
+    showToast('发送失败');
+    return;
+  }
+  input.value = '';
+  loadSquadMessages(squadId);
+}
+let squadVoiceRecorder = null;
+let squadVoiceChunks = [];
+
+async function startSquadVoice(squadId) {
+  if (!APP.user) { openAuthModal(); return; }
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    squadVoiceRecorder = new MediaRecorder(stream);
+    squadVoiceChunks = [];
+    squadVoiceRecorder.ondataavailable = e => squadVoiceChunks.push(e.data);
+    squadVoiceRecorder.onstop = async () => {
+      const blob = new Blob(squadVoiceChunks, { type: 'audio/webm' });
+      const path = `${APP.user.id}/squad_voice_${Date.now()}.webm`;
+      const { error } = await sb.storage.from('voices').upload(path, blob);
+      if (!error) {
+        const { data: { publicUrl } } = sb.storage.from('voices').getPublicUrl(path);
+        await sb.from('squad_messages').insert({
+          squad_id: squadId,
+          user_id: APP.user.id,
+          content: `[语音消息] ${publicUrl}`
+        });
+        loadSquadMessages(squadId);
+      }
+      stream.getTracks().forEach(t => t.stop());
+    };
+    squadVoiceRecorder.start();
+    showToast('🎤 录音中...再次点击语音按钮结束', 'info');
+  } catch (e) {
+    showToast('无法访问麦克风', 'error');
+  }
+}
+
+function stopSquadVoice() {
+  if (squadVoiceRecorder && squadVoiceRecorder.state === 'recording') {
+    squadVoiceRecorder.stop();
+  }
+}
+
+async function loadSquadMessages(squadId) {
+  const { data, error } = await sb.from('squad_messages')
+    .select('content, created_at, profiles(username, avatar_url)')
+    .eq('squad_id', squadId)
+    .order('created_at', { ascending: true })
+    .limit(30);
+  const container = $(`msg-${squadId}`);
+  if (!container) return;
+  if (!data || data.length === 0) {
+    container.innerHTML = '<div class="text-center" style="color:var(--muted);">暂无消息</div>';
+    return;
+  }
+  container.innerHTML = data.map(m => {
+  const user = m.profiles || { username: '未知' };
+  if (m.content && m.content.startsWith('[语音消息]')) {
+    const url = m.content.replace('[语音消息] ', '');
+    return `<div class="mb-1"><span class="font-bold" style="color:var(--accent);">${user.username}:</span> <audio controls src="${url}" style="height: 24px; width: 100%;"></audio></div>`;
+  } else {
+    return `<div class="mb-1"><span class="font-bold" style="color:var(--accent);">${user.username}:</span> ${m.content || ''}</div>`;
+  }
+}).join('');
+  container.scrollTop = container.scrollHeight;
+}
+// ==================== 排行榜 ====================
 // ==================== 战术板 ====================
 let tacCanvas, tacCtx, tacPainting = false, tacTool = 'pen', tacColor = '#FF6B35', tacSize = 5;
 let tacStartX, tacStartY;
 let tacDrawingData = []; // 保存绘图数据
+let tacticalBgImage = null; // 保存底图 Image 对象
 
 function initTactical() {
-  tacCanvas = $('#tacticalCanvas');
-  if (!tacCanvas) return;
+  // 使用原生方法获取 Canvas，避免 $ 函数潜在问题
+  const canvas = document.getElementById('tacticalCanvas');
+  if (!canvas) {
+    console.warn('战术板 Canvas 未找到，100ms 后重试...');
+    // 设置重试上限，防止无限循环
+    if (!window._tacticalRetryCount) window._tacticalRetryCount = 0;
+    if (window._tacticalRetryCount < 30) {
+      window._tacticalRetryCount++;
+      setTimeout(initTactical, 100);
+    } else {
+      console.error('战术板初始化失败：Canvas 元素始终未找到');
+    }
+    return;
+  }
+  window._tacticalRetryCount = 0; // 重置计数
+  
+  tacCanvas = canvas;
+  // 确保尺寸
+  tacCanvas.width = 800;
+  tacCanvas.height = 500;
   tacCtx = tacCanvas.getContext('2d');
   
-  // 绘制底图（模拟地图）
+  if (!tacCtx) {
+    console.error('无法获取 Canvas 2D 上下文');
+    return;
+  }
+  
+  // 绘制底图
   drawTacticalBaseMap();
   
-  // 绑定事件
+  // ========== 事件绑定（保持不变） ==========
   const getXY = (e) => {
     const rect = tacCanvas.getBoundingClientRect();
     const scaleX = tacCanvas.width / rect.width;
@@ -6884,15 +7300,20 @@ function initTactical() {
     tacStartX = pos.x;
     tacStartY = pos.y;
     tacPainting = true;
-    if (tacTool === 'text') {
-      const text = prompt('输入文字 (最多5个字):');
-      if (text) {
-        tacCtx.font = `bold ${tacSize * 3}px "Noto Sans SC"`;
-        tacCtx.fillStyle = tacColor;
-        tacCtx.fillText(text.substring(0,5), tacStartX, tacStartY);
-      }
-      tacPainting = false;
-    }
+   if (tacTool === 'text') {
+  const text = prompt('输入文字 (最多10个字):');
+  if (!text) { tacPainting = false; return; }
+  const fontSize = prompt('字号 (默认20):', '20');
+  const rotation = prompt('旋转角度 (0-360):', '0');
+  tacCtx.save();
+  tacCtx.translate(tacStartX, tacStartY);
+  tacCtx.rotate(rotation * Math.PI / 180);
+  tacCtx.font = `bold ${fontSize}px "Noto Sans SC"`;
+  tacCtx.fillStyle = tacColor;
+  tacCtx.fillText(text.substring(0,10), 0, 0);
+  tacCtx.restore();
+  tacPainting = false;
+}
   };
   
   const move = (e) => {
@@ -6920,6 +7341,15 @@ function initTactical() {
     tacPainting = false;
   };
   
+  // 移除旧监听器（避免重复）
+  tacCanvas.removeEventListener('mousedown', start);
+  tacCanvas.removeEventListener('mousemove', move);
+  tacCanvas.removeEventListener('mouseup', end);
+  tacCanvas.removeEventListener('mouseleave', end);
+  tacCanvas.removeEventListener('touchstart', start);
+  tacCanvas.removeEventListener('touchmove', move);
+  tacCanvas.removeEventListener('touchend', end);
+  
   tacCanvas.addEventListener('mousedown', start);
   tacCanvas.addEventListener('mousemove', move);
   tacCanvas.addEventListener('mouseup', end);
@@ -6930,41 +7360,60 @@ function initTactical() {
   
   // 工具切换
   document.querySelectorAll('.tactical-tool-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
+    btn.removeEventListener('click', btn._toolHandler);
+    const handler = () => {
       document.querySelectorAll('.tactical-tool-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       tacTool = btn.dataset.tool;
-    });
+    };
+    btn._toolHandler = handler;
+    btn.addEventListener('click', handler);
   });
-  $('#tacticalColor').addEventListener('input', e => tacColor = e.target.value);
-  $('#tacticalSize').addEventListener('change', e => tacSize = parseInt(e.target.value));
+  
+  const colorInput = document.getElementById('tacticalColor');
+  if (colorInput) colorInput.addEventListener('input', e => tacColor = e.target.value);
+  const sizeSelect = document.getElementById('tacticalSize');
+  if (sizeSelect) sizeSelect.addEventListener('change', e => tacSize = parseInt(e.target.value));
+  
   // 默认激活画笔
-  document.querySelector('[data-tool="pen"]').classList.add('active');
+  const defaultPen = document.querySelector('[data-tool="pen"]');
+  if (defaultPen) defaultPen.classList.add('active');
+  
+  console.log('✅ 战术板初始化成功');
 }
-
 function drawTacticalBaseMap() {
-  // 绘制模拟地图背景
+  if (!tacCtx) {
+    const canvas = document.getElementById('tacticalCanvas');
+    if (canvas) {
+      tacCanvas = canvas;
+      tacCtx = canvas.getContext('2d');
+    }
+    if (!tacCtx) return;
+  }
+  // 清空
+  tacCtx.clearRect(0, 0, 800, 500);
+  // 渐变背景
   const grad = tacCtx.createLinearGradient(0, 0, 800, 500);
   grad.addColorStop(0, '#2a3a2a');
   grad.addColorStop(1, '#1a2a1a');
   tacCtx.fillStyle = grad;
   tacCtx.fillRect(0, 0, 800, 500);
-  // 画网格
+  // 网格
   tacCtx.strokeStyle = '#3a5a3a';
   tacCtx.lineWidth = 0.5;
-  for (let i = 0; i < 800; i += 40) {
+  for (let i = 0; i <= 800; i += 40) {
     tacCtx.beginPath();
     tacCtx.moveTo(i, 0);
     tacCtx.lineTo(i, 500);
     tacCtx.stroke();
   }
-  for (let i = 0; i < 500; i += 40) {
+  for (let i = 0; i <= 500; i += 40) {
     tacCtx.beginPath();
     tacCtx.moveTo(0, i);
     tacCtx.lineTo(800, i);
     tacCtx.stroke();
   }
-  // 画几个标记点
+  // 标记点
   tacCtx.fillStyle = '#FFD700';
   tacCtx.beginPath();
   tacCtx.arc(200, 150, 10, 0, 2*Math.PI);
@@ -6973,12 +7422,11 @@ function drawTacticalBaseMap() {
   tacCtx.beginPath();
   tacCtx.arc(600, 350, 12, 0, 2*Math.PI);
   tacCtx.fill();
-  tacCtx.font = '12px "Noto Sans SC"';
-  tacCtx.fillStyle = '#fff';
-  tacCtx.fillText('A点', 190, 130);
-  tacCtx.fillText('B点', 590, 330);
+  tacCtx.font = 'bold 14px "Noto Sans SC"';
+  tacCtx.fillStyle = '#FFFFFF';
+  tacCtx.fillText('A点', 180, 120);
+  tacCtx.fillText('B点', 580, 320);
 }
-
 function drawArrow(fromX, fromY, toX, toY, color, width) {
   const headlen = 15;
   const angle = Math.atan2(toY - fromY, toX - fromX);
@@ -6999,16 +7447,76 @@ function drawArrow(fromX, fromY, toX, toY, color, width) {
 }
 
 function clearTacticalCanvas() {
+  // 清除上传的底图引用
+  tacticalBgImage = null;
+  // 重新绘制默认的模拟地图背景
   drawTacticalBaseMap();
+  showToast('已恢复默认地图背景', 'info');
+}
+function uploadTacticalBackground() {
+  const fileInput = $('tacticalBgInput');
+  if (!fileInput) return;
+  fileInput.click();
+  // 注意：change 事件已在 DOMContentLoaded 中绑定，此处不再重复绑定
+}
+function handleTacticalBackgroundUpload(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const img = new Image();
+    img.onload = function() {
+      // 保存当前画布状态（如果有需要）
+      // 清空画布并绘制图片
+      tacCtx.clearRect(0, 0, tacCanvas.width, tacCanvas.height);
+      tacCtx.drawImage(img, 0, 0, tacCanvas.width, tacCanvas.height);
+      // 可选：在图片上叠加半透明网格
+      drawTacticalGridOverlay();
+      showToast('底图已上传，可以开始标注', 'success');
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
 }
 
+// 辅助函数：只绘制网格（不覆盖背景）
+function drawTacticalGridOverlay() {
+  tacCtx.save();
+  tacCtx.strokeStyle = '#3a5a3a';
+  tacCtx.lineWidth = 0.5;
+  for (let i = 0; i <= 800; i += 40) {
+    tacCtx.beginPath();
+    tacCtx.moveTo(i, 0);
+    tacCtx.lineTo(i, 500);
+    tacCtx.stroke();
+  }
+  for (let i = 0; i <= 500; i += 40) {
+    tacCtx.beginPath();
+    tacCtx.moveTo(0, i);
+    tacCtx.lineTo(800, i);
+    tacCtx.stroke();
+  }
+  tacCtx.restore();
+}
 function saveTactical() {
-  const canvas = $('#tacticalCanvas');
-  const link = document.createElement('a');
-  link.download = `tactical_${Date.now()}.png`;
-  link.href = canvas.toDataURL();
-  link.click();
-  showToast('战术板已保存为图片', 'success');
+  const canvas = $('tacticalCanvas');
+  if (!canvas) return;
+  try {
+    // 临时创建一个新画布来避免跨域问题（如果原画布被污染）
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = canvas.width;
+    tempCanvas.height = canvas.height;
+    const tempCtx = tempCanvas.getContext('2d');
+    tempCtx.drawImage(canvas, 0, 0);
+    
+    const link = document.createElement('a');
+    link.download = `tactical_${Date.now()}.png`;
+    link.href = tempCanvas.toDataURL('image/png');
+    link.click();
+    showToast('战术板已保存为图片', 'success');
+  } catch (e) {
+    console.error('保存失败:', e);
+    showToast('保存失败，可能是画布内容受保护', 'error');
+  }
 }
 async function loadRanks() {
   // 贡献榜：按获赞数
@@ -7762,6 +8270,35 @@ function addMouseGlowEffect() {
 // 在 initAuth() 之后调用此函数
 // addMouseGlowEffect();
 window.addEventListener('DOMContentLoaded', () => {
+const bgInput = $('tacticalBgInput');
+if (bgInput) {
+  bgInput.addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(ev) {
+      const img = new Image();
+      img.onload = function() {
+        if (!tacCtx) {
+          tacCanvas = $('tacticalCanvas');
+          if (tacCanvas) tacCtx = tacCanvas.getContext('2d');
+        }
+        if (!tacCtx) return;
+        // 清空画布并绘制上传的图片
+        tacCtx.clearRect(0, 0, tacCanvas.width, tacCanvas.height);
+        tacCtx.drawImage(img, 0, 0, tacCanvas.width, tacCanvas.height);
+        // 保存底图引用以便清空时恢复
+        tacticalBgImage = img;
+        // 叠加半透明网格（可选）
+        drawTacticalGridOverlay();
+        showToast('底图已上传，可以开始标注', 'success');
+      };
+      img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+    e.target.value = ''; // 允许重复上传同一文件
+  });
+}
   initBGM();
   initAuth();
 initToolbox();
@@ -8028,6 +8565,12 @@ window.toggleSquadCard = function(cardId) {
   }
   body.classList.toggle('expanded');
   icon.classList.toggle('rotated');
+if (body.classList.contains('expanded')) {
+    const squadId = cardId.replace('squad-', '');
+    if (typeof loadSquadMessages === 'function') {
+      loadSquadMessages(squadId);
+    }
+  }
 };
 
 window.toggleSquadSection = function() {
