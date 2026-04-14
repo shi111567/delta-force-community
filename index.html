@@ -3706,8 +3706,15 @@ document.querySelectorAll('.filter-menu').forEach(m => m.classList.add('hidden')
   setTimeout(() => loadSquads(), 50);
   // 刷新帖子列表（重置分页）
   loadPosts(true);
-  // 修复移动端布局：仅触发 resize 事件让页面重新适应
-  window.dispatchEvent(new Event('resize'));
+    // 移动端适配：强制重绘顶部导航栏，确保响应式类正确应用
+  const nav = $('topNav');
+  if (nav) {
+    nav.style.display = 'none';
+    nav.offsetHeight; // 触发浏览器重绘
+    nav.style.display = '';
+  }
+  // 使用 requestAnimationFrame 确保在渲染完成后滚动到顶部
+  requestAnimationFrame(() => window.scrollTo(0, 0));
   
   // 确保移动端底部导航栏正确显示且激活状态正确
   const mobileNav = document.querySelector('.mobile-nav');
@@ -3716,8 +3723,7 @@ document.querySelectorAll('.filter-menu').forEach(m => m.classList.add('hidden')
     mobileNav.style.transform = 'translateY(0)';
   }
   
-  // 使用 instant 滚动避免动画冲突
-  window.scrollTo({ top: 0, behavior: 'instant' });
+  
 }
     if (tab === 'profile') renderProfile();
     if (tab === 'escort') loadEscortVideos(true);
