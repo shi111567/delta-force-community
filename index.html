@@ -240,6 +240,12 @@ tailwind.config = {
 }
 </script>
 <style>
+/* 视频播放器强制禁用滤镜，避免移动端花屏 */
+.video-player-overlay,
+.video-player-overlay * {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
 /* ===== 战术板样式 ===== */
 .tactical-tool-btn {
   padding: 8px 16px;
@@ -5515,28 +5521,33 @@ function openVideoLightbox(videoUrl) {
     width: 100vw !important;
     height: 100vh !important;
     background: #000 !important;
-    backdrop-filter: blur(12px) !important;
     z-index: 999999 !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
     opacity: 0;
-    transition: opacity 0.25s ease;
+    transition: opacity 0.2s ease;
     cursor: zoom-out;
+    margin: 0 !important;
+    padding: 0 !important;
+    /* 关键：移除 backdrop-filter，避免花屏 */
   `;
   
   const video = document.createElement('video');
   video.src = videoUrl;
   video.controls = true;
-  video.autoplay = true;
+  video.playsInline = true;   // 防止强制全屏
+  video.preload = 'metadata';  // 先加载元数据
   video.style.cssText = `
     max-width: 90vw !important;
     max-height: 90vh !important;
     border-radius: 12px;
     box-shadow: 0 0 40px rgba(0,0,0,0.5);
-    transform: scale(0.92);
-    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
     outline: none;
+    background: #000;
+    /* 移除初始缩放变换，避免与解码冲突 */
+    opacity: 0;
+    transition: opacity 0.2s ease;
   `;
   
   lightbox.appendChild(video);
@@ -5550,14 +5561,28 @@ function openVideoLightbox(videoUrl) {
   document.body.appendChild(lightbox);
   videoLightboxInstance = lightbox;
   
+  // 先让背景淡入，再显示视频
   requestAnimationFrame(() => {
     lightbox.style.opacity = '1';
-    video.style.transform = 'scale(1)';
+    
+    // 视频元数据加载完成后再播放并淡入
+    video.addEventListener('loadedmetadata', function onMeta() {
+      video.removeEventListener('loadedmetadata', onMeta);
+      video.play().catch(() => {});
+      requestAnimationFrame(() => {
+        video.style.opacity = '1';
+      });
+    });
+    
+    // 如果已经加载完成，直接播放
+    if (video.readyState >= 1) {
+      video.play().catch(() => {});
+      video.style.opacity = '1';
+    }
   });
   
   if (event) event.stopPropagation();
 }
-
 function closeVideoLightbox() {
   if (videoLightboxInstance) {
     const lightbox = videoLightboxInstance;
@@ -5565,12 +5590,12 @@ function closeVideoLightbox() {
     lightbox.style.opacity = '0';
     if (video) {
       video.pause();
-      video.style.transform = 'scale(0.92)';
+      video.style.opacity = '0';
     }
     setTimeout(() => {
       if (lightbox && lightbox.parentNode) lightbox.remove();
       if (videoLightboxInstance === lightbox) videoLightboxInstance = null;
-    }, 250);
+    }, 200);
   }
 }
 // ==================== 加载更多 ====================
