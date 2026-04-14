@@ -7303,58 +7303,68 @@ function initTactical() {
   tacCanvas.height = 500;
   tacCtx = tacCanvas.getContext('2d');
   
-  // ---------- 存储可编辑的文字对象 ----------
-  let textObjects = [];
+  // ========== 离屏Canvas：分层管理 ==========
+  const bgCanvas = document.createElement('canvas');
+  bgCanvas.width = 800;
+  bgCanvas.height = 500;
+  const bgCtx = bgCanvas.getContext('2d');
   
-  // 当前选中的文字索引
+  const freeCanvas = document.createElement('canvas');
+  freeCanvas.width = 800;
+  freeCanvas.height = 500;
+  const freeCtx = freeCanvas.getContext('2d');
+  
+  // 存储文字对象
+  let textObjects = [];
   let selectedTextIndex = -1;
   
   // 变换状态
   let isDraggingControl = false;
-  let dragType = null; // 'scale', 'rotate', 'move'
+  let dragType = null;
   let dragStartPos = { x: 0, y: 0 };
   let dragStartAngle = 0;
   let dragStartScale = 1;
   
-  // 绘制底图
-  function drawBackground() {
-    const grad = tacCtx.createLinearGradient(0, 0, 800, 500);
+  // ========== 绘制底图（离屏） ==========
+  function drawBackgroundToOffscreen() {
+    const grad = bgCtx.createLinearGradient(0, 0, 800, 500);
     grad.addColorStop(0, '#2a3a2a');
     grad.addColorStop(1, '#1a2a1a');
-    tacCtx.fillStyle = grad;
-    tacCtx.fillRect(0, 0, 800, 500);
+    bgCtx.fillStyle = grad;
+    bgCtx.fillRect(0, 0, 800, 500);
     
-    tacCtx.strokeStyle = '#3a5a3a';
-    tacCtx.lineWidth = 0.5;
+    bgCtx.strokeStyle = '#3a5a3a';
+    bgCtx.lineWidth = 0.5;
     for (let i = 0; i <= 800; i += 40) {
-      tacCtx.beginPath();
-      tacCtx.moveTo(i, 0);
-      tacCtx.lineTo(i, 500);
-      tacCtx.stroke();
+      bgCtx.beginPath();
+      bgCtx.moveTo(i, 0);
+      bgCtx.lineTo(i, 500);
+      bgCtx.stroke();
     }
     for (let i = 0; i <= 500; i += 40) {
-      tacCtx.beginPath();
-      tacCtx.moveTo(0, i);
-      tacCtx.lineTo(800, i);
-      tacCtx.stroke();
+      bgCtx.beginPath();
+      bgCtx.moveTo(0, i);
+      bgCtx.lineTo(800, i);
+      bgCtx.stroke();
     }
-    tacCtx.fillStyle = '#FFD700';
-    tacCtx.beginPath();
-    tacCtx.arc(200, 150, 10, 0, 2*Math.PI);
-    tacCtx.fill();
-    tacCtx.fillStyle = '#FF4757';
-    tacCtx.beginPath();
-    tacCtx.arc(600, 350, 12, 0, 2*Math.PI);
-    tacCtx.fill();
-    tacCtx.font = 'bold 14px "Noto Sans SC"';
-    tacCtx.fillStyle = '#FFFFFF';
-    tacCtx.fillText('A点', 180, 120);
-    tacCtx.fillText('B点', 580, 320);
+    bgCtx.fillStyle = '#FFD700';
+    bgCtx.beginPath();
+    bgCtx.arc(200, 150, 10, 0, 2*Math.PI);
+    bgCtx.fill();
+    bgCtx.fillStyle = '#FF4757';
+    bgCtx.beginPath();
+    bgCtx.arc(600, 350, 12, 0, 2*Math.PI);
+    bgCtx.fill();
+    bgCtx.font = 'bold 14px "Noto Sans SC"';
+    bgCtx.fillStyle = '#FFFFFF';
+    bgCtx.fillText('A点', 180, 120);
+    bgCtx.fillText('B点', 580, 320);
   }
+  drawBackgroundToOffscreen();
   
-  // 绘制所有文字对象
-  function drawTextObjects() {
-    textObjects.forEach((obj, idx) => {
+  // ========== 绘制文字对象到主画布 ==========
+  function drawTextObjectsToMain() {
+    textObjects.forEach(obj => {
       tacCtx.save();
       tacCtx.translate(obj.x, obj.y);
       tacCtx.rotate(obj.rotation * Math.PI / 180);
@@ -7365,7 +7375,7 @@ function initTactical() {
     });
   }
   
-  // 绘制变换控件（选中时）
+  // ========== 绘制变换控件 ==========
   function drawTransformControls() {
     if (selectedTextIndex === -1) return;
     const obj = textObjects[selectedTextIndex];
@@ -7380,15 +7390,12 @@ function initTactical() {
     const halfW = textWidth / 2;
     const halfH = textHeight / 2;
     
-    // 绘制边界框
     tacCtx.strokeStyle = '#00a8ff';
     tacCtx.lineWidth = 2;
     tacCtx.setLineDash([5, 5]);
     tacCtx.strokeRect(-halfW, -halfH, textWidth, textHeight);
     tacCtx.setLineDash([]);
     
-    // 绘制控制点
-    // 缩放点（右下角）
     tacCtx.fillStyle = '#00a8ff';
     tacCtx.beginPath();
     tacCtx.arc(halfW, halfH, 8, 0, 2*Math.PI);
@@ -7397,7 +7404,6 @@ function initTactical() {
     tacCtx.lineWidth = 2;
     tacCtx.stroke();
     
-    // 旋转点（上方）
     tacCtx.beginPath();
     tacCtx.arc(0, -halfH - 10, 8, 0, 2*Math.PI);
     tacCtx.fillStyle = '#ffaa00';
@@ -7407,37 +7413,30 @@ function initTactical() {
     tacCtx.restore();
   }
   
-  // 重绘画布
+  // ========== 重绘主画布（组合三层） ==========
   function redrawCanvas() {
-    drawBackground();
-    drawTextObjects();
+    // 1. 清空主画布
+    tacCtx.clearRect(0, 0, 800, 500);
+    // 2. 绘制底图
+    tacCtx.drawImage(bgCanvas, 0, 0);
+    // 3. 绘制自由绘制层
+    tacCtx.drawImage(freeCanvas, 0, 0);
+    // 4. 绘制文字对象
+    drawTextObjectsToMain();
+    // 5. 绘制控件
     drawTransformControls();
   }
   
-  // 坐标转换（考虑旋转）
+  // ========== 坐标转换工具 ==========
   function worldToLocal(obj, wx, wy) {
     const dx = wx - obj.x;
     const dy = wy - obj.y;
     const rad = -obj.rotation * Math.PI / 180;
     const cos = Math.cos(rad);
     const sin = Math.sin(rad);
-    return {
-      x: dx * cos - dy * sin,
-      y: dx * sin + dy * cos
-    };
+    return { x: dx * cos - dy * sin, y: dx * sin + dy * cos };
   }
   
-  function localToWorld(obj, lx, ly) {
-    const rad = obj.rotation * Math.PI / 180;
-    const cos = Math.cos(rad);
-    const sin = Math.sin(rad);
-    return {
-      x: obj.x + lx * cos - ly * sin,
-      y: obj.y + lx * sin + ly * cos
-    };
-  }
-  
-  // 查找被点击的文字（用于选择工具）
   function hitTestText(worldX, worldY) {
     for (let i = textObjects.length - 1; i >= 0; i--) {
       const obj = textObjects[i];
@@ -7452,29 +7451,25 @@ function initTactical() {
     return -1;
   }
   
-  // 检查是否点击了控制点
   function hitTestControl(obj, worldX, worldY) {
     const local = worldToLocal(obj, worldX, worldY);
     const textWidth = tacCtx.measureText(obj.text).width;
     const halfW = textWidth / 2;
     const halfH = obj.fontSize * 0.6;
     
-    // 缩放点 (右下)
     const scaleDist = Math.hypot(local.x - halfW, local.y - halfH);
     if (scaleDist < 12) return 'scale';
     
-    // 旋转点 (上中)
     const rotDist = Math.hypot(local.x, local.y + halfH + 10);
     if (rotDist < 12) return 'rotate';
     
-    // 移动区域（边界框内）
     if (local.x >= -halfW && local.x <= halfW && local.y >= -halfH && local.y <= halfH) {
       return 'move';
     }
     return null;
   }
   
-  // 事件处理
+  // ========== 事件处理 ==========
   const getXY = (e) => {
     const rect = tacCanvas.getBoundingClientRect();
     const scaleX = tacCanvas.width / rect.width;
@@ -7500,7 +7495,6 @@ function initTactical() {
     tacStartY = pos.y;
     
     if (tacTool === 'select') {
-      // 先检查是否点中控制点
       if (selectedTextIndex !== -1) {
         const obj = textObjects[selectedTextIndex];
         const ctrl = hitTestControl(obj, pos.x, pos.y);
@@ -7519,7 +7513,6 @@ function initTactical() {
         }
       }
       
-      // 否则尝试选中文字
       const hitIndex = hitTestText(pos.x, pos.y);
       if (hitIndex !== -1) {
         selectedTextIndex = hitIndex;
@@ -7551,11 +7544,18 @@ function initTactical() {
       return;
     }
     
+    // 对于画笔/箭头/橡皮擦，在 freeCanvas 上绘制
     if (tacTool === 'erase') {
-      tacCtx.globalCompositeOperation = 'destination-out';
+      freeCtx.globalCompositeOperation = 'destination-out';
+      freeCtx.lineWidth = tacSize * 2;
     } else {
-      tacCtx.globalCompositeOperation = 'source-over';
+      freeCtx.globalCompositeOperation = 'source-over';
+      freeCtx.strokeStyle = tacColor;
+      freeCtx.lineWidth = tacSize;
     }
+    freeCtx.lineCap = 'round';
+    freeCtx.beginPath();
+    freeCtx.moveTo(tacStartX, tacStartY);
   };
   
   const move = (e) => {
@@ -7588,15 +7588,14 @@ function initTactical() {
     }
     
     if (tacTool === 'pen' || tacTool === 'erase') {
-      tacCtx.beginPath();
-      tacCtx.moveTo(tacStartX, tacStartY);
-      tacCtx.lineTo(pos.x, pos.y);
-      tacCtx.strokeStyle = tacTool === 'erase' ? '#ffffff' : tacColor;
-      tacCtx.lineWidth = tacTool === 'erase' ? tacSize * 2 : tacSize;
-      tacCtx.lineCap = 'round';
-      tacCtx.stroke();
+      freeCtx.lineTo(pos.x, pos.y);
+      freeCtx.stroke();
+      freeCtx.beginPath();
+      freeCtx.moveTo(pos.x, pos.y);
       tacStartX = pos.x;
       tacStartY = pos.y;
+      // 实时更新主画布显示
+      redrawCanvas();
     }
   };
   
@@ -7610,13 +7609,39 @@ function initTactical() {
     
     if (tacTool === 'arrow' && tacPainting) {
       const pos = getXY(e);
-      drawArrow(tacStartX, tacStartY, pos.x, pos.y, tacColor, tacSize);
+      // 在 freeCanvas 上绘制箭头
+      freeCtx.globalCompositeOperation = 'source-over';
+      freeCtx.strokeStyle = tacColor;
+      freeCtx.lineWidth = tacSize;
+      drawArrowOnContext(freeCtx, tacStartX, tacStartY, pos.x, pos.y, tacColor, tacSize);
+      redrawCanvas();
     }
+    
     tacPainting = false;
-    tacCtx.globalCompositeOperation = 'source-over';
+    freeCtx.globalCompositeOperation = 'source-over';
+    freeCtx.closePath();
+    redrawCanvas();
   };
   
-  // 移除旧监听器
+  function drawArrowOnContext(ctx, fromX, fromY, toX, toY, color, width) {
+    const headlen = 15;
+    const angle = Math.atan2(toY - fromY, toX - fromX);
+    ctx.beginPath();
+    ctx.moveTo(fromX, fromY);
+    ctx.lineTo(toX, toY);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = width;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(toX, toY);
+    ctx.lineTo(toX - headlen * Math.cos(angle - Math.PI/6), toY - headlen * Math.sin(angle - Math.PI/6));
+    ctx.lineTo(toX - headlen * Math.cos(angle + Math.PI/6), toY - headlen * Math.sin(angle + Math.PI/6));
+    ctx.lineTo(toX, toY);
+    ctx.fillStyle = color;
+    ctx.fill();
+  }
+  
+  // ========== 绑定事件 ==========
   tacCanvas.removeEventListener('mousedown', start);
   tacCanvas.removeEventListener('mousemove', move);
   tacCanvas.removeEventListener('mouseup', end);
@@ -7629,29 +7654,30 @@ function initTactical() {
   tacCanvas.addEventListener('mousemove', move);
   tacCanvas.addEventListener('mouseup', end);
   tacCanvas.addEventListener('mouseleave', end);
-  tacCanvas.addEventListener('touchstart', start, {passive: false});
-  tacCanvas.addEventListener('touchmove', move, {passive: false});
+  tacCanvas.addEventListener('touchstart', start, { passive: false });
+  tacCanvas.addEventListener('touchmove', move, { passive: false });
   tacCanvas.addEventListener('touchend', end);
+  tacCanvas.addEventListener('touchcancel', end);
   
-  // 使用事件委托处理所有工具按钮点击（包括动态添加的）
-const toolBar = document.querySelector('.flex-wrap.gap-2.mt-4'); // 工具条容器
-if (toolBar) {
-  toolBar.removeEventListener('click', toolBar._toolDelegate);
-  const delegate = (e) => {
-    const btn = e.target.closest('.tactical-tool-btn');
-    if (!btn) return;
-    e.preventDefault();
-    document.querySelectorAll('.tactical-tool-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    tacTool = btn.dataset.tool;
-    if (tacTool !== 'select') selectedTextIndex = -1;
-    redrawCanvas();
-  };
-  toolBar._toolDelegate = delegate;
-  toolBar.addEventListener('click', delegate);
-}
+  // ========== 工具切换 ==========
+  const toolBar = document.querySelector('.flex-wrap.gap-2.mt-4.justify-center');
+  if (toolBar) {
+    toolBar.removeEventListener('click', toolBar._toolDelegate);
+    const delegate = (e) => {
+      const btn = e.target.closest('.tactical-tool-btn');
+      if (!btn) return;
+      e.preventDefault();
+      document.querySelectorAll('.tactical-tool-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      tacTool = btn.dataset.tool;
+      if (tacTool !== 'select') selectedTextIndex = -1;
+      redrawCanvas();
+    };
+    toolBar._toolDelegate = delegate;
+    toolBar.addEventListener('click', delegate);
+  }
   
-  // 添加“选择”工具按钮（如果HTML中没有，动态添加）
+  // 添加选择按钮
   if (!document.querySelector('[data-tool="select"]')) {
     const selectBtn = document.createElement('button');
     selectBtn.className = 'tactical-tool-btn';
@@ -7665,21 +7691,74 @@ if (toolBar) {
   const sizeSelect = document.getElementById('tacticalSize');
   if (sizeSelect) sizeSelect.addEventListener('change', e => tacSize = parseInt(e.target.value));
   
-  // 清空画布时也清空文字对象
-  const originalClear = clearTacticalCanvas;
-  clearTacticalCanvas = function() {
+  // ========== 清空画布 ==========
+  window.clearTacticalCanvas = function() {
+    // 清空自由绘制层
+    freeCtx.clearRect(0, 0, 800, 500);
+    // 清空文字对象
     textObjects = [];
     selectedTextIndex = -1;
-    drawBackground();
+    // 重绘底图
+    drawBackgroundToOffscreen();
     redrawCanvas();
     showToast('已清空画布', 'info');
   };
-  window.clearTacticalCanvas = clearTacticalCanvas;
+  
+  // 上传底图功能适配
+  const originalUpload = uploadTacticalBackground;
+  uploadTacticalBackground = function() {
+    const fileInput = $('tacticalBgInput');
+    if (!fileInput) return;
+    fileInput.click();
+  };
+  
+  // 修改上传底图处理
+  const bgInput = $('tacticalBgInput');
+  if (bgInput) {
+    bgInput.addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(ev) {
+        const img = new Image();
+        img.onload = function() {
+          // 将上传的图片绘制到 bgCanvas
+          bgCtx.clearRect(0, 0, 800, 500);
+          bgCtx.drawImage(img, 0, 0, 800, 500);
+          tacticalBgImage = img;
+          drawTacticalGridOverlayOnCtx(bgCtx);
+          redrawCanvas();
+          showToast('底图已上传', 'success');
+        };
+        img.src = ev.target.result;
+      };
+      reader.readAsDataURL(file);
+      e.target.value = '';
+    });
+  }
+  
+  function drawTacticalGridOverlayOnCtx(ctx) {
+    ctx.save();
+    ctx.strokeStyle = '#3a5a3a';
+    ctx.lineWidth = 0.5;
+    for (let i = 0; i <= 800; i += 40) {
+      ctx.beginPath();
+      ctx.moveTo(i, 0);
+      ctx.lineTo(i, 500);
+      ctx.stroke();
+    }
+    for (let i = 0; i <= 500; i += 40) {
+      ctx.beginPath();
+      ctx.moveTo(0, i);
+      ctx.lineTo(800, i);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
   
   // 初始化绘制
   redrawCanvas();
-  
-  console.log('✅ 战术板升级版（文字变换）已启动');
+  console.log('✅ 战术板修复版（分层绘制）已启动');
 }
 function drawTacticalBaseMap() {
   if (!tacCtx) {
