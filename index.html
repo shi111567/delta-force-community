@@ -3706,12 +3706,18 @@ document.querySelectorAll('.filter-menu').forEach(m => m.classList.add('hidden')
   setTimeout(() => loadSquads(), 50);
   // 刷新帖子列表（重置分页）
   loadPosts(true);
-// 强制浏览器重新计算布局，修复移动端样式异常
-document.body.style.display = 'none';
-document.body.offsetHeight; // 触发重绘
-document.body.style.display = '';
-  // 滚动到页面顶部
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  // 修复移动端布局：仅触发 resize 事件让页面重新适应
+  window.dispatchEvent(new Event('resize'));
+  
+  // 确保移动端底部导航栏正确显示且激活状态正确
+  const mobileNav = document.querySelector('.mobile-nav');
+  if (mobileNav && window.innerWidth <= 768) {
+    mobileNav.style.display = 'flex';
+    mobileNav.style.transform = 'translateY(0)';
+  }
+  
+  // 使用 instant 滚动避免动画冲突
+  window.scrollTo({ top: 0, behavior: 'instant' });
 }
     if (tab === 'profile') renderProfile();
     if (tab === 'escort') loadEscortVideos(true);
@@ -5799,6 +5805,7 @@ let navHidden = false;
 let ticking = false;
 
 function updateNavVisibility() {
+if (window.innerWidth <= 768) return; // 移动端不隐藏导航栏
   const nav = $('topNav');
   const mobileNav = document.querySelector('.mobile-nav');
   if (!nav) return;
@@ -5817,15 +5824,6 @@ function updateNavVisibility() {
     navHidden = false;
   }
   
-  // 移动端底部导航同样处理（保留原有逻辑）
-  if (mobileNav) {
-    if (currentScrollY > 80 && scrollDiff > 5) {
-      mobileNav.style.transform = 'translateY(100%)';
-      mobileNav.style.transition = 'transform 0.3s ease';
-    } else if (scrollDiff < -5 || currentScrollY < 50) {
-      mobileNav.style.transform = 'translateY(0)';
-    }
-  }
   
   lastScrollY = currentScrollY;
   ticking = false;
