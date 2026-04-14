@@ -1113,6 +1113,7 @@ touch-action: none; /* 禁止浏览器默认的滚动、缩放等触摸行为 */
     bottom: 150px !important;
     width: 52px;
     height: 52px;
+    right: 24px; 
   }
 }
 
@@ -2047,7 +2048,17 @@ button, .btn-ghost, .btn-warm {
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
 }
+/* ===== 下拉刷新防闪烁与优化 ===== */
+body {
+    overscroll-behavior-y: contain;  /* 禁止默认的下拉回弹效果 */
+    -webkit-overflow-scrolling: touch;
+}
 
+#pullToRefreshIndicator {
+    will-change: height;
+    backface-visibility: hidden;
+    transform: translateZ(0);
+}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/interactjs@1.10.27/dist/interact.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/tus-js-client@4.1.0/dist/tus.min.js"></script>
@@ -7275,37 +7286,195 @@ let tacDrawingData = []; // 保存绘图数据
 let tacticalBgImage = null; // 保存底图 Image 对象
 
 function initTactical() {
-  // 使用原生方法获取 Canvas，避免 $ 函数潜在问题
   const canvas = document.getElementById('tacticalCanvas');
   if (!canvas) {
     console.warn('战术板 Canvas 未找到，100ms 后重试...');
-    // 设置重试上限，防止无限循环
     if (!window._tacticalRetryCount) window._tacticalRetryCount = 0;
     if (window._tacticalRetryCount < 30) {
       window._tacticalRetryCount++;
       setTimeout(initTactical, 100);
-    } else {
-      console.error('战术板初始化失败：Canvas 元素始终未找到');
     }
     return;
   }
-  window._tacticalRetryCount = 0; // 重置计数
+  window._tacticalRetryCount = 0;
   
   tacCanvas = canvas;
-  // 确保尺寸
   tacCanvas.width = 800;
   tacCanvas.height = 500;
   tacCtx = tacCanvas.getContext('2d');
   
-  if (!tacCtx) {
-    console.error('无法获取 Canvas 2D 上下文');
-    return;
-  }
+  // ---------- 存储可编辑的文字对象 ----------
+  let textObjects = [];
+  
+  // 当前选中的文字索引
+  let selectedTextIndex = -1;
+  
+  // 变换状态
+  let isDraggingControl = false;
+  let dragType = null; // 'scale', 'rotate', 'move'
+  let dragStartPos = { x: 0, y: 0 };
+  let dragStartAngle = 0;
+  let dragStartScale = 1;
   
   // 绘制底图
-  drawTacticalBaseMap();
+  function drawBackground() {
+    const grad = tacCtx.createLinearGradient(0, 0, 800, 500);
+    grad.addColorStop(0, '#2a3a2a');
+    grad.addColorStop(1, '#1a2a1a');
+    tacCtx.fillStyle = grad;
+    tacCtx.fillRect(0, 0, 800, 500);
+    
+    tacCtx.strokeStyle = '#3a5a3a';
+    tacCtx.lineWidth = 0.5;
+    for (let i = 0; i <= 800; i += 40) {
+      tacCtx.beginPath();
+      tacCtx.moveTo(i, 0);
+      tacCtx.lineTo(i, 500);
+      tacCtx.stroke();
+    }
+    for (let i = 0; i <= 500; i += 40) {
+      tacCtx.beginPath();
+      tacCtx.moveTo(0, i);
+      tacCtx.lineTo(800, i);
+      tacCtx.stroke();
+    }
+    tacCtx.fillStyle = '#FFD700';
+    tacCtx.beginPath();
+    tacCtx.arc(200, 150, 10, 0, 2*Math.PI);
+    tacCtx.fill();
+    tacCtx.fillStyle = '#FF4757';
+    tacCtx.beginPath();
+    tacCtx.arc(600, 350, 12, 0, 2*Math.PI);
+    tacCtx.fill();
+    tacCtx.font = 'bold 14px "Noto Sans SC"';
+    tacCtx.fillStyle = '#FFFFFF';
+    tacCtx.fillText('A点', 180, 120);
+    tacCtx.fillText('B点', 580, 320);
+  }
   
-  // ========== 事件绑定（保持不变） ==========
+  // 绘制所有文字对象
+  function drawTextObjects() {
+    textObjects.forEach((obj, idx) => {
+      tacCtx.save();
+      tacCtx.translate(obj.x, obj.y);
+      tacCtx.rotate(obj.rotation * Math.PI / 180);
+      tacCtx.font = `bold ${obj.fontSize}px "Noto Sans SC"`;
+      tacCtx.fillStyle = obj.color;
+      tacCtx.fillText(obj.text, 0, 0);
+      tacCtx.restore();
+    });
+  }
+  
+  // 绘制变换控件（选中时）
+  function drawTransformControls() {
+    if (selectedTextIndex === -1) return;
+    const obj = textObjects[selectedTextIndex];
+    if (!obj) return;
+    
+    tacCtx.save();
+    tacCtx.translate(obj.x, obj.y);
+    tacCtx.rotate(obj.rotation * Math.PI / 180);
+    
+    const textWidth = tacCtx.measureText(obj.text).width;
+    const textHeight = obj.fontSize * 1.2;
+    const halfW = textWidth / 2;
+    const halfH = textHeight / 2;
+    
+    // 绘制边界框
+    tacCtx.strokeStyle = '#00a8ff';
+    tacCtx.lineWidth = 2;
+    tacCtx.setLineDash([5, 5]);
+    tacCtx.strokeRect(-halfW, -halfH, textWidth, textHeight);
+    tacCtx.setLineDash([]);
+    
+    // 绘制控制点
+    // 缩放点（右下角）
+    tacCtx.fillStyle = '#00a8ff';
+    tacCtx.beginPath();
+    tacCtx.arc(halfW, halfH, 8, 0, 2*Math.PI);
+    tacCtx.fill();
+    tacCtx.strokeStyle = '#fff';
+    tacCtx.lineWidth = 2;
+    tacCtx.stroke();
+    
+    // 旋转点（上方）
+    tacCtx.beginPath();
+    tacCtx.arc(0, -halfH - 10, 8, 0, 2*Math.PI);
+    tacCtx.fillStyle = '#ffaa00';
+    tacCtx.fill();
+    tacCtx.stroke();
+    
+    tacCtx.restore();
+  }
+  
+  // 重绘画布
+  function redrawCanvas() {
+    drawBackground();
+    drawTextObjects();
+    drawTransformControls();
+  }
+  
+  // 坐标转换（考虑旋转）
+  function worldToLocal(obj, wx, wy) {
+    const dx = wx - obj.x;
+    const dy = wy - obj.y;
+    const rad = -obj.rotation * Math.PI / 180;
+    const cos = Math.cos(rad);
+    const sin = Math.sin(rad);
+    return {
+      x: dx * cos - dy * sin,
+      y: dx * sin + dy * cos
+    };
+  }
+  
+  function localToWorld(obj, lx, ly) {
+    const rad = obj.rotation * Math.PI / 180;
+    const cos = Math.cos(rad);
+    const sin = Math.sin(rad);
+    return {
+      x: obj.x + lx * cos - ly * sin,
+      y: obj.y + lx * sin + ly * cos
+    };
+  }
+  
+  // 查找被点击的文字（用于选择工具）
+  function hitTestText(worldX, worldY) {
+    for (let i = textObjects.length - 1; i >= 0; i--) {
+      const obj = textObjects[i];
+      const local = worldToLocal(obj, worldX, worldY);
+      const textWidth = tacCtx.measureText(obj.text).width;
+      const halfW = textWidth / 2;
+      const halfH = obj.fontSize * 0.6;
+      if (local.x >= -halfW && local.x <= halfW && local.y >= -halfH && local.y <= halfH) {
+        return i;
+      }
+    }
+    return -1;
+  }
+  
+  // 检查是否点击了控制点
+  function hitTestControl(obj, worldX, worldY) {
+    const local = worldToLocal(obj, worldX, worldY);
+    const textWidth = tacCtx.measureText(obj.text).width;
+    const halfW = textWidth / 2;
+    const halfH = obj.fontSize * 0.6;
+    
+    // 缩放点 (右下)
+    const scaleDist = Math.hypot(local.x - halfW, local.y - halfH);
+    if (scaleDist < 12) return 'scale';
+    
+    // 旋转点 (上中)
+    const rotDist = Math.hypot(local.x, local.y + halfH + 10);
+    if (rotDist < 12) return 'rotate';
+    
+    // 移动区域（边界框内）
+    if (local.x >= -halfW && local.x <= halfW && local.y >= -halfH && local.y <= halfH) {
+      return 'move';
+    }
+    return null;
+  }
+  
+  // 事件处理
   const getXY = (e) => {
     const rect = tacCanvas.getBoundingClientRect();
     const scaleX = tacCanvas.width / rect.width;
@@ -7329,33 +7498,101 @@ function initTactical() {
     const pos = getXY(e);
     tacStartX = pos.x;
     tacStartY = pos.y;
+    
+    if (tacTool === 'select') {
+      // 先检查是否点中控制点
+      if (selectedTextIndex !== -1) {
+        const obj = textObjects[selectedTextIndex];
+        const ctrl = hitTestControl(obj, pos.x, pos.y);
+        if (ctrl) {
+          isDraggingControl = true;
+          dragType = ctrl;
+          dragStartPos = { x: pos.x, y: pos.y };
+          if (ctrl === 'rotate') {
+            const dx = pos.x - obj.x;
+            const dy = pos.y - obj.y;
+            dragStartAngle = Math.atan2(dy, dx) * 180 / Math.PI - obj.rotation;
+          } else if (ctrl === 'scale') {
+            dragStartScale = obj.fontSize;
+          }
+          return;
+        }
+      }
+      
+      // 否则尝试选中文字
+      const hitIndex = hitTestText(pos.x, pos.y);
+      if (hitIndex !== -1) {
+        selectedTextIndex = hitIndex;
+        redrawCanvas();
+        return;
+      } else {
+        selectedTextIndex = -1;
+        redrawCanvas();
+        return;
+      }
+    }
+    
     tacPainting = true;
-   if (tacTool === 'text') {
-  const text = prompt('输入文字 (最多10个字):');
-  if (!text) { tacPainting = false; return; }
-  const fontSize = prompt('字号 (默认20):', '20');
-  const rotation = prompt('旋转角度 (0-360):', '0');
-  tacCtx.save();
-  tacCtx.translate(tacStartX, tacStartY);
-  tacCtx.rotate(rotation * Math.PI / 180);
-  tacCtx.font = `bold ${fontSize}px "Noto Sans SC"`;
-  tacCtx.fillStyle = tacColor;
-  tacCtx.fillText(text.substring(0,10), 0, 0);
-  tacCtx.restore();
-  tacPainting = false;
-}
+    if (tacTool === 'text') {
+      const text = prompt('输入文字 (最多10个字):');
+      if (!text) { tacPainting = false; return; }
+      const fontSize = parseInt(prompt('字号 (默认20):', '20')) || 20;
+      const rotation = parseInt(prompt('旋转角度 (0-360):', '0')) || 0;
+      textObjects.push({
+        text: text.substring(0, 10),
+        x: pos.x,
+        y: pos.y,
+        fontSize: fontSize,
+        rotation: rotation,
+        color: tacColor
+      });
+      tacPainting = false;
+      redrawCanvas();
+      return;
+    }
+    
+    if (tacTool === 'erase') {
+      tacCtx.globalCompositeOperation = 'destination-out';
+    } else {
+      tacCtx.globalCompositeOperation = 'source-over';
+    }
   };
   
   const move = (e) => {
-    if (!tacPainting) return;
+    if (!tacPainting && !isDraggingControl) return;
     e.preventDefault();
     const pos = getXY(e);
+    
+    if (isDraggingControl && selectedTextIndex !== -1) {
+      const obj = textObjects[selectedTextIndex];
+      if (dragType === 'move') {
+        const dx = pos.x - dragStartPos.x;
+        const dy = pos.y - dragStartPos.y;
+        obj.x += dx;
+        obj.y += dy;
+        dragStartPos = { x: pos.x, y: pos.y };
+      } else if (dragType === 'rotate') {
+        const dx = pos.x - obj.x;
+        const dy = pos.y - obj.y;
+        let angle = Math.atan2(dy, dx) * 180 / Math.PI;
+        obj.rotation = angle - dragStartAngle;
+      } else if (dragType === 'scale') {
+        const dx = pos.x - obj.x;
+        const dy = pos.y - obj.y;
+        const dist = Math.hypot(dx, dy);
+        const newSize = Math.max(8, dist / 2);
+        obj.fontSize = newSize;
+      }
+      redrawCanvas();
+      return;
+    }
+    
     if (tacTool === 'pen' || tacTool === 'erase') {
       tacCtx.beginPath();
       tacCtx.moveTo(tacStartX, tacStartY);
       tacCtx.lineTo(pos.x, pos.y);
-      tacCtx.strokeStyle = tacTool === 'erase' ? '#1a1a1a' : tacColor;
-      tacCtx.lineWidth = tacSize;
+      tacCtx.strokeStyle = tacTool === 'erase' ? '#ffffff' : tacColor;
+      tacCtx.lineWidth = tacTool === 'erase' ? tacSize * 2 : tacSize;
       tacCtx.lineCap = 'round';
       tacCtx.stroke();
       tacStartX = pos.x;
@@ -7364,14 +7601,22 @@ function initTactical() {
   };
   
   const end = (e) => {
+    if (isDraggingControl) {
+      isDraggingControl = false;
+      dragType = null;
+      redrawCanvas();
+      return;
+    }
+    
     if (tacTool === 'arrow' && tacPainting) {
       const pos = getXY(e);
       drawArrow(tacStartX, tacStartY, pos.x, pos.y, tacColor, tacSize);
     }
     tacPainting = false;
+    tacCtx.globalCompositeOperation = 'source-over';
   };
   
-  // 移除旧监听器（避免重复）
+  // 移除旧监听器
   tacCanvas.removeEventListener('mousedown', start);
   tacCanvas.removeEventListener('mousemove', move);
   tacCanvas.removeEventListener('mouseup', end);
@@ -7388,28 +7633,53 @@ function initTactical() {
   tacCanvas.addEventListener('touchmove', move, {passive: false});
   tacCanvas.addEventListener('touchend', end);
   
-  // 工具切换
-  document.querySelectorAll('.tactical-tool-btn').forEach(btn => {
-    btn.removeEventListener('click', btn._toolHandler);
-    const handler = () => {
-      document.querySelectorAll('.tactical-tool-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      tacTool = btn.dataset.tool;
-    };
-    btn._toolHandler = handler;
-    btn.addEventListener('click', handler);
-  });
+  // 使用事件委托处理所有工具按钮点击（包括动态添加的）
+const toolBar = document.querySelector('.flex-wrap.gap-2.mt-4'); // 工具条容器
+if (toolBar) {
+  toolBar.removeEventListener('click', toolBar._toolDelegate);
+  const delegate = (e) => {
+    const btn = e.target.closest('.tactical-tool-btn');
+    if (!btn) return;
+    e.preventDefault();
+    document.querySelectorAll('.tactical-tool-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    tacTool = btn.dataset.tool;
+    if (tacTool !== 'select') selectedTextIndex = -1;
+    redrawCanvas();
+  };
+  toolBar._toolDelegate = delegate;
+  toolBar.addEventListener('click', delegate);
+}
+  
+  // 添加“选择”工具按钮（如果HTML中没有，动态添加）
+  if (!document.querySelector('[data-tool="select"]')) {
+    const selectBtn = document.createElement('button');
+    selectBtn.className = 'tactical-tool-btn';
+    selectBtn.dataset.tool = 'select';
+    selectBtn.innerHTML = '<i class="fas fa-mouse-pointer"></i> 选择';
+    document.querySelector('.flex-wrap.gap-2.mt-4')?.appendChild(selectBtn);
+  }
   
   const colorInput = document.getElementById('tacticalColor');
   if (colorInput) colorInput.addEventListener('input', e => tacColor = e.target.value);
   const sizeSelect = document.getElementById('tacticalSize');
   if (sizeSelect) sizeSelect.addEventListener('change', e => tacSize = parseInt(e.target.value));
   
-  // 默认激活画笔
-  const defaultPen = document.querySelector('[data-tool="pen"]');
-  if (defaultPen) defaultPen.classList.add('active');
+  // 清空画布时也清空文字对象
+  const originalClear = clearTacticalCanvas;
+  clearTacticalCanvas = function() {
+    textObjects = [];
+    selectedTextIndex = -1;
+    drawBackground();
+    redrawCanvas();
+    showToast('已清空画布', 'info');
+  };
+  window.clearTacticalCanvas = clearTacticalCanvas;
   
-  console.log('✅ 战术板初始化成功');
+  // 初始化绘制
+  redrawCanvas();
+  
+  console.log('✅ 战术板升级版（文字变换）已启动');
 }
 function drawTacticalBaseMap() {
   if (!tacCtx) {
@@ -7966,12 +8236,12 @@ function initBGM() {
   var player = $('bgmPlayer');
   player.style.position = 'fixed';
   player.style.left = (-player.offsetWidth + 60) + 'px';  // 左侧吸附状态，右边露出60px
-  player.style.top = (window.innerHeight - 80) + 'px';
+  player.style.top = (window.innerHeight - 150) + 'px';
   player.style.right = 'auto';
   player.style.bottom = 'auto';
   player.style.transform = 'none';
   player.setAttribute('data-x', -player.offsetWidth + 60);
-  player.setAttribute('data-y', window.innerHeight - 80);
+  player.setAttribute('data-y', window.innerHeight - 150);
   // 阻止音量滑块触发拖拽
   const volSlider = $('#bgmVol');
   if (volSlider) {
@@ -8617,6 +8887,117 @@ window.updateSquadCountBadge = function(count) {
 };
 
 console.log('折叠函数已强制挂载到 window 对象');
+// ========== 移动端下拉刷新 ==========
+let touchStartY = 0;
+let touchEndY = 0;
+const refreshThreshold = 80; // 下拉超过 80px 触发刷新
+let isPulling = false;
+let pullIndicator = null;
+
+function createPullIndicator() {
+    const div = document.createElement('div');
+    div.id = 'pullToRefreshIndicator';
+    div.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 0;
+        background: linear-gradient(135deg, var(--accent), var(--accent2));
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        font-weight: bold;
+        z-index: 9999;
+        transition: height 0.2s;
+        overflow: hidden;
+        pointer-events: none;
+    `;
+    div.innerHTML = '<i class="fas fa-sync-alt fa-spin mr-2"></i> 松开刷新';
+    document.body.appendChild(div);
+    return div;
+}
+
+function handleTouchStart(e) {
+    if (window.scrollY !== 0) return;
+    touchStartY = e.touches[0].clientY;
+    isPulling = true;
+    if (!pullIndicator) pullIndicator = createPullIndicator();
+}
+
+function handleTouchMove(e) {
+    if (!isPulling) return;
+    touchEndY = e.touches[0].clientY;
+    const distance = touchEndY - touchStartY;
+    if (distance > 0 && window.scrollY === 0) {
+        e.preventDefault(); // 阻止默认滚动
+        const height = Math.min(distance, refreshThreshold);
+        pullIndicator.style.height = height + 'px';
+        if (distance >= refreshThreshold) {
+            pullIndicator.innerHTML = '<i class="fas fa-arrow-down mr-2"></i> 松开刷新';
+        } else {
+            pullIndicator.innerHTML = '<i class="fas fa-arrow-down mr-2"></i> 下拉刷新';
+        }
+    }
+}
+
+function handleTouchEnd(e) {
+    if (!isPulling) return;
+    isPulling = false;
+    const distance = touchEndY - touchStartY;
+    if (distance >= refreshThreshold && window.scrollY === 0) {
+        // 触发刷新
+        pullIndicator.style.height = '50px';
+        pullIndicator.innerHTML = '<i class="fas fa-spinner fa-pulse mr-2"></i> 刷新中...';
+        performHomeRefresh();
+    }
+    // 收起指示器
+    setTimeout(() => {
+        pullIndicator.style.height = '0';
+    }, 200);
+    touchStartY = 0;
+    touchEndY = 0;
+}
+
+function performHomeRefresh() {
+    // 重置所有筛选条件
+    APP.filters = {
+        type: 'all',
+        op: 'all',
+        sort: 'latest',
+        time: 'all',
+        topic: 'all',
+        keyword: ''
+    };
+    if ($('homeSearchInput')) $('homeSearchInput').value = '';
+    if ($('currentSortLabel')) $('currentSortLabel').textContent = '最新';
+    // 关闭所有下拉菜单
+    document.querySelectorAll('.filter-menu').forEach(m => m.classList.add('hidden'));
+    
+    // 重新渲染首页组件
+    renderToolbox();
+    renderTopicCards();
+    loadOnlineEscorts();
+    loadHotRecommend();
+    loadSquads();
+    loadPosts(true);
+    
+    showToast('页面已刷新', 'success');
+    setTimeout(() => {
+        pullIndicator.style.height = '0';
+    }, 500);
+}
+
+// 绑定触摸事件（仅移动端）
+if ('ontouchstart' in window) {
+    document.addEventListener('touchstart', handleTouchStart, { passive: false });
+    document.addEventListener('touchmove', handleTouchMove, { passive: false });
+    document.addEventListener('touchend', handleTouchEnd);
+}
+
 </script>
 </body>
+
 </html>
