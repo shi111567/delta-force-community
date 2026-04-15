@@ -3751,9 +3751,17 @@ async function handleRegister() {
     return;
   }
 
-  if (data.user) {
-    // 4. 将邮箱存入 profiles 表，方便后续用户名登录和找回密码
-    await sb.from('profiles').update({ email: email }).eq('id', data.user.id);
+   if (data.user) {
+    // 4. 将邮箱存入 profiles 表，方便后续用户名登录和找回密码（使用 upsert 确保行存在）
+    const { error: upsertError } = await sb.from('profiles').upsert({
+      id: data.user.id,
+      email: email,
+      username: username,
+      avatar_url: dicebearUrl(username),
+      level: 1,
+      exp: 0
+    }, { onConflict: 'id' });
+    if (upsertError) console.warn('保存邮箱失败:', upsertError);
     
     showToast('注册成功，请登录');
     switchAuthForm('login');
