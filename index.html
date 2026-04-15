@@ -240,6 +240,13 @@ tailwind.config = {
 }
 </script>
 <style>
+.delete-notif-btn:hover {
+  color: #e74c3c !important;
+  transform: scale(1.1);
+}
+.delete-notif-btn:active {
+  transform: scale(0.9);
+}
 /* ===== 战术板样式 ===== */
 .tactical-tool-btn {
   padding: 8px 16px;
@@ -3007,7 +3014,10 @@ body {
   <div class="modal-content" style="max-width:440px">
     <div class="flex justify-between items-center mb-4">
       <h2 class="font-display text-xl">通知</h2>
-      <button onclick="closeModal('notifModal')" class="w-8 h-8 rounded-full flex items-center justify-center" style="background:var(--surface)"><i class="fas fa-times"></i></button>
+      <div class="flex items-center gap-2">
+        <button onclick="markAllNotificationsRead()" class="text-xs px-3 py-1 rounded-full" style="background:var(--surface); border:1px solid var(--border); color:var(--accent);"><i class="fas fa-check-double mr-1"></i>全部已读</button>
+        <button onclick="closeModal('notifModal')" class="w-8 h-8 rounded-full flex items-center justify-center" style="background:var(--surface)"><i class="fas fa-times"></i></button>
+      </div>
     </div>
     <div id="notifList" class="space-y-2 max-h-80 overflow-y-auto">
       <p class="text-center py-8" style="color:var(--muted)">暂无新通知</p>
@@ -3372,7 +3382,11 @@ const escortState = {
 };
 
 // ==================== 工具函数 ====================
-function $(id) { return document.getElementById(id); }
+function $(id) {
+  const el = document.getElementById(id);
+  if (!el) console.warn(`⚠️ 元素 ${id} 未找到，稍后重试`);
+  return el;
+}
 function qs(sel) { return document.querySelector(sel); }
 function qsa(sel) { return document.querySelectorAll(sel); }
 
@@ -3438,42 +3452,87 @@ let historyRecords = JSON.parse(localStorage.getItem('postHistory') || '[]');
 
 function addToHistory(postId, postTitle, postAuthor, authorAvatar) {
   if (!postId) return;
+  
+  // 确保参数有效
+  const title = postTitle || '无标题';
+  const author = postAuthor || '干员';
+  const avatar = authorAvatar || dicebearUrl(author);
+  
+  // 读取现有历史
+  let historyRecords = JSON.parse(localStorage.getItem('postHistory') || '[]');
+  
+  // 去重：移除已存在的相同ID记录
   historyRecords = historyRecords.filter(r => r.id !== postId);
+  
+  // 新记录插入到开头
   historyRecords.unshift({
-    id: postId, title: postTitle, author: postAuthor, avatar: authorAvatar,
+    id: postId,
+    title: title,
+    author: author,
+    avatar: avatar,
     time: new Date().toISOString()
   });
-  if (historyRecords.length > HISTORY_MAX) historyRecords.pop();
+  
+  // 保持最多20条
+  if (historyRecords.length > 20) historyRecords.pop();
+  
+  // 保存到 localStorage
   localStorage.setItem('postHistory', JSON.stringify(historyRecords));
+  
+  // 同步更新全局变量（用于其他地方读取）
+  window.historyRecords = historyRecords;
+  
+  console.log('✅ 历史记录已保存，当前历史:', historyRecords);
 }
-
 function openHistoryDrawer() {
-  renderHistoryList();
+  // 强制从 localStorage 读取最新数据
+  window.historyRecords = JSON.parse(localStorage.getItem('postHistory') || '[]');
+  // 打开抽屉
   openModal('historyDrawerOverlay');
+  // 直接渲染历史列表
+  renderHistoryList();
 }
-
 function closeHistoryDrawer() {
   closeModal('historyDrawerOverlay');
 }
 
 function renderHistoryList() {
-  const container = $('#historyList');
-  if (!container) return;
-  if (historyRecords.length === 0) {
+  // 直接使用 document.getElementById
+  let container = document.getElementById('historyList');
+  if (!container) {
+    console.error('❌ renderHistoryList: #historyList 不存在');
+    return;
+  }
+  
+  let records = [];
+  try {
+    records = JSON.parse(localStorage.getItem('postHistory') || '[]');
+    console.log('📖 读取到', records.length, '条历史记录');
+  } catch (e) {
+    console.error('解析历史失败:', e);
+    records = [];
+  }
+  
+  if (!records.length) {
     container.innerHTML = '<div class="text-center py-8" style="color:var(--muted);"><i class="fas fa-history text-3xl mb-2 opacity-30"></i><p>暂无浏览历史</p></div>';
     return;
   }
-  container.innerHTML = historyRecords.map(r => `
+  
+  container.innerHTML = records.map(r => `
     <div class="history-item" onclick="openComments('${r.id}'); closeHistoryDrawer();">
-      <div class="history-title">${r.title}</div>
+      <div class="flex items-center gap-2 mb-1">
+        <img src="${r.avatar || dicebearUrl(r.author || 'guest')}" class="w-5 h-5 rounded-full object-cover" onerror="this.src='${dicebearUrl('guest')}'">
+        <span class="text-xs font-medium" style="color: var(--accent);">${r.author || '干员'}</span>
+      </div>
+      <div class="history-title">${r.title || '无标题'}</div>
       <div class="history-meta">
-        <span><i class="fas fa-user-circle"></i> ${r.author || '干员'}</span>
         <span class="history-time"><i class="far fa-clock"></i> ${formatHistoryTime(r.time)}</span>
       </div>
     </div>
   `).join('');
+  
+  console.log('✅ 历史列表渲染完成');
 }
-
 function formatHistoryTime(isoString) {
   const d = new Date(isoString), now = new Date(), diff = now - d;
   if (diff < 3600000) return Math.floor(diff / 60000) + '分钟前';
@@ -4664,11 +4723,11 @@ function createPostCard(post, idx, isTop = false) {
     }
   }
 
-  const mediaHTML = (post.media_urls || []).slice(0,1).map(url => {
+ const mediaHTML = (post.media_urls || []).slice(0,1).map(url => {
   if (url.match(/\.(mp4|webm|mov)$/i)) {
-  return `<video src="${url}" class="w-full rounded-lg cursor-pointer object-cover" style="max-height:300px" onclick="openVideoLightbox('${url}')" preload="metadata"></video>`;
-}
-  return `<img src="${url}" alt="" class="w-full rounded-lg cursor-pointer object-cover" style="max-height:320px" onclick="openLightbox('${url}')">`;
+    return `<video src="${url}" class="w-full rounded-lg cursor-pointer object-cover" style="max-height:300px" onclick="openVideoLightbox('${url}', '${post.id}')" preload="metadata"></video>`;
+  }
+  return `<img src="${url}" alt="" class="w-full rounded-lg cursor-pointer object-cover" style="max-height:320px" onclick="openLightbox('${url}', '${post.id}')">`;
 }).join('');
 
   const topBadge = isTop ? `<span class="badge badge-gold text-xs"><i class="fas fa-trophy mr-1"></i>今日榜首</span>` : '';
@@ -5047,9 +5106,11 @@ async function openComments(pid) {
   
   // 获取帖子详情
   const { data: post } = await sb.from('posts').select('*, profiles(username, avatar_url, level, display_badge, badges)').eq('id', pid).single();
-  // 记录浏览历史
+      // 记录浏览历史
   if (post) {
-    addToHistory(pid, post.title, post.profiles?.username || '干员', post.profiles?.avatar_url);
+    const authorName = post.profiles?.username || '干员';
+    const avatarUrl = post.profiles?.avatar_url || dicebearUrl(authorName);
+    addToHistory(pid, post.title, authorName, avatarUrl);
   }
   
   // 构建弹窗内容
@@ -5101,13 +5162,13 @@ async function openComments(pid) {
   
   // 渲染帖子预览
   if (post) {
-    const mediaHTML = (post.media_urls || []).map(url => {
-      if (url.match(/\.(mp4|webm|mov)$/i)) {
-        return `<video src="${url}" class="w-full rounded-lg cursor-pointer" style="max-height:300px; object-fit:contain;" onclick="openVideoLightbox('${url}'); event.stopPropagation();"></video>`;
-      } else {
-        return `<img src="${url}" class="w-full rounded-lg cursor-pointer object-contain" style="max-height:300px;" onclick="openLightbox('${url}')">`;
-      }
-    }).join('');
+   const mediaHTML = (post.media_urls || []).map(url => {
+  if (url.match(/\.(mp4|webm|mov)$/i)) {
+    return `<video src="${url}" class="w-full rounded-lg cursor-pointer" style="max-height:300px; object-fit:contain;" onclick="openVideoLightbox('${url}', '${post.id}'); event.stopPropagation();"></video>`;
+  } else {
+    return `<img src="${url}" class="w-full rounded-lg cursor-pointer object-contain" style="max-height:300px;" onclick="openLightbox('${url}', '${post.id}')">`;
+  }
+}).join('');
     
     postPreviewEl.innerHTML = `
       <div class="flex items-center gap-2 mb-2">
@@ -5624,13 +5685,34 @@ async function castVote(optIdx, pid) {
 // 动态创建 Lightbox，彻底避免 CSS 污染
 let lightboxInstance = null;
 
-function openLightbox(url) {
+function openLightbox(url, postId = null) {
   // 如果已存在实例，先移除
   if (lightboxInstance) {
     lightboxInstance.remove();
   }
   
-  // 创建 lightbox 容器（纯黑背景，无毛玻璃，但有缩放动画）
+   // 记录阅读历史
+  if (postId) {
+    console.log('[Lightbox] 尝试记录历史, postId:', postId);
+    const postCard = document.querySelector(`[data-post-id="${postId}"]`);
+    if (postCard) {
+      const titleEl = postCard.querySelector('.post-title');
+      const authorEl = postCard.querySelector('.post-author-name');
+      const avatarEl = postCard.querySelector('.post-avatar');
+      const title = titleEl ? titleEl.textContent.trim() : '图片';
+      const author = authorEl ? authorEl.textContent.trim() : '干员';
+      const avatar = avatarEl ? avatarEl.src : '';
+      console.log('[Lightbox] 提取到标题:', title, '作者:', author);
+      addToHistory(postId, title, author, avatar);
+    } else {
+      console.warn('[Lightbox] 未找到对应卡片，使用备用信息');
+      addToHistory(postId, '查看图片', '干员', '');
+    }
+  } else {
+    console.log('[Lightbox] 未传入 postId，不记录历史');
+  }
+  
+  // 创建 lightbox 容器
   const lightbox = document.createElement('div');
   lightbox.className = 'lightbox-dynamic';
   lightbox.style.cssText = `
@@ -5654,7 +5736,6 @@ function openLightbox(url) {
     -webkit-tap-highlight-color: transparent !important;
   `;
   
-  // 创建图片元素（带缩放动画）
   const img = document.createElement('img');
   img.src = url;
   img.style.cssText = `
@@ -5672,18 +5753,15 @@ function openLightbox(url) {
   
   lightbox.appendChild(img);
   
-  // 点击背景关闭
   lightbox.addEventListener('click', function(e) {
     if (e.target === lightbox) {
       closeLightbox();
     }
   });
   
-  // 挂载到 body
   document.body.appendChild(lightbox);
   lightboxInstance = lightbox;
   
-  // 强制重绘后激活动画
   requestAnimationFrame(() => {
     lightbox.style.opacity = '1';
     img.style.opacity = '1';
@@ -5717,7 +5795,26 @@ document.addEventListener('keydown', function(e) {
 // ==================== 视频弹窗 ====================
 let videoLightboxInstance = null;
 
-function openVideoLightbox(videoUrl) {
+function openVideoLightbox(videoUrl, postId = null) {
+    // 记录阅读历史
+  if (postId) {
+    console.log('[VideoLightbox] 尝试记录历史, postId:', postId);
+    const postCard = document.querySelector(`[data-post-id="${postId}"]`);
+    if (postCard) {
+      const titleEl = postCard.querySelector('.post-title');
+      const authorEl = postCard.querySelector('.post-author-name');
+      const avatarEl = postCard.querySelector('.post-avatar');
+      const title = titleEl ? titleEl.textContent.trim() : '视频';
+      const author = authorEl ? authorEl.textContent.trim() : '干员';
+      const avatar = avatarEl ? avatarEl.src : '';
+      console.log('[VideoLightbox] 提取到标题:', title, '作者:', author);
+      addToHistory(postId, title, author, avatar);
+    } else {
+      console.warn('[VideoLightbox] 未找到对应卡片，使用备用信息');
+      addToHistory(postId, '查看视频', '干员', '');
+    }
+  }
+  
   if (videoLightboxInstance) {
     videoLightboxInstance.remove();
     videoLightboxInstance = null;
@@ -7963,23 +8060,28 @@ function initTactical() {
     fileInput.click();
   };
   
-  // 修改上传底图处理
-  const bgInput = $('tacticalBgInput');
+    // 修改上传底图处理
+  const bgInput = document.getElementById('tacticalBgInput');
   if (bgInput) {
-    bgInput.addEventListener('change', function(e) {
+    // 先移除之前绑定的所有监听器，避免重复绑定
+    const newBgInput = bgInput.cloneNode(true);
+    bgInput.parentNode.replaceChild(newBgInput, bgInput);
+    newBgInput.addEventListener('change', function(e) {
       const file = e.target.files[0];
       if (!file) return;
       const reader = new FileReader();
       reader.onload = function(ev) {
         const img = new Image();
         img.onload = function() {
-          // 将上传的图片绘制到 bgCanvas
+          // 关键修复：将上传的图片绘制到离屏背景层 bgCanvas，而不是主画布
           bgCtx.clearRect(0, 0, 800, 500);
           bgCtx.drawImage(img, 0, 0, 800, 500);
           tacticalBgImage = img;
+          // 叠加半透明网格
           drawTacticalGridOverlayOnCtx(bgCtx);
+          // 重绘主画布（会包含自由绘制层和文字层）
           redrawCanvas();
-          showToast('底图已上传', 'success');
+          showToast('底图已上传，可以开始标注', 'success');
         };
         img.src = ev.target.result;
       };
@@ -8079,15 +8181,56 @@ function drawArrow(fromX, fromY, toX, toY, color, width) {
 function clearTacticalCanvas() {
   // 清除上传的底图引用
   tacticalBgImage = null;
-  // 重新绘制默认的模拟地图背景
-  drawTacticalBaseMap();
+  // 重新绘制默认背景到离屏背景层
+  const bgCanvas = document.createElement('canvas');
+  bgCanvas.width = 800;
+  bgCanvas.height = 500;
+  const bgCtx = bgCanvas.getContext('2d');
+  // 绘制默认网格背景
+  const grad = bgCtx.createLinearGradient(0, 0, 800, 500);
+  grad.addColorStop(0, '#2a3a2a');
+  grad.addColorStop(1, '#1a2a1a');
+  bgCtx.fillStyle = grad;
+  bgCtx.fillRect(0, 0, 800, 500);
+  bgCtx.strokeStyle = '#3a5a3a';
+  bgCtx.lineWidth = 0.5;
+  for (let i = 0; i <= 800; i += 40) {
+    bgCtx.beginPath();
+    bgCtx.moveTo(i, 0);
+    bgCtx.lineTo(i, 500);
+    bgCtx.stroke();
+  }
+  for (let i = 0; i <= 500; i += 40) {
+    bgCtx.beginPath();
+    bgCtx.moveTo(0, i);
+    bgCtx.lineTo(800, i);
+    bgCtx.stroke();
+  }
+  bgCtx.fillStyle = '#FFD700';
+  bgCtx.beginPath();
+  bgCtx.arc(200, 150, 10, 0, 2*Math.PI);
+  bgCtx.fill();
+  bgCtx.fillStyle = '#FF4757';
+  bgCtx.beginPath();
+  bgCtx.arc(600, 350, 12, 0, 2*Math.PI);
+  bgCtx.fill();
+  bgCtx.font = 'bold 14px "Noto Sans SC"';
+  bgCtx.fillStyle = '#FFFFFF';
+  bgCtx.fillText('A点', 180, 120);
+  bgCtx.fillText('B点', 580, 320);
+  // 将默认背景绘制到主画布
+  const mainCanvas = document.getElementById('tacticalCanvas');
+  const mainCtx = mainCanvas.getContext('2d');
+  mainCtx.clearRect(0, 0, 800, 500);
+  mainCtx.drawImage(bgCanvas, 0, 0);
+  // 清空自由绘制层（文字层保留）
+  // 注意：freeCanvas 和 textObjects 的清除由外部 redrawCanvas 负责，但这里直接操作主画布后需要同步
+  if (typeof redrawCanvas === 'function') redrawCanvas();
   showToast('已恢复默认地图背景', 'info');
-}
-function uploadTacticalBackground() {
-  const fileInput = $('tacticalBgInput');
+}function uploadTacticalBackground() {
+  const fileInput = document.getElementById('tacticalBgInput');
   if (!fileInput) return;
   fileInput.click();
-  // 注意：change 事件已在 DOMContentLoaded 中绑定，此处不再重复绑定
 }
 function handleTacticalBackgroundUpload(file) {
   if (!file) return;
@@ -8408,6 +8551,72 @@ async function resolveReport(rid, status) {
   showToast('已处理');
   loadAdminData();
 }
+window.markAllNotificationsRead = async function() {
+  if (!APP.user) {
+    showToast('请先登录', 'error');
+    return;
+  }
+  
+  try {
+    // 如果数据库中有 is_read 列，则更新；否则只更新前端状态
+    const { error } = await sb.from('notifications')
+      .update({ is_read: true })
+      .eq('recipient_id', APP.user.id);
+      
+    if (error) {
+      // 如果错误是因为列不存在，则忽略并仅在前端处理
+      if (error.message.includes('is_read')) {
+        console.warn('数据库无 is_read 列，仅前端标记已读');
+      } else {
+        throw error;
+      }
+    }
+    
+    // 更新本地状态
+    APP.notifications = APP.notifications.map(n => ({ ...n, is_read: true }));
+    $('notifDot').style.display = 'none';
+    renderNotifications();
+    showToast('所有通知已标记为已读', 'success');
+  } catch (e) {
+    console.error('全部已读失败:', e);
+    showToast('操作失败，请重试', 'error');
+  }
+};
+window.deleteNotification = async function(notifId) {
+  if (!APP.user) {
+    showToast('请先登录', 'error');
+    return;
+  }
+  
+  if (!notifId) {
+    showToast('通知ID无效', 'error');
+    return;
+  }
+  
+  try {
+    // 从数据库删除
+    const { error } = await sb.from('notifications')
+      .delete()
+      .eq('id', notifId);
+      
+    if (error) throw error;
+    
+    // 从本地数组移除
+    APP.notifications = APP.notifications.filter(n => n.id !== notifId);
+    
+    // 重新渲染列表
+    renderNotifications();
+    
+    // 检查红点
+    const hasUnread = APP.notifications.some(n => !n.is_read);
+    if (!hasUnread) $('notifDot').style.display = 'none';
+    
+    showToast('通知已删除', 'success');
+  } catch (e) {
+    console.error('删除通知失败:', e);
+    showToast('删除失败', 'error');
+  }
+};
 // ==================== 实时在线计数 ====================
 let onlineChannel = null;
 
@@ -8479,7 +8688,6 @@ function renderNotifications() {
   }
 
   list.innerHTML = APP.notifications.slice(-20).reverse().map(n => {
-    // 兼容不同的字段名
     const msg = n.content || n.msg || n.message || '有新动态';
     const time = n.created_at || n.time || new Date().toISOString();
     const type = n.type || 'system';
@@ -8492,15 +8700,21 @@ function renderNotifications() {
     else if (type === 'favorite') { iconClass = 'fa-heart'; colorClass = 'text-pink-400'; }
     else if (type === 'download') { iconClass = 'fa-download'; colorClass = 'text-purple-400'; }
 
+    const notifId = n.id || `${n.type}-${time}`;
     return `
-      <div class="p-2 rounded-lg text-sm" style="background:var(--surface)">
-        <i class="fas ${iconClass} ${colorClass} mr-2"></i>${msg}
-        <span class="text-xs ml-2" style="color:var(--muted)">${timeAgo(time)}</span>
+      <div class="p-2 rounded-lg text-sm flex items-start gap-2" style="background:var(--surface)" id="notif-${notifId}">
+        <i class="fas ${iconClass} ${colorClass} mt-0.5"></i>
+        <div class="flex-1 min-w-0">
+          <span class="break-words">${msg}</span>
+          <span class="text-xs ml-2" style="color:var(--muted)">${timeAgo(time)}</span>
+        </div>
+        <button onclick="deleteNotification('${n.id}')" class="delete-notif-btn text-xs px-2 py-1 rounded-full hover:bg-red-500/10 transition-all duration-200" style="color:var(--muted);" title="删除通知">
+          <i class="fas fa-trash-alt"></i>
+        </button>
       </div>
     `;
   }).join('');
 }
-
 // ==================== BGM 播放器 ====================
 const BGM_SONGS = [
   { name:'三角洲行动 - 主旋律', url:'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3' },
