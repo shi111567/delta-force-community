@@ -1136,7 +1136,122 @@ touch-action: none; /* 禁止浏览器默认的滚动、缩放等触摸行为 */
     right: 24px; 
   }
 }
+/* ===== 雷达图终极防模糊：独立合成层 + 禁止父级变换干扰 ===== */
+#topicRadarChartV2 {
+  transform: translateZ(0) !important;
+  will-change: transform !important;
+  backface-visibility: hidden !important;
+  image-rendering: crisp-edges;
+  isolation: isolate;
+  /* 强制提升到独立的 GPU 层，不受父元素 transform 影响 */
+  position: relative;
+  z-index: 1;
+}
 
+/* 确保雷达图所在卡片悬停时，Canvas 不受任何缩放影响 */
+#intelCenterContent .rounded-xl:hover #topicRadarChartV2,
+#intelCenterContent .rounded-xl:hover canvas,
+#intelCenterContent div:hover #topicRadarChartV2 {
+  transform: translateZ(0) !important;
+  will-change: transform !important;
+}
+
+/* 保留王牌对决和语音简报卡片的悬停放大效果 */
+#intelCenterContent .grid .rounded-xl {
+  transition: border-color 0.2s, box-shadow 0.3s, transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+#intelCenterContent .grid .rounded-xl:hover {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 20px rgba(255,107,53,0.2);
+  transform: translateY(-4px) scale(1.02) !important;
+}
+
+/* 底部雷达图卡片保留边框发光，但不做任何变换（因为它内部有 Canvas） */
+#intelCenterContent > div:last-of-type .rounded-xl {
+  transition: border-color 0.2s, box-shadow 0.3s;
+  transform: none !important;
+}
+
+#intelCenterContent > div:last-of-type .rounded-xl:hover {
+  transform: none !important;
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 15px rgba(255,107,53,0.15) !important;
+}
+/* ===== 战术情报中心专属动效 ===== */
+#intelCenterContent {
+  animation: intelFadeIn 0.3s ease-out;
+}
+
+@keyframes intelFadeIn {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ===== 战术情报中心专属动效 ===== */
+#intelCenterContent {
+  animation: intelFadeIn 0.3s ease-out;
+}
+
+@keyframes intelFadeIn {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* 只对双栏网格中的卡片应用悬停放大效果 */
+#intelCenterContent .grid .rounded-xl {
+  transition: border-color 0.2s, box-shadow 0.3s, transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+#intelCenterContent .grid .rounded-xl:hover {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 20px rgba(255,107,53,0.2);
+  transform: translateY(-4px) scale(1.02);
+}
+
+/* 底部雷达图卡片（全宽卡片）完全禁止变换，防止 Canvas 模糊 */
+#intelCenterContent > div:last-child .rounded-xl {
+  transform: none !important;
+  transition: border-color 0.2s, box-shadow 0.3s;
+}
+
+#intelCenterContent > div:last-child .rounded-xl:hover {
+  transform: none !important;
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 15px rgba(255,107,53,0.15);
+}
+
+/* 语音卡片独立悬停效果（保留平移，不缩放） */
+#voiceWallListV2 > div {
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transform: translateZ(0);
+}
+
+#voiceWallListV2 > div:hover {
+  transform: translateX(4px) translateZ(0);
+  background: rgba(0,229,255,0.08) !important;
+}
+
+/* 确保 Canvas 自身完全独立，不受任何父级变换影响 */
+#topicRadarChartV2 {
+  transform: translateZ(0) !important;
+  will-change: auto !important;
+  backface-visibility: hidden !important;
+  image-rendering: crisp-edges;
+  isolation: isolate;
+}
+
+#intelCenterContent canvas {
+  transform: translateZ(0) !important;
+  will-change: auto !important;
+}
+
+/* 雷达图容器响应式 */
+@media (max-width: 640px) {
+  #intelCenterContent .grid {
+    gap: 12px;
+  }
+}
   /* 录音动画 */
   .recording { animation: recordPulse 0.8s infinite; }
   @keyframes recordPulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
@@ -2092,6 +2207,7 @@ body {
 </style>
 <script src="https://cdn.jsdelivr.net/npm/interactjs@1.10.27/dist/interact.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/tus-js-client@4.1.0/dist/tus.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 
 <body>
@@ -2254,6 +2370,82 @@ body {
       <div class="pt-4 border-t" style="border-color:var(--border);">
         <button class="btn-warm w-full py-2" onclick="applyDrawerFilters()">应用筛选</button>
         <button class="btn-ghost w-full py-2 mt-2" onclick="resetDrawerFilters()">重置</button>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- ==================== 战术情报中心（整合版） ==================== -->
+<div class="card-base mb-4 overflow-hidden" style="background: linear-gradient(145deg, var(--card) 0%, rgba(255,107,53,0.05) 100%); border: 1px solid var(--border);">
+  <!-- 总标题栏：点击展开/折叠全部 -->
+  <div class="flex items-center justify-between p-4 cursor-pointer" onclick="toggleIntelligenceCenter()">
+    <div class="flex items-center gap-3">
+      <div class="relative">
+        <i class="fas fa-satellite-dish text-xl" style="color: var(--accent);"></i>
+        <span class="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+      </div>
+      <h3 class="font-display text-lg tracking-wider">战术情报中心</h3>
+      <span class="text-xs px-3 py-1 rounded-full" style="background: var(--accent); color: white;" id="intelUpdateBadge">实时</span>
+    </div>
+    <div class="flex items-center gap-3">
+      <span class="text-xs hidden sm:inline" style="color: var(--muted);" id="intelSummary">3项情报待阅</span>
+      <i class="fas fa-chevron-down transition-transform duration-300" id="intelCenterIcon" style="color: var(--muted);"></i>
+    </div>
+  </div>
+  
+  <!-- 折叠内容区 -->
+  <div id="intelCenterContent" class="px-4 pb-4 hidden">
+    <!-- 双栏布局：王牌对决 + 语音广场 -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+      
+      <!-- 左侧：王牌对决 -->
+      <div class="p-4 rounded-xl" style="background: rgba(255,107,53,0.05); border: 1px solid var(--border);">
+        <div class="flex items-center gap-2 mb-3">
+          <i class="fas fa-crosshairs" style="color: var(--accent);"></i>
+          <h4 class="font-bold text-sm">⚔️ 王牌对决 · 段位赛</h4>
+          <span class="text-xs px-2 py-0.5 rounded-full ml-auto" style="background: var(--accent); color: white;" id="pkRemainingV2">剩余 3 次</span>
+        </div>
+        <div id="pkBattleContainerV2" class="min-h-28">
+          <div class="text-center py-6 text-xs" style="color: var(--muted);"><i class="fas fa-spinner fa-pulse mr-2"></i>匹配对手中...</div>
+        </div>
+        <div class="flex justify-between items-center mt-3">
+          <button class="btn-ghost text-xs px-3 py-1" onclick="refreshPKBattleV2()"><i class="fas fa-redo-alt mr-1"></i>换一批</button>
+          <span class="text-xs" style="color: var(--muted);"><i class="fas fa-trophy mr-1"></i>实时积分榜</span>
+        </div>
+      </div>
+      
+      <!-- 右侧：战术回响·语音简报 -->
+      <div class="p-4 rounded-xl" style="background: rgba(0,229,255,0.03); border: 1px solid var(--border);">
+        <div class="flex items-center gap-2 mb-3">
+          <i class="fas fa-broadcast-tower" style="color: #00e5ff;"></i>
+          <h4 class="font-bold text-sm">📡 战术回响 · 语音简报</h4>
+          <span class="text-xs px-2 py-0.5 rounded-full ml-auto" style="background: #00e5ff20; color: #00e5ff;" id="voiceCountBadge">0条</span>
+        </div>
+        <div id="voiceWallListV2" class="space-y-2 max-h-40 overflow-y-auto pr-1">
+          <div class="text-center py-6 text-xs" style="color: var(--muted);">📻 截获战场信号中...</div>
+        </div>
+        <div class="flex justify-end mt-2">
+          <button class="text-xs btn-ghost px-3 py-1" onclick="refreshVoiceWallV2()"><i class="fas fa-sync-alt mr-1"></i>刷新</button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 底部：战备物资·热度雷达（全宽） -->
+    <div class="p-4 rounded-xl" style="background: rgba(255,215,0,0.02); border: 1px solid var(--border);">
+      <div class="flex items-center gap-2 mb-2">
+        <i class="fas fa-chart-pie" style="color: var(--accent);"></i>
+        <h4 class="font-bold text-sm">📊 战备物资 · 热度雷达</h4>
+        <span class="text-xs ml-auto" style="color: var(--muted);">六大兵种/战术实时热度</span>
+      </div>
+      <div class="relative w-full" style="height: 160px;">
+        <canvas id="topicRadarChartV2" width="600" height="160" style="width:100%; height:100%; display:block;"></canvas>
+      </div>
+      <div class="flex justify-center gap-6 mt-2 text-[10px] flex-wrap" style="color: var(--muted);">
+        <span><span class="inline-block w-2 h-2 rounded-full mr-1" style="background: #FF6B35;"></span>突击</span>
+        <span><span class="inline-block w-2 h-2 rounded-full mr-1" style="background: #2ecc71;"></span>工程</span>
+        <span><span class="inline-block w-2 h-2 rounded-full mr-1" style="background: #3498db;"></span>侦察</span>
+        <span><span class="inline-block w-2 h-2 rounded-full mr-1" style="background: #f1c40f;"></span>支援</span>
+        <span><span class="inline-block w-2 h-2 rounded-full mr-1" style="background: #9b59b6;"></span>战术</span>
+        <span><span class="inline-block w-2 h-2 rounded-full mr-1" style="background: #e67e22;"></span>武器</span>
       </div>
     </div>
   </div>
@@ -8979,6 +9171,311 @@ function enableHorizontalDragScroll(element) {
     }
   `;
   document.head.appendChild(style);
+}
+// ==================== 战术情报中心（整合版逻辑） ====================
+let topicRadarChartV2 = null;
+let intelCenterLoaded = false;
+
+// 总折叠控制
+function toggleIntelligenceCenter() {
+  const content = document.getElementById('intelCenterContent');
+  const icon = document.getElementById('intelCenterIcon');
+  if (!content || !icon) return;
+  
+  if (content.classList.contains('hidden')) {
+    content.classList.remove('hidden');
+    icon.style.transform = 'rotate(180deg)';
+    
+    // 首次展开时加载所有数据
+    if (!intelCenterLoaded) {
+      setTimeout(() => {
+        loadPKBattleV2();
+        loadVoiceWallV2();
+        renderTopicRadarV2();
+        intelCenterLoaded = true;
+      }, 50);
+    }
+  } else {
+    content.classList.add('hidden');
+    icon.style.transform = 'rotate(0deg)';
+  }
+}
+
+// ========== 王牌对决 V2 ==========
+const PK_CONFIG_V2 = { dailyLimit: 3, storageKey: 'delta_pk_data_v2' };
+let pkStateV2 = { leftPlayer: null, rightPlayer: null };
+
+async function loadPKBattleV2() {
+  const container = document.getElementById('pkBattleContainerV2');
+  if (!container) return;
+  
+  container.innerHTML = '<div class="text-center py-6 text-xs" style="color: var(--muted);"><i class="fas fa-spinner fa-pulse mr-2"></i>匹配对手中...</div>';
+  
+  const { data: profiles } = await sb
+    .from('profiles')
+    .select('id, username, avatar_url, pk_score, level')
+    .order('created_at', { ascending: false })
+    .limit(20);
+  
+  if (!profiles || profiles.length < 2) {
+    container.innerHTML = '<div class="text-center py-4 text-xs" style="color: var(--muted);">玩家数量不足，无法匹配</div>';
+    return;
+  }
+  
+  const shuffled = profiles.sort(() => Math.random() - 0.5);
+  pkStateV2.leftPlayer = shuffled[0];
+  pkStateV2.rightPlayer = shuffled[1];
+  
+  container.innerHTML = `
+    <div class="flex items-center justify-around">
+      <div class="text-center cursor-pointer group" onclick="voteForPKV2('${pkStateV2.leftPlayer.id}')" style="flex:1;">
+        <div class="relative inline-block">
+          <img src="${pkStateV2.leftPlayer.avatar_url || dicebearUrl(pkStateV2.leftPlayer.username)}" class="w-14 h-14 md:w-16 md:h-16 rounded-full object-cover border-2 transition-all duration-300 group-hover:scale-110" style="border-color: var(--accent);">
+          <span class="absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold" style="background: var(--accent); color: white;">VS</span>
+        </div>
+        <div class="font-bold text-sm mt-1 truncate max-w-24 mx-auto">${pkStateV2.leftPlayer.username}</div>
+        <div class="text-[10px]" style="color: var(--accent);"><i class="fas fa-trophy mr-1"></i>${pkStateV2.leftPlayer.pk_score || 0}</div>
+        <button class="btn-warm text-xs mt-2 px-3 py-1"><i class="fas fa-fist-raised mr-1"></i>支持</button>
+      </div>
+      <div class="text-xl font-display mx-1" style="color: var(--accent);">VS</div>
+      <div class="text-center cursor-pointer group" onclick="voteForPKV2('${pkStateV2.rightPlayer.id}')" style="flex:1;">
+        <div class="relative inline-block">
+          <img src="${pkStateV2.rightPlayer.avatar_url || dicebearUrl(pkStateV2.rightPlayer.username)}" class="w-14 h-14 md:w-16 md:h-16 rounded-full object-cover border-2 transition-all duration-300 group-hover:scale-110" style="border-color: var(--accent);">
+        </div>
+        <div class="font-bold text-sm mt-1 truncate max-w-24 mx-auto">${pkStateV2.rightPlayer.username}</div>
+        <div class="text-[10px]" style="color: var(--accent);"><i class="fas fa-trophy mr-1"></i>${pkStateV2.rightPlayer.pk_score || 0}</div>
+        <button class="btn-warm text-xs mt-2 px-3 py-1"><i class="fas fa-fist-raised mr-1"></i>支持</button>
+      </div>
+    </div>
+  `;
+  
+  updatePKRemainingV2();
+}
+
+async function voteForPKV2(winnerId) {
+  if (!APP.user) { openAuthModal(); showToast('请先登录参与对决'); return; }
+  
+  const today = new Date().toDateString();
+  const voteData = JSON.parse(localStorage.getItem(PK_CONFIG_V2.storageKey) || '{}');
+  const todayVotes = voteData[today] || 0;
+  
+  if (todayVotes >= PK_CONFIG_V2.dailyLimit) {
+    showToast('今日投票次数已用完', 'warning');
+    return;
+  }
+  
+  voteData[today] = todayVotes + 1;
+  localStorage.setItem(PK_CONFIG_V2.storageKey, JSON.stringify(voteData));
+  
+  try {
+    await sb.rpc('increment_pk_score', { player_id: winnerId });
+    await sb.from('notifications').insert({
+      recipient_id: winnerId,
+      sender_id: APP.user.id,
+      type: 'system',
+      content: `🎖️ 你在今日王牌对决中获得1票支持！积分+1`
+    });
+    showToast('⚡ 支持成功！', 'success');
+    updatePKRemainingV2();
+    setTimeout(() => loadPKBattleV2(), 800);
+  } catch (e) {
+    showToast('投票失败', 'error');
+  }
+}
+
+function updatePKRemainingV2() {
+  const today = new Date().toDateString();
+  const voteData = JSON.parse(localStorage.getItem(PK_CONFIG_V2.storageKey) || '{}');
+  const used = voteData[today] || 0;
+  const remaining = PK_CONFIG_V2.dailyLimit - used;
+  const el = document.getElementById('pkRemainingV2');
+  if (el) {
+    el.textContent = `剩余 ${remaining} 次`;
+    el.style.background = remaining === 0 ? '#6c757d' : 'var(--accent)';
+  }
+}
+
+function refreshPKBattleV2() {
+  loadPKBattleV2();
+}
+
+// ========== 语音广场 V2 ==========
+async function loadVoiceWallV2() {
+  const listEl = document.getElementById('voiceWallListV2');
+  if (!listEl) return;
+  
+  listEl.innerHTML = '<div class="text-center py-6 text-xs" style="color: var(--muted);">📻 截获战场信号中...</div>';
+  
+  const { data: voiceComments, error } = await sb
+    .from('comments')
+    .select(`id, voice_url, created_at, post_id, user_id, profiles(username, avatar_url), posts(title)`)
+    .not('voice_url', 'is', null)
+    .order('created_at', { ascending: false })
+    .limit(8);
+  
+  if (error || !voiceComments || voiceComments.length === 0) {
+    listEl.innerHTML = '<div class="text-center py-4 text-xs" style="color: var(--muted);">📡 暂无战场录音</div>';
+    document.getElementById('voiceCountBadge').textContent = '0条';
+    return;
+  }
+  
+  document.getElementById('voiceCountBadge').textContent = voiceComments.length + '条';
+  
+  listEl.innerHTML = voiceComments.map(vc => {
+    const user = vc.profiles || {};
+    return `
+      <div class="flex items-center gap-2 p-2 rounded-lg cursor-pointer hover:bg-white/5 transition-all" onclick="playVoiceFromWallV2('${vc.voice_url}')">
+        <img src="${user.avatar_url || dicebearUrl(user.username || 'default')}" class="w-7 h-7 rounded-full object-cover border" style="border-color: #00e5ff;">
+        <div class="flex-1 min-w-0">
+          <div class="text-xs font-medium truncate">${user.username || '干员'}</div>
+          <div class="text-[10px] truncate" style="color: var(--muted);">${vc.posts?.title || '战术语音'}</div>
+        </div>
+        <i class="fas fa-play-circle text-sm" style="color: #00e5ff;"></i>
+      </div>
+    `;
+  }).join('');
+}
+
+function playVoiceFromWallV2(url) {
+  if (!url) return;
+  new Audio(url).play().catch(e => showToast('播放失败', 'error'));
+  showToast('🎧 正在播放战术简报', 'info');
+}
+
+function refreshVoiceWallV2() {
+  loadVoiceWallV2();
+  showToast('战场信号已刷新', 'success');
+}
+
+// ========== 雷达图 V2（终极清晰版：独立合成层 + 超采样） ==========
+async function renderTopicRadarV2() {
+  const canvas = document.getElementById('topicRadarChartV2');
+  if (!canvas) return;
+  
+  const container = canvas.parentElement;
+  if (!container) return;
+  
+  // 固定容器高度
+  container.style.height = '200px';
+  container.style.minHeight = '200px';
+  container.style.width = '100%';
+  
+  if (container.clientHeight === 0) {
+    setTimeout(renderTopicRadarV2, 100);
+    return;
+  }
+  
+  // 使用更高的 DPR 进行超采样（最大 3 倍），让文字和线条极致清晰
+  const dpr = Math.min(window.devicePixelRatio || 1, 3);
+  const displayWidth = container.clientWidth || 600;
+  const displayHeight = 200;
+  
+  canvas.width = displayWidth * dpr;
+  canvas.height = displayHeight * dpr;
+  canvas.style.width = displayWidth + 'px';
+  canvas.style.height = displayHeight + 'px';
+  canvas.style.display = 'block';
+  // 强制 Canvas 创建独立的合成层，完全隔离父级的 transform 影响
+  canvas.style.transform = 'translateZ(0)';
+  canvas.style.willChange = 'transform';
+  canvas.style.backfaceVisibility = 'hidden';
+  
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  
+  const categories = ['突击', '工程', '侦察', '支援', '战术研讨', '武器评测'];
+  
+  try {
+    const counts = await Promise.all(categories.map(async (cat) => {
+      if (['突击', '工程', '侦察', '支援'].includes(cat)) {
+        const { count } = await sb.from('posts').select('*', { count: 'exact', head: true }).eq('operator_class', cat);
+        return count || 0;
+      } else {
+        const { count } = await sb.from('posts').select('*', { count: 'exact', head: true }).contains('tags', [cat]);
+        return count || 0;
+      }
+    }));
+    
+    const total = counts.reduce((a, b) => a + b, 0) || 1;
+    const dataValues = counts.map(c => Math.round((c / total) * 100));
+    
+    if (topicRadarChartV2) topicRadarChartV2.destroy();
+    
+    const textColor = getComputedStyle(document.body).getPropertyValue('--text').trim() || '#F5E6D3';
+    const mutedColor = getComputedStyle(document.body).getPropertyValue('--muted').trim() || '#A0897A';
+    const borderColor = getComputedStyle(document.body).getPropertyValue('--border').trim() || 'rgba(255,140,90,0.15)';
+    
+    // Chart.js 配置：关闭响应式与动画，完全由 Canvas 自身控制渲染
+    topicRadarChartV2 = new Chart(ctx, {
+      type: 'radar',
+      data: {
+        labels: categories,
+        datasets: [{
+          data: dataValues,
+          backgroundColor: 'rgba(255, 107, 53, 0.2)',
+          borderColor: '#FF6B35',
+          borderWidth: 2,
+          pointBackgroundColor: '#FFD700',
+          pointBorderColor: '#fff',
+          pointBorderWidth: 1.5,
+          pointRadius: 5,
+          pointHoverRadius: 6,
+        }]
+      },
+      options: {
+        responsive: false,            // 完全固定尺寸，禁止任何重计算
+        maintainAspectRatio: false,
+        devicePixelRatio: dpr,        // 告知 Chart.js 使用高 DPR 渲染
+        animation: false,             // 关闭动画防止重绘闪烁
+        hover: {
+          mode: 'point',
+          intersect: true,
+          animationDuration: 0
+        },
+        scales: {
+          r: {
+            beginAtZero: true,
+            max: 100,
+            ticks: { 
+              stepSize: 20, 
+              color: mutedColor, 
+              font: { size: 11, weight: '600' }
+            },
+            grid: { 
+              color: borderColor,
+              lineWidth: 0.5,
+              circular: true
+            },
+            pointLabels: { 
+              color: textColor, 
+              font: { size: 12, weight: 'bold' }
+            }
+          }
+        },
+        plugins: { 
+          legend: { display: false }, 
+          tooltip: { 
+            enabled: true,
+            backgroundColor: '#1C120D',
+            titleColor: '#F5E6D3',
+            bodyColor: '#A0897A',
+            bodyFont: { size: 12 },
+            padding: 8
+          } 
+        }
+      }
+    });
+    
+    console.log('✅ 雷达图渲染成功 (独立合成层超采样模式)');
+  } catch (e) {
+    console.error('雷达图渲染失败:', e);
+    container.innerHTML = '<div class="text-center py-8 text-xs" style="color: var(--muted);">图表加载失败，请刷新页面</div>';
+  }
+}
+// 更新情报中心摘要（可选）
+function updateIntelSummary() {
+  const summaryEl = document.getElementById('intelSummary');
+  if (summaryEl) summaryEl.textContent = '3项情报待阅';
 }
 // ==================== 强制挂载折叠函数 ====================
 window.toggleSquadCard = function(cardId) {
