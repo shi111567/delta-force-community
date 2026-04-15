@@ -240,6 +240,12 @@ tailwind.config = {
 }
 </script>
 <style>
+
+.task-claim-btn:disabled { opacity: 0.5; pointer-events: none; }
+@keyframes modalPop {
+  0% { transform: scale(0.8); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
 .delete-notif-btn:hover {
   color: #e74c3c !important;
   transform: scale(1.1);
@@ -3261,6 +3267,41 @@ body {
     </div>
   </div>
 </div>
+<!-- 每日任务弹窗 -->
+<div class="modal-overlay" id="dailyTasksModal">
+  <div class="modal-content" style="max-width:420px">
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="font-display text-xl"><i class="fas fa-calendar-check mr-2"></i>每日任务</h2>
+      <button onclick="closeModal('dailyTasksModal')" class="w-8 h-8 rounded-full flex items-center justify-center" style="background:var(--surface)"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="space-y-3">
+      <div class="p-4 rounded-xl" style="background:var(--surface);">
+        <div class="flex items-center justify-between mb-2">
+          <span class="font-bold text-sm"><i class="fas fa-pen mr-2" style="color:var(--accent);"></i>发表帖子</span>
+          <span class="text-xs" style="color:var(--muted);" id="taskPostProgress">0/1</span>
+        </div>
+        <div class="exp-bar h-2 mb-2"><div class="exp-fill" id="taskPostBar" style="width:0%"></div></div>
+        <button class="btn-ghost w-full py-2 text-xs task-claim-btn" id="taskPostBtn" onclick="claimTaskReward('post', event)">领取 +20 EXP</button>
+      </div>
+      <div class="p-4 rounded-xl" style="background:var(--surface);">
+        <div class="flex items-center justify-between mb-2">
+          <span class="font-bold text-sm"><i class="fas fa-thumbs-up mr-2" style="color:var(--accent);"></i>点赞帖子</span>
+          <span class="text-xs" style="color:var(--muted);" id="taskLikeProgress">0/3</span>
+        </div>
+        <div class="exp-bar h-2 mb-2"><div class="exp-fill" id="taskLikeBar" style="width:0%"></div></div>
+        <button class="btn-ghost w-full py-2 text-xs task-claim-btn" id="taskLikeBtn" onclick="claimTaskReward('like', event)">领取 +30 EXP</button>
+      </div>
+      <div class="p-4 rounded-xl" style="background:var(--surface);">
+        <div class="flex items-center justify-between mb-2">
+          <span class="font-bold text-sm"><i class="fas fa-comment mr-2" style="color:var(--accent);"></i>发表评论</span>
+          <span class="text-xs" style="color:var(--muted);" id="taskCommentProgress">0/1</span>
+        </div>
+        <div class="exp-bar h-2 mb-2"><div class="exp-fill" id="taskCommentBar" style="width:0%"></div></div>
+        <button class="btn-ghost w-full py-2 text-xs task-claim-btn" id="taskCommentBtn" onclick="claimTaskReward('comment', event)">领取 +20 EXP</button>
+      </div>
+    </div>
+  </div>
+</div>
 <!-- 搜索音乐弹窗 -->
 <!-- 忘记密码弹窗（增强版：支持用户名/邮箱 + 验证码重置） -->
 <div class="modal-overlay" id="forgotModal">
@@ -3286,57 +3327,72 @@ body {
     </div>
   </div>
 </div>
-<!-- 配装推荐弹窗 -->
+<!-- 配装推荐弹窗（增强版） -->
 <div class="modal-overlay" id="loadoutModal">
-  <div class="modal-content" style="max-width:400px">
+  <div class="modal-content" style="max-width:480px">
     <div class="flex justify-between items-center mb-4">
-      <h2 class="font-display text-xl">配装推荐</h2>
-      <button onclick="closeModal('loadoutModal')" class="w-8 h-8 rounded-full flex items-center justify-center" style="background:var(--surface)"><i class="fas fa-times"></i></button>
-    </div>
-    <div class="space-y-3">
-      <div class="p-3 rounded-lg" style="background:var(--surface);">
-        <div class="font-bold mb-2"><i class="fas fa-crosshairs mr-2"></i>热门配装方案</div>
-        <div class="space-y-2 text-sm">
-          <div class="flex justify-between"><span>M4A1 突击步枪</span><span class="text-accent">高稳定性</span></div>
-          <div class="flex justify-between"><span>MP5 冲锋枪</span><span class="text-accent">近战爆发</span></div>
-          <div class="flex justify-between"><span>SR-25 射手步枪</span><span class="text-accent">中远压制</span></div>
-          <div class="flex justify-between"><span>Vector 冲锋枪</span><span class="text-accent">极高射速</span></div>
-        </div>
+      <h2 class="font-display text-xl"><i class="fas fa-gun mr-2"></i>配装推荐</h2>
+      <div class="flex items-center gap-2">
+        <button onclick="refreshLoadoutData()" class="w-8 h-8 rounded-full flex items-center justify-center" style="background:var(--surface);" title="刷新最新配装"><i class="fas fa-sync-alt"></i></button>
+        <button onclick="closeModal('loadoutModal')" class="w-8 h-8 rounded-full flex items-center justify-center" style="background:var(--surface)"><i class="fas fa-times"></i></button>
       </div>
-      <p class="text-xs text-center" style="color:var(--muted);">更多配装请关注官方公众号</p>
     </div>
+    <!-- 分类筛选 -->
+    <div class="flex gap-2 mb-4 overflow-x-auto pb-2">
+      <button class="loadout-filter-btn active text-xs px-4 py-2 rounded-full" data-filter="all" style="background:var(--accent);color:white;border:none;">全部</button>
+      <button class="loadout-filter-btn text-xs px-4 py-2 rounded-full" data-filter="突击" style="background:var(--surface);border:1px solid var(--border);color:var(--text);">突击</button>
+      <button class="loadout-filter-btn text-xs px-4 py-2 rounded-full" data-filter="工程" style="background:var(--surface);border:1px solid var(--border);color:var(--text);">工程</button>
+      <button class="loadout-filter-btn text-xs px-4 py-2 rounded-full" data-filter="侦察" style="background:var(--surface);border:1px solid var(--border);color:var(--text);">侦察</button>
+      <button class="loadout-filter-btn text-xs px-4 py-2 rounded-full" data-filter="支援" style="background:var(--surface);border:1px solid var(--border);color:var(--text);">支援</button>
+    </div>
+    <!-- 配装列表容器 -->
+    <div id="loadoutListContainer" class="space-y-3 max-h-96 overflow-y-auto pr-1"></div>
+    <p class="text-xs text-center mt-3" style="color:var(--muted);"><i class="fas fa-copy mr-1"></i>点击配装可复制代码</p>
   </div>
 </div>
-
-<!-- 枪械数据弹窗 -->
+<!-- 枪械数据弹窗（增强版） -->
 <div class="modal-overlay" id="weaponModal">
-  <div class="modal-content" style="max-width:400px">
+  <div class="modal-content" style="max-width:700px">
     <div class="flex justify-between items-center mb-4">
-      <h2 class="font-display text-xl">枪械数据</h2>
+      <h2 class="font-display text-xl"><i class="fas fa-chart-simple mr-2"></i>枪械数据</h2>
       <button onclick="closeModal('weaponModal')" class="w-8 h-8 rounded-full flex items-center justify-center" style="background:var(--surface)"><i class="fas fa-times"></i></button>
     </div>
-    <div class="grid grid-cols-2 gap-2">
-      <div class="p-2 rounded-lg text-center" style="background:var(--surface);"><div class="font-bold">M4A1</div><div class="text-xs">伤害:42</div><div class="text-xs">射速:750</div><div class="text-xs">精准:82</div></div>
-      <div class="p-2 rounded-lg text-center" style="background:var(--surface);"><div class="font-bold">AKM</div><div class="text-xs">伤害:48</div><div class="text-xs">射速:600</div><div class="text-xs">精准:75</div></div>
-      <div class="p-2 rounded-lg text-center" style="background:var(--surface);"><div class="font-bold">MP5</div><div class="text-xs">伤害:35</div><div class="text-xs">射速:800</div><div class="text-xs">精准:70</div></div>
-      <div class="p-2 rounded-lg text-center" style="background:var(--surface);"><div class="font-bold">AWM</div><div class="text-xs">伤害:105</div><div class="text-xs">射速:40</div><div class="text-xs">精准:95</div></div>
+    <!-- 搜索框 -->
+    <div class="relative mb-4">
+      <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-sm" style="color:var(--muted);"></i>
+      <input type="text" id="weaponSearchInput" placeholder="搜索枪械名称..." class="w-full pl-10 pr-4 py-2 rounded-full text-sm" style="background:var(--surface);border:1.5px solid var(--border);color:var(--text);" oninput="filterWeaponTable()">
     </div>
-    <p class="text-xs text-center mt-3" style="color:var(--muted);">数据仅供参考</p>
+    <!-- 数据表格 -->
+    <div class="overflow-x-auto rounded-xl border" style="border-color:var(--border);">
+      <table class="w-full text-sm" id="weaponDataTable">
+        <thead style="background:var(--surface);">
+          <tr class="border-b" style="border-color:var(--border);">
+            <th class="px-3 py-3 text-left">枪械</th>
+            <th class="px-3 py-3 text-center cursor-pointer" onclick="sortWeaponTable('damage')">伤害 <i class="fas fa-sort text-xs"></i></th>
+            <th class="px-3 py-3 text-center cursor-pointer" onclick="sortWeaponTable('fireRate')">射速 <i class="fas fa-sort text-xs"></i></th>
+            <th class="px-3 py-3 text-center cursor-pointer" onclick="sortWeaponTable('accuracy')">精准 <i class="fas fa-sort text-xs"></i></th>
+            <th class="px-3 py-3 text-center cursor-pointer" onclick="sortWeaponTable('range')">射程 <i class="fas fa-sort text-xs"></i></th>
+          </tr>
+        </thead>
+        <tbody id="weaponTableBody"></tbody>
+      </table>
+    </div>
+    <p class="text-xs text-center mt-3" style="color:var(--muted);">* 数据基于游戏版本 v2.3</p>
   </div>
 </div>
-
-<!-- 战绩卡片弹窗 -->
+<!-- 战绩卡片弹窗（增强版） -->
 <div class="modal-overlay" id="statsModal">
-  <div class="modal-content" style="max-width:400px">
+  <div class="modal-content" style="max-width:420px">
     <div class="flex justify-between items-center mb-4">
-      <h2 class="font-display text-xl">战绩卡片</h2>
+      <h2 class="font-display text-xl"><i class="fas fa-id-card mr-2"></i>战绩卡片</h2>
       <button onclick="closeModal('statsModal')" class="w-8 h-8 rounded-full flex items-center justify-center" style="background:var(--surface)"><i class="fas fa-times"></i></button>
     </div>
     <div id="statsModalContent">
-      <p class="text-center" style="color:var(--muted);">请先登录查看战绩</p>
+      <!-- 动态渲染战绩卡片 -->
     </div>
   </div>
 </div>
+
 <div class="modal-overlay" id="musicSearchModal">
   <div class="modal-content" style="max-width:440px">
     <div class="flex justify-between items-center mb-4">
@@ -3384,12 +3440,308 @@ const escortState = {
 // ==================== 工具函数 ====================
 function $(id) {
   const el = document.getElementById(id);
-  if (!el) console.warn(`⚠️ 元素 ${id} 未找到，稍后重试`);
+  // 不再打印警告，静默返回 null，由调用方处理
   return el;
 }
 function qs(sel) { return document.querySelector(sel); }
 function qsa(sel) { return document.querySelectorAll(sel); }
+// ==================== 每日任务功能（完整修复补丁） ====================
 
+// 1. 修复 showModal 弹窗回调失效问题（覆盖原函数）
+function showModal(title, message, confirmText = '知道了', onConfirm = null) {
+  // 移除可能存在的旧弹窗
+  const oldModal = document.querySelector('.temp-modal-overlay');
+  if (oldModal) oldModal.remove();
+
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay active temp-modal-overlay';
+  overlay.style.zIndex = '100000';
+  overlay.style.backgroundColor = 'rgba(0,0,0,0.7)';
+  overlay.innerHTML = `
+    <div class="modal-content active" style="max-width:360px; padding:28px 24px; text-align:center; background: var(--card); border-radius: 20px;">
+      <div class="text-5xl mb-4">🎯</div>
+      <h3 class="font-display text-xl mb-2">${title}</h3>
+      <p class="text-sm mb-6" style="color: var(--muted);">${message}</p>
+      <button class="btn-warm w-full py-3 text-base" id="tempModalConfirmBtn">${confirmText}</button>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+
+  const confirmBtn = overlay.querySelector('#tempModalConfirmBtn');
+  const closeModal = () => overlay.remove();
+
+  confirmBtn.addEventListener('click', () => {
+    closeModal();
+    if (typeof onConfirm === 'function') {
+      onConfirm();
+    }
+  });
+
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) closeModal();
+  });
+}
+// 2. 定义任务状态变量
+window.dailyTasks = { post: 0, like: 0, comment: 0, claimed: { post: false, like: false, comment: false } };
+
+// 3. 打开任务弹窗
+window.openDailyTasksModal = function() {
+  if (!APP.user) {
+    openAuthModal();
+    showToast('请先登录');
+    return;
+  }
+  loadDailyTasks();
+  openModal('dailyTasksModal');
+};
+
+// 4. 加载任务进度
+window.loadDailyTasks = async function() {
+  if (!APP.user) return;
+  const today = new Date().toISOString().split('T')[0];
+  try {
+    const { data, error } = await sb
+      .from('daily_task_progress')
+      .select('*')
+      .eq('user_id', APP.user.id)
+      .eq('task_date', today)
+      .maybeSingle();
+    if (error) throw error;
+    if (data) {
+      window.dailyTasks = {
+        post: data.post_progress || 0,
+        like: data.like_progress || 0,
+        comment: data.comment_progress || 0,
+        claimed: {
+          post: data.claimed_post || false,
+          like: data.claimed_like || false,
+          comment: data.claimed_comment || false
+        }
+      };
+    } else {
+      window.dailyTasks = { post: 0, like: 0, comment: 0, claimed: { post: false, like: false, comment: false } };
+      await sb.from('daily_task_progress').upsert({
+        user_id: APP.user.id,
+        task_date: today,
+        post_progress: 0,
+        like_progress: 0,
+        comment_progress: 0,
+        claimed_post: false,
+        claimed_like: false,
+        claimed_comment: false
+      }, { onConflict: 'user_id, task_date' });
+    }
+  } catch (e) {
+    console.error('任务数据加载失败:', e);
+    window.dailyTasks = { post: 0, like: 0, comment: 0, claimed: { post: false, like: false, comment: false } };
+  }
+  updateTaskUI();
+};
+
+// 5. 更新任务 UI
+window.updateTaskUI = function() {
+  const postProgress = Math.min(window.dailyTasks.post, 1);
+  const likeProgress = Math.min(window.dailyTasks.like, 3);
+  const commentProgress = Math.min(window.dailyTasks.comment, 1);
+
+  const postBtn = document.getElementById('taskPostBtn');
+  const likeBtn = document.getElementById('taskLikeBtn');
+  const commentBtn = document.getElementById('taskCommentBtn');
+
+  if (postBtn) {
+    postBtn.disabled = window.dailyTasks.post < 1 || window.dailyTasks.claimed.post;
+    const postProgressEl = document.getElementById('taskPostProgress');
+    if (postProgressEl) postProgressEl.textContent = `${window.dailyTasks.post}/1`;
+    const postBar = document.getElementById('taskPostBar');
+    if (postBar) postBar.style.width = (postProgress * 100) + '%';
+  }
+  if (likeBtn) {
+    likeBtn.disabled = window.dailyTasks.like < 3 || window.dailyTasks.claimed.like;
+    const likeProgressEl = document.getElementById('taskLikeProgress');
+    if (likeProgressEl) likeProgressEl.textContent = `${window.dailyTasks.like}/3`;
+    const likeBar = document.getElementById('taskLikeBar');
+    if (likeBar) likeBar.style.width = (likeProgress / 3 * 100) + '%';
+  }
+  if (commentBtn) {
+    commentBtn.disabled = window.dailyTasks.comment < 1 || window.dailyTasks.claimed.comment;
+    const commentProgressEl = document.getElementById('taskCommentProgress');
+    if (commentProgressEl) commentProgressEl.textContent = `${window.dailyTasks.comment}/1`;
+    const commentBar = document.getElementById('taskCommentBar');
+    if (commentBar) commentBar.style.width = (commentProgress * 100) + '%';
+  }
+};
+
+// 6. 领取奖励
+window.claimTaskReward = async function(type, ev) {
+
+  console.log(`%c[任务] 领取按钮被点击，类型: ${type}`, 'background: #FF6B35; color: #fff; padding: 2px 6px; border-radius: 4px;');
+  
+  if (!APP.user) {
+    console.warn('[任务] 未登录，弹出登录框');
+    showModal('需要登录', '请先登录后再领取任务奖励', '去登录', () => openAuthModal());
+    return;
+  }
+
+  const btn = ev?.target;
+  const originalText = btn ? btn.innerHTML : '';
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-pulse mr-1"></i>领取中';
+  }
+
+  const today = new Date().toISOString().split('T')[0];
+  const maxMap = { post: 1, like: 3, comment: 1 };
+  const required = maxMap[type];
+
+  try {
+    console.log(`[任务] 查询日期: ${today}`);
+    const { data, error } = await sb
+      .from('daily_task_progress')
+      .select('*')
+      .eq('user_id', APP.user.id)
+      .eq('task_date', today)
+      .maybeSingle();
+
+    if (error) {
+      console.error('[任务] 数据库查询失败:', error);
+      throw error;
+    }
+
+    console.log('[任务] 数据库返回:', data);
+
+    if (!data) {
+      console.warn('[任务] 任务数据不存在');
+      showModal('任务数据不存在', '请先完成相应的任务后再来领取奖励', '去完成任务');
+      return;
+    }
+
+    const current = data[`${type}_progress`] || 0;
+    const alreadyClaimed = data[`claimed_${type}`];
+
+    console.log(`[任务] 当前进度: ${current}/${required}, 已领取: ${alreadyClaimed}`);
+
+    if (alreadyClaimed) {
+      console.warn('[任务] 奖励已领取');
+      showModal('奖励已领取', '这个任务的奖励你已经领取过啦，明天再来吧', '知道了');
+      return;
+    }
+
+    if (current < required) {
+      console.warn(`[任务] 进度不足 (${current}/${required})`);
+      const remain = required - current;
+      showModal('任务未完成', `还需要完成 ${remain} 次才能领取奖励，继续加油！`, '继续努力');
+      return;
+    }
+
+    const reward = type === 'like' ? 30 : 20;
+    console.log(`[任务] 准备发放奖励: ${reward} EXP`);
+
+    const { error: updateError } = await sb
+      .from('daily_task_progress')
+      .update({
+        [`claimed_${type}`]: true,
+        updated_at: new Date().toISOString()
+      })
+      .eq('user_id', APP.user.id)
+      .eq('task_date', today);
+
+    if (updateError) {
+      console.error('[任务] 更新领取状态失败:', updateError);
+      throw updateError;
+    }
+
+    window.dailyTasks.claimed[type] = true;
+
+    // 更新用户经验
+    APP.profile.exp = (APP.profile.exp || 0) + reward;
+    const levelUp = APP.profile.exp >= APP.profile.level * 100;
+    if (levelUp) {
+      APP.profile.level++;
+      APP.profile.exp -= (APP.profile.level - 1) * 100;
+    }
+
+    const { error: profileError } = await sb.from('profiles')
+      .update({
+        exp: APP.profile.exp,
+        level: APP.profile.level
+      })
+      .eq('id', APP.user.id);
+
+    if (profileError) {
+      console.error('[任务] 更新用户经验失败:', profileError);
+      throw profileError;
+    }
+
+    console.log(`[任务] 经验更新成功，当前经验: ${APP.profile.exp}, 等级: ${APP.profile.level}`);
+
+    showModal(
+      '🎉 领取成功！',
+      `你获得了 ${reward} 点经验值！${levelUp ? ' 恭喜你升级了！' : ''}`,
+      '太棒了'
+    );
+
+    updateTaskUI();
+    if (typeof renderProfile === 'function') renderProfile();
+
+  } catch (e) {
+    console.error('[任务] 领取奖励异常:', e);
+    showModal('领取失败', e.message || '网络错误，请稍后重试', '知道了');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = originalText || `领取 +${type === 'like' ? 30 : 20} EXP`;
+    }
+  }
+};
+// 7. 任务进度自动累加
+window.incrementTask = async function(type) {
+  if (!APP.user) return;
+  const today = new Date().toISOString().split('T')[0];
+  const maxMap = { post: 1, like: 3, comment: 1 };
+  const max = maxMap[type];
+  try {
+    const { data } = await sb.from('daily_task_progress')
+      .select(`${type}_progress`)
+      .eq('user_id', APP.user.id)
+      .eq('task_date', today)
+      .maybeSingle();
+    const current = data ? data[`${type}_progress`] : 0;
+    if (current < max) {
+      const newValue = current + 1;
+      await sb.from('daily_task_progress')
+        .upsert({ user_id: APP.user.id, task_date: today, [`${type}_progress`]: newValue }, { onConflict: 'user_id, task_date' });
+      window.dailyTasks[type] = newValue;
+      updateTaskUI();
+      if (newValue === max) {
+        const taskName = { post: '发表帖子', like: '点赞帖子', comment: '发表评论' }[type];
+        showModal('🎯 任务完成！', `恭喜你完成了“${taskName}”任务！快去领取奖励吧`, '去领取', () => openModal('dailyTasksModal'));
+      }
+    }
+  } catch (e) {
+    console.error(e);
+  }
+};
+
+// 8. 覆盖原有动作钩子，使发帖/点赞/评论自动增加任务进度
+const _originalVotePost = votePost;
+votePost = async function(pid, vtype) {
+  await _originalVotePost(pid, vtype);
+  if (vtype === 'up') incrementTask('like');
+};
+
+const _originalPublishPost = publishPost;
+publishPost = async function() {
+  await _originalPublishPost();
+  incrementTask('post');
+};
+
+const _originalSubmitComment = submitComment;
+submitComment = async function() {
+  await _originalSubmitComment();
+  incrementTask('comment');
+};
+
+console.log('✅ 每日任务功能补丁已加载');
 // Toast 提示
 function showToast(msg, type = 'info') {
   const t = document.createElement('div');
@@ -3411,8 +3763,13 @@ function showToast(msg, type = 'info') {
   setTimeout(() => t.remove(), 3200);
 }
 // ==================== 弹窗控制 ====================
-function openModal(id) { 
-  $(id).classList.add('active'); 
+function openModal(id) {
+  const modal = $(id);
+  if (!modal) {
+    console.error(`❌ 弹窗 ${id} 不存在，请检查 HTML`);
+    return;
+  }
+  modal.classList.add('active');
 }
 
 function closeModal(id) { 
@@ -7078,11 +7435,8 @@ function renderToolbox() {
       openSquadModal();
       break;
     case 'tasks':
-      if (!APP.user) { openAuthModal(); showToast('请先登录'); return; }
-      switchTab('profile');
-      setTimeout(() => $('#dailyTasksSection')?.scrollIntoView({ behavior: 'smooth' }), 100);
-      showToast('每日任务功能开发中', 'info');
-      break;
+  openDailyTasksModal();
+  break;
     case 'loadout':
       openModal('loadoutModal');
       break;
@@ -7103,44 +7457,281 @@ function renderToolbox() {
       showToast('该功能正在开发中', 'info');
   }
 }
-function showStatsModal() {
-  if (!APP.profile) return;
-  
-  // 使用原生方法获取元素，增加容错
-  const contentEl = document.getElementById('statsModalContent');
-  if (!contentEl) {
-    console.error('找不到 #statsModalContent 元素');
-    showToast('战绩卡片加载失败', 'error');
+// ==================== 配装推荐（数据库实时读取版） ====================
+let currentLoadoutData = [];
+let currentLoadoutFilter = 'all';
+
+// 从 GitHub Raw 获取改枪码 JSON
+async function fetchGunsmithCodes() {
+  showToast('正在获取最新改枪码...', 'info');
+  const container = document.getElementById('loadoutListContainer');
+  if (container) container.innerHTML = '<div class="text-center py-6 text-xs" style="color:var(--muted);"><i class="fas fa-spinner fa-pulse"></i> 加载配装中...</div>';
+
+  const defaultLoadouts = [
+    { name:'M4A1 高稳突击', class:'突击', weapon:'M4A1', attachments:'垂直握把 + 消音器 + 红点', code:'M4A1-烽火地带-6IUKUN40FGIGGAT87VQQ3' },
+    { name:'AKM 暴力输出', class:'突击', weapon:'AKM', attachments:'补偿器 + 轻机枪托 + 全息', code:'AKM-烽火地带-7JVLKP50GHKPH2BT98WR4' },
+    { name:'Vector 近战速射', class:'侦察', weapon:'Vector', attachments:'激光 + 扩容弹匣 + 消音', code:'VECTOR-烽火地带-3LJSND72KSL92JD7G3H4' }
+  ];
+
+ const urls = [
+  // 'https://cdn.jsdelivr.net/gh/shi111567/delta-gunsmith-crawler@main/codes.json',
+  'https://raw.githubusercontent.com/shi111567/delta-gunsmith-crawler/main/codes.json?t=' + Date.now()
+];
+
+  for (const url of urls) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 8000);
+      const response = await fetch(url, { signal: controller.signal, cache: 'no-cache' });
+      clearTimeout(timeoutId);
+      
+      if (!response.ok) continue;
+
+      const jsonData = await response.json();  // ✅ 这里用 jsonData 接收
+      if (jsonData && jsonData.length > 0) {   // ✅ 使用一致的变量名
+        currentLoadoutData = jsonData.map(item => ({
+          name: item.name || `${item.weapon} 推荐配装`,
+          class: item.class || '全能',
+          weapon: item.weapon,
+          attachments: item.attachments || '热门改枪码',
+          code: item.code
+        }));
+        showToast(`✅ 已获取 ${currentLoadoutData.length} 条最新改枪码`, 'success');
+        renderLoadoutList();
+        return;
+      }
+    } catch (e) {
+      console.warn('尝试 URL 失败:', url, e);
+    }
+  }
+
+  // 网络失败时使用默认数据
+  console.warn('所有网络请求均失败，使用本地缓存');
+  currentLoadoutData = defaultLoadouts;
+  showToast('⚠️ 网络不稳定，已加载本地配装', 'warning');
+  renderLoadoutList();
+}
+// 刷新配装数据
+async function refreshLoadoutData() {
+  await fetchGunsmithCodes();
+  currentLoadoutFilter = 'all';
+  document.querySelectorAll('.loadout-filter-btn').forEach(btn => {
+    const isActive = btn.dataset.filter === 'all';
+    btn.style.background = isActive ? 'var(--accent)' : 'var(--surface)';
+    btn.style.color = isActive ? 'white' : 'var(--text)';
+    btn.classList.toggle('active', isActive);
+  });
+}
+
+function getOpColor(opClass) {
+  const map = { '突击':'#e05a2f', '工程':'#2ecc71', '侦察':'#3498db', '支援':'#f1c40f', '全能':'#9b59b6' };
+  return map[opClass] || '#9b59b6';
+}
+
+function renderLoadoutList() {
+  const container = document.getElementById('loadoutListContainer');
+  if (!container) return;
+
+  // 确保数据存在
+  if (!currentLoadoutData || currentLoadoutData.length === 0) {
+    container.innerHTML = '<div class="text-center py-6 text-xs" style="color:var(--muted);">暂无配装，请稍后重试</div>';
     return;
   }
-  
+
+  let filtered = currentLoadoutFilter === 'all'
+    ? currentLoadoutData
+    : currentLoadoutData.filter(item => item.class === currentLoadoutFilter);
+
+  // 如果筛选后为空，则显示全部数据（避免空白）
+  if (filtered.length === 0) {
+    filtered = currentLoadoutData;
+  }
+
+  container.innerHTML = filtered.map(l => `
+    <div class="p-3 rounded-xl cursor-pointer hover:shadow-md transition-all" style="background:var(--surface);border:1px solid var(--border);" onclick="copyLoadoutCode('${l.code}')">
+      <div class="flex items-center gap-2 mb-2">
+        <span class="tag-pill text-xs" style="background:${getOpColor(l.class)}20;color:${getOpColor(l.class)};">${l.class || '全能'}</span>
+        <span class="font-bold text-sm">${l.name || '热门配装'}</span>
+      </div>
+      <div class="text-xs" style="color:var(--muted);"><i class="fas fa-wrench mr-1"></i>${l.attachments || '网络热门改枪码'}</div>
+      <div class="text-[10px] mt-2 flex items-center justify-between" style="color:var(--accent);">
+        <span><i class="fas fa-code mr-1"></i>${l.code}</span>
+        <i class="fas fa-copy text-xs"></i>
+      </div>
+    </div>
+  `).join('');
+}
+function copyLoadoutCode(code) {
+  navigator.clipboard?.writeText(code).then(() => {
+    showToast(`✅ 改枪码已复制，可直接粘贴到游戏中使用`, 'success');
+  }).catch(() => {
+    const textarea = document.createElement('textarea');
+    textarea.value = code;
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textarea);
+    showToast(`✅ 改枪码已复制`, 'success');
+  });
+}
+// ==================== 枪械数据 ====================
+const WEAPON_DATA = [
+  { name:'M4A1', damage:42, fireRate:750, accuracy:82, range:65 },
+  { name:'AKM', damage:48, fireRate:600, accuracy:75, range:70 },
+  { name:'MP5', damage:35, fireRate:800, accuracy:70, range:50 },
+  { name:'AWM', damage:105, fireRate:40, accuracy:95, range:100 },
+  { name:'SCAR-H', damage:55, fireRate:550, accuracy:80, range:75 },
+  { name:'Vector', damage:32, fireRate:1100, accuracy:68, range:45 },
+  { name:'SR-25', damage:65, fireRate:300, accuracy:85, range:85 },
+  { name:'MG4', damage:38, fireRate:700, accuracy:60, range:70 }
+];
+let weaponSortField = 'damage';
+let weaponSortAsc = false;
+
+function renderWeaponTable() {
+  const tbody = document.getElementById('weaponTableBody');
+  if (!tbody) return;
+  const keyword = document.getElementById('weaponSearchInput')?.value.trim().toLowerCase() || '';
+  let filtered = WEAPON_DATA.filter(w => w.name.toLowerCase().includes(keyword));
+  filtered.sort((a,b) => weaponSortAsc ? a[weaponSortField] - b[weaponSortField] : b[weaponSortField] - a[weaponSortField]);
+  tbody.innerHTML = filtered.map(w => `
+    <tr class="border-b" style="border-color:var(--border);">
+      <td class="px-3 py-2 font-medium">${w.name}</td>
+      <td class="px-3 py-2 text-center">${w.damage}</td>
+      <td class="px-3 py-2 text-center">${w.fireRate}</td>
+      <td class="px-3 py-2 text-center">${w.accuracy}</td>
+      <td class="px-3 py-2 text-center">${w.range}</td>
+    </tr>
+  `).join('');
+}
+
+function filterWeaponTable() { renderWeaponTable(); }
+function sortWeaponTable(field) {
+  if (weaponSortField === field) weaponSortAsc = !weaponSortAsc;
+  else { weaponSortField = field; weaponSortAsc = false; }
+  renderWeaponTable();
+}
+
+// ==================== 战绩卡片（增强） ====================
+function showStatsModal() {
+  const contentEl = document.getElementById('statsModalContent');
+  if (!APP.user) {
+    contentEl.innerHTML = '<p class="text-center py-8" style="color:var(--muted);">请先登录查看战绩</p>';
+    openModal('statsModal');
+    return;
+  }
+  if (!APP.profile) return;
+  const user = APP.profile;
+  const level = user.level || 1;
+  const exp = user.exp || 0;
+  const nextExp = level * 100;
+  const progress = Math.min(100, (exp / nextExp) * 100);
   contentEl.innerHTML = `
-    <div class="space-y-3">
-      <div class="flex items-center gap-3 p-3 rounded-lg" style="background:var(--surface);">
-        <img src="${APP.profile.avatar_url || dicebearUrl('default')}" class="w-12 h-12 rounded-full">
+    <div class="rounded-2xl p-5 text-white relative overflow-hidden" style="background:linear-gradient(145deg, #1a1a2e, #16213e);">
+      <div class="absolute top-0 right-0 w-32 h-32 rounded-full bg-white/5 -mr-10 -mt-10"></div>
+      <div class="flex items-center gap-4 mb-4">
+        <img src="${user.avatar_url || dicebearUrl(user.username)}" class="w-16 h-16 rounded-full border-2 border-white/30 object-cover">
         <div>
-          <div class="font-bold">${APP.profile.username}</div>
-          <div class="text-xs" style="color:var(--muted);">Lv.${APP.profile.level || 1}</div>
+          <div class="font-bold text-xl">${user.username}</div>
+          <div class="text-sm opacity-80">Lv.${level} · 干员</div>
         </div>
       </div>
-      <div class="grid grid-cols-3 gap-2 text-center">
-        <div class="p-2 rounded-lg" style="background:var(--surface);">
-          <div class="text-lg font-bold">${APP.profile.posts_count || 0}</div>
-          <div class="text-xs">发帖</div>
-        </div>
-        <div class="p-2 rounded-lg" style="background:var(--surface);">
-          <div class="text-lg font-bold">${APP.profile.likes_received || 0}</div>
-          <div class="text-xs">获赞</div>
-        </div>
-        <div class="p-2 rounded-lg" style="background:var(--surface);">
-          <div class="text-lg font-bold">${APP.profile.followers_count || 0}</div>
-          <div class="text-xs">粉丝</div>
-        </div>
+      <div class="grid grid-cols-3 gap-2 mb-4">
+        <div class="text-center"><div class="text-xl font-bold">${user.posts_count||0}</div><div class="text-xs opacity-70">发帖</div></div>
+        <div class="text-center"><div class="text-xl font-bold">${user.likes_received||0}</div><div class="text-xs opacity-70">获赞</div></div>
+        <div class="text-center"><div class="text-xl font-bold">${user.followers_count||0}</div><div class="text-xs opacity-70">粉丝</div></div>
       </div>
+      <div class="mb-4">
+        <div class="flex justify-between text-xs mb-1"><span>经验值</span><span>${exp}/${nextExp}</span></div>
+        <div class="h-2 rounded-full bg-white/20 overflow-hidden"><div class="h-full rounded-full bg-gradient-to-r from-orange-400 to-red-400" style="width:${progress}%"></div></div>
+      </div>
+      <div class="flex gap-2">
+        <button class="flex-1 py-2 rounded-full text-xs font-bold bg-white/20 hover:bg-white/30 transition" onclick="saveStatsCard()"><i class="fas fa-camera mr-1"></i>保存卡片</button>
+        <button class="flex-1 py-2 rounded-full text-xs font-bold bg-white/20 hover:bg-white/30 transition" onclick="shareStatsCard()"><i class="fas fa-share-alt mr-1"></i>分享</button>
+      </div>
+      <div class="text-center mt-3 text-[10px] opacity-50">三角洲墨辰电竞 · 荣誉干员</div>
     </div>
   `;
   openModal('statsModal');
 }
+
+function saveStatsCard() {
+  showToast('长按或截图保存卡片即可', 'info');
+}
+
+function shareStatsCard() {
+  if (navigator.share) {
+    navigator.share({ title:'我的战绩卡片', text:`${APP.profile.username} 的干员战绩`, url:window.location.href }).catch(()=>{});
+  } else {
+    showToast('复制链接分享给好友', 'info');
+  }
+}
+
+// ==================== 每日任务 ====================
+// ==================== 修改 openModal 以自动初始化弹窗 ====================
+const originalOpenModal = openModal;
+openModal = function(id) {
+  // 确保原始函数存在且可调用
+  if (typeof originalOpenModal === 'function') {
+    // 在打开前初始化对应弹窗数据
+      if (id === 'loadoutModal') { 
+  fetchGunsmithCodes(); 
+  if (typeof bindLoadoutFilters === 'function') bindLoadoutFilters(); 
+}
+    if (id === 'weaponModal' && typeof renderWeaponTable === 'function') {
+      renderWeaponTable();
+    }
+    if (id === 'dailyTasksModal' && typeof loadDailyTasks === 'function') {
+      loadDailyTasks();
+    }
+    originalOpenModal(id);
+  } else {
+    console.error('originalOpenModal 不存在，使用默认打开逻辑');
+    const modal = $(id);
+    if (modal) modal.classList.add('active');
+  }
+};
+function bindLoadoutFilters() {
+  document.querySelectorAll('.loadout-filter-btn').forEach(btn => {
+    btn.removeEventListener('click', btn._loadoutHandler);
+    const handler = function() {
+      document.querySelectorAll('.loadout-filter-btn').forEach(b => { b.style.background='var(--surface)'; b.style.color='var(--text)'; b.classList.remove('active'); });
+      this.style.background='var(--accent)'; this.style.color='white'; this.classList.add('active');
+      currentLoadoutFilter = this.dataset.filter;
+      renderLoadoutList();
+    };
+    btn._loadoutHandler = handler;
+    btn.addEventListener('click', handler);
+  });
+}
+
+// ==================== 修改工具箱动作 ====================
+const originalHandleTool = handleToolAction;
+handleToolAction = function(type) {
+  if (type === 'tasks') { openDailyTasksModal(); return; }
+  if (type === 'loadout') { openModal('loadoutModal'); return; }
+  if (type === 'weapon') { openModal('weaponModal'); return; }
+  originalHandleTool(type);
+};
+
+// ==================== 任务进度自动累加 ====================
+const originalVotePost = votePost;
+votePost = async function(pid, vtype) {
+  await originalVotePost(pid, vtype);
+  if (vtype === 'up') incrementTask('like');
+};
+const originalPublishPost = publishPost;
+publishPost = async function() {
+  await originalPublishPost();
+  incrementTask('post');
+};
+const originalSubmitComment = submitComment;
+submitComment = async function() {
+  await originalSubmitComment();
+  incrementTask('comment');
+};
+
+console.log('✅ 工具箱功能已全部增强！');
 // 组队表单临时存储
 let selectedMap = '大坝';
 let selectedDifficulty = '普通';
