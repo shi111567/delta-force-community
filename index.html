@@ -8250,11 +8250,18 @@ function sendSmsCode() {
       btn.textContent = `${smsCountdown}秒后重试`;
     }
   }, 1000);
-}// ==================== 管理员系统 ====================
+}// ==================== 管理员验证 ====================
 async function adminLogin() {
   const pwd = $('adminPwd').value;
-  const { data } = await sb.from('profiles').select('admin_password, is_admin').eq('id', APP.user.id).single();
-  const correctPwd = data?.admin_password || 'mcdj2026';
+  
+  // 从全局配置表读取密码
+  const { data: setting, error } = await sb.from('app_settings')
+    .select('value')
+    .eq('key', 'admin_password')
+    .single();
+    
+  const correctPwd = setting?.value || 'mcdj2026';
+  
   if (pwd === correctPwd) {
     APP.isAdmin = true;
     await sb.from('profiles').update({ is_admin: true }).eq('id', APP.user.id);
@@ -8319,11 +8326,21 @@ async function deleteBanner(bid) {
   loadBanners();
 }
 
+// ==================== 修改全局管理员密码 ====================
 async function changeAdminPwd() {
   const newPwd = $('newAdminPwd').value.trim();
   if (!newPwd) { showToast('请输入新密码'); return; }
-  await sb.from('profiles').update({ admin_password: newPwd }).eq('id', APP.user.id);
-  showToast('密码已修改');
+  
+  // 更新全局配置表
+  const { error } = await sb.from('app_settings')
+    .update({ value: newPwd, updated_at: new Date().toISOString() })
+    .eq('key', 'admin_password');
+    
+  if (error) {
+    showToast('修改失败: ' + error.message);
+    return;
+  }
+  showToast('全局管理员密码已修改');
   $('newAdminPwd').value = '';
 }
 // 搜索用户（用于授予勋章）
