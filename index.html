@@ -2217,6 +2217,34 @@ body {
     backface-visibility: hidden;
     transform: translateZ(0);
 }
+/* ===== 配装分类切换按钮动效 ===== */
+.loadout-filter-btn {
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), 
+              background 0.3s, color 0.3s, box-shadow 0.3s, 
+              border-color 0.3s !important;
+  will-change: transform;
+  backface-visibility: hidden;
+}
+
+.loadout-filter-btn.active {
+  transform: scale(1.05) translateY(-1px);
+  box-shadow: 0 8px 18px var(--glow);
+}
+
+.loadout-filter-btn:active {
+  transform: scale(0.96);
+  transition: transform 0.1s !important;
+}
+
+/* 手机端优化 */
+@media (max-width: 640px) {
+  .loadout-filter-btn {
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.2s !important;
+  }
+  .loadout-filter-btn.active {
+    transform: scale(1.03);
+  }
+}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/interactjs@1.10.27/dist/interact.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/tus-js-client@4.1.0/dist/tus.min.js"></script>
@@ -3337,14 +3365,86 @@ body {
         <button onclick="closeModal('loadoutModal')" class="w-8 h-8 rounded-full flex items-center justify-center" style="background:var(--surface)"><i class="fas fa-times"></i></button>
       </div>
     </div>
-    <!-- 分类筛选 -->
-    <div class="flex gap-2 mb-4 overflow-x-auto pb-2">
-      <button class="loadout-filter-btn active text-xs px-4 py-2 rounded-full" data-filter="all" style="background:var(--accent);color:white;border:none;">全部</button>
-      <button class="loadout-filter-btn text-xs px-4 py-2 rounded-full" data-filter="突击" style="background:var(--surface);border:1px solid var(--border);color:var(--text);">突击</button>
-      <button class="loadout-filter-btn text-xs px-4 py-2 rounded-full" data-filter="工程" style="background:var(--surface);border:1px solid var(--border);color:var(--text);">工程</button>
-      <button class="loadout-filter-btn text-xs px-4 py-2 rounded-full" data-filter="侦察" style="background:var(--surface);border:1px solid var(--border);color:var(--text);">侦察</button>
-      <button class="loadout-filter-btn text-xs px-4 py-2 rounded-full" data-filter="支援" style="background:var(--surface);border:1px solid var(--border);color:var(--text);">支援</button>
+<!-- 搜索栏 -->
+<div class="relative mb-4">
+  <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-sm" style="color: var(--accent); z-index: 1;"></i>
+  <input type="text" id="loadoutSearchInput" placeholder="搜索枪械、兵种或配件..." class="w-full pl-11 pr-4 py-3 rounded-xl text-sm" style="background: var(--surface); border: 2px solid var(--border); color: var(--text); transition: all 0.25s;" oninput="applyLoadoutFilters()">
+</div>
+
+<!-- 下拉筛选栏（三列） -->
+<div class="grid grid-cols-3 gap-2 mb-4">
+  <!-- 兵种下拉 -->
+  <div class="filter-dropdown" id="classDropdown">
+    <button class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 hover:border-[var(--accent)]" style="background: var(--surface); border: 2px solid var(--border); color: var(--text);" onclick="toggleFilterDropdown('classDropdown')">
+      <span class="flex items-center gap-1.5">
+        <i class="fas fa-shield-halved text-xs" style="color: var(--accent);"></i>
+        <span id="currentClassLabel">全部兵种</span>
+      </span>
+      <i class="fas fa-chevron-down text-[10px] transition-transform" style="color: var(--muted);"></i>
+    </button>
+    <div class="filter-menu hidden" style="min-width: 100%;">
+      <button class="filter-option active" data-class="all" onclick="selectClassFilter('all')"><i class="fas fa-globe"></i>全部兵种</button>
+      <button class="filter-option" data-class="突击" onclick="selectClassFilter('突击')"><i class="fas fa-crosshairs"></i>突击</button>
+      <button class="filter-option" data-class="侦察" onclick="selectClassFilter('侦察')"><i class="fas fa-eye"></i>侦察</button>
+      <button class="filter-option" data-class="支援" onclick="selectClassFilter('支援')"><i class="fas fa-shield"></i>支援</button>
+      <button class="filter-option" data-class="工程" onclick="selectClassFilter('工程')"><i class="fas fa-wrench"></i>工程</button>
     </div>
+  </div>
+
+  <!-- 玩法下拉 -->
+  <div class="filter-dropdown" id="playstyleDropdown">
+    <button class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 hover:border-[var(--accent)]" style="background: var(--surface); border: 2px solid var(--border); color: var(--text);" onclick="toggleFilterDropdown('playstyleDropdown')">
+      <span class="flex items-center gap-1.5">
+        <i class="fas fa-bullseye text-xs" style="color: var(--accent);"></i>
+        <span id="currentPlaystyleLabel">全部玩法</span>
+      </span>
+      <i class="fas fa-chevron-down text-[10px] transition-transform" style="color: var(--muted);"></i>
+    </button>
+    <div class="filter-menu hidden" style="min-width: 100%;">
+      <button class="filter-option active" data-playstyle="all" onclick="selectPlaystyleFilter('all')"><i class="fas fa-infinity"></i>全部玩法</button>
+      <button class="filter-option" data-playstyle="近战" onclick="selectPlaystyleFilter('近战')"><i class="fas fa-fist-raised"></i>近战/跑刀</button>
+      <button class="filter-option" data-playstyle="中距离" onclick="selectPlaystyleFilter('中距离')"><i class="fas fa-arrows-alt-h"></i>中距离/压枪</button>
+      <button class="filter-option" data-playstyle="远程" onclick="selectPlaystyleFilter('远程')"><i class="fas fa-sniper"></i>远程/架点</button>
+      <button class="filter-option" data-playstyle="猛攻" onclick="selectPlaystyleFilter('猛攻')"><i class="fas fa-skull"></i>猛攻/高伤</button>
+      <button class="filter-option" data-playstyle="新手" onclick="selectPlaystyleFilter('新手')"><i class="fas fa-graduation-cap"></i>新手友好</button>
+    </div>
+  </div>
+
+  <!-- 枪械下拉 -->
+  <div class="filter-dropdown" id="weaponDropdown">
+    <button class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 hover:border-[var(--accent)]" style="background: var(--surface); border: 2px solid var(--border); color: var(--text);" onclick="toggleFilterDropdown('weaponDropdown')">
+      <span class="flex items-center gap-1.5">
+        <i class="fas fa-gun text-xs" style="color: var(--accent);"></i>
+        <span id="currentWeaponLabel">全部枪械</span>
+      </span>
+      <i class="fas fa-chevron-down text-[10px] transition-transform" style="color: var(--muted);"></i>
+    </button>
+    <div class="filter-menu hidden" id="weaponFilterMenu" style="min-width: 100%; max-height: 250px; overflow-y: auto;">
+      <button class="filter-option active" data-weapon="all" onclick="selectWeaponFilter('all')"><i class="fas fa-list"></i>全部枪械</button>
+      <!-- 动态生成其他枪械选项 -->
+    </div>
+  </div>
+</div>
+  <!-- 价格排序/筛选 -->
+  <div class="filter-dropdown" id="priceDropdown" style="grid-column: span 3; margin-top: 4px;">
+    <button class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 hover:border-[var(--accent)]" style="background: var(--surface); border: 2px solid var(--border); color: var(--text);" onclick="toggleFilterDropdown('priceDropdown')">
+      <span class="flex items-center gap-1.5">
+        <i class="fas fa-coins text-xs" style="color: var(--accent);"></i>
+        <span id="currentPriceLabel">价格排序</span>
+      </span>
+      <i class="fas fa-chevron-down text-[10px] transition-transform" style="color: var(--muted);"></i>
+    </button>
+    <div class="filter-menu hidden" style="min-width: 100%;">
+      <button class="filter-option active" data-price="default" onclick="selectPriceFilter('default')"><i class="fas fa-sort"></i>默认排序</button>
+      <button class="filter-option" data-price="low" onclick="selectPriceFilter('low')"><i class="fas fa-arrow-up"></i>价格从低到高</button>
+      <button class="filter-option" data-price="high" onclick="selectPriceFilter('high')"><i class="fas fa-arrow-down"></i>价格从高到低</button>
+    </div>
+  </div>
+<!-- 当前筛选结果标签（可选） -->
+<div class="flex items-center justify-between mb-2">
+  <span class="text-xs" style="color: var(--muted);"><span id="loadoutResultCount">0</span> 个配装方案</span>
+  <button class="text-xs underline" style="color: var(--accent);" onclick="resetAllLoadoutFilters()">重置筛选</button>
+</div>
     <!-- 配装列表容器 -->
     <div id="loadoutListContainer" class="space-y-3 max-h-96 overflow-y-auto pr-1"></div>
     <p class="text-xs text-center mt-3" style="color:var(--muted);"><i class="fas fa-copy mr-1"></i>点击配装可复制代码</p>
@@ -7467,16 +7567,30 @@ async function fetchGunsmithCodes() {
   const container = document.getElementById('loadoutListContainer');
   if (container) container.innerHTML = '<div class="text-center py-6 text-xs" style="color:var(--muted);"><i class="fas fa-spinner fa-pulse"></i> 加载配装中...</div>';
 
+  // 默认兜底数据（与爬虫保持一致，含价格）
   const defaultLoadouts = [
-    { name:'M4A1 高稳突击', class:'突击', weapon:'M4A1', attachments:'垂直握把 + 消音器 + 红点', code:'M4A1-烽火地带-6IUKUN40FGIGGAT87VQQ3' },
-    { name:'AKM 暴力输出', class:'突击', weapon:'AKM', attachments:'补偿器 + 轻机枪托 + 全息', code:'AKM-烽火地带-7JVLKP50GHKPH2BT98WR4' },
-    { name:'Vector 近战速射', class:'侦察', weapon:'Vector', attachments:'激光 + 扩容弹匣 + 消音', code:'VECTOR-烽火地带-3LJSND72KSL92JD7G3H4' }
+    { name: '腾龙24万稳导低改', class: '突击', weapon: '腾龙突击步枪', attachments: '影袭托芯枪托 + 新式蛟龙战术长枪管 + 高速导气', code: '6IMVF7O0B0GKDDOTE9T6Q', price: '24万' },
+    { name: 'G3战斗步枪', class: '突击', weapon: 'G3战斗步枪', attachments: '长枪管 + 垂直握把 + 红点瞄具', code: 'G3战斗步枪-烽火地带-6JO0TDK0AQGR1G4DCP72P', price: '18万' },
+    { name: '三倍AUG突击步枪', class: '突击', weapon: 'AUG突击步枪', attachments: '三倍镜 + 556四级弹 + 垂直握把', code: '三倍AUG突击步枪-烽火地带-6JO0VHO0AQGR1G4DCP72P', price: '32万' },
+    { name: 'AR57 31万腰射双修', class: '突击', weapon: 'AR57突击步枪', attachments: '核心配件半改 + 腰射拉满 + 高稳定倍镜', code: 'AR57突击步枪-烽火地带-6JO197C095AEL8D57LH45', price: '31万' },
+    { name: '勇士冲锋枪-制式券均衡', class: '侦察', weapon: '勇士冲锋枪', attachments: '制式券标准配置 + 均衡改装', code: '6J2Q7Q40FP8PKANEBHTBM', price: '15万' },
+    { name: 'SG552紫弹高稳', class: '突击', weapon: 'SG552突击步枪', attachments: '紫弹配置 + 快稳兼顾', code: '6J2PFG40FP8PKANEBHTBM', price: '28万' },
+    { name: 'MK47腰射高甲穿', class: '突击', weapon: 'MK47突击步枪', attachments: '钛金竞赛制退器 + 垂直握把 + 40发扩容', code: 'MK47突击步枪-烽火地带-6JI0PUO0BNSV43TFRAQ1K', price: '45万' },
+    { name: 'Vector近战蒸发器', class: '侦察', weapon: 'Vector冲锋枪', attachments: '超高射速 + 近战王者', code: 'Vector冲锋枪-全面战场-6HB6D28064DU5TFLJ691H', price: '22万' },
+    { name: 'MP7冲锋枪-S9任务推荐', class: '侦察', weapon: 'MP7冲锋枪', attachments: '疾风配置 + 中距离稳定', code: 'MP7冲锋枪-烽火地带-6JO105G0AQGR1G4DCP72P', price: '19万' },
+    { name: 'PTR-32零后坐力激光枪', class: '突击', weapon: 'PTR-32突击步枪', attachments: 'G3镂空握把 + G3加强长枪管 + FFC双流制退器', code: '6IRJFES09FR1N24J7HKOH', price: '38万' },
+    { name: 'K416高稳突击', class: '突击', weapon: 'K416突击步枪', attachments: '堡垒水平 + 红激光 + 共振一代 + A8长枪管', code: 'K416突击步枪-全面战场-6EIALPC02U9HU6AC38CQJ', price: '26万' },
+    { name: 'AS VAL消音突袭', class: '突击', weapon: 'AS Val突击步枪', attachments: '长枪管 + 红镭射 + RK-0前握把 + 45发', code: 'ASVal突击步枪-全面战场-6EIAKVC02U9HU6AC38CQJ', price: '20万' },
+    { name: 'M14射手步枪-主播同款', class: '支援', weapon: 'M14射手步枪', attachments: '消音器 + 8倍镜 + 脚架 + 快速弹匣', code: 'M14射手步枪-烽火地带-6G5S6M00DN8Q98HB5S4IC', price: '35万' },
+    { name: 'K437突击步枪-主播自用', class: '突击', weapon: 'K437突击步枪', attachments: '垂直握把 + 消音器 + 红点 + 快速弹匣', code: 'K437突击步枪-烽火地带-6G0RKVK04DB5TLDRK4HKE', price: '30万' },
+    { name: 'UZI冲锋枪-近战秒杀', class: '侦察', weapon: 'UZI冲锋枪', attachments: '钛金制退器 + 导轨护木 + 红激光 + 45发', code: 'UZI冲锋枪-全面战场-6EIALBS02U9HU6AC38CQJ', price: '12万' }
   ];
 
- const urls = [
-  // 'https://cdn.jsdelivr.net/gh/shi111567/delta-gunsmith-crawler@main/codes.json',
-  'https://raw.githubusercontent.com/shi111567/delta-gunsmith-crawler/main/codes.json?t=' + Date.now()
-];
+  // 尝试从 CDN 获取最新数据
+  const urls = [
+    'https://cdn.jsdelivr.net/gh/shi111567/delta-gunsmith-crawler@main/codes.json?t=' + Date.now(),
+    'https://raw.githubusercontent.com/shi111567/delta-gunsmith-crawler/main/codes.json?t=' + Date.now()
+  ];
 
   for (const url of urls) {
     try {
@@ -7487,17 +7601,30 @@ async function fetchGunsmithCodes() {
       
       if (!response.ok) continue;
 
-      const jsonData = await response.json();  // ✅ 这里用 jsonData 接收
-      if (jsonData && jsonData.length > 0) {   // ✅ 使用一致的变量名
-        currentLoadoutData = jsonData.map(item => ({
-          name: item.name || `${item.weapon} 推荐配装`,
-          class: item.class || '全能',
-          weapon: item.weapon,
-          attachments: item.attachments || '热门改枪码',
-          code: item.code
-        }));
+      const jsonData = await response.json();
+      if (jsonData && jsonData.length > 0) {
+        // 处理从 CDN 获取的数据
+        currentLoadoutData = jsonData.map(item => {
+          // 确保 price 字段存在
+          let price = item.price;
+          if (!price) {
+            // 尝试从 name 中提取价格
+            const priceMatch = item.name?.match(/(\d+(?:\.\d+)?)\s*万/);
+            if (priceMatch) price = priceMatch[1] + '万';
+            else price = '暂无报价';
+          }
+          return {
+            name: item.name || item.weapon + '配装',
+            class: item.class || '全能',
+            weapon: item.weapon || '未知枪械',
+            attachments: item.attachments || '热门配件',
+            code: item.code,
+            price: price
+          };
+        });
         showToast(`✅ 已获取 ${currentLoadoutData.length} 条最新改枪码`, 'success');
         renderLoadoutList();
+        updateWeaponDropdownOptions();
         return;
       }
     } catch (e) {
@@ -7510,6 +7637,7 @@ async function fetchGunsmithCodes() {
   currentLoadoutData = defaultLoadouts;
   showToast('⚠️ 网络不稳定，已加载本地配装', 'warning');
   renderLoadoutList();
+  updateWeaponDropdownOptions();
 }
 // 刷新配装数据
 async function refreshLoadoutData() {
@@ -7531,7 +7659,29 @@ function getOpColor(opClass) {
 function renderLoadoutList() {
   const container = document.getElementById('loadoutListContainer');
   if (!container) return;
-
+  // ---------- 动态生成枪械筛选按钮 ----------
+  const weaponFilterDiv = document.getElementById('weaponFilterContainer');
+  if (weaponFilterDiv) {
+    const allWeapons = [...new Set(currentLoadoutData.map(item => item.weapon).filter(Boolean))];
+    const allBtn = weaponFilterDiv.querySelector('[data-weapon="all"]');
+    weaponFilterDiv.innerHTML = '';
+    if (allBtn) weaponFilterDiv.appendChild(allBtn.cloneNode(true));
+    else {
+      const btn = document.createElement('button');
+      btn.className = 'filter-chip active'; btn.dataset.weapon = 'all';
+      btn.innerHTML = '<i class="fas fa-list"></i> 全部枪械';
+      btn.style.background = 'var(--accent)'; btn.style.color = 'white';
+      weaponFilterDiv.appendChild(btn);
+    }
+    allWeapons.sort().forEach(w => {
+      const btn = document.createElement('button');
+      btn.className = 'filter-chip'; btn.dataset.weapon = w;
+      btn.innerHTML = `<i class="fas fa-gun"></i> ${w}`;
+      btn.style.background = 'var(--surface)'; btn.style.color = 'var(--text)'; btn.style.border = '1px solid var(--border)';
+      weaponFilterDiv.appendChild(btn);
+    });
+    bindLoadoutFilters(); // 重新绑定事件
+  }
   // 确保数据存在
   if (!currentLoadoutData || currentLoadoutData.length === 0) {
     container.innerHTML = '<div class="text-center py-6 text-xs" style="color:var(--muted);">暂无配装，请稍后重试</div>';
@@ -7574,16 +7724,66 @@ function copyLoadoutCode(code) {
     showToast(`✅ 改枪码已复制`, 'success');
   });
 }
-// ==================== 枪械数据 ====================
+// ==================== 枪械数据（S9赛季版，更新于2026.04） ====================
 const WEAPON_DATA = [
-  { name:'M4A1', damage:42, fireRate:750, accuracy:82, range:65 },
-  { name:'AKM', damage:48, fireRate:600, accuracy:75, range:70 },
-  { name:'MP5', damage:35, fireRate:800, accuracy:70, range:50 },
-  { name:'AWM', damage:105, fireRate:40, accuracy:95, range:100 },
-  { name:'SCAR-H', damage:55, fireRate:550, accuracy:80, range:75 },
-  { name:'Vector', damage:32, fireRate:1100, accuracy:68, range:45 },
-  { name:'SR-25', damage:65, fireRate:300, accuracy:85, range:85 },
-  { name:'MG4', damage:38, fireRate:700, accuracy:60, range:70 }
+  // ========== 突击步枪 (标签：全能/中距离/压枪/猛攻) ==========
+  { name: 'M4A1', damage: 42, fireRate: 750, accuracy: 82, range: 65, category: '突击', tags: ['全能', '中距离', '新手友好'] },
+  { name: 'AKM', damage: 48, fireRate: 600, accuracy: 75, range: 70, category: '突击', tags: ['高伤害', '中距离', '压枪'] },
+  { name: 'SCAR-H', damage: 55, fireRate: 550, accuracy: 80, range: 75, category: '突击', tags: ['高伤害', '远程', '精准'] },
+  { name: 'K416', damage: 40, fireRate: 780, accuracy: 85, range: 68, category: '突击', tags: ['均衡', '中距离', '压枪'] },
+  { name: 'AR57', damage: 30, fireRate: 900, accuracy: 78, range: 62, category: '突击', tags: ['射速快', '近战', '腰射'] },
+  { name: 'AUG', damage: 41, fireRate: 720, accuracy: 83, range: 70, category: '突击', tags: ['均衡', '中距离', '新手友好'] },
+  { name: 'MCX LT', damage: 43, fireRate: 700, accuracy: 80, range: 72, category: '突击', tags: ['均衡', '中距离', '压枪'] },
+  { name: 'SG552', damage: 44, fireRate: 720, accuracy: 81, range: 68, category: '突击', tags: ['紫弹', '中距离', '性价比'] },
+  { name: 'PTR-32', damage: 45, fireRate: 632, accuracy: 88, range: 75, category: '突击', tags: ['激光枪', '中距离', '新手友好'] },
+  { name: 'G3', damage: 50, fireRate: 500, accuracy: 82, range: 80, category: '突击', tags: ['高伤害', '远程', '单点'] },
+  { name: 'MK47', damage: 48, fireRate: 650, accuracy: 80, range: 72, category: '突击', tags: ['高伤害', '中距离', '猛攻'] },
+  { name: '腾龙突击步枪', damage: 42, fireRate: 750, accuracy: 82, range: 70, category: '突击', tags: ['性价比', '中距离', '新手友好'] },
+  { name: '191式突击步枪', damage: 26, fireRate: 660, accuracy: 78, range: 68, category: '突击', tags: ['新枪', '可变射速', '中距离'] },
+  { name: 'K437', damage: 38, fireRate: 779, accuracy: 79, range: 69, category: '突击', tags: ['均衡', '中距离'] },
+  { name: 'ASh-12', damage: 50, fireRate: 500, accuracy: 70, range: 60, category: '突击', tags: ['高伤害', '近战'] },
+  { name: 'M7', damage: 38, fireRate: 750, accuracy: 82, range: 68, category: '突击', tags: ['均衡', '中距离'] },
+
+  // ========== 冲锋枪 (标签：近战/射速/跑刀) ==========
+  { name: 'MP5', damage: 35, fireRate: 800, accuracy: 70, range: 50, category: '冲锋', tags: ['近战', '射速', '跑刀'] },
+  { name: 'Vector', damage: 32, fireRate: 1091, accuracy: 68, range: 45, category: '冲锋', tags: ['近战', '射速快', '秒杀'] },
+  { name: 'MP7', damage: 33, fireRate: 900, accuracy: 72, range: 52, category: '冲锋', tags: ['近战', '均衡', '跑刀'] },
+  { name: 'UZI', damage: 30, fireRate: 950, accuracy: 65, range: 40, category: '冲锋', tags: ['近战', '射速快', '跑刀'] },
+  { name: 'P90', damage: 32, fireRate: 900, accuracy: 70, range: 48, category: '冲锋', tags: ['大弹匣', '近战', '压制'] },
+  { name: '勇士冲锋枪', damage: 34, fireRate: 880, accuracy: 72, range: 50, category: '冲锋', tags: ['近战', '秒杀', '跑刀'] },
+  { name: 'SR-3M', damage: 36, fireRate: 747, accuracy: 70, range: 54, category: '冲锋', tags: ['近战', '高爆发'] },
+  { name: 'SMG-45', damage: 34, fireRate: 604, accuracy: 74, range: 52, category: '冲锋', tags: ['精准', '中距离'] },
+  { name: '野牛冲锋枪', damage: 35, fireRate: 658, accuracy: 72, range: 54, category: '冲锋', tags: ['大弹匣', '均衡'] },
+  { name: 'MK4', damage: 33, fireRate: 793, accuracy: 70, range: 50, category: '冲锋', tags: ['近战', '射速快'] },
+
+  // ========== 狙击步枪 (标签：远程/高伤害/架点) ==========
+  { name: 'AWM', damage: 105, fireRate: 40, accuracy: 95, range: 100, category: '狙击', tags: ['远程', '高伤害', '架点'] },
+  { name: 'M82A1', damage: 120, fireRate: 35, accuracy: 90, range: 110, category: '狙击', tags: ['远程', '高伤害', '反载具'] },
+  { name: 'R93', damage: 90, fireRate: 45, accuracy: 92, range: 95, category: '狙击', tags: ['远程', '精准', '架点'] },
+  { name: 'SV-98', damage: 88, fireRate: 40, accuracy: 90, range: 96, category: '狙击', tags: ['远程', '均衡'] },
+  { name: 'M700', damage: 92, fireRate: 42, accuracy: 91, range: 98, category: '狙击', tags: ['远程', '经典'] },
+  { name: 'MK2', damage: 95, fireRate: 38, accuracy: 88, range: 94, category: '狙击', tags: ['高伤害', '杠杆式'] },
+  { name: '巴雷特', damage: 100, fireRate: 100, accuracy: 92, range: 105, category: '狙击', tags: ['远程', '高伤害', '一枪致死'] },
+
+  // ========== 射手步枪 (标签：远程/精准/架点) ==========
+  { name: 'SR-25', damage: 65, fireRate: 300, accuracy: 85, range: 85, category: '射手', tags: ['远程', '精准', '架点'] },
+  { name: 'M14', damage: 60, fireRate: 350, accuracy: 88, range: 88, category: '射手', tags: ['远程', '连狙', '架点'] },
+  { name: 'SR-9', damage: 50, fireRate: 261, accuracy: 86, range: 90, category: '射手', tags: ['远程', '精准', '高伤害'] },
+  { name: 'SKS', damage: 52, fireRate: 444, accuracy: 84, range: 86, category: '射手', tags: ['均衡', '中远距离'] },
+  { name: 'VSS', damage: 55, fireRate: 400, accuracy: 82, range: 70, category: '射手', tags: ['消音', '精准'] },
+
+  // ========== 轻机枪 (标签：压制/中距离/猛攻) ==========
+  { name: 'MG4', damage: 38, fireRate: 700, accuracy: 60, range: 70, category: '机枪', tags: ['压制', '中距离', '火力'] },
+  { name: 'M249', damage: 36, fireRate: 858, accuracy: 62, range: 68, category: '机枪', tags: ['大弹匣', '压制', '火力'] },
+  { name: 'PKM', damage: 42, fireRate: 668, accuracy: 65, range: 72, category: '机枪', tags: ['高伤害', '压制'] },
+  { name: 'QJB201', damage: 35, fireRate: 785, accuracy: 67, range: 69, category: '机枪', tags: ['均衡', '压制'] },
+
+  // ========== 霰弹枪 (标签：近战/高伤害/秒杀) ==========
+  { name: 'FS-12', damage: 150, fireRate: 60, accuracy: 30, range: 20, category: '霰弹', tags: ['近战', '高伤害', '秒杀'] },
+  { name: 'S12K', damage: 136, fireRate: 300, accuracy: 32, range: 18, category: '霰弹', tags: ['近战', '高伤害', '连喷'] },
+  { name: '725', damage: 200, fireRate: 375, accuracy: 35, range: 22, category: '霰弹', tags: ['近战', '高爆发'] },
+  { name: 'M1014', damage: 112, fireRate: 280, accuracy: 34, range: 18, category: '霰弹', tags: ['近战', '连喷'] },
+  { name: 'M870', damage: 120, fireRate: 200, accuracy: 36, range: 20, category: '霰弹', tags: ['近战', '泵动式'] }
 ];
 let weaponSortField = 'damage';
 let weaponSortAsc = false;
@@ -7674,8 +7874,9 @@ openModal = function(id) {
   // 确保原始函数存在且可调用
   if (typeof originalOpenModal === 'function') {
     // 在打开前初始化对应弹窗数据
-      if (id === 'loadoutModal') { 
+            if (id === 'loadoutModal') { 
   fetchGunsmithCodes(); 
+  resetAllLoadoutFilters(); // 新增：重置下拉菜单状态
   if (typeof bindLoadoutFilters === 'function') bindLoadoutFilters(); 
 }
     if (id === 'weaponModal' && typeof renderWeaponTable === 'function') {
@@ -7692,19 +7893,337 @@ openModal = function(id) {
   }
 };
 function bindLoadoutFilters() {
-  document.querySelectorAll('.loadout-filter-btn').forEach(btn => {
-    btn.removeEventListener('click', btn._loadoutHandler);
+  // 兵种筛选
+  document.querySelectorAll('#classFilterContainer .filter-chip').forEach(btn => {
+    btn.removeEventListener('click', btn._handler);
     const handler = function() {
-      document.querySelectorAll('.loadout-filter-btn').forEach(b => { b.style.background='var(--surface)'; b.style.color='var(--text)'; b.classList.remove('active'); });
-      this.style.background='var(--accent)'; this.style.color='white'; this.classList.add('active');
-      currentLoadoutFilter = this.dataset.filter;
-      renderLoadoutList();
+      document.querySelectorAll('#classFilterContainer .filter-chip').forEach(b => {
+        b.style.background = 'var(--surface)'; b.style.color = 'var(--text)'; b.classList.remove('active');
+      });
+      this.style.background = 'var(--accent)'; this.style.color = 'white'; this.classList.add('active');
+      currentLoadoutFilter = this.dataset.class;
+      applyLoadoutFilters();
     };
-    btn._loadoutHandler = handler;
+    btn._handler = handler;
+    btn.addEventListener('click', handler);
+  });
+  
+  // 玩法筛选 (新增)
+  document.querySelectorAll('#playstyleFilterContainer .filter-chip').forEach(btn => {
+    btn.removeEventListener('click', btn._handler);
+    const handler = function() {
+      document.querySelectorAll('#playstyleFilterContainer .filter-chip').forEach(b => {
+        b.style.background = 'var(--surface)'; b.style.color = 'var(--text)'; b.classList.remove('active');
+      });
+      this.style.background = 'var(--accent)'; this.style.color = 'white'; this.classList.add('active');
+      applyLoadoutFilters();
+    };
+    btn._handler = handler;
+    btn.addEventListener('click', handler);
+  });
+
+  // 枪械筛选
+  document.querySelectorAll('#weaponFilterContainer .filter-chip').forEach(btn => {
+    btn.removeEventListener('click', btn._handler);
+    const handler = function() {
+      document.querySelectorAll('#weaponFilterContainer .filter-chip').forEach(b => {
+        b.style.background = 'var(--surface)'; b.style.color = 'var(--text)'; b.classList.remove('active');
+      });
+      this.style.background = 'var(--accent)'; this.style.color = 'white'; this.classList.add('active');
+      applyLoadoutFilters();
+    };
+    btn._handler = handler;
     btn.addEventListener('click', handler);
   });
 }
+// ==================== 筛选状态存储 ====================
+let currentClassFilter = 'all';
+let currentPlaystyleFilter = 'all';
+let currentWeaponFilter = 'all';
+let currentPriceFilter = 'default';  // 价格排序：default / low / high
+let loadoutSearchKeyword = '';
 
+// ==================== 下拉菜单控制（复用全局 toggleFilterDropdown） ====================
+// 注意：toggleFilterDropdown 已全局存在，无需重复定义
+
+// ==================== 筛选选项选择函数 ====================
+function selectClassFilter(val) {
+  currentClassFilter = val;
+  const labelMap = { all: '全部兵种', 突击: '突击', 侦察: '侦察', 支援: '支援', 工程: '工程' };
+  document.getElementById('currentClassLabel').textContent = labelMap[val] || val;
+  
+  // 更新下拉菜单激活状态
+  const menu = document.querySelector('#classDropdown .filter-menu');
+  menu.querySelectorAll('.filter-option').forEach(opt => {
+    opt.classList.toggle('active', opt.dataset.class === val);
+  });
+  menu.classList.add('hidden');
+  
+  applyLoadoutFilters();
+}
+
+function selectPlaystyleFilter(val) {
+  currentPlaystyleFilter = val;
+  const labelMap = { all: '全部玩法', 近战: '近战/跑刀', 中距离: '中距离/压枪', 远程: '远程/架点', 猛攻: '猛攻/高伤', 新手: '新手友好' };
+  document.getElementById('currentPlaystyleLabel').textContent = labelMap[val] || val;
+  
+  const menu = document.querySelector('#playstyleDropdown .filter-menu');
+  menu.querySelectorAll('.filter-option').forEach(opt => {
+    opt.classList.toggle('active', opt.dataset.playstyle === val);
+  });
+  menu.classList.add('hidden');
+  
+  applyLoadoutFilters();
+}
+
+function selectWeaponFilter(val) {
+  currentWeaponFilter = val;
+  const label = val === 'all' ? '全部枪械' : val;
+  document.getElementById('currentWeaponLabel').textContent = label;
+  
+  const menu = document.querySelector('#weaponDropdown .filter-menu');
+  menu.querySelectorAll('.filter-option').forEach(opt => {
+    opt.classList.toggle('active', opt.dataset.weapon === val);
+  });
+  menu.classList.add('hidden');
+  
+  applyLoadoutFilters();
+}
+function selectPriceFilter(val) {
+  currentPriceFilter = val;
+  const labelMap = { default: '默认排序', low: '价格从低到高', high: '价格从高到低' };
+  document.getElementById('currentPriceLabel').textContent = labelMap[val] || val;
+  
+  const menu = document.querySelector('#priceDropdown .filter-menu');
+  menu.querySelectorAll('.filter-option').forEach(opt => {
+    opt.classList.toggle('active', opt.dataset.price === val);
+  });
+  menu.classList.add('hidden');
+  
+  applyLoadoutFilters();
+}
+// ==================== 重置所有筛选 ====================
+function resetAllLoadoutFilters() {
+  currentClassFilter = 'all';
+  currentPlaystyleFilter = 'all';
+  currentWeaponFilter = 'all';
+  currentPriceFilter = 'default';
+  loadoutSearchKeyword = '';
+  
+  document.getElementById('currentClassLabel').textContent = '全部兵种';
+  document.getElementById('currentPlaystyleLabel').textContent = '全部玩法';
+  document.getElementById('currentWeaponLabel').textContent = '全部枪械';
+  document.getElementById('currentPriceLabel').textContent = '价格排序';
+  document.getElementById('loadoutSearchInput').value = '';
+  
+  // 重置下拉菜单激活状态
+  document.querySelectorAll('#classDropdown .filter-option').forEach(opt => opt.classList.toggle('active', opt.dataset.class === 'all'));
+  document.querySelectorAll('#playstyleDropdown .filter-option').forEach(opt => opt.classList.toggle('active', opt.dataset.playstyle === 'all'));
+  document.querySelectorAll('#weaponFilterMenu .filter-option').forEach(opt => opt.classList.toggle('active', opt.dataset.weapon === 'all'));
+  document.querySelectorAll('#priceDropdown .filter-option').forEach(opt => opt.classList.toggle('active', opt.dataset.price === 'default'));
+  
+  applyLoadoutFilters();
+}
+// ==================== 核心筛选函数（整合搜索） ====================
+// ==================== 核心筛选函数（整合搜索 + 价格排序） ====================
+function applyLoadoutFilters() {
+  // 获取搜索关键词
+  const searchInput = document.getElementById('loadoutSearchInput');
+  loadoutSearchKeyword = searchInput ? searchInput.value.trim().toLowerCase() : '';
+  
+  let filtered = currentLoadoutData;
+  
+  // 1. 兵种筛选
+  if (currentClassFilter !== 'all') {
+    filtered = filtered.filter(item => item.class === currentClassFilter);
+  }
+  
+  // 2. 枪械筛选
+  if (currentWeaponFilter !== 'all') {
+    filtered = filtered.filter(item => item.weapon === currentWeaponFilter);
+  }
+  
+  // 3. 玩法筛选
+  if (currentPlaystyleFilter !== 'all') {
+    filtered = filtered.filter(item => {
+      if (item.tags && item.tags.includes(currentPlaystyleFilter)) return true;
+      const weaponInfo = WEAPON_DATA.find(w => w.name === item.weapon);
+      return weaponInfo && weaponInfo.tags && weaponInfo.tags.includes(currentPlaystyleFilter);
+    });
+  }
+  
+  // 4. 关键词搜索（枪械名、兵种、配件、方案名、改枪码）
+  if (loadoutSearchKeyword) {
+    filtered = filtered.filter(item => {
+      return (
+        item.weapon.toLowerCase().includes(loadoutSearchKeyword) ||
+        (item.class && item.class.toLowerCase().includes(loadoutSearchKeyword)) ||
+        (item.attachments && item.attachments.toLowerCase().includes(loadoutSearchKeyword)) ||
+        (item.name && item.name.toLowerCase().includes(loadoutSearchKeyword)) ||
+        (item.code && item.code.toLowerCase().includes(loadoutSearchKeyword))
+      );
+    });
+  }
+  
+  // 5. 价格排序（新增）
+  if (currentPriceFilter === 'low') {
+    filtered = [...filtered].sort((a, b) => {
+      const priceA = parsePrice(a.price);
+      const priceB = parsePrice(b.price);
+      return priceA - priceB;
+    });
+  } else if (currentPriceFilter === 'high') {
+    filtered = [...filtered].sort((a, b) => {
+      const priceA = parsePrice(a.price);
+      const priceB = parsePrice(b.price);
+      return priceB - priceA;
+    });
+  }
+  
+  // 更新结果计数
+  const countEl = document.getElementById('loadoutResultCount');
+  if (countEl) countEl.textContent = filtered.length;
+  
+  // 渲染列表
+  const container = document.getElementById('loadoutListContainer');
+  if (!container) return;
+  
+  if (filtered.length === 0) {
+    container.innerHTML = `<div class="text-center py-8" style="color: var(--muted);">
+      <i class="fas fa-search text-3xl mb-3 opacity-30"></i>
+      <p class="text-sm">没有找到匹配的配装方案</p>
+      <p class="text-xs mt-1 opacity-70">试试调整筛选条件或搜索关键词</p>
+    </div>`;
+    return;
+  }
+  
+  container.innerHTML = filtered.map(l => `
+    <div class="p-3 rounded-xl cursor-pointer hover:shadow-md transition-all" style="background:var(--surface);border:1px solid var(--border);" onclick="copyLoadoutCode('${l.code}', this)">
+      <div class="flex items-center gap-2 mb-2">
+        <span class="tag-pill text-xs" style="background:${getOpColor(l.class)}20;color:${getOpColor(l.class)};">${l.class || '全能'}</span>
+        <span class="font-bold text-sm truncate">${l.name || l.weapon + '配装'}</span>
+      </div>
+      <div class="text-xs" style="color:var(--muted);">
+        <i class="fas fa-gun mr-1"></i>${l.weapon} · ${l.attachments || '热门配件'}
+      </div>
+      <div class="flex items-center justify-between mt-1">
+        <span class="text-xs font-medium" style="color: var(--accent);">
+  <i class="fas fa-coins mr-1"></i>
+  ${l.price && l.price !== '暂无报价' ? l.price : '<span style="opacity:0.5;">暂无报价</span>'}
+</span>
+      </div>
+      <div class="text-[10px] mt-2 flex items-center justify-between" style="color:var(--accent);">
+        <span class="truncate mr-2"><i class="fas fa-code mr-1"></i>${l.code}</span>
+        <span class="copy-btn-icon"><i class="far fa-copy"></i></span>
+      </div>
+    </div>
+  `).join('');
+}
+
+// 辅助函数：解析价格字符串为数字（用于排序）
+function parsePrice(priceStr) {
+  if (!priceStr) return 0;
+  const str = String(priceStr).toLowerCase();
+  // 处理 "24万" 格式
+  if (str.includes('万')) {
+    const num = parseFloat(str.replace(/[^0-9.]/g, ''));
+    return isNaN(num) ? 0 : num * 10000;
+  }
+  // 处理纯数字
+  const num = parseFloat(str.replace(/[^0-9.]/g, ''));
+  return isNaN(num) ? 0 : num;
+}
+// ==================== 动态生成枪械下拉选项 ====================
+function updateWeaponDropdownOptions() {
+  const menu = document.getElementById('weaponFilterMenu');
+  if (!menu) return;
+  
+  const allWeapons = [...new Set(currentLoadoutData.map(item => item.weapon).filter(Boolean))];
+  
+  // 保留"全部枪械"按钮，清空其余
+  const allBtn = menu.querySelector('[data-weapon="all"]');
+  menu.innerHTML = '';
+  if (allBtn) {
+    menu.appendChild(allBtn.cloneNode(true));
+  } else {
+    const btn = document.createElement('button');
+    btn.className = 'filter-option active';
+    btn.dataset.weapon = 'all';
+    btn.innerHTML = '<i class="fas fa-list"></i>全部枪械';
+    btn.onclick = () => selectWeaponFilter('all');
+    menu.appendChild(btn);
+  }
+  
+  allWeapons.sort().forEach(w => {
+    const btn = document.createElement('button');
+    btn.className = 'filter-option';
+    btn.dataset.weapon = w;
+    btn.innerHTML = `<i class="fas fa-gun"></i>${w}`;
+    btn.onclick = () => selectWeaponFilter(w);
+    menu.appendChild(btn);
+  });
+  
+  // 高亮当前选中项
+  menu.querySelectorAll('.filter-option').forEach(opt => {
+    opt.classList.toggle('active', opt.dataset.weapon === currentWeaponFilter);
+  });
+}
+
+// ==================== 增强复制功能（带状态反馈） ====================
+function copyLoadoutCode(code, element) {
+  // 找到被点击卡片中的复制图标
+  const card = element.closest ? element.closest('.rounded-xl') : element;
+  const iconSpan = card ? card.querySelector('.copy-btn-icon') : null;
+  
+  const fallbackCopy = () => {
+    const textarea = document.createElement('textarea');
+    textarea.value = code;
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textarea);
+    if (iconSpan) {
+      iconSpan.innerHTML = '<i class="fas fa-check" style="color: #2ecc71;"></i>';
+      setTimeout(() => {
+        iconSpan.innerHTML = '<i class="far fa-copy"></i>';
+      }, 1500);
+    }
+    showToast(`✅ 改枪码已复制`, 'success');
+  };
+
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(code).then(() => {
+      if (iconSpan) {
+        iconSpan.innerHTML = '<i class="fas fa-check" style="color: #2ecc71;"></i>';
+        setTimeout(() => {
+          iconSpan.innerHTML = '<i class="far fa-copy"></i>';
+        }, 1500);
+      }
+      showToast(`✅ 改枪码已复制`, 'success');
+    }).catch(fallbackCopy);
+  } else {
+    fallbackCopy();
+  }
+}
+// ==================== 覆盖原有的 renderLoadoutList（整合下拉更新） ====================
+const originalRenderLoadoutList = renderLoadoutList;
+renderLoadoutList = function() {
+  const container = document.getElementById('loadoutListContainer');
+  if (!container) return;
+  
+  // 更新枪械下拉选项
+  updateWeaponDropdownOptions();
+  
+  // 直接调用筛选函数渲染
+  applyLoadoutFilters();
+};
+
+// ==================== 删除旧的 bindLoadoutFilters，不再需要（下拉菜单直接绑定 onclick） ====================
+// 可以将 bindLoadoutFilters 置空，或者保留但不使用
+bindLoadoutFilters = function() {
+  // 已改用下拉菜单的 onclick，此函数不再需要
+  console.log('筛选已改用下拉菜单，bindLoadoutFilters 已弃用');
+};
 // ==================== 修改工具箱动作 ====================
 const originalHandleTool = handleToolAction;
 handleToolAction = function(type) {
