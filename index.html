@@ -2999,18 +2999,22 @@ body {
   <p class="text-xs" style="color:var(--muted)">三角洲墨辰电竞社区 &copy; 2026 · 跨端互通，战火不熄</p>
 </footer>
 
-<!-- 移动端底部导航 -->
+<!-- 移动端底部导航（+号居中） -->
 <div class="mobile-nav justify-around items-center">
   <button onclick="switchTab('home')" class="flex flex-col items-center gap-0.5 py-1 px-3" id="mobHome"><i class="fas fa-home text-lg" style="color:var(--accent)"></i><span class="text-[10px]">首页</span></button>
   <button onclick="switchTab('discover')" class="flex flex-col items-center gap-0.5 py-1 px-3" id="mobDiscover"><i class="fas fa-compass text-lg" style="color:var(--muted)"></i><span class="text-[10px]">发现</span></button>
-  <button onclick="openModal('publishModal')" class="flex flex-col items-center justify-center gap-0.5 py-1 px-3">
-    <div class="w-12 h-12 rounded-full flex items-center justify-center" style="background:linear-gradient(135deg,#FF6B35,#FF4757); margin-top: -8px;">
-      <i class="fas fa-plus text-white text-lg"></i>
-    </div>
-  </button>
   <button onclick="switchTab('following')" class="flex flex-col items-center gap-0.5 py-1 px-3" id="mobFollowing"><i class="fas fa-heart text-lg" style="color:var(--muted)"></i><span class="text-[10px]">关注</span></button>
+  
+  <!-- 发布按钮（居中突出显示） -->
+  <button onclick="openModal('publishModal')" class="flex flex-col items-center justify-center py-1 px-3 relative">
+    <div class="w-14 h-14 rounded-full flex items-center justify-center absolute -top-6 shadow-lg" style="background:linear-gradient(135deg,#FF6B35,#FF4757); border: 3px solid var(--card);">
+      <i class="fas fa-plus text-white text-xl"></i>
+    </div>
+    <span class="text-[10px] mt-8">发布</span>
+  </button>
+  
   <button onclick="switchTab('escort')" class="flex flex-col items-center gap-0.5 py-1 px-3" id="mobEscort"><i class="fas fa-shield-halved text-lg" style="color:var(--muted)"></i><span class="text-[10px]">护航</span></button>
-<button onclick="switchTab('budgetLoadout')" class="flex flex-col items-center gap-0.5 py-1 px-3" id="mobBudget"><i class="fas fa-piggy-bank text-lg" style="color:var(--muted)"></i><span class="text-[10px]">起装</span></button>
+  <button onclick="switchTab('budgetLoadout')" class="flex flex-col items-center gap-0.5 py-1 px-3" id="mobBudget"><i class="fas fa-piggy-bank text-lg" style="color:var(--muted)"></i><span class="text-[10px]">起装</span></button>
   <button onclick="openProfile()" class="flex flex-col items-center gap-0.5 py-1 px-3" id="mobProfile"><i class="fas fa-user text-lg" style="color:var(--muted)"></i><span class="text-[10px]">我的</span></button>
 </div>
 <!-- 回到顶部/底部悬浮按钮 -->
