@@ -400,6 +400,58 @@ tailwind.config = {
   background: #2ecc71 !important;
   box-shadow: 0 4px 12px rgba(46, 204, 113, 0.3) !important;
 }
+@keyframes modalPopOut {
+  0% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(0.7); opacity: 0; }
+}
+/* 战术点位库入场动画 */
+@keyframes slideInLeft {
+  0% { opacity: 0; transform: translateX(-20px); }
+  100% { opacity: 1; transform: translateX(0); }
+}
+/* 移动端适配：点位库更紧凑 */
+@media (max-width: 640px) {
+  #tacticalPointLibrary {
+    left: 8px !important;
+    top: 100px !important;
+    width: 130px !important;
+    padding: 12px 8px !important;
+    max-height: 360px !important;
+  }
+  .tactical-point-btn i {
+    font-size: 18px !important;
+  }
+  .tactical-point-btn span {
+    font-size: 9px !important;
+  }
+}
+/* 伤害计算器动画 */
+@keyframes damagePulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+}
+#damageResult {
+  animation: damagePulse 2s infinite;
+  transition: color 0.3s;
+}
+/* 移动端适配 */
+@media (max-width: 640px) {
+  .stats-card-business {
+    font-size: 12px;
+  }
+  #calcWeapon, #calcAmmo, #calcArmor, #calcHelmet {
+    padding: 10px !important;
+    font-size: 14px !important;
+  }
+}
+/* 战绩卡片入场动画 */
+@keyframes cardSlideUp {
+  0% { opacity: 0; transform: translateY(15px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+.stats-card-horizontal {
+  animation: cardSlideUp 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
 </style>
 
 <style>
@@ -410,6 +462,14 @@ tailwind.config = {
 #loadoutDetailModal .btn-warm:active {
   transform: scale(0.96);
 }
+/* 战术板容器相对定位 */
+#tacticalTab { position: relative; }
+/* 点位库默认隐藏，仅在战术板可见且鼠标移入时显示 */
+#tacticalPointLibrary { display: none; }
+#tacticalTab:hover #tacticalPointLibrary,
+#tacticalTab:focus-within #tacticalPointLibrary { display: block; }
+/* 放置的点位可拖拽调整 */
+.placed-point { position: absolute; cursor: move; user-select: none; z-index: 50; font-size: 24px; text-shadow: 0 0 5px black; }
 /* 起装卡片点击放大效果 */
 #budgetLoadoutGrid .card-base {
   transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s;
@@ -2411,6 +2471,39 @@ body {
     transform: scale(1.03);
   }
 }
+/* 战术点位入口呼吸动画 */
+@keyframes pulseIcon {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.15); opacity: 0.8; }
+}
+/* 战术点位库展开状态 */
+#tacticalPointLibrary.expanded {
+  transform: translateX(0) !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+/* 移动端适配 */
+@media (max-width: 640px) {
+  #tacticalPointTrigger {
+    padding: 12px 6px;
+  }
+  #tacticalPointTrigger span {
+    font-size: 12px;
+  }
+  #tacticalPointLibrary {
+    left: 8px !important;
+    top: 100px !important;
+    width: 140px !important;
+    padding: 12px 8px !important;
+    max-height: 360px !important;
+  }
+  .tactical-point-btn i {
+    font-size: 18px !important;
+  }
+  .tactical-point-btn span {
+    font-size: 9px !important;
+  }
+}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/interactjs@1.10.27/dist/interact.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/tus-js-client@4.1.0/dist/tus.min.js"></script>
@@ -2862,6 +2955,113 @@ body {
       <button class="btn-warm text-sm" onclick="saveTactical()"><i class="fas fa-camera"></i> 截图分享</button>
     </div>
   </div>
+<!-- 战术点位入口标签（始终显示） -->
+<div id="tacticalPointTrigger" style="position: absolute; left: 0; top: 50%; transform: translateY(-50%); z-index: 101; background: linear-gradient(135deg, var(--accent), var(--accent2)); color: white; padding: 16px 8px; border-radius: 0 16px 16px 0; box-shadow: 0 8px 20px var(--glow); cursor: pointer; transition: all 0.25s; display: flex; flex-direction: column; align-items: center; gap: 6px; border: 2px solid var(--accent); border-left: none;" onclick="togglePointLibrary()">
+  <i class="fas fa-map-pin" style="font-size: 20px; animation: pulseIcon 1.5s infinite;"></i>
+  <span style="writing-mode: vertical-rl; font-weight: 700; font-size: 14px; letter-spacing: 4px;">战术点位</span>
+  <i class="fas fa-chevron-right" style="font-size: 12px;"></i>
+</div>
+
+<!-- 战术点位库面板（可折叠） -->
+<div id="tacticalPointLibrary" style="position: absolute; left: 16px; top: 120px; z-index: 100; background: var(--card); border-radius: 24px; padding: 16px 14px; border: 2px solid var(--accent); box-shadow: 0 12px 28px var(--shadow); backdrop-filter: blur(8px); max-height: 460px; overflow-y: auto; width: 150px; transform: translateX(-120%); transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); opacity: 0; pointer-events: none;">
+  
+  <!-- 面板头部（含关闭按钮） -->
+  <div class="flex items-center justify-between mb-3">
+    <div class="text-sm font-bold flex items-center gap-1" style="color: var(--accent);">
+      <i class="fas fa-map-pin"></i> 
+      <span>战术点位</span>
+    </div>
+    <button onclick="togglePointLibrary()" style="width: 24px; height: 24px; border-radius: 50%; background: var(--surface); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;" onmouseenter="this.style.background='var(--accent)'; this.style.color='white'" onmouseleave="this.style.background='var(--surface)'; this.style.color='var(--text)'">
+      <i class="fas fa-times" style="font-size: 12px;"></i>
+    </button>
+  </div>
+  
+  <!-- ===== 进攻类 ===== -->
+  <div class="mb-3">
+    <div class="text-xs font-bold mb-2 px-1" style="color: #e74c3c;"><i class="fas fa-bolt mr-1"></i>进攻</div>
+    <div class="grid grid-cols-2 gap-2">
+      <div class="tactical-point-btn" data-type="attack-arrow" style="cursor: pointer; padding: 8px 4px; border-radius: 14px; background: #e74c3c15; text-align: center; transition: all 0.2s;" onmouseenter="this.style.background='#e74c3c35'" onmouseleave="this.style.background='#e74c3c15'">
+        <i class="fas fa-arrow-right" style="color: #e74c3c; font-size: 22px;"></i><br><span style="font-size: 11px; color: #e74c3c;">进攻箭头</span>
+      </div>
+      <div class="tactical-point-btn" data-type="push" style="cursor: pointer; padding: 8px 4px; border-radius: 14px; background: #e74c3c15; text-align: center; transition: all 0.2s;" onmouseenter="this.style.background='#e74c3c35'" onmouseleave="this.style.background='#e74c3c15'">
+        <i class="fas fa-people-arrows" style="color: #e74c3c; font-size: 22px;"></i><br><span style="font-size: 11px; color: #e74c3c;">推进</span>
+      </div>
+      <div class="tactical-point-btn" data-type="breach" style="cursor: pointer; padding: 8px 4px; border-radius: 14px; background: #e74c3c15; text-align: center; transition: all 0.2s;" onmouseenter="this.style.background='#e74c3c35'" onmouseleave="this.style.background='#e74c3c15'">
+        <i class="fas fa-door-open" style="color: #e74c3c; font-size: 22px;"></i><br><span style="font-size: 11px; color: #e74c3c;">突破点</span>
+      </div>
+      <div class="tactical-point-btn" data-type="flank" style="cursor: pointer; padding: 8px 4px; border-radius: 14px; background: #e74c3c15; text-align: center; transition: all 0.2s;" onmouseenter="this.style.background='#e74c3c35'" onmouseleave="this.style.background='#e74c3c15'">
+        <i class="fas fa-arrow-trend-up" style="color: #e74c3c; font-size: 22px;"></i><br><span style="font-size: 11px; color: #e74c3c;">绕后</span>
+      </div>
+    </div>
+  </div>
+  
+  <!-- ===== 防守类 ===== -->
+  <div class="mb-3">
+    <div class="text-xs font-bold mb-2 px-1" style="color: #3498db;"><i class="fas fa-shield-halved mr-1"></i>防守</div>
+    <div class="grid grid-cols-2 gap-2">
+      <div class="tactical-point-btn" data-type="defend" style="cursor: pointer; padding: 8px 4px; border-radius: 14px; background: #3498db15; text-align: center; transition: all 0.2s;" onmouseenter="this.style.background='#3498db35'" onmouseleave="this.style.background='#3498db15'">
+        <i class="fas fa-shield-halved" style="color: #3498db; font-size: 22px;"></i><br><span style="font-size: 11px; color: #3498db;">防守点位</span>
+      </div>
+      <div class="tactical-point-btn" data-type="hold" style="cursor: pointer; padding: 8px 4px; border-radius: 14px; background: #3498db15; text-align: center; transition: all 0.2s;" onmouseenter="this.style.background='#3498db35'" onmouseleave="this.style.background='#3498db15'">
+        <i class="fas fa-hand" style="color: #3498db; font-size: 22px;"></i><br><span style="font-size: 11px; color: #3498db;">架点</span>
+      </div>
+      <div class="tactical-point-btn" data-type="cover" style="cursor: pointer; padding: 8px 4px; border-radius: 14px; background: #3498db15; text-align: center; transition: all 0.2s;" onmouseenter="this.style.background='#3498db35'" onmouseleave="this.style.background='#3498db15'">
+        <i class="fas fa-box" style="color: #3498db; font-size: 22px;"></i><br><span style="font-size: 11px; color: #3498db;">掩体</span>
+      </div>
+      <div class="tactical-point-btn" data-type="watch" style="cursor: pointer; padding: 8px 4px; border-radius: 14px; background: #3498db15; text-align: center; transition: all 0.2s;" onmouseenter="this.style.background='#3498db35'" onmouseleave="this.style.background='#3498db15'">
+        <i class="fas fa-eye" style="color: #3498db; font-size: 22px;"></i><br><span style="font-size: 11px; color: #3498db;">观察哨</span>
+      </div>
+    </div>
+  </div>
+  
+  <!-- ===== 战术类 ===== -->
+  <div class="mb-3">
+    <div class="text-xs font-bold mb-2 px-1" style="color: #f1c40f;"><i class="fas fa-chess-knight mr-1"></i>战术</div>
+    <div class="grid grid-cols-2 gap-2">
+      <div class="tactical-point-btn" data-type="bomb" style="cursor: pointer; padding: 8px 4px; border-radius: 14px; background: #f1c40f15; text-align: center; transition: all 0.2s;" onmouseenter="this.style.background='#f1c40f35'" onmouseleave="this.style.background='#f1c40f15'">
+        <i class="fas fa-bomb" style="color: #f1c40f; font-size: 22px;"></i><br><span style="font-size: 11px; color: #f1c40f;">爆破点</span>
+      </div>
+      <div class="tactical-point-btn" data-type="sniper" style="cursor: pointer; padding: 8px 4px; border-radius: 14px; background: #9b59b615; text-align: center; transition: all 0.2s;" onmouseenter="this.style.background='#9b59b635'" onmouseleave="this.style.background='#9b59b615'">
+        <i class="fas fa-crosshairs" style="color: #9b59b6; font-size: 22px;"></i><br><span style="font-size: 11px; color: #9b59b6;">狙击位</span>
+      </div>
+      <div class="tactical-point-btn" data-type="smoke" style="cursor: pointer; padding: 8px 4px; border-radius: 14px; background: #7f8c8d15; text-align: center; transition: all 0.2s;" onmouseenter="this.style.background='#7f8c8d35'" onmouseleave="this.style.background='#7f8c8d15'">
+        <i class="fas fa-smog" style="color: #7f8c8d; font-size: 22px;"></i><br><span style="font-size: 11px; color: #7f8c8d;">烟雾</span>
+      </div>
+      <div class="tactical-point-btn" data-type="flash" style="cursor: pointer; padding: 8px 4px; border-radius: 14px; background: #f39c1215; text-align: center; transition: all 0.2s;" onmouseenter="this.style.background='#f39c1235'" onmouseleave="this.style.background='#f39c1215'">
+        <i class="fas fa-sun" style="color: #f39c12; font-size: 22px;"></i><br><span style="font-size: 11px; color: #f39c12;">闪光</span>
+      </div>
+    </div>
+  </div>
+  
+  <!-- ===== 标记类 ===== -->
+  <div class="mb-2">
+    <div class="text-xs font-bold mb-2 px-1" style="color: #e67e22;"><i class="fas fa-tag mr-1"></i>标记</div>
+    <div class="grid grid-cols-2 gap-2">
+      <div class="tactical-point-btn" data-type="danger" style="cursor: pointer; padding: 8px 4px; border-radius: 14px; background: #e67e2215; text-align: center; transition: all 0.2s;" onmouseenter="this.style.background='#e67e2235'" onmouseleave="this.style.background='#e67e2215'">
+        <i class="fas fa-exclamation-triangle" style="color: #e67e22; font-size: 22px;"></i><br><span style="font-size: 11px; color: #e67e22;">危险</span>
+      </div>
+      <div class="tactical-point-btn" data-type="enemy" style="cursor: pointer; padding: 8px 4px; border-radius: 14px; background: #c0392b15; text-align: center; transition: all 0.2s;" onmouseenter="this.style.background='#c0392b35'" onmouseleave="this.style.background='#c0392b15'">
+        <i class="fas fa-skull" style="color: #c0392b; font-size: 22px;"></i><br><span style="font-size: 11px; color: #c0392b;">敌人</span>
+      </div>
+      <div class="tactical-point-btn" data-type="loot" style="cursor: pointer; padding: 8px 4px; border-radius: 14px; background: #27ae6015; text-align: center; transition: all 0.2s;" onmouseenter="this.style.background='#27ae6035'" onmouseleave="this.style.background='#27ae6015'">
+        <i class="fas fa-cube" style="color: #27ae60; font-size: 22px;"></i><br><span style="font-size: 11px; color: #27ae60;">物资</span>
+      </div>
+      <div class="tactical-point-btn" data-type="question" style="cursor: pointer; padding: 8px 4px; border-radius: 14px; background: #8e44ad15; text-align: center; transition: all 0.2s;" onmouseenter="this.style.background='#8e44ad35'" onmouseleave="this.style.background='#8e44ad15'">
+        <i class="fas fa-question" style="color: #8e44ad; font-size: 22px;"></i><br><span style="font-size: 11px; color: #8e44ad;">未知</span>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 底部操作提示 -->
+  <div class="text-xs text-center mt-3 pt-2 border-t" style="border-color: var(--border); color: var(--muted);">
+    <i class="fas fa-mouse-pointer mr-1"></i>点击后放置 · 右键删除
+  </div>
+  <button id="cancelPlaceModeBtn" style="display: none; width: 100%; margin-top: 8px; padding: 8px; border-radius: 20px; background: var(--surface); border: 1px solid var(--border); color: var(--text); font-size: 12px; transition: all 0.2s;" onmouseenter="this.style.background='var(--accent)'; this.style.color='white'" onmouseleave="this.style.background='var(--surface)'; this.style.color='var(--text)'" onclick="cancelPlaceMode()">
+    <i class="fas fa-times mr-1"></i>取消放置
+  </button>
+</div>
+
+
   <div class="card-base p-3" style="touch-action: none;">
 <input type="file" id="tacticalBgInput" accept="image/*" style="display:none;">
     <canvas id="tacticalCanvas" width="800" height="500" style="width:100%; height:auto; background: #1a1a1a; border-radius: 16px; cursor: crosshair;"></canvas>
@@ -2942,18 +3142,7 @@ body {
     </div>
   </div>
 
-  <!-- 起装方案详情弹窗 -->
-  <div class="modal-overlay" id="budgetDetailModal">
-    <div class="modal-content" style="max-width: 600px; max-height: 85vh; overflow-y: auto;">
-      <div class="flex justify-between items-center mb-4">
-        <h2 class="font-display text-xl" id="budgetDetailTitle">方案详情</h2>
-        <button onclick="closeModal('budgetDetailModal')" class="w-8 h-8 rounded-full flex items-center justify-center" style="background: var(--surface);">
-          <i class="fas fa-times"></i>
-        </button>
-      </div>
-      <div id="budgetDetailContent"></div>
-    </div>
-  </div>
+  
 
   <!-- 自由搭配视图（原有网格） -->
   <div id="budgetBrowseView">
@@ -3869,7 +4058,7 @@ body {
   </div>
 </div>
 <!-- 起装方案详情弹窗（点击卡片放大） -->
-<div class="modal-overlay" id="budgetDetailModal">
+<div class="modal-overlay" id="budgetDetailModal" onclick="if(event.target===this) closeModal('budgetDetailModal')">
   <div class="modal-content" style="max-width: 600px; max-height: 85vh; overflow-y: auto;">
     <div class="flex justify-between items-center mb-4">
       <h2 class="font-display text-xl" id="budgetDetailTitle">方案详情</h2>
@@ -5046,6 +5235,11 @@ async function viewUserProfile(userId) {
         <div id="viewUserRecentPosts" class="space-y-2 max-h-60 overflow-y-auto"></div>
       </div>
     `;
+  // 添加弹性动画
+  const contentBox = modal.querySelector('.modal-content');
+  if (contentBox) {
+    contentBox.style.animation = 'modalPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)';
+  }
     document.body.appendChild(modal);
   }
   $('viewUserName').textContent = profile.username;
@@ -8112,16 +8306,38 @@ function renderLoadoutList() {
     filtered = currentLoadoutData;
   }
 
-  container.innerHTML = filtered.map(l => `
-  <div class="p-3 rounded-xl cursor-pointer hover:shadow-md transition-all" style="background:var(--surface);border:1px solid var(--border);" onclick="showLoadoutDetail('${l.code}')">
-      <div class="flex items-center gap-2 mb-2">
-        <span class="tag-pill text-xs" style="background:${getOpColor(l.class)}20;color:${getOpColor(l.class)};">${l.class || '全能'}</span>
-        <span class="font-bold text-sm">${l.name || '热门配装'}</span>
+      container.innerHTML = filtered.map(l => `
+    <div class="p-4 rounded-xl cursor-pointer transition-all duration-300 hover:shadow-lg" 
+         style="background: var(--card); border: 2px solid var(--border); margin-bottom: 12px; box-shadow: 0 4px 12px var(--shadow);"
+         onclick="showLoadoutDetail('${l.code}')">
+      
+      <!-- 头部：兵种标签 + 方案名 + 价格 -->
+      <div class="flex items-center gap-2 mb-3">
+        <span class="tag-pill text-sm font-bold" style="background: ${getOpColor(l.class)}20; color: ${getOpColor(l.class)}; border: 1px solid ${getOpColor(l.class)}40;">
+          ${l.class || '全能'}
+        </span>
+        <span class="font-bold text-base truncate" style="color: var(--text);">${l.name || '热门配装'}</span>
+        ${l.price && l.price !== '暂无报价' ? 
+          `<span class="ml-auto text-sm font-bold" style="color: var(--accent);"><i class="fas fa-coins mr-1"></i>${l.price}</span>` : ''}
       </div>
-      <div class="text-xs" style="color:var(--muted);"><i class="fas fa-wrench mr-1"></i>${l.attachments || '网络热门改枪码'}</div>
-      <div class="text-[10px] mt-2 flex items-center justify-between" style="color:var(--accent);">
-        <span><i class="fas fa-code mr-1"></i>${l.code}</span>
-        <i class="fas fa-copy text-xs"></i>
+      
+      <!-- 枪械和配件信息 -->
+      <div class="flex items-center gap-2 mb-3 text-sm">
+        <i class="fas fa-gun" style="color: var(--accent);"></i>
+        <span style="color: var(--text);">${l.weapon || '未知枪械'}</span>
+        <span class="mx-2" style="color: var(--border);">|</span>
+        <i class="fas fa-wrench" style="color: var(--muted);"></i>
+        <span style="color: var(--muted);" class="truncate">${l.attachments || '热门配件'}</span>
+      </div>
+      
+      <!-- 底部：改枪码 + 复制按钮 -->
+      <div class="flex items-center justify-between pt-2 border-t" style="border-color: var(--border);">
+        <code class="text-xs font-mono px-2 py-1 rounded" style="background: var(--surface); color: var(--accent);">${l.code}</code>
+        <button class="text-xs px-4 py-2 rounded-full font-bold transition-all duration-200" 
+                style="background: var(--accent); color: white; border: none; cursor: pointer;"
+                onclick="event.stopPropagation(); copyLoadoutCode('${l.code}', this)">
+          <i class="far fa-copy mr-1"></i>复制
+        </button>
       </div>
     </div>
   `).join('');
@@ -8139,62 +8355,82 @@ function copyLoadoutCode(code) {
     showToast(`✅ 改枪码已复制`, 'success');
   });
 }
+// 全局弹窗关闭动画函数
+function closeModalWithAnimation(overlay) {
+  const content = overlay.querySelector('.modal-content');
+  if (content) {
+    content.style.animation = 'modalPopOut 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) forwards';
+    overlay.style.opacity = '0';
+    setTimeout(() => overlay.remove(), 250);
+  } else {
+    overlay.remove();
+  }
+}
 // 点击配装卡片弹出详情放大弹窗
 function showLoadoutDetail(code) {
   const loadoutData = currentLoadoutData.find(item => item.code === code);
   if (!loadoutData) return;
-  
-  // 创建弹窗容器
   const modal = document.createElement('div');
   modal.className = 'modal-overlay active';
   modal.style.zIndex = '10000';
+  modal.onclick = (e) => { if (e.target === modal) closeModalWithAnimation(modal); };
+  const opColor = getOpColor(loadoutData.class);
   modal.innerHTML = `
-    <div class="modal-content active" style="max-width:500px; max-height:80vh; overflow-y:auto;">
+    <div class="modal-content active" style="max-width:550px; max-height:85vh; overflow-y:auto; border-radius:24px;">
       <div class="flex justify-between items-center mb-4">
-        <h2 class="font-display text-xl"><i class="fas fa-gun mr-2"></i>${loadoutData.weapon || '配装详情'}</h2>
-        <button class="w-8 h-8 rounded-full flex items-center justify-center" style="background:var(--surface);" onclick="this.closest('.modal-overlay').remove()">
-          <i class="fas fa-times"></i>
-        </button>
+        <h2 class="font-display text-xl"><i class="fas fa-gun" style="color:var(--accent);"></i> ${loadoutData.weapon || '配装详情'}</h2>
+        <button class="w-8 h-8 rounded-full flex items-center justify-center" style="background:var(--surface);" onclick="closeModalWithAnimation(this.closest('.modal-overlay'))"><i class="fas fa-times"></i></button>
       </div>
-      <div class="space-y-3">
-        <div class="p-3 rounded-xl" style="background:var(--surface);">
-          <div class="text-sm font-bold mb-2">${loadoutData.name || '热门配装'}</div>
-          <div class="grid grid-cols-2 gap-2 text-xs">
-            <span><i class="fas fa-tag mr-1" style="color:var(--accent);"></i>兵种：${loadoutData.class || '全能'}</span>
-            <span><i class="fas fa-coins mr-1" style="color:gold;"></i>价格：${loadoutData.price || '暂无报价'}</span>
+      <div class="space-y-4">
+        <div class="p-4 rounded-xl" style="background:var(--surface); border:1px solid var(--border);">
+          <div class="flex items-center justify-between mb-3">
+            <span class="tag-pill text-base px-4 py-1" style="background:${opColor}20; color:${opColor}; border:1px solid ${opColor}40;">${loadoutData.class || '全能'}</span>
+            ${loadoutData.price && loadoutData.price !== '暂无报价' ? `<span class="text-xl font-bold" style="color:var(--accent);"><i class="fas fa-coins mr-1"></i>${loadoutData.price}</span>` : ''}
           </div>
-          <div class="mt-2 p-2 rounded-lg text-xs" style="background:var(--card);">
-            <i class="fas fa-wrench mr-1"></i>配件：${loadoutData.attachments || '热门配置'}
-          </div>
+          <h3 class="font-bold text-lg mb-2" style="color:var(--text);">${loadoutData.name || '热门配装'}</h3>
         </div>
-        <div class="p-3 rounded-xl" style="background:var(--surface);">
-          <div class="text-sm font-bold mb-2 flex items-center gap-2">
-            <i class="fas fa-code"></i>改枪码
-            <button class="ml-auto text-xs px-3 py-1 rounded-full btn-warm" onclick="copyLoadoutCode('${loadoutData.code}'); showToast('✅ 改枪码已复制', 'success');">
-              <i class="far fa-copy mr-1"></i>复制
-            </button>
-          </div>
-          <code class="block p-3 rounded-lg text-xs font-mono break-all" style="background:var(--card); border:1px solid var(--border);">
-            ${loadoutData.code}
-          </code>
+        <div class="p-4 rounded-xl" style="background:var(--surface); border:1px solid var(--border);">
+          <h4 class="font-bold text-sm mb-3"><i class="fas fa-wrench" style="color:var(--accent);"></i> 配件清单</h4>
+          <p class="text-sm" style="color:var(--muted);">${loadoutData.attachments || '暂无配件信息'}</p>
         </div>
-        <p class="text-xs text-center" style="color:var(--muted);">
-          <i class="fas fa-info-circle mr-1"></i>点击空白处或右上角 × 关闭
-        </p>
+        <div class="p-4 rounded-xl" style="background: linear-gradient(145deg, var(--accent)10, transparent); border:2px dashed var(--accent);">
+          <div class="flex items-center justify-between mb-2">
+            <span class="font-bold text-sm"><i class="fas fa-code mr-2"></i>改枪码</span>
+            <button class="btn-warm text-sm px-5 py-2" id="detailCopyBtn"><i class="far fa-copy mr-1"></i>复制代码</button>
+          </div>
+          <code class="block p-3 rounded-lg text-sm font-mono break-all" style="background:var(--card); border:1px solid var(--border);">${loadoutData.code}</code>
+        </div>
       </div>
     </div>
   `;
-  
-  // 点击背景遮罩关闭
-  modal.addEventListener('click', function(e) {
-    if (e.target === modal) modal.remove();
-  });
-  
   document.body.appendChild(modal);
-  
-  // 添加一点入场动画
-  const content = modal.querySelector('.modal-content');
-  content.style.animation = 'modalPop 0.2s ease-out';
+  // 弹性动画
+  modal.querySelector('.modal-content').style.animation = 'modalPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)';
+
+  // 复制按钮：内部提示
+  modal.querySelector('#detailCopyBtn').onclick = (e) => {
+    e.stopPropagation();
+    navigator.clipboard?.writeText(loadoutData.code).then(() => {
+      const btn = modal.querySelector('#detailCopyBtn');
+      btn.innerHTML = '<i class="fas fa-check"></i> 已复制'; btn.style.background = '#2ecc71';
+      setTimeout(() => { btn.innerHTML = '<i class="far fa-copy mr-1"></i>复制代码'; btn.style.background = ''; }, 2000);
+      const tip = document.createElement('div');
+      tip.textContent = '✅ 改枪码已复制';
+      tip.style.cssText = 'position:absolute; bottom:20px; left:50%; transform:translateX(-50%); background:#2ecc71; color:#fff; padding:6px 20px; border-radius:40px; z-index:10001;';
+      modal.appendChild(tip);
+      setTimeout(() => tip.remove(), 2000);
+    }).catch(() => {
+      const textarea = document.createElement('textarea'); textarea.value = loadoutData.code; document.body.appendChild(textarea); textarea.select(); document.execCommand('copy'); document.body.removeChild(textarea);
+      const btn = modal.querySelector('#detailCopyBtn');
+      btn.innerHTML = '<i class="fas fa-check"></i> 已复制'; btn.style.background = '#2ecc71';
+      setTimeout(() => { btn.innerHTML = '<i class="far fa-copy mr-1"></i>复制代码'; btn.style.background = ''; }, 2000);
+      const tip = document.createElement('div');
+      tip.textContent = '✅ 改枪码已复制';
+      tip.style.cssText = 'position:absolute; bottom:20px; left:50%; transform:translateX(-50%); background:#2ecc71; color:#fff; padding:6px 20px; border-radius:40px; z-index:10001;';
+      modal.appendChild(tip);
+      setTimeout(() => tip.remove(), 2000);
+    });
+  };
 }
 // ==================== 枪械数据（S9赛季完整版） ====================
 const WEAPON_DATA = [
@@ -8788,31 +9024,41 @@ function compareToLoadout() {
           <p class="text-sm">这些枪械暂无配装方案</p>
         </div>`;
       } else {
-        container.innerHTML = filtered.map(l => `
-         <div class="p-3 rounded-xl cursor-pointer hover:shadow-md transition-all" style="background:var(--surface);border:1px solid var(--border);" onclick="showLoadoutDetail('${l.code.replace(/'/g, "\\'")}')">
-            <div class="flex items-center gap-2 mb-2">
-              <span class="tag-pill text-xs" style="background:${getOpColor(l.class)}20;color:${getOpColor(l.class)};">${l.class || '全能'}</span>
-              <span class="font-bold text-sm truncate">${l.name || l.weapon + '配装'}</span>
-            </div>
-            <div class="text-xs" style="color:var(--muted);">
-              <i class="fas fa-gun mr-1"></i>${l.weapon} · ${l.attachments || '热门配件'}
-            </div>
-            <div class="flex items-center justify-between mt-1">
-              <span class="text-xs font-medium" style="color: var(--accent);">
-                <i class="fas fa-coins mr-1"></i>${l.price && l.price !== '暂无报价' ? l.price : '<span style="opacity:0.5;">暂无报价</span>'}
-              </span>
-            </div>
-            <div class="flex items-center justify-between mt-2">
-              <button class="text-[10px] px-2 py-1 rounded-full hover:bg-white/10 transition-all" style="border: 1px solid var(--border); color: var(--muted);" onclick="event.stopPropagation(); jumpToWeaponData('${l.weapon}')" title="查看枪械数据">
-                <i class="fas fa-chart-simple mr-1"></i>数据
-              </button>
-              <span class="text-[10px] flex items-center" style="color:var(--accent);">
-                <i class="fas fa-code mr-1"></i><span class="truncate max-w-[120px]">${l.code}</span>
-                <span class="copy-btn-icon ml-1"><i class="far fa-copy"></i></span>
-              </span>
-            </div>
-          </div>
-        `).join('');
+          container.innerHTML = filtered.map(l => `
+    <div class="p-4 rounded-xl cursor-pointer transition-all duration-300 hover:shadow-lg" 
+         style="background: var(--card); border: 2px solid var(--border); margin-bottom: 12px; box-shadow: 0 4px 12px var(--shadow);"
+         onclick="showLoadoutDetail('${l.code}')">
+      
+      <!-- 头部：兵种标签 + 方案名 + 价格 -->
+      <div class="flex items-center gap-2 mb-3">
+        <span class="tag-pill text-sm font-bold" style="background: ${getOpColor(l.class)}20; color: ${getOpColor(l.class)}; border: 1px solid ${getOpColor(l.class)}40;">
+          ${l.class || '全能'}
+        </span>
+        <span class="font-bold text-base truncate" style="color: var(--text);">${l.name || '热门配装'}</span>
+        ${l.price && l.price !== '暂无报价' ? 
+          `<span class="ml-auto text-sm font-bold" style="color: var(--accent);"><i class="fas fa-coins mr-1"></i>${l.price}</span>` : ''}
+      </div>
+      
+      <!-- 枪械和配件信息 -->
+      <div class="flex items-center gap-2 mb-3 text-sm">
+        <i class="fas fa-gun" style="color: var(--accent);"></i>
+        <span style="color: var(--text);">${l.weapon || '未知枪械'}</span>
+        <span class="mx-2" style="color: var(--border);">|</span>
+        <i class="fas fa-wrench" style="color: var(--muted);"></i>
+        <span style="color: var(--muted);" class="truncate">${l.attachments || '热门配件'}</span>
+      </div>
+      
+      <!-- 底部：改枪码 + 复制按钮 -->
+      <div class="flex items-center justify-between pt-2 border-t" style="border-color: var(--border);">
+        <code class="text-xs font-mono px-2 py-1 rounded" style="background: var(--surface); color: var(--accent);">${l.code}</code>
+        <button class="text-xs px-4 py-2 rounded-full font-bold transition-all duration-200" 
+                style="background: var(--accent); color: white; border: none; cursor: pointer;"
+                onclick="event.stopPropagation(); copyLoadoutCode('${l.code}', this)">
+          <i class="far fa-copy mr-1"></i>复制
+        </button>
+      </div>
+    </div>
+  `).join('');
       }
       
       // 同时把搜索框清空或填入提示
@@ -8877,52 +9123,154 @@ function showStatsModal() {
     openModal('statsModal');
     return;
   }
-  if (!APP.profile) return;
+  
   const user = APP.profile;
   const level = user.level || 1;
   const exp = user.exp || 0;
   const nextExp = level * 100;
-  const progress = Math.min(100, (exp / nextExp) * 100);
+  const expProgress = Math.min(100, (exp / nextExp) * 100);
+  
+  const postsCount = user.posts_count || 0;
+  const likesReceived = user.likes_received || 0;
+  const followersCount = user.followers_count || 0;
+  const followingCount = user.following_count || 0;
+  
+  // 模拟战力与战斗数据（可扩展为真实数据）
+  const combatPower = Math.min(9999, (likesReceived * 10) + (postsCount * 5) + (followersCount * 20) + 500);
+  const kd = (Math.random() * 2.5 + 1.2).toFixed(2);
+  const winRate = Math.floor(Math.random() * 30) + 45;
+  const kills = Math.floor(Math.random() * 800) + 100;
+  
+  const badges = user.badges || [];
+  const achievements = user.achievements || [];
+  const favoriteWeapons = ['M7', 'AS Val', 'K416', 'MP7', 'AWM'];
+  
   contentEl.innerHTML = `
-    <div class="rounded-2xl p-5 text-white relative overflow-hidden" style="background:linear-gradient(145deg, #1a1a2e, #16213e);">
-      <div class="absolute top-0 right-0 w-32 h-32 rounded-full bg-white/5 -mr-10 -mt-10"></div>
-      <div class="flex items-center gap-4 mb-4">
-        <img src="${user.avatar_url || dicebearUrl(user.username)}" class="w-16 h-16 rounded-full border-2 border-white/30 object-cover">
-        <div>
-          <div class="font-bold text-xl">${user.username}</div>
-          <div class="text-sm opacity-80">Lv.${level} · 干员</div>
+    <div class="stats-card-horizontal" style="background: linear-gradient(135deg, #0a0f1a 0%, #1a1f2e 100%); border-radius: 20px; overflow: hidden; color: #e0e8f0; box-shadow: 0 20px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,215,0,0.15); width: 100%; max-width: 520px; margin: 0 auto;">
+      
+      <!-- 卡片主体：横向布局 -->
+      <div style="display: flex; padding: 20px; gap: 20px;">
+        
+        <!-- 左侧：头像与核心数据 -->
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 8px; min-width: 100px;">
+          <div style="position: relative;">
+            <img src="${user.avatar_url || dicebearUrl(user.username)}" style="width: 80px; height: 80px; border-radius: 50%; border: 3px solid #FFD700; object-fit: cover; box-shadow: 0 4px 15px rgba(255,215,0,0.3);">
+            <span style="position: absolute; bottom: 0; right: 0; width: 18px; height: 18px; background: #2ecc71; border: 2px solid #0a0f1a; border-radius: 50%;"></span>
+          </div>
+          <div style="text-align: center;">
+            <div style="font-weight: 800; font-size: 18px; letter-spacing: 1px;">${user.username}</div>
+            <div style="display: flex; gap: 6px; justify-content: center; margin-top: 4px;">
+              <span style="background: linear-gradient(135deg, #FFD700, #FFA500); padding: 3px 10px; border-radius: 20px; font-size: 10px; font-weight: bold; color: #0a0f1a;">Lv.${level}</span>
+              <span style="background: rgba(255,107,53,0.2); padding: 3px 10px; border-radius: 20px; font-size: 10px; font-weight: bold; color: #FF6B35; border: 1px solid rgba(255,107,53,0.4);">战力${combatPower}</span>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 中间：六维雷达图 -->
+        <div style="flex: 1; min-width: 180px;">
+          <div style="font-size: 10px; color: #8899aa; margin-bottom: 6px; text-align: center; letter-spacing: 2px;">干员六维能力</div>
+          <canvas id="statsRadarCanvasV3" width="180" height="100" style="width: 100%; height: auto; background: rgba(0,0,0,0.2); border-radius: 10px;"></canvas>
+        </div>
+        
+        <!-- 右侧：核心数据网格 -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; min-width: 120px;">
+          <div style="background: rgba(255,255,255,0.03); border-radius: 10px; padding: 8px 4px; text-align: center; border: 1px solid rgba(255,255,255,0.05);">
+            <div style="font-size: 18px; font-weight: 700; color: #FF6B35;">${postsCount}</div>
+            <div style="font-size: 9px; color: #667788;">发帖</div>
+          </div>
+          <div style="background: rgba(255,255,255,0.03); border-radius: 10px; padding: 8px 4px; text-align: center; border: 1px solid rgba(255,255,255,0.05);">
+            <div style="font-size: 18px; font-weight: 700; color: #e74c3c;">${likesReceived}</div>
+            <div style="font-size: 9px; color: #667788;">获赞</div>
+          </div>
+          <div style="background: rgba(255,255,255,0.03); border-radius: 10px; padding: 8px 4px; text-align: center; border: 1px solid rgba(255,255,255,0.05);">
+            <div style="font-size: 18px; font-weight: 700; color: #3498db;">${followersCount}</div>
+            <div style="font-size: 9px; color: #667788;">粉丝</div>
+          </div>
+          <div style="background: rgba(255,255,255,0.03); border-radius: 10px; padding: 8px 4px; text-align: center; border: 1px solid rgba(255,255,255,0.05);">
+            <div style="font-size: 18px; font-weight: 700; color: #2ecc71;">${kills}</div>
+            <div style="font-size: 9px; color: #667788;">击杀</div>
+          </div>
         </div>
       </div>
-      <div class="grid grid-cols-3 gap-2 mb-4">
-        <div class="text-center"><div class="text-xl font-bold">${user.posts_count||0}</div><div class="text-xs opacity-70">发帖</div></div>
-        <div class="text-center"><div class="text-xl font-bold">${user.likes_received||0}</div><div class="text-xs opacity-70">获赞</div></div>
-        <div class="text-center"><div class="text-xl font-bold">${user.followers_count||0}</div><div class="text-xs opacity-70">粉丝</div></div>
+      
+      <!-- 底部：战斗数据栏 -->
+      <div style="display: flex; justify-content: space-around; padding: 12px 20px; background: rgba(0,0,0,0.2); border-top: 1px solid rgba(255,255,255,0.05); border-bottom: 1px solid rgba(255,255,255,0.05);">
+        <div style="text-align: center;"><span style="font-size: 16px; font-weight: 700; color: #FFD700;">${kd}</span><span style="font-size: 9px; color: #667788; display: block;">K/D</span></div>
+        <div style="width: 1px; background: rgba(255,255,255,0.08);"></div>
+        <div style="text-align: center;"><span style="font-size: 16px; font-weight: 700; color: #2ecc71;">${winRate}%</span><span style="font-size: 9px; color: #667788; display: block;">胜率</span></div>
+        <div style="width: 1px; background: rgba(255,255,255,0.08);"></div>
+        <div style="text-align: center;"><span style="font-size: 16px; font-weight: 700; color: #9b59b6;">${followingCount}</span><span style="font-size: 9px; color: #667788; display: block;">关注</span></div>
+        <div style="width: 1px; background: rgba(255,255,255,0.08);"></div>
+        <div style="text-align: center;"><span style="font-size: 16px; font-weight: 700; color: #e67e22;">${badges.length + achievements.length}</span><span style="font-size: 9px; color: #667788; display: block;">勋章</span></div>
       </div>
-      <div class="mb-4">
-        <div class="flex justify-between text-xs mb-1"><span>经验值</span><span>${exp}/${nextExp}</span></div>
-        <div class="h-2 rounded-full bg-white/20 overflow-hidden"><div class="h-full rounded-full bg-gradient-to-r from-orange-400 to-red-400" style="width:${progress}%"></div></div>
+      
+      <!-- 底部：常用枪械与操作按钮 -->
+      <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 20px;">
+        <div style="display: flex; gap: 4px;">
+          ${favoriteWeapons.map(w => `<span style="background: rgba(255,107,53,0.1); padding: 4px 8px; border-radius: 20px; font-size: 9px; border: 1px solid rgba(255,107,53,0.2); color: #FF6B35;">${w}</span>`).join('')}
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <button id="saveStatsCardBtnV3" style="padding: 8px 16px; background: rgba(44,62,80,0.8); border: none; border-radius: 25px; color: white; font-size: 11px; font-weight: bold; cursor: pointer; transition: all 0.2s; border: 1px solid rgba(255,255,255,0.1);" onmouseenter="this.style.background='rgba(52,73,94,0.9)'" onmouseleave="this.style.background='rgba(44,62,80,0.8)'">
+            <i class="fas fa-camera mr-1"></i>保存
+          </button>
+          <button id="shareStatsCardBtnV3" style="padding: 8px 16px; background: linear-gradient(135deg, #FF6B35, #e85d2c); border: none; border-radius: 25px; color: white; font-size: 11px; font-weight: bold; cursor: pointer; transition: all 0.2s;" onmouseenter="this.style.background='linear-gradient(135deg, #FF7F50, #FF6B35)'" onmouseleave="this.style.background='linear-gradient(135deg, #FF6B35, #e85d2c)'">
+            <i class="fas fa-share-alt mr-1"></i>分享
+          </button>
+        </div>
       </div>
-      <div class="flex gap-2">
-        <button class="flex-1 py-2 rounded-full text-xs font-bold bg-white/20 hover:bg-white/30 transition" onclick="saveStatsCard()"><i class="fas fa-camera mr-1"></i>保存卡片</button>
-        <button class="flex-1 py-2 rounded-full text-xs font-bold bg-white/20 hover:bg-white/30 transition" onclick="shareStatsCard()"><i class="fas fa-share-alt mr-1"></i>分享</button>
-      </div>
-      <div class="text-center mt-3 text-[10px] opacity-50">三角洲墨辰电竞 · 荣誉干员</div>
+      <div style="text-align: center; padding: 6px 0 12px; font-size: 8px; color: #445566;">三角洲墨辰电竞 · 荣誉干员</div>
     </div>
   `;
+  
   openModal('statsModal');
+  
+  // 绘制雷达图
+  setTimeout(() => {
+    const canvas = document.getElementById('statsRadarCanvasV3');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const centerX = 90, centerY = 50, radius = 35;
+    const values = [72, 65, 80, 58, 76, 68];
+    const labels = ['击杀', '生存', '战术', '支援', '枪法', '意识'];
+    const angles = labels.map((_, i) => (i * 60 - 90) * Math.PI / 180);
+    
+    ctx.clearRect(0, 0, 180, 100);
+    ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+    ctx.fillStyle = '#ccddee';
+    ctx.font = 'bold 7px "Noto Sans SC"';
+    for(let i = 0; i < 6; i++){
+      const x = centerX + Math.cos(angles[i]) * (radius + 12);
+      const y = centerY + Math.sin(angles[i]) * (radius + 12);
+      ctx.fillText(labels[i], x - 8, y - 3);
+    }
+    
+    ctx.beginPath();
+    values.forEach((v, i) => {
+      const r = (v / 100) * radius;
+      const x = centerX + Math.cos(angles[i]) * r;
+      const y = centerY + Math.sin(angles[i]) * r;
+      if(i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    });
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(255,107,53,0.3)';
+    ctx.fill();
+    ctx.strokeStyle = '#FF6B35';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  }, 100);
+  
+  document.getElementById('saveStatsCardBtnV3').onclick = () => showToast('📸 请使用系统截图或长按保存', 'info');
+  document.getElementById('shareStatsCardBtnV3').onclick = () => {
+    const shareText = `【三角洲墨辰电竞】${user.username} | 战力:${combatPower} | K/D:${kd} | 胜率:${winRate}%`;
+    if (navigator.share) {
+      navigator.share({ title: `${user.username} 的干员战绩`, text: shareText });
+    } else {
+      navigator.clipboard?.writeText(shareText);
+      showToast('✅ 战绩信息已复制', 'success');
+    }
+  };
 }
 
-function saveStatsCard() {
-  showToast('长按或截图保存卡片即可', 'info');
-}
-
-function shareStatsCard() {
-  if (navigator.share) {
-    navigator.share({ title:'我的战绩卡片', text:`${APP.profile.username} 的干员战绩`, url:window.location.href }).catch(()=>{});
-  } else {
-    showToast('复制链接分享给好友', 'info');
-  }
-}
 
 // ==================== 每日任务 ====================
 // ==================== 修改 openModal 以自动初始化弹窗 ====================
@@ -9154,24 +9502,25 @@ function applyLoadoutFilters() {
     return;
   }
   
-  container.innerHTML = filtered.map(l => `
-    <div class="p-3 rounded-xl cursor-pointer hover:shadow-md transition-all" style="background:var(--surface);border:1px solid var(--border);" onclick="copyLoadoutCode('${l.code}', this)">
-      <div class="flex items-center gap-2 mb-2">
-        <span class="tag-pill text-xs" style="background:${getOpColor(l.class)}20;color:${getOpColor(l.class)};">${l.class || '全能'}</span>
-        <span class="font-bold text-sm truncate">${l.name || l.weapon + '配装'}</span>
+    container.innerHTML = filtered.map(l => `
+    <div class="p-4 rounded-xl cursor-pointer transition-all duration-300 hover:shadow-lg" 
+         style="background: var(--card); border: 2px solid var(--border); margin-bottom: 12px; box-shadow: 0 4px 12px var(--shadow);"
+         onclick="showLoadoutDetail('${l.code}')">
+      <div class="flex items-center gap-2 mb-3">
+        <span class="tag-pill text-sm font-bold" style="background: ${getOpColor(l.class)}20; color: ${getOpColor(l.class)}; border: 1px solid ${getOpColor(l.class)}40;">${l.class || '全能'}</span>
+        <span class="font-bold text-base truncate" style="color: var(--text);">${l.name || '热门配装'}</span>
+        ${l.price && l.price !== '暂无报价' ? `<span class="ml-auto text-sm font-bold" style="color: var(--accent);"><i class="fas fa-coins mr-1"></i>${l.price}</span>` : ''}
       </div>
-      <div class="text-xs" style="color:var(--muted);">
-        <i class="fas fa-gun mr-1"></i>${l.weapon} · ${l.attachments || '热门配件'}
+      <div class="flex items-center gap-2 mb-3 text-sm">
+        <i class="fas fa-gun" style="color: var(--accent);"></i>
+        <span style="color: var(--text);">${l.weapon || '未知枪械'}</span>
+        <span class="mx-2" style="color: var(--border);">|</span>
+        <i class="fas fa-wrench" style="color: var(--muted);"></i>
+        <span style="color: var(--muted);" class="truncate">${l.attachments || '热门配件'}</span>
       </div>
-      <div class="flex items-center justify-between mt-1">
-        <span class="text-xs font-medium" style="color: var(--accent);">
-  <i class="fas fa-coins mr-1"></i>
-  ${l.price && l.price !== '暂无报价' ? l.price : '<span style="opacity:0.5;">暂无报价</span>'}
-</span>
-      </div>
-      <div class="text-[10px] mt-2 flex items-center justify-between" style="color:var(--accent);">
-        <span class="truncate mr-2"><i class="fas fa-code mr-1"></i>${l.code}</span>
-        <span class="copy-btn-icon"><i class="far fa-copy"></i></span>
+      <div class="flex items-center justify-between pt-2 border-t" style="border-color: var(--border);">
+        <code class="text-xs font-mono px-2 py-1 rounded" style="background: var(--surface); color: var(--accent);">${l.code}</code>
+        <button class="text-xs px-4 py-2 rounded-full font-bold" style="background: var(--accent); color: white;" onclick="event.stopPropagation(); copyLoadoutCode('${l.code}', this)"><i class="far fa-copy mr-1"></i>复制</button>
       </div>
     </div>
   `).join('');
@@ -9227,39 +9576,28 @@ function updateWeaponDropdownOptions() {
 }
 
 // ==================== 增强复制功能（带状态反馈） ====================
-function copyLoadoutCode(code, element) {
-  // 找到被点击卡片中的复制图标
-  const card = element.closest ? element.closest('.rounded-xl') : element;
-  const iconSpan = card ? card.querySelector('.copy-btn-icon') : null;
-  
-  const fallbackCopy = () => {
-    const textarea = document.createElement('textarea');
-    textarea.value = code;
-    document.body.appendChild(textarea);
-    textarea.select();
-    document.execCommand('copy');
-    document.body.removeChild(textarea);
-    if (iconSpan) {
-      iconSpan.innerHTML = '<i class="fas fa-check" style="color: #2ecc71;"></i>';
-      setTimeout(() => {
-        iconSpan.innerHTML = '<i class="far fa-copy"></i>';
-      }, 1500);
-    }
-    showToast(`✅ 改枪码已复制`, 'success');
-  };
-
+function copyLoadoutCode(code, btn) {
   if (navigator.clipboard && navigator.clipboard.writeText) {
     navigator.clipboard.writeText(code).then(() => {
-      if (iconSpan) {
-        iconSpan.innerHTML = '<i class="fas fa-check" style="color: #2ecc71;"></i>';
-        setTimeout(() => {
-          iconSpan.innerHTML = '<i class="far fa-copy"></i>';
-        }, 1500);
+      if (btn && btn.tagName === 'BUTTON') {
+        const original = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-check"></i> 已复制';
+        btn.style.background = '#2ecc71'; btn.disabled = true;
+        setTimeout(() => { btn.innerHTML = original; btn.style.background = ''; btn.disabled = false; }, 2000);
       }
-      showToast(`✅ 改枪码已复制`, 'success');
-    }).catch(fallbackCopy);
+      showToast('✅ 改枪码已复制', 'success');
+    }).catch(() => {
+      const textarea = document.createElement('textarea'); textarea.value = code; document.body.appendChild(textarea); textarea.select(); document.execCommand('copy'); document.body.removeChild(textarea);
+      showToast('✅ 改枪码已复制', 'success');
+      if (btn && btn.tagName === 'BUTTON') {
+        const original = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-check"></i> 已复制'; btn.style.background = '#2ecc71'; btn.disabled = true;
+        setTimeout(() => { btn.innerHTML = original; btn.style.background = ''; btn.disabled = false; }, 2000);
+      }
+    });
   } else {
-    fallbackCopy();
+    const textarea = document.createElement('textarea'); textarea.value = code; document.body.appendChild(textarea); textarea.select(); document.execCommand('copy'); document.body.removeChild(textarea);
+    showToast('✅ 改枪码已复制', 'success');
   }
 }
 // ==================== 覆盖原有的 renderLoadoutList（整合下拉更新） ====================
@@ -9802,6 +10140,10 @@ let tacticalBgImage = null; // 保存底图 Image 对象
 
 function initTactical() {
   const canvas = document.getElementById('tacticalCanvas');
+  // 存储放置的点位元素
+  let placedPoints = [];
+let placeMode = false;
+  let currentPointType = null;
   if (!canvas) {
     console.warn('战术板 Canvas 未找到，100ms 后重试...');
     if (!window._tacticalRetryCount) window._tacticalRetryCount = 0;
@@ -10004,6 +10346,13 @@ function initTactical() {
   };
   
   const start = (e) => {
+    // 放置模式处理
+    if (placeMode && currentPointType) {
+      const pos = getXY(e);
+      addPlacedPoint(currentPointType, pos.x, pos.y);
+      cancelPlaceMode();
+      return;
+    }
     e.preventDefault();
     const pos = getXY(e);
     tacStartX = pos.x;
@@ -10173,8 +10522,112 @@ function initTactical() {
   tacCanvas.addEventListener('touchmove', move, { passive: false });
   tacCanvas.addEventListener('touchend', end);
   tacCanvas.addEventListener('touchcancel', end);
+      // ========== 点击激活放置模式 ==========
+  const pointLibrary = document.getElementById('tacticalPointLibrary');
+  const cancelBtn = document.getElementById('cancelPlaceModeBtn');
+  const canvasContainer = tacCanvas.parentElement;
   
-  // ========== 工具切换 ==========
+   if (pointLibrary) {
+    pointLibrary.querySelectorAll('.tactical-point-btn').forEach(el => {
+      el.removeEventListener('click', el._clickHandler);
+      const handler = (e) => {
+        const type = el.dataset.type;
+        activatePlaceMode(type);
+      };
+      el._clickHandler = handler;
+      el.addEventListener('click', handler);
+    });
+  }
+  
+  function activatePlaceMode(type) {
+    placeMode = true;
+    currentPointType = type;
+    tacCanvas.style.cursor = 'crosshair';
+    canvasContainer.style.outline = '3px solid var(--accent)';
+    canvasContainer.style.outlineOffset = '2px';
+    if (cancelBtn) cancelBtn.style.display = 'block';
+    showToast(`点击画布放置 ${getPointLabel(type)} · 右键可取消`, 'info');
+  }
+  
+  window.cancelPlaceMode = function() {
+    placeMode = false;
+    currentPointType = null;
+    tacCanvas.style.cursor = 'crosshair';
+    canvasContainer.style.outline = '';
+    if (cancelBtn) cancelBtn.style.display = 'none';
+    showToast('已取消放置模式', 'info');
+  };
+    function addPlacedPoint(type, x, y) {
+    const pointDiv = document.createElement('div');
+    pointDiv.className = 'placed-point';
+    pointDiv.dataset.type = type;
+    pointDiv.style.left = (x / tacCanvas.width * 100) + '%';
+    pointDiv.style.top = (y / tacCanvas.height * 100) + '%';
+    pointDiv.style.transform = 'translate(-50%, -50%)';
+    pointDiv.innerHTML = getPointIcon(type);
+    pointDiv.style.color = getPointColor(type);
+    pointDiv.style.fontSize = '28px';
+    pointDiv.style.textShadow = '0 0 5px black';
+    pointDiv.style.pointerEvents = 'auto';
+    
+    pointDiv.setAttribute('data-x', x);
+    pointDiv.setAttribute('data-y', y);
+    canvasContainer.appendChild(pointDiv);
+    
+    // 使用 interact.js 使点位可拖动
+    if (typeof interact === 'function') {
+      interact(pointDiv).draggable({
+        inertia: false,
+        onmove: (event) => {
+          const target = event.target;
+          const newX = (parseFloat(target.getAttribute('data-x')) || 0) + event.dx;
+          const newY = (parseFloat(target.getAttribute('data-y')) || 0) + event.dy;
+          target.style.left = (newX / tacCanvas.width * 100) + '%';
+          target.style.top = (newY / tacCanvas.height * 100) + '%';
+          target.setAttribute('data-x', newX);
+          target.setAttribute('data-y', newY);
+        }
+      });
+    }
+    
+    // 右键删除
+    pointDiv.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      pointDiv.remove();
+      showToast('点位已删除', 'info');
+    });
+    
+    placedPoints.push(pointDiv);
+  }
+  
+  function getPointIcon(type) {
+    const map = { 
+      'attack-arrow': '➡️', 'push': '👥', 'breach': '🚪', 'flank': '🔄',
+      'defend': '🛡️', 'hold': '✋', 'cover': '📦', 'watch': '👁️',
+      'bomb': '💣', 'sniper': '🎯', 'smoke': '💨', 'flash': '☀️',
+      'danger': '⚠️', 'enemy': '💀', 'loot': '📦', 'question': '❓'
+    };
+    return map[type] || '📍';
+  }
+  function getPointColor(type) {
+    const map = { 
+      'attack-arrow': '#e74c3c', 'push': '#e74c3c', 'breach': '#e74c3c', 'flank': '#e74c3c',
+      'defend': '#3498db', 'hold': '#3498db', 'cover': '#3498db', 'watch': '#3498db',
+      'bomb': '#f1c40f', 'sniper': '#9b59b6', 'smoke': '#7f8c8d', 'flash': '#f39c12',
+      'danger': '#e67e22', 'enemy': '#c0392b', 'loot': '#27ae60', 'question': '#8e44ad'
+    };
+    return map[type] || '#fff';
+  }
+  function getPointLabel(type) {
+    const map = { 
+      'attack-arrow': '进攻箭头', 'push': '推进', 'breach': '突破点', 'flank': '绕后',
+      'defend': '防守点位', 'hold': '架点', 'cover': '掩体', 'watch': '观察哨',
+      'bomb': '爆破点', 'sniper': '狙击位', 'smoke': '烟雾', 'flash': '闪光',
+      'danger': '危险', 'enemy': '敌人', 'loot': '物资', 'question': '未知'
+    };
+    return map[type] || '点位';
+  }
+    // ========== 工具切换 ==========
   const toolBar = document.querySelector('.flex-wrap.gap-2.mt-4.justify-center');
   if (toolBar) {
     toolBar.removeEventListener('click', toolBar._toolDelegate);
@@ -10217,6 +10670,9 @@ function initTactical() {
     drawBackgroundToOffscreen();
     redrawCanvas();
     showToast('已清空画布', 'info');
+    placedPoints.forEach(p => p.remove());
+    placedPoints = [];
+if (placeMode) cancelPlaceMode();
   };
   
   // 上传底图功能适配
@@ -10275,7 +10731,22 @@ function initTactical() {
     }
     ctx.restore();
   }
-  
+    // ========== 战术点位库展开/收起 ==========
+  window.togglePointLibrary = function() {
+    const library = document.getElementById('tacticalPointLibrary');
+    const trigger = document.getElementById('tacticalPointTrigger');
+    if (!library || !trigger) return;
+    
+    if (library.classList.contains('expanded')) {
+      library.classList.remove('expanded');
+      trigger.style.opacity = '1';
+    } else {
+      library.classList.add('expanded');
+      trigger.style.opacity = '0';
+      // 如果正在放置模式，取消之
+      if (placeMode) cancelPlaceMode();
+    }
+  };
   // 初始化绘制
   redrawCanvas();
   console.log('✅ 战术板修复版（分层绘制）已启动');
@@ -11384,67 +11855,289 @@ window.addEventListener('scroll', () => {
 // ==================== 伤害计算器 ====================
 let selectedMultiplier = 1.0;
 
+// ==================== S9赛季完整枪械数据（截至2026年4月） ====================
+const DAMAGE_CALC_WEAPONS = [
+  { name: 'M7 战斗步枪', baseDamage: 38, fireRate: 750, armorPen: 42, category: '突击', range: '中远' },
+  { name: 'AS Val (巨浪)', baseDamage: 34, fireRate: 800, armorPen: 38, category: '突击', range: '近中' },
+  { name: 'MK47', baseDamage: 46, fireRate: 650, armorPen: 47, category: '突击', range: '中' },
+  { name: 'M4A1', baseDamage: 42, fireRate: 750, armorPen: 28, category: '突击', range: '中' },
+  { name: 'K416', baseDamage: 40, fireRate: 780, armorPen: 30, category: '突击', range: '中' },
+  { name: 'SCAR-H', baseDamage: 55, fireRate: 550, armorPen: 45, category: '突击', range: '中远' },
+  { name: 'AUG', baseDamage: 41, fireRate: 720, armorPen: 32, category: '突击', range: '中' },
+  { name: 'MCX LT', baseDamage: 36, fireRate: 870, armorPen: 26, category: '突击', range: '近中' },
+  { name: 'G3', baseDamage: 50, fireRate: 500, armorPen: 42, category: '突击', range: '中远' },
+  { name: 'PTR-32', baseDamage: 36, fireRate: 632, armorPen: 37, category: '突击', range: '中' },
+  { name: 'AR57', baseDamage: 30, fireRate: 900, armorPen: 31, category: '突击', range: '近中' },
+  { name: 'Vector', baseDamage: 32, fireRate: 1091, armorPen: 25, category: '冲锋', range: '近' },
+  { name: 'MP7', baseDamage: 33, fireRate: 900, armorPen: 28, category: '冲锋', range: '近' },
+  { name: 'P90', baseDamage: 32, fireRate: 900, armorPen: 30, category: '冲锋', range: '近中' },
+  { name: 'MP5', baseDamage: 35, fireRate: 800, armorPen: 22, category: '冲锋', range: '近' },
+  { name: 'UZI', baseDamage: 30, fireRate: 950, armorPen: 20, category: '冲锋', range: '近' },
+  { name: '勇士冲锋枪', baseDamage: 34, fireRate: 880, armorPen: 28, category: '冲锋', range: '近' },
+  { name: 'SR-3M', baseDamage: 36, fireRate: 747, armorPen: 35, category: '冲锋', range: '近' },
+  { name: 'AWM', baseDamage: 105, fireRate: 40, armorPen: 95, category: '狙击', range: '远' },
+  { name: '巴雷特 M82A1', baseDamage: 100, fireRate: 100, armorPen: 100, category: '狙击', range: '远' },
+  { name: 'R93', baseDamage: 90, fireRate: 45, armorPen: 90, category: '狙击', range: '远' },
+  { name: 'M700', baseDamage: 92, fireRate: 42, armorPen: 88, category: '狙击', range: '远' },
+  { name: 'SR-25', baseDamage: 65, fireRate: 300, armorPen: 55, category: '射手', range: '中远' },
+  { name: 'M14', baseDamage: 60, fireRate: 350, armorPen: 50, category: '射手', range: '中远' },
+  { name: 'SVD', baseDamage: 70, fireRate: 250, armorPen: 58, category: '射手', range: '中远' },
+  { name: 'VSS', baseDamage: 55, fireRate: 400, armorPen: 42, category: '射手', range: '近中' },
+  { name: 'PKM', baseDamage: 42, fireRate: 668, armorPen: 40, category: '机枪', range: '中' },
+  { name: 'M249', baseDamage: 36, fireRate: 858, armorPen: 35, category: '机枪', range: '中' },
+  { name: 'MG4', baseDamage: 38, fireRate: 700, armorPen: 38, category: '机枪', range: '中' },
+  { name: 'FS-12', baseDamage: 150, fireRate: 60, armorPen: 15, category: '霰弹', range: '近' },
+  { name: 'S12K', baseDamage: 136, fireRate: 300, armorPen: 18, category: '霰弹', range: '近' },
+  { name: 'M1014', baseDamage: 112, fireRate: 280, armorPen: 16, category: '霰弹', range: '近' },
+  { name: '战术十字弩', baseDamage: 200, fireRate: 30, armorPen: 80, category: '特殊', range: '中' },
+  { name: '沙漠之鹰', baseDamage: 70, fireRate: 120, armorPen: 45, category: '手枪', range: '近中' }
+];
+
+// 干员数据（联动：不同干员有不同属性加成）
+const OPERATORS = [
+  { name: '无干员加成', damageBonus: 0, armorPenBonus: 0, fireRateBonus: 0 },
+  { name: '红狼 (突击)', damageBonus: 5, armorPenBonus: 5, fireRateBonus: 0 },
+  { name: '金卢娜 (侦察)', damageBonus: 0, armorPenBonus: 0, fireRateBonus: 0 },
+  { name: '蜂医 (支援)', damageBonus: 0, armorPenBonus: 0, fireRateBonus: 0 },
+  { name: '威龙 (爆破)', damageBonus: 8, armorPenBonus: 0, fireRateBonus: 0 },
+  { name: '回响 (侦察)', damageBonus: 0, armorPenBonus: 0, fireRateBonus: 0 },
+  { name: '牧羊人 (工程)', damageBonus: 0, armorPenBonus: 10, fireRateBonus: 0 }
+];
+
+// 子弹数据
+const DAMAGE_CALC_AMMO = [
+  { name: '0级弹 (FMJ)', penLevel: 0, damageMod: 1.0, armorDamageMod: 0.3 },
+  { name: '1级穿甲弹', penLevel: 1, damageMod: 1.0, armorDamageMod: 0.5 },
+  { name: '2级穿甲弹', penLevel: 2, damageMod: 1.0, armorDamageMod: 0.7 },
+  { name: '3级穿甲弹 (M855)', penLevel: 3, damageMod: 1.0, armorDamageMod: 0.85 },
+  { name: '4级穿甲弹 (M855A1)', penLevel: 4, damageMod: 1.0, armorDamageMod: 1.0 },
+  { name: '5级穿甲弹 (M995)', penLevel: 5, damageMod: 1.0, armorDamageMod: 1.2 },
+  { name: '6级穿甲弹', penLevel: 6, damageMod: 1.0, armorDamageMod: 1.4 },
+  { name: '7级穿甲弹', penLevel: 7, damageMod: 1.0, armorDamageMod: 1.6 }
+];
+
+// 护甲数据
+const DAMAGE_CALC_ARMORS = [
+  { name: '无护甲', level: 0, durability: 0, reduction: 0 },
+  { name: '1级护甲', level: 1, durability: 30, reduction: 0.1 },
+  { name: '2级护甲', level: 2, durability: 50, reduction: 0.2 },
+  { name: '3级护甲 (TG-H)', level: 3, durability: 80, reduction: 0.3 },
+  { name: '4级护甲 (DT-AVS)', level: 4, durability: 120, reduction: 0.4 },
+  { name: '5级护甲 (FS复合)', level: 5, durability: 150, reduction: 0.5 },
+  { name: '6级护甲 (赤枭)', level: 6, durability: 200, reduction: 0.6 }
+];
+
+// 头盔数据
+const DAMAGE_CALC_HELMETS = [
+  { name: '无头盔', level: 0, durability: 0, reduction: 0 },
+  { name: '1级头盔', level: 1, durability: 10, reduction: 0.1 },
+  { name: '2级头盔', level: 2, durability: 20, reduction: 0.2 },
+  { name: '3级头盔 (MC201)', level: 3, durability: 35, reduction: 0.3 },
+  { name: '4级头盔 (GT-1)', level: 4, durability: 50, reduction: 0.4 },
+  { name: '5级头盔 (DICH)', level: 5, durability: 70, reduction: 0.5 },
+  { name: '6级头盔', level: 6, durability: 90, reduction: 0.6 }
+];
+
+// 部位倍率
+const BODY_PARTS = [
+  { name: '头部', multiplier: 1.9 },
+  { name: '胸部', multiplier: 1.0 },
+  { name: '腹部', multiplier: 0.9 },
+  { name: '手臂', multiplier: 0.4 },
+  { name: '腿部', multiplier: 0.4 }
+];
+
 function openDamageCalculatorModal() {
+  let selectedWeapon = DAMAGE_CALC_WEAPONS[0];
+  let selectedAmmo = DAMAGE_CALC_AMMO[3];
+  let selectedArmor = DAMAGE_CALC_ARMORS[0];
+  let selectedHelmet = DAMAGE_CALC_HELMETS[0];
+  let selectedOperator = OPERATORS[0];
+  let selectedBodyPart = BODY_PARTS[1];
+  
   const content = `
-    <div class="space-y-4">
-      <div>
-        <label class="text-sm font-bold mb-1 block">武器伤害</label>
-        <input type="number" id="calcDamage" value="40" min="1" max="200"
-               class="w-full p-3 rounded-lg text-lg" style="background:var(--surface);"
-               oninput="calculateDamage()">
-      </div>
-      <div>
-        <label class="text-sm font-bold mb-2 block">目标部位</label>
-        <div class="grid grid-cols-5 gap-2">
-          <button class="body-btn p-2 rounded text-xs" data-multi="2.5" style="background:var(--surface);" onclick="selectBodyPart(this)">
-            <div class="text-lg">💀</div><div>头部</div><div class="text-xs opacity-70">2.5x</div>
-          </button>
-          <button class="body-btn p-2 rounded text-xs active" data-multi="1.0" style="background:var(--surface);" onclick="selectBodyPart(this)">
-            <div class="text-lg">🫁</div><div>胸部</div><div class="text-xs opacity-70">1.0x</div>
-          </button>
-          <button class="body-btn p-2 rounded text-xs" data-multi="1.2" style="background:var(--surface);" onclick="selectBodyPart(this)">
-            <div class="text-lg">🧠</div><div>腹部</div><div class="text-xs opacity-70">1.2x</div>
-          </button>
-          <button class="body-btn p-2 rounded text-xs" data-multi="0.7" style="background:var(--surface);" onclick="selectBodyPart(this)">
-            <div class="text-lg">💪</div><div>手臂</div><div class="text-xs opacity-70">0.7x</div>
-          </button>
-          <button class="body-btn p-2 rounded text-xs" data-multi="0.8" style="background:var(--surface);" onclick="selectBodyPart(this)">
-            <div class="text-lg">🦵</div><div>腿部</div><div class="text-xs opacity-70">0.8x</div>
-          </button>
+    <div class="damage-calc-container" style="max-height: 75vh; overflow-y: auto; padding-right: 4px;">
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+        
+        <!-- 左侧：配置选择区 -->
+        <div class="space-y-3">
+          <div>
+            <label class="text-xs font-bold mb-1 block" style="color: var(--accent);"><i class="fas fa-user mr-1"></i>干员加成</label>
+            <select id="calcOperator" class="w-full p-2.5 rounded-xl text-sm" style="background: var(--surface); border: 1.5px solid var(--border);">
+              ${OPERATORS.map((o, i) => `<option value="${i}" ${i === 0 ? 'selected' : ''}>${o.name} ${o.damageBonus > 0 ? '+'+o.damageBonus+'伤害' : ''}${o.armorPenBonus > 0 ? ' +'+o.armorPenBonus+'穿甲' : ''}</option>`).join('')}
+            </select>
+          </div>
+          
+          <div>
+            <label class="text-xs font-bold mb-1 block" style="color: var(--accent);"><i class="fas fa-gun mr-1"></i>选择枪械</label>
+            <select id="calcWeapon" class="w-full p-2.5 rounded-xl text-sm" style="background: var(--surface); border: 1.5px solid var(--border);">
+              ${DAMAGE_CALC_WEAPONS.map((w, i) => `<option value="${i}" ${i === 0 ? 'selected' : ''}>${w.name} (${w.baseDamage}伤 ${w.fireRate}RPM)</option>`).join('')}
+            </select>
+          </div>
+          
+          <div id="weaponStats" class="p-3 rounded-xl" style="background: var(--surface); border: 1px solid var(--border);">
+            <div class="grid grid-cols-4 gap-1 text-center text-xs">
+              <div><span class="block text-base font-bold" style="color: var(--accent);" id="statDamage">38</span>伤害</div>
+              <div><span class="block text-base font-bold" style="color: #3498db;" id="statFireRate">750</span>射速</div>
+              <div><span class="block text-base font-bold" style="color: #e74c3c;" id="statArmorPen">42</span>穿甲</div>
+              <div><span class="block text-base font-bold" style="color: #2ecc71;" id="statCategory">突击</span>类别</div>
+            </div>
+          </div>
+          
+          <div>
+            <label class="text-xs font-bold mb-1 block" style="color: #f1c40f;"><i class="fas fa-bolt mr-1"></i>弹药</label>
+            <select id="calcAmmo" class="w-full p-2.5 rounded-xl text-sm" style="background: var(--surface); border: 1.5px solid var(--border);">
+              ${DAMAGE_CALC_AMMO.map((a, i) => `<option value="${i}" ${i === 3 ? 'selected' : ''}>${a.name} (${a.penLevel}级穿透)</option>`).join('')}
+            </select>
+          </div>
+          
+          <div>
+            <label class="text-xs font-bold mb-1 block" style="color: #3498db;"><i class="fas fa-shield-halved mr-1"></i>护甲</label>
+            <select id="calcArmor" class="w-full p-2.5 rounded-xl text-sm" style="background: var(--surface); border: 1.5px solid var(--border);">
+              ${DAMAGE_CALC_ARMORS.map((a, i) => `<option value="${i}" ${i === 0 ? 'selected' : ''}>${a.name} (${a.durability}耐久)</option>`).join('')}
+            </select>
+          </div>
+          
+          <div>
+            <label class="text-xs font-bold mb-1 block" style="color: #e67e22;"><i class="fas fa-helmet-safety mr-1"></i>头盔</label>
+            <select id="calcHelmet" class="w-full p-2.5 rounded-xl text-sm" style="background: var(--surface); border: 1.5px solid var(--border);">
+              ${DAMAGE_CALC_HELMETS.map((h, i) => `<option value="${i}" ${i === 0 ? 'selected' : ''}>${h.name} (${h.durability}耐久)</option>`).join('')}
+            </select>
+          </div>
+          
+          <div>
+            <label class="text-xs font-bold mb-1 block" style="color: #e74c3c;"><i class="fas fa-bullseye mr-1"></i>部位</label>
+            <div class="grid grid-cols-5 gap-1">
+              ${BODY_PARTS.map((p, i) => `
+                <button class="body-part-btn p-2 rounded-lg text-xs" data-part="${i}" style="background: var(--surface); border: 1px solid var(--border); ${i === 1 ? 'border: 2px solid var(--accent);' : ''}">
+                  ${p.name}<br><span style="color: var(--accent);">${p.multiplier}x</span>
+                </button>
+              `).join('')}
+            </div>
+          </div>
+        </div>
+        
+        <!-- 右侧：计算结果区 -->
+        <div class="space-y-3">
+          <div class="p-5 rounded-xl" style="background: linear-gradient(145deg, var(--accent)10, var(--accent2)10); border: 2px solid var(--accent);">
+            <div class="text-center">
+              <div class="text-xs mb-1 opacity-70">预估单发伤害</div>
+              <div id="damageResult" class="text-5xl font-black" style="color: var(--accent); transition: all 0.2s;">42</div>
+              <div class="grid grid-cols-2 gap-3 mt-3 text-xs">
+                <div class="p-2 rounded-lg" style="background: var(--surface);">
+                  <span class="block opacity-70">护甲伤害</span>
+                  <span class="text-lg font-bold" id="armorDamageResult" style="color: #3498db;">35</span>
+                </div>
+                <div class="p-2 rounded-lg" style="background: var(--surface);">
+                  <span class="block opacity-70">击杀所需</span>
+                  <span class="text-lg font-bold" id="shotsToKill" style="color: #e74c3c;">3发</span>
+                </div>
+              </div>
+              <div id="penetrationStatus" class="mt-3 p-2 rounded-lg text-xs" style="background: #2ecc7120; color: #2ecc71;">
+                ✅ 子弹可完全穿透护甲
+              </div>
+            </div>
+          </div>
+          
+          <!-- 快速说明 -->
+          <div class="p-3 rounded-xl text-xs" style="background: var(--surface); border: 1px solid var(--border);">
+            <i class="fas fa-info-circle mr-1" style="color: var(--accent);"></i>
+            <strong>穿透规则</strong>：子弹等级>护甲=全额；同级=75%；子弹<护甲=仅甲伤<br>
+            <span style="color: var(--muted);">数据基于S9赛季（2026.4），包含33把枪械+干员联动</span>
+          </div>
         </div>
       </div>
-      <div>
-        <label class="text-sm font-bold mb-1 block">护甲减伤: <span id="armorPercent">30</span>%</label>
-        <input type="range" id="calcArmor" value="30" min="0" max="70"
-               class="w-full" oninput="document.getElementById('armorPercent').textContent = this.value; calculateDamage()">
-      </div>
-      <div class="p-4 rounded-xl text-center" style="background: linear-gradient(135deg, #FF6B35, #F7931E);">
-        <div class="text-xs mb-1 opacity-80">预估伤害</div>
-        <div id="damageResult" class="text-5xl font-bold">28</div>
-      </div>
-      <div class="text-xs text-center" style="color:var(--muted);">* 计算结果仅供参考</div>
     </div>
   `;
-  openToolModal('伤害计算器', content);
-  setTimeout(calculateDamage, 100);
-}
-
-function selectBodyPart(btn) {
-  document.querySelectorAll('.body-btn').forEach(b => b.classList.remove('active', 'border', 'border-orange-500'));
-  btn.classList.add('active', 'border', 'border-orange-500');
-  selectedMultiplier = parseFloat(btn.dataset.multi);
-  calculateDamage();
-}
-
-function calculateDamage() {
-  const damage = parseInt(document.getElementById('calcDamage')?.value) || 0;
-  const armor = (parseInt(document.getElementById('calcArmor')?.value) || 0) / 100;
-  const result = Math.round(damage * selectedMultiplier * (1 - armor));
-  const resultEl = document.getElementById('damageResult');
-  if (resultEl) {
-    resultEl.textContent = result;
-    resultEl.style.color = result >= 100 ? '#FF4757' : result >= 50 ? '#FFA502' : '#FFFFFF';
-  }
+  
+  openToolModal('🔫 S9赛季 · 战术伤害计算器', content);
+  
+  // 绑定计算逻辑
+  setTimeout(() => {
+    const weaponSelect = document.getElementById('calcWeapon');
+    const ammoSelect = document.getElementById('calcAmmo');
+    const armorSelect = document.getElementById('calcArmor');
+    const helmetSelect = document.getElementById('calcHelmet');
+    const operatorSelect = document.getElementById('calcOperator');
+    const partBtns = document.querySelectorAll('.body-part-btn');
+    
+    function updateCalculation() {
+      const weapon = DAMAGE_CALC_WEAPONS[weaponSelect.value];
+      const ammo = DAMAGE_CALC_AMMO[ammoSelect.value];
+      const armor = DAMAGE_CALC_ARMORS[armorSelect.value];
+      const operator = OPERATORS[operatorSelect.value];
+      const part = selectedBodyPart;
+      
+      // 应用干员加成
+      const effectiveDamage = weapon.baseDamage + operator.damageBonus;
+      const effectiveArmorPen = weapon.armorPen + operator.armorPenBonus;
+      
+      document.getElementById('statDamage').textContent = effectiveDamage;
+      document.getElementById('statFireRate').textContent = weapon.fireRate;
+      document.getElementById('statArmorPen').textContent = effectiveArmorPen;
+      document.getElementById('statCategory').textContent = weapon.category;
+      
+      const canPenetrate = ammo.penLevel > armor.level;
+      const partialPenetrate = ammo.penLevel === armor.level;
+      
+      let baseDamage = effectiveDamage * part.multiplier * ammo.damageMod;
+      let finalDamage = baseDamage;
+      const armorDamage = effectiveArmorPen * ammo.armorDamageMod;
+      
+      if (!canPenetrate && armor.level > 0) {
+        if (partialPenetrate) {
+          finalDamage = baseDamage * 0.75;
+        } else {
+          finalDamage = 0;
+        }
+      }
+      
+      finalDamage = finalDamage * (1 - armor.reduction);
+      
+      const damageEl = document.getElementById('damageResult');
+      damageEl.textContent = Math.round(finalDamage);
+      damageEl.style.transform = 'scale(1.1)';
+      setTimeout(() => damageEl.style.transform = 'scale(1)', 100);
+      
+      document.getElementById('armorDamageResult').textContent = Math.round(armorDamage);
+      
+      const shotsNeeded = finalDamage > 0 ? Math.ceil(100 / finalDamage) : '∞';
+      document.getElementById('shotsToKill').textContent = shotsNeeded + '发';
+      
+      const statusEl = document.getElementById('penetrationStatus');
+      if (canPenetrate || armor.level === 0) {
+        statusEl.innerHTML = '✅ 子弹可完全穿透护甲，造成全额伤害';
+        statusEl.style.background = '#2ecc7120';
+        statusEl.style.color = '#2ecc71';
+      } else if (partialPenetrate) {
+        statusEl.innerHTML = '⚠️ 子弹与护甲同级，造成75%伤害';
+        statusEl.style.background = '#f1c40f20';
+        statusEl.style.color = '#f1c40f';
+      } else {
+        statusEl.innerHTML = '❌ 子弹无法穿透护甲，只能造成护甲伤害';
+        statusEl.style.background = '#e74c3c20';
+        statusEl.style.color = '#e74c3c';
+      }
+    }
+    
+    weaponSelect.addEventListener('change', updateCalculation);
+    ammoSelect.addEventListener('change', updateCalculation);
+    armorSelect.addEventListener('change', updateCalculation);
+    helmetSelect.addEventListener('change', updateCalculation);
+    operatorSelect.addEventListener('change', updateCalculation);
+    
+    partBtns.forEach((btn, i) => {
+      btn.addEventListener('click', () => {
+        partBtns.forEach(b => { b.style.border = '1px solid var(--border)'; b.style.background = 'var(--surface)'; });
+        btn.style.border = '2px solid var(--accent)';
+        btn.style.background = 'var(--surface)';
+        selectedBodyPart = BODY_PARTS[i];
+        updateCalculation();
+      });
+    });
+    
+    updateCalculation();
+  }, 100);
 }
 
 // ==================== 撤离计时器 ====================
@@ -11472,7 +12165,28 @@ function openExtractionTimerModal() {
   `;
   openToolModal('撤离计时器', content);
 }
-
+// 护甲穿透速查表
+function openArmorPenetrationModal() {
+  const content = `
+    <div class="space-y-3">
+      <p class="text-xs" style="color: var(--muted);">不同弹药对各级护甲的穿透效率（数值越高越容易击穿）</p>
+      <div class="overflow-x-auto">
+        <table class="w-full text-xs">
+          <thead><tr style="border-bottom:1px solid var(--border);"><th>弹药/护甲</th><th>1级</th><th>2级</th><th>3级</th><th>4级</th><th>5级</th><th>6级</th></tr></thead>
+          <tbody>
+            <tr><td>9mm PST</td><td>100%</td><td>80%</td><td>40%</td><td>10%</td><td>0%</td><td>0%</td></tr>
+            <tr><td>5.56 M855</td><td>100%</td><td>100%</td><td>90%</td><td>60%</td><td>30%</td><td>5%</td></tr>
+            <tr><td>7.62 PS</td><td>100%</td><td>100%</td><td>100%</td><td>85%</td><td>50%</td><td>20%</td></tr>
+            <tr><td>.338 AP</td><td>100%</td><td>100%</td><td>100%</td><td>100%</td><td>95%</td><td>75%</td></tr>
+            <tr><td>12/70 鹿弹</td><td>100%</td><td>70%</td><td>30%</td><td>5%</td><td>0%</td><td>0%</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="p-2 rounded text-xs" style="background: var(--surface);"><i class="fas fa-lightbulb mr-1" style="color: gold;"></i> 穿深超过60%可有效造成伤害，低于30%建议切换目标</div>
+    </div>
+  `;
+  openToolModal('护甲穿透速查', content);
+}
 function startExtractionTimer() {
   if (extractionTimer) clearInterval(extractionTimer);
   const minutes = parseInt(document.getElementById('timerMinutes')?.value) || 5;
@@ -12038,36 +12752,44 @@ function renderBudgetLoadouts() {
     `).join('');
 
     return `
-      <div class="card-base p-4 hover:shadow-lg transition-all cursor-pointer group" onclick="showBudgetDetail('${item.name.replace(/'/g, "\\'")}')">
-        <div class="flex items-center justify-between mb-3">
-          <div class="flex items-center gap-2">
-            <span class="font-bold text-base group-hover:text-[var(--accent)] transition-colors">${item.name}</span>
-            <span class="tag-pill text-xs" style="background: ${colors.bg}; color: ${colors.color}; border-color: ${colors.border};">${item.scenario}</span>
-          </div>
-          <div class="text-right">
-            <div class="text-xl font-bold" style="color: var(--accent);">${item.totalPrice}万</div>
-            <div class="text-[10px]" style="color: var(--muted);">总价</div>
-          </div>
-        </div>
-        
-        <div class="space-y-0.5 mb-3">
-          ${weaponsHtml}
-          ${armorsHtml}
-          ${helmetsHtml}
-          ${backpacksHtml}
-        </div>
-        
-        <div class="p-2 rounded-lg text-xs" style="background: var(--surface); color: var(--muted);">
-          <i class="fas fa-lightbulb mr-1" style="color: #FFD700;"></i>${item.features}
-        </div>
-        
-        <div class="flex justify-end mt-2">
-          <span class="text-[10px] flex items-center gap-1" style="color: var(--accent);">
-            <i class="fas fa-copy"></i> 点击卡片复制全部改枪码
-          </span>
-        </div>
+  <div class="card-base p-5 cursor-pointer hover:shadow-lg transition-all group" onclick="showBudgetDetail('${item.name.replace(/'/g, "\\'")}')" style="border: 1.5px solid var(--border); background: var(--card);">
+    <div class="flex items-center justify-between mb-3">
+      <div class="flex items-center gap-2">
+        <span class="font-bold text-lg group-hover:text-[var(--accent)] transition-colors">${item.name}</span>
+        <span class="tag-pill text-sm px-3 py-1" style="background: ${colors.bg}; color: ${colors.text}; border: 1px solid ${colors.border};">${item.scenario}</span>
       </div>
-    `;
+      <div class="text-right">
+        <div class="text-2xl font-black" style="color: var(--accent);">${item.totalPrice}万</div>
+        <div class="text-[10px]" style="color: var(--muted);">总价</div>
+      </div>
+    </div>
+    
+    <div class="space-y-2 mb-3">
+      <div class="flex items-center gap-2 text-sm">
+        <i class="fas fa-gun text-xs" style="color: var(--accent);"></i>
+        <span class="font-medium">${item.weapons?.[0]?.name || '未配置'}</span>
+      </div>
+      <div class="flex items-center gap-2 text-sm">
+        <i class="fas fa-shield-halved text-xs" style="color: #3498db;"></i>
+        <span>${item.armors?.[0]?.name || '基础护甲'}</span>
+      </div>
+      <div class="flex items-center gap-2 text-sm">
+        <i class="fas fa-helmet-safety text-xs" style="color: #e67e22;"></i>
+        <span>${item.helmets?.[0]?.name || '基础头盔'}</span>
+      </div>
+    </div>
+    
+    <div class="p-3 rounded-lg text-xs" style="background: var(--surface); color: var(--muted);">
+      <i class="fas fa-lightbulb mr-1" style="color: #FFD700;"></i>${item.features || '点击查看详情'}
+    </div>
+    
+    <div class="flex justify-end mt-3">
+      <span class="text-xs flex items-center gap-1 px-3 py-1.5 rounded-full" style="background: var(--accent)10; color: var(--accent);">
+        <i class="fas fa-copy"></i> 点击卡片查看改枪码
+      </span>
+    </div>
+  </div>
+`;
   }).join('');
 }
 
@@ -12093,146 +12815,193 @@ function filterBudgetLoadouts() {
 }
 // ==================== 起装方案详情弹窗 ====================
 function showBudgetDetail(loadoutName) {
+  console.log('showBudgetDetail 被调用，方案名:', loadoutName);
   const loadout = BUDGET_LOADOUTS.find(l => l.name === loadoutName);
   if (!loadout) {
     console.error('找不到方案:', loadoutName);
+    showToast('方案数据不存在', 'error');
     return;
   }
   
   const contentEl = document.getElementById('budgetDetailContent');
   const titleEl = document.getElementById('budgetDetailTitle');
-  
   if (!contentEl || !titleEl) {
-    console.error('详情弹窗元素不存在，请检查 HTML');
+    console.error('弹窗元素不存在');
     return;
   }
   
   titleEl.textContent = loadout.name;
   
-  // 地图标签颜色
-  const mapColors = {
-    '大坝': '#e67e22', '航天基地': '#3498db', '长弓溪谷': '#2ecc71', '巴克什': '#9b59b6'
-  };
-  
-  const mapsHtml = (loadout.map || []).map(m => 
-    `<span class="tag-pill text-xs" style="background: ${mapColors[m] || '#888'}20; color: ${mapColors[m] || '#888'}; border-color: ${mapColors[m] || '#888'}40;">🗺️ ${m}</span>`
-  ).join('');
-  
   // 计算总价
   const totalPrice = loadout.totalPrice || 
     [...(loadout.weapons || []), ...(loadout.armors || []), ...(loadout.helmets || []), ...(loadout.backpacks || [])].reduce((sum, item) => sum + (item.price || 0), 0);
   
+  // 战备值计算（模拟）
+  const combatPower = loadout.combatPower || Math.round(totalPrice * 1.2);
+  
+  // 场景标签颜色
+  const scenarioColors = {
+    '跑刀': { bg: '#2ecc7120', text: '#2ecc71', border: '#2ecc7140' },
+    '卡战备': { bg: '#f1c40f20', text: '#f1c40f', border: '#f1c40f40' },
+    '猛攻': { bg: '#e74c3c20', text: '#e74c3c', border: '#e74c3c40' },
+    '绝密': { bg: '#9b59b620', text: '#9b59b6', border: '#9b59b640' },
+    '通用': { bg: '#3498db20', text: '#3498db', border: '#3498db40' }
+  };
+  const colors = scenarioColors[loadout.scenario] || scenarioColors['通用'];
+  
+  // ========== 构建武器列表（带改枪码和复制按钮） ==========
+  const weaponsHtml = (loadout.weapons || []).map(w => `
+    <div class="p-4 rounded-xl mb-3" style="background: var(--surface); border: 1px solid var(--border);">
+      <div class="flex items-center justify-between mb-2">
+        <div class="flex items-center gap-2">
+          <i class="fas fa-gun text-lg" style="color: var(--accent);"></i>
+          <span class="font-bold text-base">${w.name}</span>
+          <span class="tag-pill text-xs" style="background: var(--accent)20; color: var(--accent);">${w.price}万</span>
+        </div>
+      </div>
+      ${w.desc ? `<p class="text-sm mb-3" style="color: var(--muted);">📋 ${w.desc}</p>` : ''}
+      ${w.code ? `
+      <div class="flex items-center justify-between p-3 rounded-lg" style="background: var(--card); border: 1px dashed var(--accent);">
+        <div class="flex items-center gap-2">
+          <i class="fas fa-code text-xs" style="color: var(--accent);"></i>
+          <span class="text-sm font-mono tracking-wider" style="color: var(--text);">${w.code}</span>
+        </div>
+        <button class="btn-warm text-sm px-4 py-2" onclick="copyLoadoutCode('${w.code}'); showToast('✅ 改枪码已复制', 'success');">
+          <i class="far fa-copy mr-2"></i>复制改枪码
+        </button>
+      </div>
+      ` : ''}
+    </div>
+  `).join('');
+  
+  // ========== 防弹衣列表 ==========
+  const armorsHtml = (loadout.armors || []).map(a => `
+    <div class="p-4 rounded-xl mb-3" style="background: var(--surface); border: 1px solid var(--border);">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <i class="fas fa-shield-halved text-lg" style="color: #3498db;"></i>
+          <span class="font-bold text-base">${a.name}</span>
+        </div>
+        <span class="text-lg font-bold" style="color: #3498db;">${a.price}万</span>
+      </div>
+      ${a.desc ? `<p class="text-sm mt-2" style="color: var(--muted);">📌 ${a.desc}</p>` : ''}
+    </div>
+  `).join('');
+  
+  // ========== 头盔列表 ==========
+  const helmetsHtml = (loadout.helmets || []).map(h => `
+    <div class="p-4 rounded-xl mb-3" style="background: var(--surface); border: 1px solid var(--border);">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <i class="fas fa-helmet-safety text-lg" style="color: #e67e22;"></i>
+          <span class="font-bold text-base">${h.name}</span>
+        </div>
+        <span class="text-lg font-bold" style="color: #e67e22;">${h.price}万</span>
+      </div>
+      ${h.desc ? `<p class="text-sm mt-2" style="color: var(--muted);">📌 ${h.desc}</p>` : ''}
+    </div>
+  `).join('');
+  
+  // ========== 背包/胸挂列表 ==========
+  const backpacksHtml = (loadout.backpacks || []).map(b => `
+    <div class="p-4 rounded-xl mb-3" style="background: var(--surface); border: 1px solid var(--border);">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <i class="fas fa-backpack text-lg" style="color: #1abc9c;"></i>
+          <span class="font-bold text-base">${b.name}</span>
+        </div>
+        <span class="text-lg font-bold" style="color: #1abc9c;">${b.price}万</span>
+      </div>
+      ${b.desc ? `<p class="text-sm mt-2" style="color: var(--muted);">📌 ${b.desc}</p>` : ''}
+    </div>
+  `).join('');
+  
+  // ========== 最终组装弹窗内容 ==========
   contentEl.innerHTML = `
     <div class="space-y-4">
-      <!-- 头部信息 -->
-      <div class="flex items-center justify-between p-3 rounded-xl" style="background: var(--surface);">
-        <div class="flex items-center gap-2">
-          <span class="tag-pill text-sm" style="background: var(--accent); color: white;">${loadout.scenario || '通用'}</span>
-          ${mapsHtml}
+      <!-- 头部信息卡片 -->
+      <div class="p-5 rounded-2xl" style="background: linear-gradient(135deg, ${colors.bg}, transparent); border: 2px solid ${colors.border};">
+        <div class="flex items-center justify-between">
+          <div>
+            <span class="tag-pill text-base px-4 py-1.5" style="background: ${colors.bg}; color: ${colors.text}; border: 1px solid ${colors.border}; font-weight: 700;">
+              <i class="fas fa-tag mr-2"></i>${loadout.scenario || '通用方案'}
+            </span>
+          </div>
+          <div class="text-right">
+            <div class="text-3xl font-black" style="color: var(--accent);">${totalPrice}万</div>
+            <div class="text-xs font-bold" style="color: var(--muted);">💰 总价 / 战备值 ≈ ${combatPower}w</div>
+          </div>
         </div>
-        <div class="text-right">
-          <div class="text-2xl font-bold" style="color: var(--accent);">${totalPrice}万</div>
-          <div class="text-xs" style="color: var(--muted);">总价</div>
+        ${loadout.map && loadout.map.length ? `
+        <div class="flex flex-wrap gap-2 mt-3">
+          ${loadout.map.map(m => `<span class="tag-pill text-xs" style="background: #88820; color: #aaa;"><i class="fas fa-map-marker-alt mr-1"></i>${m}</span>`).join('')}
         </div>
+        ` : ''}
       </div>
       
-      <!-- 武器区 -->
+      <!-- 武器区域 -->
+      ${loadout.weapons && loadout.weapons.length > 0 ? `
       <div>
-        <h4 class="font-bold text-sm mb-2 flex items-center gap-2"><i class="fas fa-gun" style="color: var(--accent);"></i>主武器</h4>
-        <div class="space-y-2">
-          ${(loadout.weapons || []).map(w => `
-            <div class="p-3 rounded-lg" style="background: var(--surface);">
-              <div class="flex items-center justify-between mb-1">
-                <span class="font-medium cursor-pointer hover:underline" onclick="if(typeof jumpToWeaponData==='function')jumpToWeaponData('${w.name}')">${w.name}</span>
-                <span class="text-sm font-bold" style="color: var(--accent);">${w.price}万</span>
-              </div>
-              <div class="text-xs" style="color: var(--muted);">${w.desc || ''}</div>
-              ${w.code ? `
-              <div class="flex items-center justify-between mt-2 pt-2 border-t border-dashed" style="border-color: var(--border);">
-                <span class="text-xs font-mono" style="color: var(--accent);">${w.code}</span>
-                <button class="text-xs px-3 py-1 rounded-full" style="background: var(--accent); color: white;" onclick="if(typeof copyLoadoutCode==='function')copyLoadoutCode('${w.code}')">
-                  <i class="far fa-copy mr-1"></i>复制
-                </button>
-              </div>
-              ` : ''}
-            </div>
-          `).join('')}
-        </div>
+        <h3 class="font-display text-lg mb-3 flex items-center gap-2" style="color: var(--accent);">
+          <i class="fas fa-gun"></i> 主武器配置
+        </h3>
+        ${weaponsHtml}
       </div>
+      ` : ''}
       
-      <!-- 防具区 -->
+      <!-- 防具区域 -->
+      ${loadout.armors && loadout.armors.length > 0 ? `
       <div>
-        <h4 class="font-bold text-sm mb-2 flex items-center gap-2"><i class="fas fa-shield-halved" style="color: #3498db;"></i>防弹衣</h4>
-        <div class="space-y-2">
-          ${(loadout.armors || []).map(a => `
-            <div class="p-3 rounded-lg flex items-center justify-between" style="background: var(--surface);">
-              <div>
-                <span class="font-medium">${a.name}</span>
-                <div class="text-xs" style="color: var(--muted);">${a.desc || ''}</div>
-              </div>
-              <span class="text-sm font-bold" style="color: #3498db;">${a.price}万</span>
-            </div>
-          `).join('')}
-        </div>
+        <h3 class="font-display text-lg mb-3 flex items-center gap-2" style="color: #3498db;">
+          <i class="fas fa-shield-halved"></i> 防弹衣
+        </h3>
+        ${armorsHtml}
       </div>
+      ` : ''}
       
-      <!-- 头盔区 -->
+      ${loadout.helmets && loadout.helmets.length > 0 ? `
       <div>
-        <h4 class="font-bold text-sm mb-2 flex items-center gap-2"><i class="fas fa-helmet-safety" style="color: #e67e22;"></i>头盔</h4>
-        <div class="space-y-2">
-          ${(loadout.helmets || []).map(h => `
-            <div class="p-3 rounded-lg flex items-center justify-between" style="background: var(--surface);">
-              <div>
-                <span class="font-medium">${h.name}</span>
-                <div class="text-xs" style="color: var(--muted);">${h.desc || ''}</div>
-              </div>
-              <span class="text-sm font-bold" style="color: #e67e22;">${h.price}万</span>
-            </div>
-          `).join('')}
-        </div>
+        <h3 class="font-display text-lg mb-3 flex items-center gap-2" style="color: #e67e22;">
+          <i class="fas fa-helmet-safety"></i> 头盔
+        </h3>
+        ${helmetsHtml}
       </div>
+      ` : ''}
       
-      <!-- 背包区 -->
+      ${loadout.backpacks && loadout.backpacks.length > 0 ? `
       <div>
-        <h4 class="font-bold text-sm mb-2 flex items-center gap-2"><i class="fas fa-backpack" style="color: #1abc9c;"></i>背包/胸挂</h4>
-        <div class="space-y-2">
-          ${(loadout.backpacks || []).map(b => `
-            <div class="p-3 rounded-lg flex items-center justify-between" style="background: var(--surface);">
-              <div>
-                <span class="font-medium">${b.name}</span>
-                <div class="text-xs" style="color: var(--muted);">${b.desc || ''}</div>
-              </div>
-              <span class="text-sm font-bold" style="color: #1abc9c;">${b.price}万</span>
-            </div>
-          `).join('')}
-        </div>
+        <h3 class="font-display text-lg mb-3 flex items-center gap-2" style="color: #1abc9c;">
+          <i class="fas fa-backpack"></i> 背包/胸挂
+        </h3>
+        ${backpacksHtml}
       </div>
+      ` : ''}
       
       <!-- 方案特点 -->
-      <div class="p-4 rounded-xl" style="background: linear-gradient(135deg, var(--accent)10, var(--accent2)10); border: 1px solid var(--accent);">
-        <div class="flex items-start gap-2">
-          <i class="fas fa-lightbulb text-lg" style="color: #FFD700;"></i>
+      <div class="p-5 rounded-xl" style="background: linear-gradient(145deg, rgba(255,107,53,0.05), rgba(255,71,87,0.05)); border: 1.5px solid var(--accent);">
+        <div class="flex items-start gap-3">
+          <i class="fas fa-lightbulb text-2xl" style="color: #FFD700;"></i>
           <div>
-            <div class="font-bold text-sm mb-1">方案特点</div>
-            <div class="text-sm" style="color: var(--muted);">${loadout.features || '暂无描述'}</div>
+            <div class="font-bold text-base mb-2" style="color: var(--accent);">✨ 方案特点</div>
+            <div class="text-sm leading-relaxed" style="color: var(--text);">${loadout.features || '暂无详细描述，可根据个人习惯调整配件。'}</div>
           </div>
         </div>
       </div>
       
-      <!-- 一键复制全部 -->
-      <button class="btn-warm w-full py-3" onclick="if(typeof copyAllBudgetCodes==='function'){copyAllBudgetCodes('${loadout.name.replace(/'/g, "\\'")}');} closeModal('budgetDetailModal');">
-        <i class="fas fa-copy mr-2"></i>复制全部改枪码
+      <!-- 一键复制全部按钮 -->
+      <button class="btn-warm w-full py-4 text-base font-bold" onclick="copyAllBudgetCodes('${loadout.name.replace(/'/g, "\\'")}')">
+        <i class="fas fa-copy mr-2"></i>📋 复制全部改枪码
       </button>
       
       <p class="text-xs text-center" style="color: var(--muted);">
-        <i class="far fa-clock mr-1"></i>更新于 ${loadout.updateTime || '2026-04-16'}
+        <i class="far fa-clock mr-1"></i>数据参考：三角洲行动 · 墨辰电竞整理
       </p>
     </div>
   `;
   
+  // 打开弹窗
   openModal('budgetDetailModal');
 }
-
 // 刷新方案（模拟实时更新）
 async function refreshBudgetLoadouts() {
   const loadingEl = document.getElementById('budgetLoading');
@@ -12251,25 +13020,25 @@ async function refreshBudgetLoadouts() {
 function copyAllBudgetCodes(loadoutName) {
   const loadout = BUDGET_LOADOUTS.find(l => l.name === loadoutName);
   if (!loadout) return;
-  
   const codes = loadout.weapons.filter(w => w.code).map(w => `${w.name}: ${w.code}`).join('\n');
   if (codes) {
     navigator.clipboard?.writeText(codes).then(() => {
-      showToast(`📋 「${loadout.name}」的所有改枪码已复制`, 'success');
-    }).catch(() => {
-      const textarea = document.createElement('textarea');
-      textarea.value = codes;
-      document.body.appendChild(textarea);
-      textarea.select();
-      document.execCommand('copy');
-      document.body.removeChild(textarea);
-      showToast(`📋 改枪码已复制`, 'success');
-    });
+      showToast(`📋 「${loadout.name}」改枪码已复制`, 'success');
+      // 视觉反馈：找到当前打开的弹窗中的复制按钮并改变样式
+      const btn = document.querySelector('#budgetDetailModal .btn-warm');
+      if (btn) {
+        btn.innerHTML = '<i class="fas fa-check mr-2"></i>已复制';
+        btn.style.background = '#2ecc71';
+        setTimeout(() => {
+          btn.innerHTML = '<i class="fas fa-copy mr-2"></i>复制全部改枪码';
+          btn.style.background = '';
+        }, 2000);
+      }
+    }).catch(() => fallbackCopy(codes));
   } else {
     showToast('该方案暂无改枪码', 'info');
   }
 }
-
 // 初始化：首次加载时获取热门方案
 let budgetLoadoutsInitialized = false;
 async function initBudgetLoadouts() {
