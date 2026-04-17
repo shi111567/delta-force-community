@@ -284,9 +284,132 @@ tailwind.config = {
     font-size: 11px;
   }
 }
+/* ===== 智能推荐卡片动效 ===== */
+.recommend-card {
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: cardSlideIn 0.4s ease-out;
+}
+.recommend-card:hover {
+  transform: translateY(-6px) scale(1.01);
+  box-shadow: 0 20px 30px -8px var(--glow), 0 8px 16px -8px var(--shadow);
+  border-color: var(--accent) !important;
+}
+.recommend-medal {
+  position: absolute;
+  top: -10px;
+  left: 20px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  font-weight: 900;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  z-index: 5;
+}
+.recommend-medal.gold { background: linear-gradient(135deg, #FFD700, #FFA500); color: #3D2B1F; }
+.recommend-medal.silver { background: linear-gradient(135deg, #C0C0C0, #A0A0A0); color: #1a1a1a; }
+.recommend-medal.bronze { background: linear-gradient(135deg, #CD7F32, #B87333); color: #fff; }
+
+/* 达标徽章 */
+.combat-badge {
+  padding: 4px 12px;
+  border-radius: 30px;
+  font-size: 12px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.combat-badge.passed { background: #2ecc7120; color: #2ecc71; border: 1px solid #2ecc7150; }
+.combat-badge.failed { background: #e74c3c20; color: #e74c3c; border: 1px solid #e74c3c50; }
+
+/* 复制按钮动效 */
+.copy-all-btn {
+  transition: all 0.2s;
+}
+.copy-all-btn:active {
+  transform: scale(0.96);
+}
+.copy-all-btn i {
+  transition: transform 0.2s;
+}
+.copy-all-btn:hover i {
+  transform: translateX(3px);
+}
+/* ===== 智能推荐卡片动效 ===== */
+.recommend-card {
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: cardSlideIn 0.4s ease-out;
+  cursor: pointer;
+}
+.recommend-card:hover {
+  transform: translateY(-6px) scale(1.01);
+  box-shadow: 0 20px 30px -8px var(--glow), 0 8px 16px -8px var(--shadow);
+  border-color: var(--accent) !important;
+}
+.recommend-medal {
+  position: absolute;
+  top: -10px;
+  left: 20px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  font-weight: 900;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  z-index: 5;
+}
+.recommend-medal.gold { background: linear-gradient(135deg, #FFD700, #FFA500); color: #3D2B1F; }
+.recommend-medal.silver { background: linear-gradient(135deg, #C0C0C0, #A0A0A0); color: #1a1a1a; }
+.recommend-medal.bronze { background: linear-gradient(135deg, #CD7F32, #B87333); color: #fff; }
+
+.combat-badge {
+  padding: 4px 12px;
+  border-radius: 30px;
+  font-size: 12px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.combat-badge.passed { background: #2ecc7120; color: #2ecc71; border: 1px solid #2ecc7150; }
+.combat-badge.failed { background: #e74c3c20; color: #e74c3c; border: 1px solid #e74c3c50; }
+
+.copy-all-btn {
+  transition: all 0.2s;
+  min-width: 120px;
+}
+.copy-all-btn:active {
+  transform: scale(0.96);
+}
+.copy-all-btn i {
+  transition: transform 0.2s;
+}
+.copy-all-btn:hover i {
+  transform: translateX(3px);
+}
+
+/* 复制成功状态 */
+.copy-all-btn.copied {
+  background: #2ecc71 !important;
+  box-shadow: 0 4px 12px rgba(46, 204, 113, 0.3) !important;
+}
 </style>
 
 <style>
+/* 配装详情弹窗动画 */
+#loadoutDetailModal .modal-content {
+  animation: modalPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+#loadoutDetailModal .btn-warm:active {
+  transform: scale(0.96);
+}
 /* 起装卡片点击放大效果 */
 #budgetLoadoutGrid .card-base {
   transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s;
@@ -2759,17 +2882,97 @@ body {
     <i class="fas fa-map-pin"></i> 背景为「零号大坝」战术地图 · 可自由标注
   </div>
 </div>
-<!-- 性价比起装方案 Tab -->
+<!-- 性价比起装方案 Tab（融合智能推荐） -->
 <div id="budgetLoadoutTab" style="display:none">
   <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
     <h2 class="font-display text-xl flex items-center gap-2">
       <i class="fas fa-piggy-bank" style="color: var(--accent);"></i> 性价比起装方案
       <span class="text-xs px-3 py-1 rounded-full" style="background: var(--accent); color: white;">实时热门</span>
     </h2>
+    
+    <!-- 模式切换按钮 -->
     <div class="flex items-center gap-2">
+      <div class="flex rounded-full p-1" style="background: var(--surface); border: 1px solid var(--border);">
+        <button class="px-4 py-1.5 rounded-full text-xs font-bold transition-all duration-200" 
+                id="modeRecommendBtn" 
+                style="background: var(--accent); color: white;"
+                onclick="switchBudgetMode('recommend')">
+          <i class="fas fa-magic mr-1"></i>智能推荐
+        </button>
+        <button class="px-4 py-1.5 rounded-full text-xs font-bold transition-all duration-200" 
+                id="modeBrowseBtn" 
+                style="background: transparent; color: var(--muted);"
+                onclick="switchBudgetMode('browse')">
+          <i class="fas fa-th-large mr-1"></i>自由搭配
+        </button>
+      </div>
       <button class="btn-ghost text-sm px-3 py-1" onclick="refreshBudgetLoadouts()" title="刷新最新方案">
         <i class="fas fa-sync-alt mr-1"></i>刷新
       </button>
+    </div>
+  </div>
+
+   <!-- 智能推荐视图 -->
+  <div id="budgetRecommendView" style="display: none;">
+    <div class="flex flex-wrap items-center gap-3 mb-5">
+      <div class="flex items-center gap-2">
+        <span class="text-sm font-bold"><i class="fas fa-map-marker-alt mr-1" style="color: var(--accent);"></i>地图</span>
+        <select id="recMapSelect" class="px-4 py-2 rounded-xl text-sm font-medium" style="background: var(--surface); border: 2px solid var(--border); color: var(--text);" onchange="generateRecommendations()">
+          <option value="大坝">🏭 零号大坝</option>
+          <option value="航天基地" selected>🚀 航天基地</option>
+          <option value="长弓溪谷">🏹 长弓溪谷</option>
+          <option value="巴克什">🏛️ 巴克什</option>
+        </select>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="text-sm font-bold"><i class="fas fa-shield-halved mr-1" style="color: var(--accent);"></i>门槛</span>
+        <select id="recThresholdSelect" class="px-4 py-2 rounded-xl text-sm font-medium" style="background: var(--surface); border: 2px solid var(--border); color: var(--text);" onchange="generateRecommendations()">
+          <option value="普通">🟢 普通 (20w)</option>
+          <option value="机密">🟡 机密 (40w)</option>
+          <option value="绝密" selected>🔴 绝密 (60w)</option>
+        </select>
+      </div>
+      <span class="text-xs ml-auto" style="color: var(--muted);" id="recUpdateTime">数据更新于 04.17</span>
+    </div>
+    <div class="space-y-4" id="recommendCardsContainer"></div>
+    <div class="mt-6 text-center">
+      <p class="text-xs" style="color: var(--muted);">
+        <i class="fas fa-database mr-1"></i>数据来源：今日改枪码实时爬取 · 价格每小时更新
+      </p>
+    </div>
+  </div>
+
+  <!-- 起装方案详情弹窗 -->
+  <div class="modal-overlay" id="budgetDetailModal">
+    <div class="modal-content" style="max-width: 600px; max-height: 85vh; overflow-y: auto;">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="font-display text-xl" id="budgetDetailTitle">方案详情</h2>
+        <button onclick="closeModal('budgetDetailModal')" class="w-8 h-8 rounded-full flex items-center justify-center" style="background: var(--surface);">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div id="budgetDetailContent"></div>
+    </div>
+  </div>
+
+  <!-- 自由搭配视图（原有网格） -->
+  <div id="budgetBrowseView">
+    <div class="grid grid-cols-3 gap-3 mb-4">
+      <div class="card-base p-3 text-center">
+        <div class="text-xl font-bold" style="color: var(--accent);" id="budgetTotalCount">0</div>
+        <div class="text-xs" style="color: var(--muted);">总方案数</div>
+      </div>
+      <div class="card-base p-3 text-center">
+        <div class="text-xl font-bold" style="color: #2ecc71;" id="budgetAvgPrice">0</div>
+        <div class="text-xs" style="color: var(--muted);">平均价格(万)</div>
+      </div>
+      <div class="card-base p-3 text-center">
+        <div class="text-xl font-bold" style="color: #f1c40f;" id="budgetHotScenario">-</div>
+        <div class="text-xs" style="color: var(--muted);">最热场景</div>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-2 mb-4">
       <select id="budgetScenarioFilter" class="px-3 py-2 rounded-xl text-sm" style="background: var(--surface); border: 1.5px solid var(--border); color: var(--text);" onchange="filterBudgetLoadouts()">
         <option value="all">全部场景</option>
         <option value="跑刀">🏃 跑刀</option>
@@ -2786,37 +2989,16 @@ body {
         <option value="50+">50万以上</option>
       </select>
     </div>
-  </div>
 
-  <!-- 统计卡片 -->
-  <div class="grid grid-cols-3 gap-3 mb-4">
-    <div class="card-base p-3 text-center">
-      <div class="text-xl font-bold" style="color: var(--accent);" id="budgetTotalCount">0</div>
-      <div class="text-xs" style="color: var(--muted);">总方案数</div>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="budgetLoadoutGrid"></div>
+    <div id="budgetLoading" class="text-center py-12" style="color: var(--muted);">
+      <i class="fas fa-spinner fa-pulse fa-2x mb-3"></i>
+      <p>正在获取最新热门方案...</p>
     </div>
-    <div class="card-base p-3 text-center">
-      <div class="text-xl font-bold" style="color: #2ecc71;" id="budgetAvgPrice">0</div>
-      <div class="text-xs" style="color: var(--muted);">平均价格(万)</div>
+    <div id="budgetEmpty" class="text-center py-16 hidden" style="color: var(--muted);">
+      <i class="fas fa-box-open text-4xl mb-3 opacity-30"></i>
+      <p>暂无符合条件的方案，试试调整筛选条件</p>
     </div>
-    <div class="card-base p-3 text-center">
-      <div class="text-xl font-bold" style="color: #f1c40f;" id="budgetHotScenario">-</div>
-      <div class="text-xs" style="color: var(--muted);">最热场景</div>
-    </div>
-  </div>
-
-  <!-- 方案卡片网格 -->
-  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="budgetLoadoutGrid"></div>
-
-  <!-- 加载状态 -->
-  <div id="budgetLoading" class="text-center py-12" style="color: var(--muted);">
-    <i class="fas fa-spinner fa-pulse fa-2x mb-3"></i>
-    <p>正在获取最新热门方案...</p>
-  </div>
-
-  <!-- 空状态 -->
-  <div id="budgetEmpty" class="text-center py-16 hidden" style="color: var(--muted);">
-    <i class="fas fa-box-open text-4xl mb-3 opacity-30"></i>
-    <p>暂无符合条件的方案，试试调整筛选条件</p>
   </div>
 </div>
 <!-- 功能引导横幅（首次显示，可关闭） -->
@@ -3474,6 +3656,18 @@ body {
         <button onclick="closeModal('loadoutModal')" class="w-8 h-8 rounded-full flex items-center justify-center" style="background:var(--surface)"><i class="fas fa-times"></i></button>
       </div>
     </div>
+<!-- 配装详情弹窗（点击卡片放大） -->
+<div class="modal-overlay" id="loadoutDetailModal">
+  <div class="modal-content" style="max-width: 600px; max-height: 85vh; overflow-y: auto;">
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="font-display text-xl" id="loadoutDetailTitle">配装详情</h2>
+      <button onclick="closeModal('loadoutDetailModal')" class="w-8 h-8 rounded-full flex items-center justify-center" style="background: var(--surface);">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div id="loadoutDetailContent"></div>
+  </div>
+</div>
 <!-- 搜索栏 -->
 <div class="relative mb-4">
   <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-sm" style="color: var(--accent); z-index: 1;"></i>
@@ -7919,7 +8113,7 @@ function renderLoadoutList() {
   }
 
   container.innerHTML = filtered.map(l => `
-    <div class="p-3 rounded-xl cursor-pointer hover:shadow-md transition-all" style="background:var(--surface);border:1px solid var(--border);" onclick="copyLoadoutCode('${l.code}')">
+  <div class="p-3 rounded-xl cursor-pointer hover:shadow-md transition-all" style="background:var(--surface);border:1px solid var(--border);" onclick="showLoadoutDetail('${l.code}')">
       <div class="flex items-center gap-2 mb-2">
         <span class="tag-pill text-xs" style="background:${getOpColor(l.class)}20;color:${getOpColor(l.class)};">${l.class || '全能'}</span>
         <span class="font-bold text-sm">${l.name || '热门配装'}</span>
@@ -7944,6 +8138,63 @@ function copyLoadoutCode(code) {
     document.body.removeChild(textarea);
     showToast(`✅ 改枪码已复制`, 'success');
   });
+}
+// 点击配装卡片弹出详情放大弹窗
+function showLoadoutDetail(code) {
+  const loadoutData = currentLoadoutData.find(item => item.code === code);
+  if (!loadoutData) return;
+  
+  // 创建弹窗容器
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay active';
+  modal.style.zIndex = '10000';
+  modal.innerHTML = `
+    <div class="modal-content active" style="max-width:500px; max-height:80vh; overflow-y:auto;">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="font-display text-xl"><i class="fas fa-gun mr-2"></i>${loadoutData.weapon || '配装详情'}</h2>
+        <button class="w-8 h-8 rounded-full flex items-center justify-center" style="background:var(--surface);" onclick="this.closest('.modal-overlay').remove()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="space-y-3">
+        <div class="p-3 rounded-xl" style="background:var(--surface);">
+          <div class="text-sm font-bold mb-2">${loadoutData.name || '热门配装'}</div>
+          <div class="grid grid-cols-2 gap-2 text-xs">
+            <span><i class="fas fa-tag mr-1" style="color:var(--accent);"></i>兵种：${loadoutData.class || '全能'}</span>
+            <span><i class="fas fa-coins mr-1" style="color:gold;"></i>价格：${loadoutData.price || '暂无报价'}</span>
+          </div>
+          <div class="mt-2 p-2 rounded-lg text-xs" style="background:var(--card);">
+            <i class="fas fa-wrench mr-1"></i>配件：${loadoutData.attachments || '热门配置'}
+          </div>
+        </div>
+        <div class="p-3 rounded-xl" style="background:var(--surface);">
+          <div class="text-sm font-bold mb-2 flex items-center gap-2">
+            <i class="fas fa-code"></i>改枪码
+            <button class="ml-auto text-xs px-3 py-1 rounded-full btn-warm" onclick="copyLoadoutCode('${loadoutData.code}'); showToast('✅ 改枪码已复制', 'success');">
+              <i class="far fa-copy mr-1"></i>复制
+            </button>
+          </div>
+          <code class="block p-3 rounded-lg text-xs font-mono break-all" style="background:var(--card); border:1px solid var(--border);">
+            ${loadoutData.code}
+          </code>
+        </div>
+        <p class="text-xs text-center" style="color:var(--muted);">
+          <i class="fas fa-info-circle mr-1"></i>点击空白处或右上角 × 关闭
+        </p>
+      </div>
+    </div>
+  `;
+  
+  // 点击背景遮罩关闭
+  modal.addEventListener('click', function(e) {
+    if (e.target === modal) modal.remove();
+  });
+  
+  document.body.appendChild(modal);
+  
+  // 添加一点入场动画
+  const content = modal.querySelector('.modal-content');
+  content.style.animation = 'modalPop 0.2s ease-out';
 }
 // ==================== 枪械数据（S9赛季完整版） ====================
 const WEAPON_DATA = [
@@ -8172,7 +8423,7 @@ function showWeaponAttachment(weaponName) {
   if (relatedLoadouts.length > 0) {
     html += `<div class="mt-3"><div class="text-xs font-bold mb-1">📦 相关改枪码</div>`;
     relatedLoadouts.forEach(l => {
-      html += `<div class="text-xs p-2 rounded-lg mb-1 cursor-pointer hover:bg-white/5" style="background: var(--card);" onclick="copyLoadoutCode('${l.code}')">
+      html += `<div class="text-xs p-2 rounded-lg mb-1 cursor-pointer hover:bg-white/5" style="background: var(--card);"   onclick="showLoadoutDetail('${l.code.replace(/'/g, "\\'")}')">
         <span class="font-medium">${l.name}</span>
         <span class="ml-2 opacity-70">${l.code}</span>
         <i class="far fa-copy ml-2"></i>
@@ -8538,7 +8789,7 @@ function compareToLoadout() {
         </div>`;
       } else {
         container.innerHTML = filtered.map(l => `
-          <div class="p-3 rounded-xl cursor-pointer hover:shadow-md transition-all" style="background:var(--surface);border:1px solid var(--border);" onclick="copyLoadoutCode('${l.code}', this)">
+         <div class="p-3 rounded-xl cursor-pointer hover:shadow-md transition-all" style="background:var(--surface);border:1px solid var(--border);" onclick="showLoadoutDetail('${l.code.replace(/'/g, "\\'")}')">
             <div class="flex items-center gap-2 mb-2">
               <span class="tag-pill text-xs" style="background:${getOpColor(l.class)}20;color:${getOpColor(l.class)};">${l.class || '全能'}</span>
               <span class="font-bold text-sm truncate">${l.name || l.weapon + '配装'}</span>
@@ -12027,6 +12278,387 @@ async function initBudgetLoadouts() {
   await fetchBudgetLoadoutsFromCrawler();
   renderBudgetLoadouts();
 }
+
+// ==================== 初始化起装方案（修复版） ====================
+let currentBudgetMode = 'recommend';  // 默认选中智能推荐
+let budgetDataReady = false;
+
+// 保留原始函数的引用（必须在 initBudgetLoadouts 定义之后）
+const originalInitBudget = initBudgetLoadouts;
+initBudgetLoadouts = async function() {
+  await originalInitBudget();  // 加载数据
+  budgetDataReady = true;
+  
+  // 等待下一帧，确保 DOM 更新
+  requestAnimationFrame(() => {
+    // 根据当前模式显示对应视图
+    if (currentBudgetMode === 'recommend') {
+      switchBudgetMode('recommend');
+    } else {
+      switchBudgetMode('browse');
+    }
+  });
+};
+
+// 增强版模式切换（修复按钮状态与视图同步）
+function switchBudgetMode(mode) {
+  currentBudgetMode = mode;
+  const recBtn = document.getElementById('modeRecommendBtn');
+  const browseBtn = document.getElementById('modeBrowseBtn');
+  const recView = document.getElementById('budgetRecommendView');
+  const browseView = document.getElementById('budgetBrowseView');
+  
+  if (!recBtn || !browseBtn || !recView || !browseView) {
+    console.warn('DOM 元素未就绪，稍后重试');
+    setTimeout(() => switchBudgetMode(mode), 50);
+    return;
+  }
+  
+  // 更新按钮样式
+  if (mode === 'recommend') {
+    recBtn.style.background = 'var(--accent)';
+    recBtn.style.color = 'white';
+    browseBtn.style.background = 'transparent';
+    browseBtn.style.color = 'var(--muted)';
+    recView.style.display = 'block';
+    browseView.style.display = 'none';
+    // 只有数据准备好后才生成推荐，避免空白
+    if (budgetDataReady && typeof BUDGET_LOADOUTS !== 'undefined') {
+      generateRecommendations();
+    } else {
+      setTimeout(() => generateRecommendations(), 100);
+    }
+  } else {
+    browseBtn.style.background = 'var(--accent)';
+    browseBtn.style.color = 'white';
+    recBtn.style.background = 'transparent';
+    recBtn.style.color = 'var(--muted)';
+    recView.style.display = 'none';
+    browseView.style.display = 'block';
+    if (budgetDataReady && typeof renderBudgetLoadouts === 'function') {
+      renderBudgetLoadouts();
+    }
+  }
+}
+
+// 修改刷新函数，确保刷新后智能推荐也能更新
+const originalRefresh = refreshBudgetLoadouts;
+refreshBudgetLoadouts = async function() {
+  await originalRefresh();
+  budgetDataReady = true;
+  if (currentBudgetMode === 'recommend') {
+    generateRecommendations();
+  } else {
+    renderBudgetLoadouts();
+  }
+};
+// ==================== 智能推荐模式（增强版：点击卡片查看详情 + 复制状态反馈） ====================
+
+const THRESHOLD_MAP = { '普通': 20, '机密': 40, '绝密': 60 };
+
+function getCombatPower(loadout) {
+  if (loadout.combatPower) return loadout.combatPower;
+  let total = 0;
+  if (loadout.weapons) loadout.weapons.forEach(w => total += (w.price || 0) * 1.5);
+  if (loadout.armors) loadout.armors.forEach(a => total += (a.price || 0) * 2);
+  if (loadout.helmets) loadout.helmets.forEach(h => total += (h.price || 0) * 1.5);
+  if (loadout.backpacks) loadout.backpacks.forEach(b => total += (b.price || 0) * 1);
+  return Math.round(total * 10) / 10;
+}
+
+// 显示方案详情弹窗
+function showBudgetDetail(loadoutName) {
+  const loadout = BUDGET_LOADOUTS.find(l => l.name === loadoutName);
+  if (!loadout) return;
+  
+  const contentEl = document.getElementById('budgetDetailContent');
+  const titleEl = document.getElementById('budgetDetailTitle');
+  
+  titleEl.textContent = loadout.name;
+  
+  const mapColors = {
+    '大坝': '#e67e22', '航天基地': '#3498db', '长弓溪谷': '#2ecc71', '巴克什': '#9b59b6'
+  };
+  
+  const mapsHtml = (loadout.map || []).map(m => 
+    `<span class="tag-pill text-xs" style="background: ${mapColors[m] || '#888'}20; color: ${mapColors[m] || '#888'}; border-color: ${mapColors[m] || '#888'}40;">🗺️ ${m}</span>`
+  ).join('');
+  
+  const totalPrice = loadout.totalPrice || 
+    [...(loadout.weapons || []), ...(loadout.armors || []), ...(loadout.helmets || []), ...(loadout.backpacks || [])].reduce((sum, item) => sum + (item.price || 0), 0);
+  
+  const weaponsHtml = (loadout.weapons || []).map(w => `
+    <div class="p-3 rounded-lg mb-2" style="background: var(--surface);">
+      <div class="flex items-center justify-between mb-1">
+        <span class="font-medium">${w.name}</span>
+        <span class="text-sm font-bold" style="color: var(--accent);">${w.price}万</span>
+      </div>
+      <div class="text-xs" style="color: var(--muted);">${w.desc || ''}</div>
+      ${w.code ? `
+      <div class="flex items-center justify-between mt-2 pt-2 border-t border-dashed" style="border-color: var(--border);">
+        <span class="text-xs font-mono" style="color: var(--accent);">${w.code}</span>
+        <button class="text-xs px-3 py-1 rounded-full" style="background: var(--accent); color: white;" onclick="copyLoadoutCode('${w.code}', this)">
+          <i class="far fa-copy mr-1"></i>复制
+        </button>
+      </div>
+      ` : ''}
+    </div>
+  `).join('');
+  
+  const armorsHtml = (loadout.armors || []).map(a => `
+    <div class="p-3 rounded-lg flex items-center justify-between mb-2" style="background: var(--surface);">
+      <div>
+        <span class="font-medium">${a.name}</span>
+        <div class="text-xs" style="color: var(--muted);">${a.desc || ''}</div>
+      </div>
+      <span class="text-sm font-bold" style="color: #3498db;">${a.price}万</span>
+    </div>
+  `).join('');
+  
+  const helmetsHtml = (loadout.helmets || []).map(h => `
+    <div class="p-3 rounded-lg flex items-center justify-between mb-2" style="background: var(--surface);">
+      <div>
+        <span class="font-medium">${h.name}</span>
+        <div class="text-xs" style="color: var(--muted);">${h.desc || ''}</div>
+      </div>
+      <span class="text-sm font-bold" style="color: #e67e22;">${h.price}万</span>
+    </div>
+  `).join('');
+  
+  const backpacksHtml = (loadout.backpacks || []).map(b => `
+    <div class="p-3 rounded-lg flex items-center justify-between mb-2" style="background: var(--surface);">
+      <div>
+        <span class="font-medium">${b.name}</span>
+        <div class="text-xs" style="color: var(--muted);">${b.desc || ''}</div>
+      </div>
+      <span class="text-sm font-bold" style="color: #1abc9c;">${b.price}万</span>
+    </div>
+  `).join('');
+  
+  contentEl.innerHTML = `
+    <div class="space-y-4">
+      <div class="flex items-center justify-between p-3 rounded-xl" style="background: var(--surface);">
+        <div class="flex items-center gap-2">
+          <span class="tag-pill text-sm" style="background: var(--accent); color: white;">${loadout.scenario || '通用'}</span>
+          ${mapsHtml}
+        </div>
+        <div class="text-right">
+          <div class="text-2xl font-bold" style="color: var(--accent);">${totalPrice}万</div>
+          <div class="text-xs" style="color: var(--muted);">总价</div>
+        </div>
+      </div>
+      
+      <div>
+        <h4 class="font-bold text-sm mb-2 flex items-center gap-2"><i class="fas fa-gun" style="color: var(--accent);"></i>主武器</h4>
+        ${weaponsHtml}
+      </div>
+      
+      <div>
+        <h4 class="font-bold text-sm mb-2 flex items-center gap-2"><i class="fas fa-shield-halved" style="color: #3498db;"></i>防弹衣</h4>
+        ${armorsHtml}
+      </div>
+      
+      <div>
+        <h4 class="font-bold text-sm mb-2 flex items-center gap-2"><i class="fas fa-helmet-safety" style="color: #e67e22;"></i>头盔</h4>
+        ${helmetsHtml}
+      </div>
+      
+      <div>
+        <h4 class="font-bold text-sm mb-2 flex items-center gap-2"><i class="fas fa-backpack" style="color: #1abc9c;"></i>背包/胸挂</h4>
+        ${backpacksHtml}
+      </div>
+      
+      <div class="p-4 rounded-xl" style="background: linear-gradient(135deg, var(--accent)10, var(--accent2)10); border: 1px solid var(--accent);">
+        <div class="flex items-start gap-2">
+          <i class="fas fa-lightbulb text-lg" style="color: #FFD700;"></i>
+          <div>
+            <div class="font-bold text-sm mb-1">方案特点</div>
+            <div class="text-sm" style="color: var(--muted);">${loadout.features || '暂无描述'}</div>
+          </div>
+        </div>
+      </div>
+      
+      <button class="btn-warm w-full py-3" id="detailCopyAllBtn" onclick="copyAllBudgetCodesFromDetail('${loadout.name.replace(/'/g, "\\'")}', this)">
+        <i class="fas fa-copy mr-2"></i>复制全部改枪码
+      </button>
+    </div>
+  `;
+  
+  openModal('budgetDetailModal');
+}
+
+// 从详情页复制全部改枪码（带状态反馈）
+function copyAllBudgetCodesFromDetail(loadoutName, btn) {
+  const loadout = BUDGET_LOADOUTS.find(l => l.name === loadoutName);
+  if (!loadout) return;
+  
+  const codes = loadout.weapons.filter(w => w.code).map(w => `${w.name}: ${w.code}`).join('\n');
+  if (codes) {
+    navigator.clipboard?.writeText(codes).then(() => {
+      // 按钮状态反馈
+      const originalHTML = btn.innerHTML;
+      btn.innerHTML = '<i class="fas fa-check mr-2"></i>已复制';
+      btn.classList.add('copied');
+      btn.style.background = '#2ecc71';
+      setTimeout(() => {
+        btn.innerHTML = originalHTML;
+        btn.classList.remove('copied');
+        btn.style.background = '';
+      }, 2000);
+      showToast(`📋 「${loadout.name}」的所有改枪码已复制`, 'success');
+    }).catch(() => fallbackCopy(codes, btn));
+  } else {
+    showToast('该方案暂无改枪码', 'info');
+  }
+}
+
+// 降级复制方案
+function fallbackCopy(text, btn) {
+  const textarea = document.createElement('textarea');
+  textarea.value = text;
+  document.body.appendChild(textarea);
+  textarea.select();
+  document.execCommand('copy');
+  document.body.removeChild(textarea);
+  if (btn) {
+    const originalHTML = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-check mr-2"></i>已复制';
+    btn.classList.add('copied');
+    btn.style.background = '#2ecc71';
+    setTimeout(() => {
+      btn.innerHTML = originalHTML;
+      btn.classList.remove('copied');
+      btn.style.background = '';
+    }, 2000);
+  }
+  showToast(`📋 改枪码已复制`, 'success');
+}
+
+function generateRecommendations() {
+  const container = document.getElementById('recommendCardsContainer');
+  if (!container) return;
+  
+  const mapSelect = document.getElementById('recMapSelect');
+  const thresholdSelect = document.getElementById('recThresholdSelect');
+  const selectedMap = mapSelect?.value || '航天基地';
+  const selectedThreshold = thresholdSelect?.value || '绝密';
+  const thresholdValue = THRESHOLD_MAP[selectedThreshold] || 60;
+  
+  let candidates = BUDGET_LOADOUTS.filter(item => {
+    if (item.map && item.map.length > 0) {
+      if (!item.map.includes(selectedMap)) return false;
+    }
+    return true;
+  });
+  
+  if (candidates.length === 0) candidates = BUDGET_LOADOUTS;
+  
+  candidates = candidates.map(item => ({
+    ...item,
+    combatPower: getCombatPower(item),
+    totalPrice: item.totalPrice || (item.weapons?.reduce((s,w)=>s+(w.price||0),0) + 
+                                   item.armors?.reduce((s,a)=>s+(a.price||0),0) +
+                                   item.helmets?.reduce((s,h)=>s+(h.price||0),0) +
+                                   item.backpacks?.reduce((s,b)=>s+(b.price||0),0)) || 30
+  }));
+  
+  const sortedByPrice = [...candidates].sort((a, b) => a.totalPrice - b.totalPrice);
+  
+  const cheapPassed = sortedByPrice.find(l => l.combatPower >= thresholdValue) || sortedByPrice[0];
+  const midIndex = Math.floor(sortedByPrice.length / 2);
+  const balanced = sortedByPrice[midIndex] || sortedByPrice[0];
+  const cheapest = sortedByPrice[0];
+  
+  const recommendations = [
+    { type: 'gold', title: '🥇 极致性价比', data: cheapPassed, threshold: thresholdValue },
+    { type: 'silver', title: '🥈 均衡稳健型', data: balanced, threshold: thresholdValue },
+    { type: 'bronze', title: '🥉 极限跑刀流', data: cheapest, threshold: thresholdValue }
+  ];
+  
+  container.innerHTML = recommendations.map((rec, idx) => {
+    const loadout = rec.data;
+    const combatPower = loadout.combatPower;
+    const isPassed = combatPower >= rec.threshold;
+    
+    const weaponStr = loadout.weapons?.map(w => w.name).join(' + ') || '未配置';
+    const armorStr = loadout.armors?.[0]?.name || '基础护甲';
+    const helmetStr = loadout.helmets?.[0]?.name || '基础头盔';
+    const bagStr = loadout.backpacks?.[0]?.name || '基础背包';
+    
+    return `
+      <div class="recommend-card card-base p-5 relative overflow-hidden" style="animation-delay: ${idx * 0.1}s;" onclick="showBudgetDetail('${loadout.name.replace(/'/g, "\\'")}')">
+        <div class="recommend-medal ${rec.type}">${idx+1}</div>
+        <div class="ml-12">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="font-bold text-lg">${rec.title}</h3>
+            <div class="flex items-center gap-2">
+              <span class="text-xl font-bold" style="color: var(--accent);">${loadout.totalPrice}万</span>
+              <span class="combat-badge ${isPassed ? 'passed' : 'failed'}">
+                <i class="fas fa-${isPassed ? 'check-circle' : 'exclamation-triangle'}"></i>
+                战备 ${combatPower}w ${isPassed ? '✅' : '⚠️'}
+              </span>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3 text-sm">
+            <div><i class="fas fa-gun mr-1" style="color: var(--accent);"></i>${weaponStr}</div>
+            <div><i class="fas fa-shield-halved mr-1" style="color: #3498db;"></i>${armorStr}</div>
+            <div><i class="fas fa-helmet-safety mr-1" style="color: #e67e22;"></i>${helmetStr}</div>
+            <div><i class="fas fa-backpack mr-1" style="color: #1abc9c;"></i>${bagStr}</div>
+          </div>
+          <div class="flex items-center justify-between" onclick="event.stopPropagation()">
+            <span class="text-xs px-3 py-1 rounded-full" style="background: var(--surface);">${loadout.scenario || '通用'}</span>
+            <button class="copy-all-btn btn-warm text-sm px-5 py-2" onclick="copyAllBudgetCodesFromCard('${loadout.name.replace(/'/g, "\\'")}', this); event.stopPropagation();">
+              <i class="fas fa-copy mr-2"></i>一键复制全部改枪码
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+  
+  const timeEl = document.getElementById('recUpdateTime');
+  if (timeEl) {
+    const today = new Date();
+    timeEl.textContent = `数据更新于 ${today.getMonth()+1}.${today.getDate()}`;
+  }
+}
+
+// 从卡片复制（带状态反馈）
+function copyAllBudgetCodesFromCard(loadoutName, btn) {
+  const loadout = BUDGET_LOADOUTS.find(l => l.name === loadoutName);
+  if (!loadout) return;
+  
+  const codes = loadout.weapons.filter(w => w.code).map(w => `${w.name}: ${w.code}`).join('\n');
+  if (codes) {
+    navigator.clipboard?.writeText(codes).then(() => {
+      const originalHTML = btn.innerHTML;
+      btn.innerHTML = '<i class="fas fa-check mr-2"></i>已复制';
+      btn.classList.add('copied');
+      setTimeout(() => {
+        btn.innerHTML = originalHTML;
+        btn.classList.remove('copied');
+      }, 2000);
+      showToast(`📋 「${loadout.name}」的所有改枪码已复制`, 'success');
+    }).catch(() => fallbackCopy(codes, btn));
+  } else {
+    showToast('该方案暂无改枪码', 'info');
+  }
+}
+
+// 复制全部改枪码（兼容旧版）
+function copyAllBudgetCodes(loadoutName) {
+  const loadout = BUDGET_LOADOUTS.find(l => l.name === loadoutName);
+  if (!loadout) return;
+  const codes = loadout.weapons.filter(w => w.code).map(w => `${w.name}: ${w.code}`).join('\n');
+  if (codes) {
+    navigator.clipboard?.writeText(codes).then(() => {
+      showToast(`📋 「${loadout.name}」的所有改枪码已复制`, 'success');
+    }).catch(() => fallbackCopy(codes, null));
+  } else {
+    showToast('该方案暂无改枪码', 'info');
+  }
+}
+
 // ==================== 强制挂载折叠函数 ====================
 window.toggleSquadCard = function(cardId) {
   console.log('toggleSquadCard 被调用, cardId:', cardId);
