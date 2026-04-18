@@ -13359,21 +13359,11 @@ function showBudgetDetail(loadoutName) {
   // ========== 构建武器列表（带改枪码和复制按钮） ==========
   const weaponsHtml = (loadout.weapons || []).map(w => `
     <div class="p-4 rounded-xl mb-3" style="background: var(--surface); border: 1px solid var(--border);">
-      <div class="flex items-center justify-between mb-2">
-        <div class="flex items-center gap-2">
-          <i class="fas fa-gun text-lg" style="color: var(--accent);"></i>
-          <span class="font-bold text-base">${w.name}</span>
-          <span class="tag-pill text-xs" style="background: var(--accent)20; color: var(--accent);">${w.price}万</span>
-        </div>
-      </div>
-      ${w.desc ? `<p class="text-sm mb-3" style="color: var(--muted);">📋 ${w.desc}</p>` : ''}
+      ...
       ${w.code ? `
       <div class="flex items-center justify-between p-3 rounded-lg" style="background: var(--card); border: 1px dashed var(--accent);">
-        <div class="flex items-center gap-2">
-          <i class="fas fa-code text-xs" style="color: var(--accent);"></i>
-          <span class="text-sm font-mono tracking-wider" style="color: var(--text);">${w.code}</span>
-        </div>
-        <button class="btn-warm text-sm px-4 py-2" onclick="copyLoadoutCode('${w.code}'); showToast('✅ 改枪码已复制', 'success');">
+        ...
+        <button class="btn-warm text-sm px-4 py-2" onclick="copyLoadoutCode('${w.code}', this)">
           <i class="far fa-copy mr-2"></i>复制改枪码
         </button>
       </div>
