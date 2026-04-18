@@ -13363,7 +13363,7 @@ function showBudgetDetail(loadoutName) {
       ${w.code ? `
       <div class="flex items-center justify-between p-3 rounded-lg" style="background: var(--card); border: 1px dashed var(--accent);">
         ...
-        <button class="btn-warm text-sm px-4 py-2" onclick="copyLoadoutCode('${w.code}', this)">
+        <<button class="btn-warm text-sm px-4 py-2" onclick="(function(b){var code='${w.code}';if(navigator.clipboard){navigator.clipboard.writeText(code).then(function(){b.innerHTML='<i class=\'fas fa-check\'></i> 已复制';b.style.background='#2ecc71';setTimeout(function(){b.innerHTML='<i class=\'far fa-copy mr-2\'></i>复制改枪码';b.style.background='';},1500);}).catch(function(){var t=document.createElement('textarea');t.value=code;document.body.appendChild(t);t.select();document.execCommand('copy');document.body.removeChild(t);b.innerHTML='<i class=\'fas fa-check\'></i> 已复制';b.style.background='#2ecc71';setTimeout(function(){b.innerHTML='<i class=\'far fa-copy mr-2\'></i>复制改枪码';b.style.background='';},1500);});}else{var t=document.createElement('textarea');t.value=code;document.body.appendChild(t);t.select();document.execCommand('copy');document.body.removeChild(t);b.innerHTML='<i class=\'fas fa-check\'></i> 已复制';b.style.background='#2ecc71';setTimeout(function(){b.innerHTML='<i class=\'far fa-copy mr-2\'></i>复制改枪码';b.style.background='';},1500);}})(this)">
           <i class="far fa-copy mr-2"></i>复制改枪码
         </button>
       </div>
