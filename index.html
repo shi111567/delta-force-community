@@ -9,6 +9,10 @@
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700;900&family=ZCOOL+QingKe+HuangYou&display=swap" rel="stylesheet">
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
 
+<!-- Swiper 轮播库 -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
+<script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+
 <!--
 =================== 数据库建表 SQL ====================
 
@@ -238,6 +242,230 @@ tailwind.config = {
     }
   }
 }
+
+// ==================== 发现页增强功能 ====================
+
+// 1. 轮播公告
+let discoverSwiper = null;
+async function loadDiscoverBanners() {
+  const wrapper = document.getElementById('discoverBannerWrapper');
+  if (!wrapper) return;
+  
+  // 模拟公告数据（可替换为真实数据库查询）
+  const banners = [
+    { image: 'https://picsum.photos/800/300?random=1', title: 'S9赛季火热开启', link: '#' },
+    { image: 'https://picsum.photos/800/300?random=2', title: '护航员招募计划', link: '#' },
+    { image: 'https://picsum.photos/800/300?random=3', title: '周末双倍经验', link: '#' }
+  ];
+  
+  wrapper.innerHTML = banners.map(b => `
+    <div class="swiper-slide">
+      <img src="${b.image}" class="w-full h-full object-cover" alt="${b.title}">
+      <div class="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/70 to-transparent">
+        <h4 class="text-white font-bold">${b.title}</h4>
+      </div>
+    </div>
+  `).join('');
+  
+  if (discoverSwiper) discoverSwiper.destroy();
+  discoverSwiper = new Swiper('#discoverBannerSwiper', {
+    loop: true,
+    autoplay: { delay: 3000 },
+    pagination: { el: '.swiper-pagination', clickable: true },
+  });
+}
+
+// 2. 数据看板
+async function loadDiscoverStats() {
+  // 在线人数（复用全局在线计数）
+  const onlineEl = document.getElementById('discoverOnlineCount');
+  const onlineSpan = document.getElementById('onlineCount');
+  if (onlineEl && onlineSpan) onlineEl.textContent = onlineSpan.textContent;
+  
+  // 今日发帖数（从数据库统计）
+  const today = new Date().toISOString().split('T')[0];
+  const { count } = await sb.from('posts')
+    .select('*', { count: 'exact', head: true })
+    .gte('created_at', today);
+  document.getElementById('discoverPostToday').textContent = count || 0;
+  
+  // 热度指数（模拟）
+  document.getElementById('discoverHotScore').textContent = Math.floor(Math.random() * 5000) + 2000;
+}
+
+// 3. 热度飙升榜
+async function loadRisingRank() {
+  const container = document.getElementById('risingRank');
+  if (!container) return;
+  
+  // 获取本周热门帖子，按热度排序
+  const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString();
+  const { data } = await sb.from('posts')
+    .select('title, hot_score, upvotes')
+    .gte('created_at', weekAgo)
+    .order('hot_score', { ascending: false })
+    .limit(5);
+  
+  if (!data || data.length === 0) {
+    container.innerHTML = '<div class="text-center py-4 text-xs" style="color:var(--muted);">暂无数据</div>';
+    return;
+  }
+  
+  container.innerHTML = data.map((item, i) => `
+    <div class="flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 transition-all">
+      <span class="text-lg font-bold w-6 text-center" style="color: ${i === 0 ? '#FFD700' : i === 1 ? '#C0C0C0' : i === 2 ? '#CD7F32' : 'var(--muted)'};">${i+1}</span>
+      <div class="flex-1 min-w-0">
+        <div class="text-sm font-medium truncate">${item.title}</div>
+        <div class="flex items-center gap-3 text-xs mt-1" style="color: var(--muted);">
+          <span><i class="fas fa-fire" style="color: #FF4757;"></i> ${item.hot_score || 0}</span>
+          <span><i class="fas fa-thumbs-up"></i> ${item.upvotes || 0}</span>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// 4. 热门话题云
+const DISCOVER_TOPICS = ['战术研讨', '新手攻略', '武器评测', '战队招募', '精彩集锦', '三角洲行动', '跑刀教学', '狙击点位', '撤离路线'];
+function loadDiscoverTopics() {
+  const container = document.getElementById('discoverTopicCloud');
+  if (!container) return;
+  
+  const shuffled = [...DISCOVER_TOPICS].sort(() => Math.random() - 0.5).slice(0, 8);
+  container.innerHTML = shuffled.map(t => `
+    <span class="discover-topic-tag" onclick="selectDiscoverTopic('${t}')">
+      <i class="fas fa-hashtag"></i>${t}
+    </span>
+  `).join('');
+}
+function refreshDiscoverTopics() {
+  loadDiscoverTopics();
+  showToast('话题已刷新', 'success');
+}
+function selectDiscoverTopic(topic) {
+  APP.filters.topic = topic;
+  if (document.getElementById('currentTopicLabel')) {
+    document.getElementById('currentTopicLabel').textContent = topic;
+  }
+  switchTab('home');
+  loadPosts(true);
+  showToast(`正在浏览 #${topic}`, 'info');
+}
+
+// 5. 精选护航员
+async function loadDiscoverEscorts() {
+  const bar = document.getElementById('discoverEscortBar');
+  if (!bar) return;
+  
+  const { data: videos } = await sb.from('escort_videos')
+    .select('user_id')
+    .eq('status', 'passed')
+    .order('created_at', { ascending: false })
+    .limit(20);
+  
+  if (!videos || videos.length === 0) {
+    bar.innerHTML = '<div class="text-xs p-4" style="color:var(--muted);">暂无在线护航员</div>';
+    document.getElementById('escortOnlineCount').textContent = '0';
+    return;
+  }
+  
+  const userIds = [...new Set(videos.map(v => v.user_id))];
+  const { data: profiles } = await sb.from('profiles')
+    .select('id, username, avatar_url')
+    .in('id', userIds);
+  
+  document.getElementById('escortOnlineCount').textContent = profiles?.length || 0;
+  
+  bar.innerHTML = (profiles || []).slice(0, 10).map(user => `
+    <div class="discover-escort-card flex flex-col items-center gap-1 flex-shrink-0" onclick="viewUserProfile('${user.id}')">
+      <div style="position: relative;">
+        <img src="${user.avatar_url || dicebearUrl(user.username)}" class="escort-avatar w-14 h-14 rounded-full object-cover border-2" style="border-color: var(--accent);">
+        <span class="online-pulse"></span>
+      </div>
+      <span class="text-xs font-medium">${user.username}</span>
+      <span class="text-[10px] px-2 py-0.5 rounded-full" style="background: var(--accent); color: white;">护航中</span>
+    </div>
+  `).join('');
+  
+  enableHorizontalDragScroll(bar);
+}
+
+// 6. 战术视频流
+async function loadDiscoverVideos() {
+  const grid = document.getElementById('discoverVideoGrid');
+  const empty = document.getElementById('discoverVideoEmpty');
+  if (!grid) return;
+  
+  grid.innerHTML = '<div class="col-span-full text-center py-8" style="color:var(--muted);"><i class="fas fa-spinner fa-pulse"></i> 加载中...</div>';
+  
+  const { data } = await sb.from('escort_videos')
+    .select('*, profiles(username, avatar_url)')
+    .eq('status', 'passed')
+    .order('created_at', { ascending: false })
+    .limit(12);
+  
+  if (!data || data.length === 0) {
+    grid.innerHTML = '';
+    empty.classList.remove('hidden');
+    return;
+  }
+  empty.classList.add('hidden');
+  
+  grid.innerHTML = data.map(video => {
+    const duration = video.duration ? `${Math.floor(video.duration/60)}:${String(video.duration%60).padStart(2,'0')}` : '';
+    return `
+      <div class="masonry-item">
+        <div class="discover-video-card card-base overflow-hidden" onclick="viewEscortVideo('${video.id}')">
+          <div class="relative h-40 bg-gray-800">
+            ${video.thumbnail_url ? 
+              `<img src="${video.thumbnail_url}" class="w-full h-full object-cover">` :
+              `<div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-orange-500/30 to-red-500/30">
+                <i class="fas fa-play text-4xl text-white/60"></i>
+              </div>`
+            }
+            ${duration ? `<span class="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-2 py-0.5 rounded">${duration}</span>` : ''}
+            <div class="video-play-overlay">
+              <i class="fas fa-play"></i>
+            </div>
+          </div>
+          <div class="p-3">
+            <div class="font-bold text-sm line-clamp-2">${video.title}</div>
+            <div class="flex items-center gap-2 mt-2">
+              <img src="${video.profiles?.avatar_url || dicebearUrl('u')}" class="w-5 h-5 rounded-full">
+              <span class="text-xs" style="color: var(--muted);">${video.profiles?.username || '干员'}</span>
+              <span class="ml-auto text-xs" style="color: var(--accent);"><i class="far fa-heart"></i> ${video.likes || 0}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function refreshDiscoverVideos() {
+  loadDiscoverVideos();
+  showToast('视频列表已刷新', 'success');
+}
+
+// 辅助：横向拖拽滚动（如果还没有定义）
+function enableHorizontalDragScroll(element) {
+  if (!element) return;
+  let isDown = false, startX, scrollLeft;
+  element.addEventListener('mousedown', (e) => {
+    isDown = true; element.classList.add('dragging');
+    startX = e.pageX - element.offsetLeft; scrollLeft = element.scrollLeft;
+  });
+  element.addEventListener('mouseleave', () => { isDown = false; element.classList.remove('dragging'); });
+  element.addEventListener('mouseup', () => { isDown = false; element.classList.remove('dragging'); });
+  element.addEventListener('mousemove', (e) => {
+    if (!isDown) return;
+    e.preventDefault();
+    const x = e.pageX - element.offsetLeft;
+    element.scrollLeft = scrollLeft - (x - startX) * 1.5;
+  });
+}
+
+
 </script>
 
 
@@ -346,8 +574,11 @@ tailwind.config = {
   cursor: pointer;
 }
 .recommend-card:hover {
-  transform: translateY(-6px) scale(1.01);
-  box-shadow: 0 20px 30px -8px var(--glow), 0 8px 16px -8px var(--shadow);
+ #intelCenterContent .grid .rounded-xl:hover {
+    border-color: var(--accent) !important;
+    box-shadow: 0 20px 30px -8px var(--glow), 0 8px 16px -8px var(--shadow);
+    transform: translateY(-4px);
+}
   border-color: var(--accent) !important;
 }
 .recommend-medal {
@@ -451,6 +682,315 @@ tailwind.config = {
 }
 .stats-card-horizontal {
   animation: cardSlideUp 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* 强制修复悬停模糊 */
+#intelCenterContent .grid .rounded-xl,
+#intelCenterContent .grid .rounded-xl * {
+  transform: translateZ(0) !important;
+  backface-visibility: hidden !important;
+  -webkit-font-smoothing: antialiased !important;
+  will-change: transform !important;
+}
+#intelCenterContent .grid .rounded-xl:hover {
+  transform: translateY(-4px) translateZ(0) !important;
+  box-shadow: 0 20px 30px -8px var(--glow), 0 8px 16px -8px var(--shadow) !important;
+  border-color: var(--accent) !important;
+}
+
+.quiz-option-btn:hover {
+  background: var(--accent) !important;
+  color: white !important;
+  border-color: var(--accent) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px var(--glow);
+}
+
+/* ===== 发现页增强样式 ===== */
+#discoverBannerContainer {
+  box-shadow: 0 8px 20px var(--glow);
+  border: 1.5px solid var(--border);
+}
+
+.swiper-pagination-bullet {
+  background: var(--accent) !important;
+  opacity: 0.5;
+}
+.swiper-pagination-bullet-active {
+  opacity: 1;
+  background: #FFD700 !important;
+}
+
+/* 话题标签动效 */
+.discover-topic-tag {
+  display: inline-block;
+  padding: 8px 20px;
+  border-radius: 40px;
+  background: var(--surface);
+  color: var(--text);
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  border: 1.5px solid var(--border);
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: 0 2px 8px var(--shadow);
+}
+.discover-topic-tag:hover {
+  transform: translateY(-4px) scale(1.05);
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+  box-shadow: 0 12px 20px var(--glow);
+}
+.discover-topic-tag i {
+  margin-right: 6px;
+  opacity: 0.8;
+}
+
+/* 护航员卡片呼吸灯 */
+.discover-escort-card {
+  transition: all 0.3s;
+  cursor: pointer;
+}
+.discover-escort-card:hover {
+  transform: translateY(-4px);
+}
+.discover-escort-card:hover .escort-avatar {
+  box-shadow: 0 0 20px var(--accent);
+  border-color: white;
+}
+
+/* 视频卡片悬停播放按钮 */
+.discover-video-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 16px;
+  transition: all 0.25s;
+  cursor: pointer;
+}
+.discover-video-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 30px var(--glow);
+}
+.discover-video-card .video-play-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 48px;
+  height: 48px;
+  background: rgba(0,0,0,0.5);
+  backdrop-filter: blur(4px);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 20px;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.discover-video-card:hover .video-play-overlay {
+  opacity: 1;
+}
+
+/* 三段自适应 */
+@media (max-width: 768px) {
+  #discoverBannerContainer { height: 140px; }
+  .discover-topic-tag { padding: 6px 16px; font-size: 13px; }
+}
+@media (max-width: 480px) {
+  .grid-cols-3 .card-base { padding: 12px 4px; }
+  .grid-cols-3 .text-2xl { font-size: 1.25rem; }
+}
+
+
+/* ===== 首页轮播图 · 增强版（工具箱上方） ===== */
+#homeBannerSection {
+  animation: bannerFadeIn 0.5s ease-out;
+}
+
+@keyframes bannerFadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+#homeBannerContainer {
+  border-radius: 24px !important;
+  box-shadow: 0 16px 32px -8px var(--glow), 0 0 0 1.5px var(--border);
+  transition: box-shadow 0.3s ease, transform 0.3s ease;
+  overflow: hidden;
+}
+
+#homeBannerContainer:hover {
+  box-shadow: 0 24px 48px -12px var(--accent), 0 0 0 2px var(--accent);
+  transform: translateY(-2px);
+}
+
+/* 轮播图内图片增加缩放动效 */
+#homeBannerContainer .swiper-slide img {
+  transition: transform 6s ease;
+}
+
+#homeBannerContainer .swiper-slide-active img {
+  transform: scale(1.05);
+}
+
+/* 自定义分页器：更精致 */
+#homeBannerContainer .swiper-pagination {
+  bottom: 12px !important;
+}
+
+#homeBannerContainer .swiper-pagination-bullet {
+  width: 8px;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.6) !important;
+  backdrop-filter: blur(4px);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  margin: 0 6px !important;
+}
+
+#homeBannerContainer .swiper-pagination-bullet-active {
+  width: 24px;
+  border-radius: 10px;
+  background: var(--accent) !important;
+  box-shadow: 0 0 12px var(--accent);
+}
+
+/* 导航按钮：更美观且带有悬停效果 */
+#homeBannerContainer .swiper-button-prev,
+#homeBannerContainer .swiper-button-next {
+  width: 40px;
+  height: 40px;
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(8px);
+  border-radius: 50%;
+  color: white;
+  transition: all 0.25s;
+  opacity: 0;
+}
+
+#homeBannerContainer:hover .swiper-button-prev,
+#homeBannerContainer:hover .swiper-button-next {
+  opacity: 1;
+}
+
+#homeBannerContainer .swiper-button-prev:hover,
+#homeBannerContainer .swiper-button-next:hover {
+  background: var(--accent);
+  transform: scale(1.1);
+}
+
+#homeBannerContainer .swiper-button-prev:after,
+#homeBannerContainer .swiper-button-next:after {
+  font-size: 18px;
+  font-weight: bold;
+}
+
+/* 文字遮罩层优化 */
+.home-banner-slide .banner-overlay {
+  padding: 20px 24px;
+  background: linear-gradient(to top, 
+    rgba(0, 0, 0, 0.75) 0%, 
+    rgba(0, 0, 0, 0.4) 40%, 
+    transparent 100%);
+}
+
+.home-banner-slide .banner-title {
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  text-shadow: 0 4px 12px rgba(0,0,0,0.4);
+  margin-bottom: 6px;
+}
+
+.home-banner-slide .banner-desc {
+  font-size: 14px;
+  font-weight: 500;
+  opacity: 0.95;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* 悬停时暂停自动播放（通过 js 实现，css 仅辅助） */
+#homeBannerContainer.swiper-paused .swiper-slide img {
+  transform: scale(1);
+}
+
+/* 移动端适配 */
+@media (max-width: 640px) {
+  #homeBannerContainer {
+    height: 160px !important;
+    border-radius: 20px !important;
+  }
+  .home-banner-slide .banner-overlay {
+    padding: 14px 18px;
+  }
+  .home-banner-slide .banner-title {
+    font-size: 16px;
+  }
+  .home-banner-slide .banner-desc {
+    font-size: 12px;
+  }
+  #homeBannerContainer .swiper-button-prev,
+  #homeBannerContainer .swiper-button-next {
+    display: none; /* 移动端隐藏箭头，用手势滑动 */
+  }
+}
+
+/* 首页轮播引导标题 */
+.home-banner-guide {
+  position: absolute;
+  top: 12px;
+  left: 16px;
+  z-index: 20;
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 16px;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-radius: 40px;
+  color: white;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  transition: all 0.25s ease;
+  pointer-events: none; /* 让点击穿透到轮播图，不影响交互 */
+}
+
+.home-banner-guide i {
+  font-size: 14px;
+  color: var(--accent);
+  filter: drop-shadow(0 0 6px var(--accent));
+}
+
+#homeBannerContainer:hover .home-banner-guide {
+  transform: translateY(-2px);
+  background: rgba(0, 0, 0, 0.6);
+  border-color: var(--accent);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+}
+
+/* 移动端适配 */
+@media (max-width: 640px) {
+  .home-banner-guide {
+    top: 8px;
+    left: 12px;
+    padding: 4px 12px;
+    font-size: 11px;
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+  }
+  .home-banner-guide i {
+    font-size: 12px;
+  }
 }
 </style>
 
@@ -1007,7 +1547,7 @@ pointer-events: auto !important;
 }
 
 /* Toast */
-.toast-container { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); z-index: 9999; }
+.toast-container { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); z-index: 99999; }
 .toast {
   background: linear-gradient(135deg, #FF6B35, #FF4757); color: #fff;
   padding: 12px 24px; border-radius: 12px; font-weight: 500;
@@ -1427,7 +1967,9 @@ touch-action: none; /* 禁止浏览器默认的滚动、缩放等触摸行为 */
 
 /* 保留王牌对决和语音简报卡片的悬停放大效果 */
 #intelCenterContent .grid .rounded-xl {
-  transition: border-color 0.2s, box-shadow 0.3s, transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transition: border-color 0.2s, box-shadow 0.3s, transform 0.25s;
+    will-change: transform;
+    backface-visibility: hidden;
 }
 
 #intelCenterContent .grid .rounded-xl:hover {
@@ -1470,6 +2012,13 @@ touch-action: none; /* 禁止浏览器默认的滚动、缩放等触摸行为 */
 /* 只对双栏网格中的卡片应用悬停放大效果 */
 #intelCenterContent .grid .rounded-xl {
   transition: border-color 0.2s, box-shadow 0.3s, transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+#intelCenterContent .grid .rounded-xl {
+    transition: border-color 0.2s, box-shadow 0.3s, transform 0.25s;
+    will-change: transform;
+    backface-visibility: hidden;
+    transform: translateZ(0);
 }
 
 #intelCenterContent .grid .rounded-xl:hover {
@@ -2534,10 +3083,138 @@ body {
     font-size: 9px !important;
   }
 }
+
+/* ===== 三角洲万象猜 · 专属动效 ===== */
+#quizCurrentClue {
+  transition: all 0.2s ease;
+  animation: clueFadeIn 0.3s ease-out;
+}
+@keyframes clueFadeIn {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+#quizAnswerInput:focus {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 4px var(--glow) !important;
+  outline: none;
+}
+.quiz-correct-feedback {
+  animation: pulseSuccess 0.5s ease;
+}
+@keyframes pulseSuccess {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.02); background: #2ecc7120; }
+}
+/* 移动端适配 */
+@media (max-width: 640px) {
+  #quizCurrentClue { font-size: 16px; }
+  #quizAnswerInput { font-size: 16px; }
+}
+
+/* 万能猜动画 */
+@keyframes quizPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 215, 0, 0.4); }
+  50% { box-shadow: 0 0 20px 5px rgba(255, 215, 0, 0.2); }
+}
+@keyframes quizShake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-5px); }
+  40% { transform: translateX(5px); }
+  60% { transform: translateX(-3px); }
+  80% { transform: translateX(3px); }
+}
+.quiz-option {
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  cursor: pointer;
+  border: 2px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  padding: 12px 16px;
+  border-radius: 40px;
+  font-weight: 600;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.quiz-option:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent);
+  box-shadow: 0 8px 16px var(--glow);
+}
+.quiz-option.correct {
+  background: #2ecc71 !important;
+  border-color: #27ae60 !important;
+  color: white !important;
+  animation: quizPulse 0.5s ease;
+}
+.quiz-option.wrong {
+  background: #e74c3c !important;
+  border-color: #c0392b !important;
+  color: white !important;
+  animation: quizShake 0.4s ease;
+}
+.quiz-progress {
+  height: 6px;
+  background: var(--surface);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.quiz-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), #FFD700);
+  width: 0%;
+  transition: width 0.4s ease;
+}
+
+
+/* 热门话题折叠动画 */
+.topic-section-body {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  padding: 0;
+  margin: 0;
+}
+.topic-section-body.expanded {
+  max-height: 150px; /* 足够容纳气泡栏 */
+  padding: 4px 0 0 0;
+}
+.topic-section-icon {
+  transition: transform 0.25s ease;
+  color: var(--accent);
+  font-size: 14px;
+}
+.topic-section-icon.rotated {
+  transform: rotate(180deg);
+}
+
+/* 热门推荐折叠动画 */
+.recommend-section-body {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  padding: 0;
+  margin: 0;
+}
+.recommend-section-body.expanded {
+  max-height: 2000px; /* 足够容纳推荐卡片 */
+  padding: 4px 0 0 0;
+}
+.recommend-section-icon {
+  transition: transform 0.25s ease;
+  color: var(--accent);
+  font-size: 14px;
+}
+.recommend-section-icon.rotated {
+  transform: rotate(180deg);
+}
+
 </style>
 <script src="https://cdn.jsdelivr.net/npm/interactjs@1.10.27/dist/interact.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/tus-js-client@4.1.0/dist/tus.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
 </head>
 
 <body>
@@ -2600,6 +3277,39 @@ body {
   <div class="relative" id="bannerContainer"></div>
 </section>
 -->
+<!-- 首页 Tab -->
+  <div id="homeTab">
+<!-- 首页轮播图（仅管理员可管理） -->
+<div class="relative rounded-2xl overflow-hidden" id="homeBannerContainer" style="height: 200px; border: 1.5px solid var(--border); box-shadow: 0 8px 20px var(--shadow);">
+  <!-- 新增：引导标题（悬浮左上角） -->
+  <div class="home-banner-guide">
+    <i class="fas fa-bullhorn mr-1.5"></i>
+    <span>热门推荐</span>
+  </div>
+  
+  <!-- Swiper 容器 -->
+  <div class="swiper-container h-full" id="homeBannerSwiper">
+    <div class="swiper-wrapper" id="homeBannerWrapper">
+      <!-- 动态渲染 -->
+    </div>
+    <div class="swiper-pagination"></div>
+    <div class="swiper-button-prev"></div>
+    <div class="swiper-button-next"></div>
+  </div>
+    <!-- 无轮播时的占位 -->
+    <div id="homeBannerPlaceholder" class="absolute inset-0 flex items-center justify-center" 
+     style="background: linear-gradient(145deg, var(--surface) 0%, var(--card) 100%);">
+  <div class="text-center">
+    <div class="w-16 h-16 mx-auto mb-3 rounded-full flex items-center justify-center" 
+         style="background: var(--accent)20; border: 2px dashed var(--accent);">
+      <i class="fas fa-image text-2xl" style="color: var(--accent); opacity: 0.6;"></i>
+    </div>
+    <p class="text-sm font-medium" style="color: var(--muted);">暂无轮播图</p>
+    <p class="text-xs mt-1" style="color: var(--muted); opacity: 0.6;">管理员可在后台添加</p>
+  </div>
+</div>
+  </div>
+
 <!-- 快捷工具坞 -->
 <section class="mb-4" id="toolboxSection">
   <div class="flex items-center justify-between mb-2">
@@ -2610,20 +3320,8 @@ body {
     <!-- 动态渲染 -->
   </div>
 </section>
-  <!-- Story 限时动态 -->
-  <section class="mb-6">
-    <div class="flex gap-4 overflow-x-auto py-2" id="storiesBar" style="scrollbar-width:none">
-      <div class="flex flex-col items-center gap-1 cursor-pointer flex-shrink-0" onclick="openModal('storyPublishModal')">
-        <div class="w-16 h-16 rounded-full flex items-center justify-center" style="border:2px dashed var(--accent)">
-          <i class="fas fa-plus" style="color:var(--accent)"></i>
-        </div>
-        <span class="text-xs" style="color:var(--muted)">发布动态</span>
-      </div>
-    </div>
-  </section>
-
-  <!-- 首页 Tab -->
-  <div id="homeTab">
+  
+  
 
         <!-- 筛选栏（精简版 + 更多筛选抽屉） -->
 <div class="flex items-center gap-2 mb-4">
@@ -2705,6 +3403,105 @@ body {
     </div>
   </div>
 </div>
+
+<!-- ==================== 三角洲万象猜 · 每日挑战 ==================== -->
+<div class="card-base mb-4 overflow-hidden" style="background: linear-gradient(135deg, rgba(255,107,53,0.08) 0%, rgba(255,71,87,0.04) 100%); border: 1.5px solid var(--accent); box-shadow: 0 8px 24px var(--glow);">
+  <!-- 标题栏 -->
+  <div class="flex items-center justify-between p-4 border-b" style="border-color: var(--border);">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background: linear-gradient(135deg, var(--accent), var(--accent2));">
+        <i class="fas fa-puzzle-piece text-white text-lg"></i>
+      </div>
+      <div>
+        <h3 class="font-display text-lg tracking-wider" style="color: var(--accent);">三角洲万象猜</h3>
+        <p class="text-xs" style="color: var(--muted);" id="quizCategoryLabel">今日挑战 · 猜枪械</p>
+      </div>
+    </div>
+    <div class="flex items-center gap-2">
+      <span class="text-xs px-3 py-1 rounded-full" style="background: var(--accent); color: white;" id="quizStatus">未开始</span>
+      <button class="w-8 h-8 rounded-full flex items-center justify-center" style="background: var(--surface); border: 1px solid var(--border);" onclick="refreshQuiz()" title="换一题">
+        <i class="fas fa-sync-alt text-xs" style="color: var(--muted);"></i>
+      </button>
+    </div>
+  </div>
+  
+  <!-- 内容区 -->
+  <div class="p-5">
+    <!-- 未开始状态 -->
+    <div id="quizStartView">
+      <p class="text-sm mb-4" style="color: var(--text);" id="quizDescription">根据线索猜出正确的答案，答对可获得经验奖励！</p>
+      <button class="btn-warm w-full py-3 text-base font-bold" onclick="startQuiz()">
+        <i class="fas fa-play mr-2"></i>开始挑战
+      </button>
+    </div>
+    
+    <!-- 挑战中状态 -->
+    <div id="quizPlayView" style="display: none;">
+      <!-- 进度条/线索计数 -->
+      <div class="flex items-center justify-between mb-3">
+        <span class="text-xs font-bold" style="color: var(--accent);">线索 <span id="quizClueIndex">1</span>/<span id="quizClueTotal">5</span></span>
+        <span class="text-xs" style="color: var(--muted);" id="quizScoreHint">答对+30经验</span>
+      </div>
+      
+      <!-- 当前线索卡片 -->
+      <div class="p-5 rounded-xl mb-4 text-center" style="background: var(--surface); border: 2px solid var(--accent);">
+        <i class="fas fa-lightbulb text-2xl mb-2" style="color: #FFD700;"></i>
+        <p class="text-lg font-bold" style="color: var(--text);" id="quizCurrentClue">正在加载线索...</p>
+      </div>
+      
+      <!-- 输入区域 -->
+      <div class="relative mb-3">
+        <input type="text" id="quizAnswerInput" placeholder="输入你的答案..." class="w-full px-4 py-3 pr-12 rounded-xl text-base" style="background: var(--surface); border: 2px solid var(--border); color: var(--text);" autocomplete="off">
+        <button class="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full flex items-center justify-center" style="background: var(--accent); color: white;" onclick="submitQuizAnswer()">
+          <i class="fas fa-arrow-right"></i>
+        </button>
+      </div>
+      
+      <!-- 操作按钮组 -->
+      <div class="flex gap-2">
+        <button class="btn-ghost flex-1 py-2 text-sm" onclick="nextQuizClue()">
+          <i class="fas fa-chevron-right mr-1"></i>下一条线索
+        </button>
+        <button class="btn-ghost flex-1 py-2 text-sm" onclick="giveUpQuiz()">
+          <i class="fas fa-flag-checkered mr-1"></i>放弃
+        </button>
+      </div>
+      <p class="text-xs text-center mt-3" style="color: var(--muted);">
+        <i class="fas fa-info-circle mr-1"></i>线索越少答对，奖励越高
+      </p>
+    </div>
+    
+    <!-- 结果状态 -->
+    <div id="quizResultView" style="display: none;">
+      <div class="text-center py-3">
+        <div id="quizResultIcon" class="text-5xl mb-2"></div>
+        <h4 class="font-bold text-lg mb-1" id="quizResultTitle"></h4>
+        <p class="text-sm mb-4" style="color: var(--muted);" id="quizResultMessage"></p>
+        <div class="flex gap-2">
+          <button class="btn-warm flex-1 py-2" onclick="startQuiz()">
+            <i class="fas fa-redo-alt mr-1"></i>再来一题
+          </button>
+          <button class="btn-ghost flex-1 py-2" onclick="shareQuizResult()">
+            <i class="fas fa-share-alt mr-1"></i>分享
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 底部统计 -->
+  <div class="px-5 pb-4 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <span class="text-xs" style="color: var(--muted);"><i class="fas fa-calendar-check mr-1"></i>今日已答 <span id="quizTodayCount">0</span>/3</span>
+      <span class="text-xs" style="color: var(--muted);"><i class="fas fa-trophy mr-1"></i>连胜 <span id="quizWinStreak">0</span></span>
+    </div>
+    <span class="text-xs" style="color: var(--accent); cursor: pointer;" onclick="showQuizHistory()">
+      <i class="fas fa-history mr-1"></i>记录
+    </span>
+  </div>
+</div>
+
+
 <!-- ==================== 战术情报中心（整合版） ==================== -->
 <div class="card-base mb-4 overflow-hidden" style="background: linear-gradient(145deg, var(--card) 0%, rgba(255,107,53,0.05) 100%); border: 1px solid var(--border);">
   <!-- 总标题栏：点击展开/折叠全部 -->
@@ -2760,6 +3557,7 @@ body {
       </div>
     </div>
     
+
     <!-- 底部：战备物资·热度雷达（全宽） -->
     <div class="p-4 rounded-xl" style="background: rgba(255,215,0,0.02); border: 1px solid var(--border);">
       <div class="flex items-center gap-2 mb-2">
@@ -2794,22 +3592,38 @@ body {
 <!-- 话题广场 -->
 <!-- 热门话题 · 动态气泡栏（可拖拽滑动） -->
 <div class="mb-5">
-  <div class="flex items-center justify-between mb-2">
+  <div class="flex items-center justify-between mb-2 cursor-pointer" id="topicSectionHeader" onclick="toggleTopicSection()">
     <h3 class="font-display text-base flex items-center gap-2">
       <i class="fas fa-fire" style="color: var(--accent);"></i> 热门话题
     </h3>
-    <button class="text-xs btn-ghost px-3 py-1" onclick="loadMoreTopics()">
-      <i class="fas fa-sync-alt mr-1"></i>换一批
-    </button>
+    <div class="flex items-center gap-2">
+      <button class="text-xs btn-ghost px-3 py-1" onclick="event.stopPropagation(); loadMoreTopics()">
+        <i class="fas fa-sync-alt mr-1"></i>换一批
+      </button>
+      <i class="fas fa-chevron-down topic-section-icon" id="topicSectionIcon"></i>
+    </div>
   </div>
-  <div class="topic-bubble-bar flex gap-3 overflow-x-auto pb-2" id="topicBubbleBar" style="scrollbar-width: none; cursor: grab;">
-    <!-- 动态渲染话题气泡 -->
+  <div id="topicSectionBody" class="topic-section-body expanded">
+    <div class="topic-bubble-bar flex gap-3 overflow-x-auto pb-2" id="topicBubbleBar" style="scrollbar-width: none; cursor: grab;">
+      <!-- 动态渲染话题气泡 -->
+    </div>
   </div>
 </div>
+
+
+<!-- 热门推荐 -->
 <div class="mb-6">
-  <h3 class="font-display text-lg mb-2 flex items-center gap-2"><i class="fas fa-fire" style="color:#FF4757"></i>热门推荐</h3>
-  <div id="hotRecommendList" class="grid grid-cols-1 md:grid-cols-2 gap-2"></div>
+  <div class="flex items-center justify-between mb-2 cursor-pointer" id="recommendSectionHeader" onclick="toggleRecommendSection()">
+    <h3 class="font-display text-base flex items-center gap-2">
+      <i class="fas fa-fire" style="color:#FF4757"></i>热门推荐
+    </h3>
+    <i class="fas fa-chevron-down recommend-section-icon" id="recommendSectionIcon"></i>
+  </div>
+  <div id="recommendSectionBody" class="recommend-section-body expanded">
+    <div id="hotRecommendList" class="grid grid-cols-1 md:grid-cols-2 gap-2"></div>
+  </div>
 </div>
+
 <!-- 组队大厅展示区 -->
 <div id="squadListSection" class="mb-4">
   <!-- 总折叠栏头部 -->
@@ -2834,6 +3648,24 @@ body {
     </div>
   </div>
 </div>
+
+<!-- 社区战术流 -->
+<div class="mb-4">
+  <div class="flex items-center justify-between mb-2">
+    <h3 class="font-display text-sm flex items-center gap-2">
+      <i class="fas fa-share-alt" style="color: var(--accent);"></i> 
+      社区战术流
+      <span class="text-xs px-2 py-0.5 rounded-full" style="background: var(--surface); color: var(--accent);">最新分享</span>
+    </h3>
+    <button class="text-xs btn-ghost px-2 py-1" onclick="loadCommunityTacticalStream()">
+      <i class="fas fa-sync-alt mr-1"></i>刷新
+    </button>
+  </div>
+  <div id="communityStreamList" class="flex gap-3 overflow-x-auto pb-2" style="scrollbar-width: none;">
+    <!-- 动态渲染战术流卡片 -->
+    <div class="text-center py-4 text-xs w-full" style="color: var(--muted);">加载中...</div>
+  </div>
+</div>
     <!-- 置顶帖 -->
     <div id="topPostArea" class="mb-4"></div>
 
@@ -2855,20 +3687,111 @@ body {
     <!-- 加载更多 -->
   </div>
 
-  <!-- 发现 Tab -->
-  <div id="discoverTab" style="display:none">
-    <h2 class="font-display text-2xl mb-4" style="color:var(--accent)">发现精彩</h2>
-    <div class="grid md:grid-cols-2 gap-6">
-      <div class="card-base p-5">
-        <h3 class="font-bold text-lg mb-3 flex items-center gap-2"><i class="fas fa-fire" style="color:#FF4757"></i> 本周贡献榜</h3>
-        <div id="contributeRank"></div>
-      </div>
-      <div class="card-base p-5">
-        <h3 class="font-bold text-lg mb-3 flex items-center gap-2"><i class="fas fa-star" style="color:#FFD700"></i> 红人榜</h3>
-        <div id="starRank"></div>
+  <!-- 发现 Tab（增强版） -->
+<div id="discoverTab" style="display:none">
+  <!-- 顶部轮播公告 -->
+  <div class="mb-6">
+    <div class="relative rounded-2xl overflow-hidden" id="discoverBannerContainer" style="height: 160px;">
+      <div class="absolute inset-0 bg-gradient-to-r from-orange-500/20 to-red-500/20"></div>
+      <div class="swiper-container h-full" id="discoverBannerSwiper">
+        <div class="swiper-wrapper" id="discoverBannerWrapper"></div>
+        <div class="swiper-pagination"></div>
       </div>
     </div>
   </div>
+
+  <!-- 数据看板（三卡片） -->
+  <div class="grid grid-cols-3 gap-3 mb-6">
+    <div class="card-base p-4 text-center group hover:scale-[1.02] transition-all duration-300">
+      <i class="fas fa-users text-2xl mb-2" style="color: var(--accent);"></i>
+      <div class="text-2xl font-bold" id="discoverOnlineCount">0</div>
+      <div class="text-xs" style="color: var(--muted);">在线干员</div>
+    </div>
+    <div class="card-base p-4 text-center group hover:scale-[1.02] transition-all duration-300">
+      <i class="fas fa-pen-fancy text-2xl mb-2" style="color: #2ecc71;"></i>
+      <div class="text-2xl font-bold" id="discoverPostToday">0</div>
+      <div class="text-xs" style="color: var(--muted);">今日发帖</div>
+    </div>
+    <div class="card-base p-4 text-center group hover:scale-[1.02] transition-all duration-300">
+      <i class="fas fa-trophy text-2xl mb-2" style="color: #FFD700;"></i>
+      <div class="text-2xl font-bold" id="discoverHotScore">0</div>
+      <div class="text-xs" style="color: var(--muted);">热度指数</div>
+    </div>
+  </div>
+
+  <!-- 双榜争霸 + 热度飙升榜（三段自适应） -->
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+    <!-- 贡献榜 -->
+    <div class="card-base p-5">
+      <h3 class="font-bold text-lg mb-3 flex items-center gap-2">
+        <i class="fas fa-fire" style="color: #FF4757"></i> 本周贡献榜
+        <span class="text-xs ml-auto px-2 py-0.5 rounded-full" style="background: var(--surface);">🏆 TOP10</span>
+      </h3>
+      <div id="contributeRank" class="space-y-1"></div>
+    </div>
+    <!-- 红人榜 -->
+    <div class="card-base p-5">
+      <h3 class="font-bold text-lg mb-3 flex items-center gap-2">
+        <i class="fas fa-star" style="color: #FFD700"></i> 红人榜
+        <span class="text-xs ml-auto px-2 py-0.5 rounded-full" style="background: var(--surface);">👑 粉丝TOP10</span>
+      </h3>
+      <div id="starRank" class="space-y-1"></div>
+    </div>
+    <!-- 热度飙升榜（新增） -->
+    <div class="card-base p-5 md:col-span-2 lg:col-span-1">
+      <h3 class="font-bold text-lg mb-3 flex items-center gap-2">
+        <i class="fas fa-chart-line" style="color: #3498db"></i> 热度飙升榜
+        <span class="text-xs ml-auto px-2 py-0.5 rounded-full" style="background: var(--surface);">🔥 实时</span>
+      </h3>
+      <div id="risingRank" class="space-y-1"></div>
+    </div>
+  </div>
+
+  <!-- 热门话题云（增强版） -->
+  <div class="card-base p-5 mb-6">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="font-bold text-lg flex items-center gap-2">
+        <i class="fas fa-cloud" style="color: var(--accent);"></i> 热门话题
+      </h3>
+      <button class="text-xs btn-ghost px-3 py-1" onclick="refreshDiscoverTopics()">
+        <i class="fas fa-sync-alt mr-1"></i>换一批
+      </button>
+    </div>
+    <div id="discoverTopicCloud" class="flex flex-wrap gap-3 justify-center"></div>
+  </div>
+
+  <!-- 精选护航员（横向滑动） -->
+  <div class="mb-6">
+    <div class="flex items-center justify-between mb-3">
+      <h3 class="font-bold text-lg flex items-center gap-2">
+        <i class="fas fa-shield-halved" style="color: var(--accent);"></i> 精选护航员
+      </h3>
+      <span class="text-xs" style="color: var(--muted);">
+        <span id="escortOnlineCount">0</span> 人在线
+      </span>
+    </div>
+    <div class="flex gap-3 overflow-x-auto pb-2" id="discoverEscortBar" style="scrollbar-width: none;">
+      <!-- 动态渲染 -->
+    </div>
+  </div>
+
+  <!-- 战术视频流（瀑布流） -->
+  <div>
+    <div class="flex items-center justify-between mb-3">
+      <h3 class="font-bold text-lg flex items-center gap-2">
+        <i class="fas fa-play-circle" style="color: var(--accent);"></i> 护航高光时刻
+      </h3>
+      <button class="text-xs btn-ghost px-3 py-1" onclick="refreshDiscoverVideos()">
+        <i class="fas fa-sync-alt mr-1"></i>刷新
+      </button>
+    </div>
+    <div class="masonry" id="discoverVideoGrid"></div>
+    <div id="discoverVideoEmpty" class="text-center py-8 hidden" style="color: var(--muted);">
+      <i class="fas fa-video text-3xl mb-2 opacity-30"></i>
+      <p>暂无护航视频</p>
+    </div>
+  </div>
+</div>
 
        <!-- 关注 Tab -->
   <div id="followingTab" style="display:none">
@@ -2997,125 +3920,109 @@ body {
         <i class="fas fa-map-pin" style="color: white; font-size: 18px;"></i>
       </div>
       <div>
-        <div style="font-weight: 800; font-size: 16px; color: var(--text);">战术点位库</div>
+        <div style="font-weight: 800; font-size: 16px; color: var(--text);">战术图标库</div>
         <div style="font-size: 11px; color: var(--muted); display: flex; align-items: center; gap: 4px;">
-          <span style="display: flex; align-items: center;"><span style="display: inline-block; width: 6px; height: 6px; background: #2ecc71; border-radius: 50%; margin-right: 4px;"></span>点击激活</span>
+          <span style="display: flex; align-items: center;"><span style="display: inline-block; width: 6px; height: 6px; background: #2ecc71; border-radius: 50%; margin-right: 4px;"></span>点击图标激活</span>
           <span>→</span>
           <span><i class="far fa-hand-pointer"></i> 画布放置</span>
         </div>
       </div>
     </div>
-   <div style="display: flex; align-items: center; gap: 10px;">
-    <!-- 新增折叠按钮（放在取消放置之前） -->
-    <button id="togglePointPanelBtn" style="padding: 8px 18px; border-radius: 30px; background: var(--surface); border: 1px solid var(--border); color: var(--text); font-size: 13px; font-weight: 500; transition: all 0.2s;" onclick="toggleTacticalPointPanel()">
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <button id="togglePointPanelBtn" style="padding: 8px 18px; border-radius: 30px; background: var(--surface); border: 1px solid var(--border); color: var(--text); font-size: 13px; font-weight: 500;" onclick="toggleTacticalPointPanel()">
         <i class="fas fa-chevron-up" id="panelToggleIcon"></i>
         <span>收起</span>
-    </button>
-    <button id="cancelPlaceModePanelBtn" style="display: none; ..." onclick="cancelPlaceMode()">
+      </button>
+      <button id="cancelPlaceModePanelBtn" style="display: none; padding: 8px 18px; border-radius: 30px; background: var(--surface); border: 1px solid var(--border); color: var(--text); font-size: 13px;" onclick="cancelPlaceMode()">
         <i class="fas fa-times mr-2"></i>取消放置
-    </button>
-    <span style="font-size: 11px; color: var(--muted);"><i class="fas fa-trash-alt mr-1"></i>右键删除</span>
-</div>
+      </button>
+      <span style="font-size: 11px; color: var(--muted);"><i class="fas fa-trash-alt mr-1"></i>右键删除</span>
+    </div>
   </div>
   
-  <!-- 三段内容：横向滚动（移动端）/ 自动换行（PC） -->
-  <div id="tacticalPointContent" style="display: flex; flex-wrap: wrap; gap: 24px; max-height: 500px; overflow: hidden; transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1), padding 0.25s ease, margin 0.25s ease;">
+  <!-- 图标选择区（三列） -->
+  <div id="tacticalPointContent" style="display: flex; flex-wrap: wrap; gap: 24px; max-height: 500px; overflow: hidden; transition: max-height 0.35s;">
     
-    <!-- 段1：进攻 -->
+    <!-- 进攻类 -->
     <div style="flex: 1; min-width: 200px;">
       <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
         <div style="width: 5px; height: 20px; background: #e74c3c; border-radius: 10px;"></div>
         <span style="font-weight: 700; color: #e74c3c; font-size: 15px;">⚡ 进攻</span>
       </div>
       <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;">
-        <button class="tactical-point-btn-v3" data-type="attack-arrow" style="background: #e74c3c08; border: 1.5px solid #e74c3c25; border-radius: 14px; padding: 10px 0; cursor: pointer; transition: all 0.2s;">
+        <button class="tactical-point-btn-v3" data-type="attack-arrow" onclick="activatePlaceMode('attack-arrow')">
           <i class="fas fa-arrow-right" style="color: #e74c3c; font-size: 24px;"></i>
-          <span style="display: block; font-size: 11px; color: #e74c3c; margin-top: 4px; font-weight: 500;">箭头</span>
+          <span style="display: block; font-size: 11px; color: #e74c3c; margin-top: 4px;">箭头</span>
         </button>
-        <button class="tactical-point-btn-v3" data-type="push" style="background: #e74c3c08; border: 1.5px solid #e74c3c25; border-radius: 14px; padding: 10px 0; cursor: pointer; transition: all 0.2s;">
+        <button class="tactical-point-btn-v3" data-type="push" onclick="activatePlaceMode('push')">
           <i class="fas fa-people-arrows" style="color: #e74c3c; font-size: 24px;"></i>
-          <span style="display: block; font-size: 11px; color: #e74c3c; margin-top: 4px; font-weight: 500;">推进</span>
+          <span style="display: block; font-size: 11px; color: #e74c3c; margin-top: 4px;">推进</span>
         </button>
-        <button class="tactical-point-btn-v3" data-type="breach" style="background: #e74c3c08; border: 1.5px solid #e74c3c25; border-radius: 14px; padding: 10px 0; cursor: pointer; transition: all 0.2s;">
+        <button class="tactical-point-btn-v3" data-type="breach" onclick="activatePlaceMode('breach')">
           <i class="fas fa-door-open" style="color: #e74c3c; font-size: 24px;"></i>
-          <span style="display: block; font-size: 11px; color: #e74c3c; margin-top: 4px; font-weight: 500;">突破</span>
+          <span style="display: block; font-size: 11px; color: #e74c3c; margin-top: 4px;">突破</span>
         </button>
-        <button class="tactical-point-btn-v3" data-type="flank" style="background: #e74c3c08; border: 1.5px solid #e74c3c25; border-radius: 14px; padding: 10px 0; cursor: pointer; transition: all 0.2s;">
+        <button class="tactical-point-btn-v3" data-type="flank" onclick="activatePlaceMode('flank')">
           <i class="fas fa-arrow-trend-up" style="color: #e74c3c; font-size: 24px;"></i>
-          <span style="display: block; font-size: 11px; color: #e74c3c; margin-top: 4px; font-weight: 500;">绕后</span>
+          <span style="display: block; font-size: 11px; color: #e74c3c; margin-top: 4px;">绕后</span>
         </button>
       </div>
     </div>
     
-    <!-- 段2：防守 -->
+    <!-- 防守类 -->
     <div style="flex: 1; min-width: 200px;">
       <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
         <div style="width: 5px; height: 20px; background: #3498db; border-radius: 10px;"></div>
         <span style="font-weight: 700; color: #3498db; font-size: 15px;">🛡️ 防守</span>
       </div>
       <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;">
-        <button class="tactical-point-btn-v3" data-type="defend" style="background: #3498db08; border: 1.5px solid #3498db25; border-radius: 14px; padding: 10px 0; cursor: pointer; transition: all 0.2s;">
+        <button class="tactical-point-btn-v3" data-type="defend" onclick="activatePlaceMode('defend')">
           <i class="fas fa-shield-halved" style="color: #3498db; font-size: 24px;"></i>
-          <span style="display: block; font-size: 11px; color: #3498db; margin-top: 4px; font-weight: 500;">防守</span>
+          <span style="display: block; font-size: 11px; color: #3498db; margin-top: 4px;">防守</span>
         </button>
-        <button class="tactical-point-btn-v3" data-type="hold" style="background: #3498db08; border: 1.5px solid #3498db25; border-radius: 14px; padding: 10px 0; cursor: pointer; transition: all 0.2s;">
+        <button class="tactical-point-btn-v3" data-type="hold" onclick="activatePlaceMode('hold')">
           <i class="fas fa-hand" style="color: #3498db; font-size: 24px;"></i>
-          <span style="display: block; font-size: 11px; color: #3498db; margin-top: 4px; font-weight: 500;">架点</span>
+          <span style="display: block; font-size: 11px; color: #3498db; margin-top: 4px;">架点</span>
         </button>
-        <button class="tactical-point-btn-v3" data-type="cover" style="background: #3498db08; border: 1.5px solid #3498db25; border-radius: 14px; padding: 10px 0; cursor: pointer; transition: all 0.2s;">
+        <button class="tactical-point-btn-v3" data-type="cover" onclick="activatePlaceMode('cover')">
           <i class="fas fa-box" style="color: #3498db; font-size: 24px;"></i>
-          <span style="display: block; font-size: 11px; color: #3498db; margin-top: 4px; font-weight: 500;">掩体</span>
+          <span style="display: block; font-size: 11px; color: #3498db; margin-top: 4px;">掩体</span>
         </button>
-        <button class="tactical-point-btn-v3" data-type="watch" style="background: #3498db08; border: 1.5px solid #3498db25; border-radius: 14px; padding: 10px 0; cursor: pointer; transition: all 0.2s;">
+        <button class="tactical-point-btn-v3" data-type="watch" onclick="activatePlaceMode('watch')">
           <i class="fas fa-eye" style="color: #3498db; font-size: 24px;"></i>
-          <span style="display: block; font-size: 11px; color: #3498db; margin-top: 4px; font-weight: 500;">观察</span>
+          <span style="display: block; font-size: 11px; color: #3498db; margin-top: 4px;">观察</span>
         </button>
       </div>
     </div>
     
-    <!-- 段3：战术/标记 -->
+    <!-- 特殊标记类 -->
     <div style="flex: 2; min-width: 280px;">
       <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
         <div style="width: 5px; height: 20px; background: #f1c40f; border-radius: 10px;"></div>
-        <span style="font-weight: 700; color: #f1c40f; font-size: 15px;">🎯 战术/标记</span>
+        <span style="font-weight: 700; color: #f1c40f; font-size: 15px;">🎯 标记</span>
       </div>
       <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;">
-        <button class="tactical-point-btn-v3" data-type="bomb" style="background: #f1c40f08; border: 1.5px solid #f1c40f25; border-radius: 14px; padding: 10px 0; cursor: pointer; transition: all 0.2s;">
+        <button class="tactical-point-btn-v3" data-type="bomb" onclick="activatePlaceMode('bomb')">
           <i class="fas fa-bomb" style="color: #f1c40f; font-size: 24px;"></i>
-          <span style="display: block; font-size: 11px; color: #f1c40f; margin-top: 4px; font-weight: 500;">爆破</span>
+          <span style="display: block; font-size: 11px; color: #f1c40f; margin-top: 4px;">爆破</span>
         </button>
-        <button class="tactical-point-btn-v3" data-type="sniper" style="background: #9b59b608; border: 1.5px solid #9b59b625; border-radius: 14px; padding: 10px 0; cursor: pointer; transition: all 0.2s;">
+        <button class="tactical-point-btn-v3" data-type="sniper" onclick="activatePlaceMode('sniper')">
           <i class="fas fa-crosshairs" style="color: #9b59b6; font-size: 24px;"></i>
-          <span style="display: block; font-size: 11px; color: #9b59b6; margin-top: 4px; font-weight: 500;">狙击</span>
+          <span style="display: block; font-size: 11px; color: #9b59b6; margin-top: 4px;">狙击</span>
         </button>
-        <button class="tactical-point-btn-v3" data-type="smoke" style="background: #7f8c8d08; border: 1.5px solid #7f8c8d25; border-radius: 14px; padding: 10px 0; cursor: pointer; transition: all 0.2s;">
-          <i class="fas fa-smog" style="color: #7f8c8d; font-size: 24px;"></i>
-          <span style="display: block; font-size: 11px; color: #7f8c8d; margin-top: 4px; font-weight: 500;">烟雾</span>
-        </button>
-        <button class="tactical-point-btn-v3" data-type="flash" style="background: #f39c1208; border: 1.5px solid #f39c1225; border-radius: 14px; padding: 10px 0; cursor: pointer; transition: all 0.2s;">
-          <i class="fas fa-sun" style="color: #f39c12; font-size: 24px;"></i>
-          <span style="display: block; font-size: 11px; color: #f39c12; margin-top: 4px; font-weight: 500;">闪光</span>
-        </button>
-        <button class="tactical-point-btn-v3" data-type="danger" style="background: #e67e2208; border: 1.5px solid #e67e2225; border-radius: 14px; padding: 10px 0; cursor: pointer; transition: all 0.2s;">
+        <button class="tactical-point-btn-v3" data-type="danger" onclick="activatePlaceMode('danger')">
           <i class="fas fa-exclamation-triangle" style="color: #e67e22; font-size: 24px;"></i>
-          <span style="display: block; font-size: 11px; color: #e67e22; margin-top: 4px; font-weight: 500;">危险</span>
+          <span style="display: block; font-size: 11px; color: #e67e22; margin-top: 4px;">危险</span>
         </button>
-        <button class="tactical-point-btn-v3" data-type="enemy" style="background: #c0392b08; border: 1.5px solid #c0392b25; border-radius: 14px; padding: 10px 0; cursor: pointer; transition: all 0.2s;">
-          <i class="fas fa-skull" style="color: #c0392b; font-size: 24px;"></i>
-          <span style="display: block; font-size: 11px; color: #c0392b; margin-top: 4px; font-weight: 500;">敌人</span>
-        </button>
-        <button class="tactical-point-btn-v3" data-type="loot" style="background: #27ae6008; border: 1.5px solid #27ae6025; border-radius: 14px; padding: 10px 0; cursor: pointer; transition: all 0.2s;">
+        <button class="tactical-point-btn-v3" data-type="loot" onclick="activatePlaceMode('loot')">
           <i class="fas fa-cube" style="color: #27ae60; font-size: 24px;"></i>
-          <span style="display: block; font-size: 11px; color: #27ae60; margin-top: 4px; font-weight: 500;">物资</span>
-        </button>
-        <button class="tactical-point-btn-v3" data-type="question" style="background: #8e44ad08; border: 1.5px solid #8e44ad25; border-radius: 14px; padding: 10px 0; cursor: pointer; transition: all 0.2s;">
-          <i class="fas fa-question" style="color: #8e44ad; font-size: 24px;"></i>
-          <span style="display: block; font-size: 11px; color: #8e44ad; margin-top: 4px; font-weight: 500;">未知</span>
+          <span style="display: block; font-size: 11px; color: #27ae60; margin-top: 4px;">物资</span>
         </button>
       </div>
     </div>
   </div>
 </div>
+
   <div class="card-base p-3" style="touch-action: none;">
 <input type="file" id="tacticalBgInput" accept="image/*" style="display:none;">
     <canvas id="tacticalCanvas" width="800" height="500" style="width:100%; height:auto; background: #1a1a1a; border-radius: 16px; cursor: crosshair;"></canvas>
@@ -3125,6 +4032,12 @@ body {
     <button class="tactical-tool-btn" data-tool="arrow"><i class="fas fa-arrow-right"></i> 箭头</button>
     <button class="tactical-tool-btn" data-tool="text"><i class="fas fa-font"></i> 文字</button>
     <button class="tactical-tool-btn" data-tool="erase"><i class="fas fa-eraser"></i> 橡皮</button><button class="tactical-tool-btn" onclick="uploadTacticalBackground()"><i class="fas fa-upload"></i> 上传底图</button>
+
+<button class="tactical-tool-btn" onclick="saveBlueprint()"><i class="fas fa-save"></i> 保存蓝图</button>
+<button class="tactical-tool-btn" onclick="loadBlueprint()"><i class="fas fa-folder-open"></i> 加载蓝图</button>
+
+<button class="tactical-tool-btn" data-tool="coordinate" id="coordinateModeBtn" onclick="toggleCoordinateMode()"><i class="fas fa-map-pin"></i> 坐标</button>
+
 
 <input type="file" id="tacticalBgInput" accept="image/*" style="display:none">
     <input type="color" id="tacticalColor" value="#FF6B35" class="w-10 h-10 rounded-full border-0 p-1 cursor-pointer">
@@ -3448,20 +4361,21 @@ body {
       <input type="text" placeholder="标题（必填）" id="pubTitle" class="w-full">
       <textarea placeholder="内容描述..." id="pubDesc" class="w-full" rows="3"></textarea>
       <div class="flex gap-2">
-        <select id="pubType" class="flex-1" onchange="onTypeChange()">
-          <option value="normal">图文帖</option>
-          <option value="vote">投票帖</option>
-          <option value="qa">问答帖</option>
-        </select>
-        <select id="pubOpClass" class="flex-1">
-          <option value="">选择兵种</option>
-          <option value="突击">突击</option>
-          <option value="工程">工程</option>
-          <option value="侦察">侦察</option>
-          <option value="支援">支援</option>
-          <option value="全能">全能</option>
-        </select>
-      </div>
+  <select id="pubType" class="flex-1" onchange="onTypeChange()">
+    <option value="normal">图文帖</option>
+    <option value="vote">投票帖</option>
+    <option value="qa">问答帖</option>
+    <option value="story">📱 动态</option>
+  </select>
+  <select id="pubOpClass" class="flex-1">
+    <option value="">选择兵种</option>
+    <option value="突击">突击</option>
+    <option value="工程">工程</option>
+    <option value="侦察">侦察</option>
+    <option value="支援">支援</option>
+    <option value="全能">全能</option>
+  </select>
+</div>
       <!-- 投票选项 -->
       <div id="voteOptionsArea" style="display:none">
         <label class="text-sm font-bold block mb-1">投票选项</label>
@@ -3470,6 +4384,21 @@ body {
       </div>
       <div>
         <label class="text-sm font-bold block mb-1">话题标签（逗号分隔）</label>
+      <!-- 战术分享附件 -->
+      <div>
+        <label class="text-sm font-bold block mb-1">📌 战术分享（可选）</label>
+        <div class="flex gap-2">
+          <button type="button" class="btn-ghost text-sm px-4 py-2 flex items-center gap-1" id="attachCoordinateBtn" onclick="attachLastCoordinate()">
+            <i class="fas fa-map-pin"></i> 附上坐标
+          </button>
+          <button type="button" class="btn-ghost text-sm px-4 py-2 flex items-center gap-1" id="attachBlueprintBtn" onclick="attachLastBlueprint()">
+            <i class="fas fa-save"></i> 附上蓝图
+          </button>
+          <span class="text-xs flex items-center ml-auto" style="color: var(--muted);" id="attachPreview"></span>
+        </div>
+        <input type="hidden" id="pubTacticalCode" value="">
+        <input type="hidden" id="pubTacticalType" value="">
+      </div>
         <input type="text" placeholder="例：战术分享,新手攻略" id="pubTags" class="w-full">
       </div>
       <div>
@@ -3800,6 +4729,19 @@ body {
         <div id="adminBannerList" class="mt-2 space-y-2"></div>
       </div>
       <div>
+
+      <div>
+        <h3 class="font-bold mb-2">首页轮播管理</h3>
+        <div class="space-y-2">
+          <input type="text" placeholder="引导标题（如：热门推荐）" id="homeBannerGuideTitle" class="w-full" value="热门推荐">
+<input type="file" id="homeBannerFile" accept="image/*" class="w-full text-sm">
+          <input type="text" placeholder="标题（可选）" id="homeBannerTitle" class="w-full">
+          <input type="text" placeholder="描述（可选）" id="homeBannerDesc" class="w-full">
+          <input type="text" placeholder="跳转链接（可选）" id="homeBannerLink" class="w-full">
+          <button class="btn-warm text-sm w-full" onclick="uploadHomeBanner()">上传轮播图</button>
+        </div>
+        <div id="homeBannerList" class="mt-3 space-y-2 max-h-60 overflow-y-auto"></div>
+      </div>
         <h3 class="font-bold mb-2">修改管理员密码</h3>
         <input type="password" placeholder="新密码" id="newAdminPwd" class="w-full mb-2">
         <button class="btn-warm text-sm" onclick="changeAdminPwd()">修改密码</button>
@@ -4485,6 +5427,48 @@ submitComment = async function() {
 };
 
 console.log('✅ 每日任务功能补丁已加载');
+
+// ==================== 全局通用复制函数（移动端完美兼容） ====================
+function universalCopy(text, successCallback) {
+    if (navigator.vibrate) navigator.vibrate(10);
+    
+    const fallback = () => {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.style.position = 'fixed';
+        textarea.style.top = '0';
+        textarea.style.left = '0';
+        textarea.style.opacity = '0';
+        textarea.style.pointerEvents = 'none';
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        textarea.setSelectionRange(0, 99999);
+        try {
+            const ok = document.execCommand('copy');
+            if (ok) {
+                showToast('✅ 已复制到剪贴板', 'success');
+                if (typeof successCallback === 'function') successCallback();
+            } else {
+                showToast('❌ 复制失败，请手动复制', 'error');
+            }
+        } catch (e) {
+            showToast('❌ 复制失败', 'error');
+        }
+        document.body.removeChild(textarea);
+    };
+    
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => {
+            showToast('✅ 已复制到剪贴板', 'success');
+            if (typeof successCallback === 'function') successCallback();
+        }).catch(fallback);
+    } else {
+        fallback();
+    }
+}
+
+
 // Toast 提示
 function showToast(msg, type = 'info') {
   const t = document.createElement('div');
@@ -5038,126 +6022,106 @@ function openNotifModal() {
   }
   openModal('notifModal');
 }
- function switchTab(tab) {
-  // 防止重复切换同一Tab造成闪烁
-  if (APP.currentTab === tab && tab !== 'profile') return;
+function switchTab(tab) {
+  console.log('🔥 switchTab 被调用，目标：' + tab);
 
-  const oldTabEl = $(APP.currentTab + 'Tab');
-  const newTabEl = $(tab + 'Tab');
-  const toolbox = $('toolboxSection');
-
-  // 优化1：使用 requestAnimationFrame 减少重绘卡顿
-  requestAnimationFrame(() => {
-    // 隐藏所有Tab
-    ['homeTab','discoverTab','followingTab','profileTab','searchTab','escortTab','tacticalTab','budgetLoadoutTab'].forEach(id => {
-      const el = $(id);
-      if (el) el.style.display = 'none';
-    });
-
-    // 显示目标Tab
-    if (newTabEl) {
-      newTabEl.style.display = 'block';
-      newTabEl.style.opacity = '0';
-      requestAnimationFrame(() => {
-        newTabEl.style.transition = 'opacity 0.2s';
-        newTabEl.style.opacity = '1';
-      });
-    }
-
-    // === 工具箱控制：仅在首页显示 ===
-    if (toolbox) {
-      toolbox.style.display = tab === 'home' ? 'block' : 'none';
-    }
-
-    APP.currentTab = tab;
-
-    // 导航高亮（保持原有逻辑）
-    document.querySelectorAll('.top-nav .btn-ghost, .mobile-nav button').forEach(el => {
-      el.classList.remove('active');
-      el.style.color = '';
-      el.style.borderBottom = 'none';
-      el.style.fontWeight = 'normal';
-    });
-    const desktopBtn = $({
-  home: 'navHome', discover: 'navDiscover', following: 'navFollowing', 
-  escort: 'navEscort', budgetLoadout: 'navBudget'  // ← 添加这一项
-}[tab]);
-    if (desktopBtn) {
-      desktopBtn.classList.add('active');
-      desktopBtn.style.color = 'var(--accent)';
-      desktopBtn.style.borderBottom = '2px solid var(--accent)';
-      desktopBtn.style.fontWeight = '700';
-    }
-   const mobileBtn = $({
-  home: 'mobHome', discover: 'mobDiscover', following: 'mobFollowing', 
-  escort: 'mobEscort', budgetLoadout: 'mobBudget'  // ← 添加这一项
-}[tab]);
-    if (mobileBtn) mobileBtn.classList.add('active');
-
-    // 加载各Tab数据
-    if (tab === 'discover') loadRanks();
-    if (tab === 'following') loadFollowingPosts();
-    if (tab === 'home') {
-  bindSquadModalEvents();
-  initSquadRealtime();
-  // === 重置所有筛选条件 ===
-  APP.filters = {
-    type: 'all',
-    op: 'all',
-    sort: 'latest',
-    time: 'all',
-    topic: 'all',
-    keyword: ''
-  };
-  // 清空搜索框
-  if ($('homeSearchInput')) $('homeSearchInput').value = '';
-// 重置所有筛选条件
-APP.filters.type = 'all';
-APP.filters.op = 'all';
-APP.filters.sort = 'latest';
-APP.filters.topic = 'all';
-// 更新筛选栏标签
-if ($('currentSortLabel')) $('currentSortLabel').textContent = '最新';
-// 关闭所有下拉菜单
-document.querySelectorAll('.filter-menu').forEach(m => m.classList.add('hidden'));
-  // 同步更新所有筛选下拉的显示文本
-  if ($('currentTypeLabel')) $('currentTypeLabel').textContent = '全部';
-  if ($('currentOpLabel')) $('currentOpLabel').textContent = '全兵种';
-  if ($('currentSortLabel')) $('currentSortLabel').textContent = '最新';
-  if ($('currentTopicLabel')) $('currentTopicLabel').textContent = '全话题';
-  // 关闭所有可能打开的下拉菜单
-  document.querySelectorAll('.filter-menu').forEach(m => m.classList.add('hidden'));
-  // 重新渲染话题区（换一批）
-  renderToolbox();
-  renderTopicCards();
-  renderTopicCloud();
-  loadOnlineEscorts();
-  loadHotRecommend();
-  setTimeout(() => loadSquads(), 50);
-  // 刷新帖子列表（重置分页）
-  loadPosts(true);
-      
-  // 移动端适配：温和地触发重绘，避免破坏导航栏响应式
-  window.dispatchEvent(new Event('resize'));
-
-  // 确保移动端底部导航栏正确显示且激活状态正确
-  const mobileNav = document.querySelector('.mobile-nav');
-  if (mobileNav && window.innerWidth <= 768) {
-    mobileNav.style.display = 'flex';
-    mobileNav.style.transform = 'translateY(0)';
+  // 1. 防止重复切换同一 Tab
+  if (APP.currentTab === tab && tab !== 'profile') {
+    console.log('⏭️ 已是当前 Tab，跳过');
+    return;
   }
-  
-  
-}
-    if (tab === 'profile') renderProfile();
-    if (tab === 'escort') loadEscortVideos(true);
-    if (tab === 'tactical') initTactical();
-if (tab === 'budgetLoadout') {
-  initBudgetLoadouts();
-  renderBudgetLoadouts();
-}
+
+  // 2. 强制隐藏所有 Tab 容器
+  const allTabs = ['homeTab','discoverTab','followingTab','profileTab','searchTab','escortTab','tacticalTab','budgetLoadoutTab'];
+  allTabs.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.style.display = 'none';
+    } else {
+      console.warn('⚠️ 找不到元素：' + id);
+    }
   });
+
+  // 3. 显示目标 Tab
+  const targetEl = document.getElementById(tab + 'Tab');
+  if (!targetEl) {
+    console.error('❌ 目标 Tab 不存在：' + tab + 'Tab');
+    return;
+  }
+  targetEl.style.display = 'block';
+  console.log('✅ 已显示：' + tab + 'Tab');
+
+  // 4. 工具箱仅在首页显示
+  const toolbox = document.getElementById('toolboxSection');
+  if (toolbox) {
+    toolbox.style.display = tab === 'home' ? 'block' : 'none';
+  }
+
+  // 5. 更新当前 Tab 状态
+  APP.currentTab = tab;
+
+  // 6. 导航高亮处理
+  document.querySelectorAll('.top-nav .btn-ghost, .mobile-nav button').forEach(el => {
+    el.classList.remove('active');
+    el.style.color = '';
+    el.style.borderBottom = 'none';
+    el.style.fontWeight = 'normal';
+  });
+
+  const navMap = { home: 'navHome', discover: 'navDiscover', following: 'navFollowing', escort: 'navEscort', budgetLoadout: 'navBudget' };
+  const desktopBtn = document.getElementById(navMap[tab]);
+  if (desktopBtn) {
+    desktopBtn.classList.add('active');
+    desktopBtn.style.color = 'var(--accent)';
+    desktopBtn.style.borderBottom = '2px solid var(--accent)';
+    desktopBtn.style.fontWeight = '700';
+  }
+
+  const mobMap = { home: 'mobHome', discover: 'mobDiscover', following: 'mobFollowing', escort: 'mobEscort', budgetLoadout: 'mobBudget' };
+  const mobileBtn = document.getElementById(mobMap[tab]);
+  if (mobileBtn) mobileBtn.classList.add('active');
+
+  // 7. 根据 Tab 加载对应数据
+  if (tab === 'home') {
+    bindSquadModalEvents();
+    initSquadRealtime();
+    APP.filters = { type: 'all', op: 'all', sort: 'latest', time: 'all', topic: 'all', keyword: '' };
+    const homeSearch = document.getElementById('homeSearchInput');
+    if (homeSearch) homeSearch.value = '';
+    document.querySelectorAll('.filter-menu').forEach(m => m.classList.add('hidden'));
+    loadHomeBanners();
+    renderToolbox();
+    renderTopicCards();
+    loadOnlineEscorts();
+    loadHotRecommend();
+    setTimeout(() => loadSquads(), 50);
+    loadPosts(true);
+  } else if (tab === 'discover') {
+    loadRanks();
+    loadRisingRank();
+    loadDiscoverBanners();
+    loadDiscoverStats();
+    loadDiscoverTopics();
+    loadDiscoverEscorts();
+    loadDiscoverVideos();
+  } else if (tab === 'following') {
+    loadFollowingPosts();
+  } else if (tab === 'profile') {
+    renderProfile();
+  } else if (tab === 'escort') {
+    loadEscortVideos(true);
+  } else if (tab === 'tactical') {
+    initTactical();
+  } else if (tab === 'budgetLoadout') {
+    initBudgetLoadouts();
+    renderBudgetLoadouts();
+  }
+
+  // 8. 触发 resize 事件，确保移动端适配
+  window.dispatchEvent(new Event('resize'));
+  console.log('🎉 switchTab 执行完毕');
 }
+
 
 // 在线护航员横条
 async function loadOnlineEscorts() {
@@ -5234,14 +6198,164 @@ async function loadOnlineEscorts() {
 }
 async function loadHotRecommend() {
   const list = $('hotRecommendList');
-
- if (!list) return;
+  if (!list) return;
+  
   list.innerHTML = '<div class="col-span-full text-center py-4" style="color:var(--muted)"><i class="fas fa-spinner fa-pulse mr-2"></i>加载推荐...</div>';
-  const { data } = await sb.from('posts').select('id, title, upvotes, comments_count, downloads, profiles(username)').neq('post_type', 'story').order('hot_score', { ascending: false }).limit(20);
-  if (!data || data.length === 0) { list.innerHTML = '<div class="col-span-full text-center py-4" style="color:var(--muted)">暂无推荐内容</div>'; return; }
-  const shuffled = data.sort(() => Math.random() - 0.5).slice(0, 5);
-  list.innerHTML = shuffled.map(p => `<div class="hot-recommend-item card-base p-4" onclick="openComments('${p.id}')"><div class="flex items-start gap-3"><div class="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center"><i class="fas fa-fire text-white"></i></div><div class="flex-1 min-w-0"><div class="text-sm font-bold truncate">${p.title}</div><div class="flex items-center gap-3 mt-2 text-xs" style="color:var(--muted)"><span><i class="fas fa-user mr-1"></i>${p.profiles?.username || '干员'}</span><span><i class="fas fa-thumbs-up mr-1"></i>${p.upvotes || 0}</span><span><i class="fas fa-comment mr-1"></i>${p.comments_count || 0}</span></div></div></div></div>`).join('');
+  
+  // ========== 静态预设数据（可以按需修改） ==========
+  const staticRecommends = [
+    {
+      id: 'static1',
+      title: '【新手必看】三角洲行动入坑指南',
+      upvotes: 128,
+      comments_count: 32,
+      profiles: { username: '三角洲教官' }
+    },
+    {
+      id: 'static2',
+      title: 'S9赛季武器强度排行（实时更新）',
+      upvotes: 256,
+      comments_count: 47,
+      profiles: { username: '枪械大师' }
+    },
+    {
+      id: 'static3',
+      title: '零号大坝跑刀路线图 · 保姆级教学',
+      upvotes: 89,
+      comments_count: 21,
+      profiles: { username: '跑刀老六' }
+    }
+  ];
+  
+  // 从数据库获取真实热门帖子
+  const { data } = await sb.from('posts')
+    .select('id, title, upvotes, comments_count, downloads, profiles(username)')
+    .neq('post_type', 'story')
+    .order('hot_score', { ascending: false })
+    .limit(20);
+  
+  // 处理真实数据
+  let realItems = [];
+  if (data && data.length > 0) {
+    // 随机打乱并取前3~5条
+    const shuffled = data.sort(() => Math.random() - 0.5).slice(0, 4);
+    realItems = shuffled.map(p => ({
+      id: p.id,
+      title: p.title,
+      upvotes: p.upvotes || 0,
+      comments_count: p.comments_count || 0,
+      profiles: { username: p.profiles?.username || '干员' }
+    }));
+  }
+  
+  // 合并真实数据和静态数据（静态数据放在后面，也可以交叉排列）
+  const combined = [...realItems, ...staticRecommends];
+  
+  if (combined.length === 0) {
+    list.innerHTML = '<div class="col-span-full text-center py-4" style="color:var(--muted)">暂无推荐内容</div>';
+    return;
+  }
+  
+  // 渲染合并后的推荐卡片
+  list.innerHTML = combined.map(item => `
+    <div class="hot-recommend-item card-base p-4" onclick="${item.id.startsWith('static') ? `showToast('这是静态推荐文章', 'info')` : `openComments('${item.id}')`}">
+      <div class="flex items-start gap-3">
+        <div class="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center">
+          <i class="fas fa-fire text-white"></i>
+        </div>
+        <div class="flex-1 min-w-0">
+          <div class="text-sm font-bold truncate">${item.title}</div>
+          <div class="flex items-center gap-3 mt-2 text-xs" style="color:var(--muted)">
+            <span><i class="fas fa-user mr-1"></i>${item.profiles?.username || '干员'}</span>
+            <span><i class="fas fa-thumbs-up mr-1"></i>${item.upvotes || 0}</span>
+            <span><i class="fas fa-comment mr-1"></i>${item.comments_count || 0}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  `).join('');
 }
+
+async function loadCommunityTacticalStream() {
+  const container = document.getElementById('communityStreamList');
+  if (!container) return;
+  
+  container.innerHTML = '<div class="text-center py-4 text-xs w-full" style="color: var(--muted);"><i class="fas fa-spinner fa-pulse mr-2"></i>加载战术流...</div>';
+  
+  // 查询带有战术附件的帖子（需要数据库有 tactical_attachment 字段）
+  const { data, error } = await sb
+    .from('posts')
+    .select('id, title, user_id, tactical_attachment, profiles(username, avatar_url)')
+    .not('tactical_attachment', 'is', null)
+    .order('created_at', { ascending: false })
+    .limit(10);
+  
+  if (error) {
+    console.error('加载战术流失败:', error);
+    container.innerHTML = '<div class="text-center py-4 text-xs w-full" style="color: var(--muted);">加载失败，请刷新</div>';
+    return;
+  }
+  
+  if (!data || data.length === 0) {
+    container.innerHTML = '<div class="text-center py-4 text-xs w-full" style="color: var(--muted);">暂无战术分享，快去战术板创作吧！</div>';
+    return;
+  }
+  
+  container.innerHTML = data.map(post => {
+    const attach = post.tactical_attachment || {};
+    const user = post.profiles || {};
+    const isCoord = attach.type === 'coordinate';
+    const code = attach.code || '';
+    return `
+      <div class="stream-card flex-shrink-0" style="width: 180px; background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 12px; cursor: pointer;" onclick="handleTacticalAttachment('${code}', '${attach.type}')">
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+          <img src="${user.avatar_url || dicebearUrl(user.username || 'default')}" style="width: 24px; height: 24px; border-radius: 50%; object-fit: cover;">
+          <span class="text-xs font-medium truncate">${user.username || '干员'}</span>
+        </div>
+        <div class="text-xs mb-2" style="color: var(--accent);">
+          <i class="fas fa-${isCoord ? 'map-pin' : 'save'} mr-1"></i>
+          ${isCoord ? code : '战术蓝图'}
+        </div>
+        <div class="text-xs truncate" style="color: var(--muted);">${post.title || '分享了一个战术'}</div>
+        <button class="btn-ghost text-xs w-full mt-2 py-1" onclick="event.stopPropagation(); handleTacticalAttachment('${code}', '${attach.type}')">
+          <i class="fas fa-${isCoord ? 'map-pin' : 'download'} mr-1"></i>${isCoord ? '查看坐标' : '加载蓝图'}
+        </button>
+      </div>
+    `;
+  }).join('');
+  
+  // 为电脑端添加横向拖拽滚动
+  if (typeof enableHorizontalDragScroll === 'function') {
+    enableHorizontalDragScroll(container);
+  }
+}
+
+// 处理点击战术附件
+window.handleTacticalAttachment = function(code, type) {
+  if (!code) {
+    showToast('无效的战术码', 'error');
+    return;
+  }
+  if (type === 'coordinate') {
+    switchTab('tactical');
+    showToast(`在战术板上查找坐标: ${code}`, 'info');
+    // 可以扩展：自动在地图上标记该坐标
+  } else if (type === 'blueprint') {
+    switchTab('tactical');
+    setTimeout(() => {
+      // 模拟粘贴并加载蓝图
+      const input = document.getElementById('blueprintInput');
+      if (input) {
+        input.value = code;
+        if (typeof window.applyBlueprint === 'function') {
+          window.applyBlueprint();
+        }
+      } else {
+        showToast('请手动粘贴蓝图码加载', 'info');
+      }
+    }, 300);
+  }
+};
 
 function openProfile() {
   if (!APP.user) {
@@ -5842,7 +6956,8 @@ function createPostCard(post, idx, isTop = false) {
 }).join('');
 
   const topBadge = isTop ? `<span class="badge badge-gold text-xs"><i class="fas fa-trophy mr-1"></i>今日榜首</span>` : '';
-  const typeLabel = { vote:'投票', qa:'问答', normal:'' }[post.post_type] || '';
+ const typeLabelMap = { vote:'投票', qa:'问答', story:'📱 动态', normal:'' };
+const typeLabel = typeLabelMap[post.post_type] || '';
   const opClass = post.operator_class || '全能';
 const opColorMap = {
   '突击': '#e05a2f',
@@ -6001,9 +7116,25 @@ document.addEventListener('click', () => qsa('.post-menu').forEach(m => m.style.
 
 // ==================== 发布帖子 ====================
 function onTypeChange() {
-  $('voteOptionsArea').style.display = $('pubType').value === 'vote' ? 'block' : 'none';
-  if ($('pubType').value === 'vote' && $('voteOptionsList').children.length === 0) {
+  const type = $('pubType').value;
+  $('voteOptionsArea').style.display = type === 'vote' ? 'block' : 'none';
+  if (type === 'vote' && $('voteOptionsList').children.length === 0) {
     addVoteOption(); addVoteOption();
+  }
+  
+  // 动态类型提示（可选）
+  const hintEl = $('pubTypeHint');
+  if (type === 'story') {
+    if (!hintEl) {
+      const hint = document.createElement('p');
+      hint.id = 'pubTypeHint';
+      hint.className = 'text-xs mt-1';
+      hint.style.color = 'var(--accent)';
+      hint.innerHTML = '<i class="fas fa-clock mr-1"></i>动态将在24小时后自动消失';
+      $('pubType').parentNode.appendChild(hint);
+    }
+  } else {
+    if (hintEl) hintEl.remove();
   }
 }
 function addVoteOption() {
@@ -6016,6 +7147,12 @@ function addVoteOption() {
 // 媒体预览
 // 首页搜索框监听回车
 $('homeSearchInput')?.addEventListener('keypress', function(e) {
+// 万象猜输入框支持回车
+$('quizAnswerInput')?.addEventListener('keypress', function(e) {
+  if (e.key === 'Enter') {
+    submitQuizAnswer();
+  }
+});
   if (e.key === 'Enter') {
     performHomeSearch();
   }
@@ -6031,6 +7168,35 @@ $('pubMedia')?.addEventListener('change', function() {
     }
   });
 });
+
+// 存储最近生成的坐标和蓝图码（在战术板生成时自动更新）
+window.lastTacticalCoord = '';
+window.lastTacticalBlueprint = '';
+
+// 附上最近生成的坐标
+function attachLastCoordinate() {
+  if (!window.lastTacticalCoord) {
+    showToast('请先在战术板生成一个战术坐标', 'warning');
+    return;
+  }
+  document.getElementById('pubTacticalCode').value = window.lastTacticalCoord;
+  document.getElementById('pubTacticalType').value = 'coordinate';
+  document.getElementById('attachPreview').innerHTML = `<i class="fas fa-map-pin"></i> ${window.lastTacticalCoord}`;
+  showToast('坐标已附加', 'success');
+}
+
+// 附上最近生成的蓝图码
+function attachLastBlueprint() {
+  if (!window.lastTacticalBlueprint) {
+    showToast('请先在战术板保存一个战术蓝图', 'warning');
+    return;
+  }
+  document.getElementById('pubTacticalCode').value = window.lastTacticalBlueprint;
+  document.getElementById('pubTacticalType').value = 'blueprint';
+  document.getElementById('attachPreview').innerHTML = `<i class="fas fa-save"></i> 蓝图已附加`;
+  showToast('蓝图已附加', 'success');
+}
+
 // 上传媒体文件
 async function publishPost() {
   if (!APP.user) { showToast('请先登录'); openAuthModal(); return; }
@@ -6064,17 +7230,28 @@ async function publishPost() {
 
   const tags = $('pubTags').value.split(/[,，]/).map(t => t.trim()).filter(Boolean);
 
-  const postData = {
-    user_id: APP.user.id, 
-    title: title,
-    description: $('pubDesc').value.trim(),
-    media_urls: mediaUrls, 
-    post_type: $('pubType').value,
-    operator_class: $('pubOpClass').value || null,
-    tags: tags,
-    vote_options: voteOptions
-  };
+  const postType = $('pubType').value;
+const postData = {
+  user_id: APP.user.id, 
+  title: title,
+  description: $('pubDesc').value.trim(),
+  media_urls: mediaUrls, 
+  post_type: postType,
+  operator_class: $('pubOpClass').value || null,
+  tags: tags,
+  vote_options: voteOptions
+};
 
+// 如果是动态类型，设置过期时间为24小时后
+if (postType === 'story') {
+  const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+  postData.story_expires_at = expiresAt;
+}
+  const tacticalCode = $('pubTacticalCode').value.trim();
+  const tacticalType = $('pubTacticalType').value;
+  if (tacticalCode) {
+    postData.tactical_attachment = { type: tacticalType, code: tacticalCode };
+  }
   const { error } = await sb.from('posts').insert(postData);
   if (error) { showToast('发布失败: ' + error.message); btn.disabled = false; return; }
 
@@ -7073,18 +8250,31 @@ function renderBannerAds(banners) {
 
 // ==================== Story 限时动态 ====================
 async function loadStories() {
+  const bar = $('storiesBar');
+  if (!bar) return; // 如果元素不存在，直接返回
+  
   const now = new Date().toISOString();
   await sb.from('posts').delete().eq('post_type', 'story').lt('story_expires_at', now);
   
-  const { data } = await sb.from('posts').select('*, profiles(username, avatar_url)').eq('post_type', 'story').gt('story_expires_at', now).order('created_at', { ascending: false }).limit(5);
-  const bar = $('storiesBar');
+  const { data } = await sb.from('posts')
+    .select('*, profiles(username, avatar_url)')
+    .eq('post_type', 'story')
+    .gt('story_expires_at', now)
+    .order('created_at', { ascending: false })
+    .limit(5);
+  
+  // 保存添加按钮（第一个子元素）
   const addBtn = bar.firstElementChild;
   bar.innerHTML = '';
-  bar.appendChild(addBtn);
-  (data||[]).forEach(s => {
+  if (addBtn) bar.appendChild(addBtn);
+  
+  if (!data || data.length === 0) return;
+  
+  data.forEach(s => {
     const created = new Date(s.created_at);
     const diffMin = (new Date() - created) / 60000;
     if (diffMin > 3) return;
+    
     const div = document.createElement('div');
     div.className = 'flex flex-col items-center gap-1 cursor-pointer flex-shrink-0';
     div.innerHTML = `
@@ -7095,7 +8285,6 @@ async function loadStories() {
     bar.appendChild(div);
   });
 }
-
 function viewStory(story) {
   const overlay = document.createElement('div');
   overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.9);z-index:2000;display:flex;align-items:center;justify-content:center;flex-direction:column';
@@ -7140,12 +8329,8 @@ async function publishStory() {
   APP.profile.posts_count = newPostCount;
   checkAchievement('first_post', newPostCount >= 1);
   checkAchievement('50_posts', newPostCount >= 50);
+}
 
-  showToast('动态已发布');
-  closeModal('storyPublishModal');
-  $('storyText').value = ''; $('storyMedia').value = '';
-  await loadStories();
-}// ==================== Story 限时动态结束 ====================
 
 // ==================== 个人资料 ====================
 function renderProfile() {
@@ -10070,6 +11255,23 @@ function toggleSquadSection() {
   icon.classList.toggle('rotated');
 }
 
+// 切换热门话题折叠
+function toggleTopicSection() {
+  const body = document.getElementById('topicSectionBody');
+  const icon = document.getElementById('topicSectionIcon');
+  if (!body || !icon) return;
+  body.classList.toggle('expanded');
+  icon.classList.toggle('rotated');
+}
+
+// 切换热门推荐折叠
+function toggleRecommendSection() {
+  const body = document.getElementById('recommendSectionBody');
+  const icon = document.getElementById('recommendSectionIcon');
+  if (!body || !icon) return;
+  body.classList.toggle('expanded');
+  icon.classList.toggle('rotated');
+}
 // 根据当前数据更新折叠栏上的队伍数量徽章
 function updateSquadCountBadge(count) {
   const badge = document.getElementById('squadCountBadge');
@@ -10227,11 +11429,19 @@ let tacStartX, tacStartY;
 let tacDrawingData = []; // 保存绘图数据
 let tacticalBgImage = null; // 保存底图 Image 对象
 
+
+
 function initTactical() {
+let coordinateMode = false;      // 是否处于坐标模式
+let lastCoord = '';             // 存储最后生成的坐标
+let canvasContainer = null;     // 画布容器
   const canvas = document.getElementById('tacticalCanvas');
   // 存储放置的点位元素
   let placedPoints = [];
 let placeMode = false;
+  let textObjects = [];           // 文字对象数组
+  let freeCtx = null;            // 自由绘制层上下文
+  let freeCanvas = null;         // 自由绘制层画布
   let currentPointType = null;
   if (!canvas) {
     console.warn('战术板 Canvas 未找到，100ms 后重试...');
@@ -10242,6 +11452,9 @@ let placeMode = false;
     }
     return;
   }
+
+
+
   window._tacticalRetryCount = 0;
   
   tacCanvas = canvas;
@@ -10255,13 +11468,13 @@ let placeMode = false;
   bgCanvas.height = 500;
   const bgCtx = bgCanvas.getContext('2d');
   
-  const freeCanvas = document.createElement('canvas');
+  freeCanvas = document.createElement('canvas');
   freeCanvas.width = 800;
   freeCanvas.height = 500;
-  const freeCtx = freeCanvas.getContext('2d');
+  freeCtx = freeCanvas.getContext('2d');
   
   // 存储文字对象
-  let textObjects = [];
+  textObjects = [];
   let selectedTextIndex = -1;
   
   // 变换状态
@@ -10434,7 +11647,36 @@ let placeMode = false;
     };
   };
   
+
   const start = (e) => {
+// 坐标模式处理
+if (coordinateMode) {
+    e.preventDefault();
+    const pos = getXY(e);
+    const gridX = Math.floor((pos.x / 800) * 100);
+    const gridY = Math.floor((pos.y / 500) * 100);
+    const mapCode = 'ZERO'; // 可后续改为动态选择
+    lastCoord = `[${mapCode}-${gridX.toString().padStart(2,'0')}-${gridY.toString().padStart(2,'0')}]`;
+    
+    // 显示坐标浮层
+    showCoordinatePopup(pos.x, pos.y, lastCoord);
+    
+    // 退出坐标模式
+    coordinateMode = false;
+    tacCanvas.style.cursor = 'crosshair';
+    document.getElementById('coordinateModeBtn')?.classList.remove('active');
+    return; // 不执行后续绘制逻辑
+}
+
+    // 图标放置模式处理
+    if (placeMode && currentPointType) {
+      e.preventDefault();
+      const pos = getXY(e);
+      addPlacedPoint(currentPointType, pos.x, pos.y);
+      cancelPlaceMode();
+      return;
+    }
+
     // 放置模式处理
     if (placeMode && currentPointType) {
       const pos = getXY(e);
@@ -10442,6 +11684,16 @@ let placeMode = false;
       cancelPlaceMode();
       return;
     }
+
+
+    // 每日猜图模式
+    if (window.puzzleGuessMode) {
+      e.preventDefault();
+      const pos = getXY(e);
+      checkPuzzleAnswer(pos.x, pos.y);
+      return;
+    }
+
     e.preventDefault();
     const pos = getXY(e);
     tacStartX = pos.x;
@@ -10615,7 +11867,7 @@ let placeMode = false;
   // 修复：改用正确的面板ID和按钮类名
 const pointPanel = document.getElementById('tacticalPointPanel');
 const cancelBtn = document.getElementById('cancelPlaceModePanelBtn'); // 注意取消按钮ID也不一样
-const canvasContainer = tacCanvas.parentElement;
+canvasContainer = tacCanvas.parentElement;
 
 if (pointPanel) {
     pointPanel.querySelectorAll('.tactical-point-btn-v3').forEach(el => {
@@ -10630,32 +11882,35 @@ if (pointPanel) {
     });
 }
   
+   // 激活放置模式（图标）
   function activatePlaceMode(type) {
     placeMode = true;
     currentPointType = type;
     tacCanvas.style.cursor = 'crosshair';
     canvasContainer.style.outline = '3px solid var(--accent)';
     canvasContainer.style.outlineOffset = '2px';
-    if (cancelBtn) cancelBtn.style.display = 'block';
+    const cancelBtn = document.getElementById('cancelPlaceModePanelBtn');
+    if (cancelBtn) cancelBtn.style.display = 'inline-block';
     showToast(`点击画布放置 ${getPointLabel(type)} · 右键可取消`, 'info');
   }
-  
+
+   // 取消放置模式
   window.cancelPlaceMode = function() {
     placeMode = false;
     currentPointType = null;
     tacCanvas.style.cursor = 'crosshair';
     canvasContainer.style.outline = '';
+    const cancelBtn = document.getElementById('cancelPlaceModePanelBtn');
     if (cancelBtn) cancelBtn.style.display = 'none';
     showToast('已取消放置模式', 'info');
   };
-    function addPlacedPoint(type, x, y) {
-    // 确保父容器相对定位
+
+
+   function addPlacedPoint(type, x, y) {
     canvasContainer.style.position = 'relative';
-    canvasContainer.style.overflow = 'hidden'; // 防止点位溢出
     const pointDiv = document.createElement('div');
     pointDiv.className = 'placed-point';
     pointDiv.dataset.type = type;
-    // 使用百分比定位，基于画布尺寸
     pointDiv.style.left = (x / tacCanvas.width * 100) + '%';
     pointDiv.style.top = (y / tacCanvas.height * 100) + '%';
     pointDiv.style.transform = 'translate(-50%, -50%)';
@@ -10663,81 +11918,93 @@ if (pointPanel) {
     pointDiv.style.color = getPointColor(type);
     pointDiv.style.fontSize = '28px';
     pointDiv.style.textShadow = '0 0 5px black';
-    pointDiv.style.pointerEvents = 'auto';
     pointDiv.style.position = 'absolute';
     pointDiv.style.cursor = 'move';
     pointDiv.style.zIndex = '100';
-    
+    pointDiv.style.pointerEvents = 'auto';
     pointDiv.setAttribute('data-x', x);
     pointDiv.setAttribute('data-y', y);
+    
     canvasContainer.appendChild(pointDiv);
     
-    // 使用 interact.js 实现拖拽
+   // 使用 interact.js 实现拖拽（你的项目已经引入了 interact.js）
     if (typeof interact === 'function') {
-        interact(pointDiv).draggable({
-            inertia: false,
-            autoScroll: false,
-            onmove: (event) => {
-                const target = event.target;
-                // 基于画布实际尺寸计算新坐标
-                const rect = tacCanvas.getBoundingClientRect();
-                const scaleX = tacCanvas.width / rect.width;
-                const scaleY = tacCanvas.height / rect.height;
-                
-                let newX = parseFloat(target.getAttribute('data-x')) + event.dx * scaleX;
-                let newY = parseFloat(target.getAttribute('data-y')) + event.dy * scaleY;
-                
-                // 边界限制
-                newX = Math.max(0, Math.min(tacCanvas.width, newX));
-                newY = Math.max(0, Math.min(tacCanvas.height, newY));
-                
-                target.style.left = (newX / tacCanvas.width * 100) + '%';
-                target.style.top = (newY / tacCanvas.height * 100) + '%';
-                target.setAttribute('data-x', newX);
-                target.setAttribute('data-y', newY);
-            }
-        });
+      interact(pointDiv).draggable({
+        inertia: false,
+        onmove: (event) => {
+          const target = event.target;
+          const rect = tacCanvas.getBoundingClientRect();
+          const scaleX = tacCanvas.width / rect.width;
+          const scaleY = tacCanvas.height / rect.height;
+          
+          let newX = parseFloat(target.getAttribute('data-x')) + event.dx * scaleX;
+          let newY = parseFloat(target.getAttribute('data-y')) + event.dy * scaleY;
+          
+          newX = Math.max(0, Math.min(tacCanvas.width, newX));
+          newY = Math.max(0, Math.min(tacCanvas.height, newY));
+          
+          target.style.left = (newX / tacCanvas.width * 100) + '%';
+          target.style.top = (newY / tacCanvas.height * 100) + '%';
+          target.setAttribute('data-x', newX);
+          target.setAttribute('data-y', newY);
+        }
+      });
     }
     
-    // 右键删除：彻底阻止默认菜单
+   // 右键删除
     pointDiv.addEventListener('contextmenu', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        pointDiv.remove();
-        showToast('点位已删除', 'info');
-        return false;
+      e.preventDefault();
+      e.stopPropagation();
+      pointDiv.remove();
+      showToast('点位已删除', 'info');
+      return false;
     });
     
     placedPoints.push(pointDiv);
-}
-  
+    // 移动端长按删除
+    let pressTimer;
+    pointDiv.addEventListener('touchstart', (e) => {
+        pressTimer = setTimeout(() => {
+            pointDiv.remove();
+            showToast('点位已删除', 'info');
+        }, 500);
+    });
+    pointDiv.addEventListener('touchend', () => {
+        clearTimeout(pressTimer);
+    });
+    pointDiv.addEventListener('touchmove', () => {
+        clearTimeout(pressTimer);
+    });
+  }
+
   function getPointIcon(type) {
     const map = { 
       'attack-arrow': '➡️', 'push': '👥', 'breach': '🚪', 'flank': '🔄',
       'defend': '🛡️', 'hold': '✋', 'cover': '📦', 'watch': '👁️',
-      'bomb': '💣', 'sniper': '🎯', 'smoke': '💨', 'flash': '☀️',
-      'danger': '⚠️', 'enemy': '💀', 'loot': '📦', 'question': '❓'
+      'bomb': '💣', 'sniper': '🎯', 'danger': '⚠️', 'loot': '📦'
     };
     return map[type] || '📍';
   }
+  
   function getPointColor(type) {
     const map = { 
       'attack-arrow': '#e74c3c', 'push': '#e74c3c', 'breach': '#e74c3c', 'flank': '#e74c3c',
       'defend': '#3498db', 'hold': '#3498db', 'cover': '#3498db', 'watch': '#3498db',
-      'bomb': '#f1c40f', 'sniper': '#9b59b6', 'smoke': '#7f8c8d', 'flash': '#f39c12',
-      'danger': '#e67e22', 'enemy': '#c0392b', 'loot': '#27ae60', 'question': '#8e44ad'
+      'bomb': '#f1c40f', 'sniper': '#9b59b6', 'danger': '#e67e22', 'loot': '#27ae60'
     };
     return map[type] || '#fff';
   }
+  
+// 获取点位标签
   function getPointLabel(type) {
     const map = { 
       'attack-arrow': '进攻箭头', 'push': '推进', 'breach': '突破点', 'flank': '绕后',
       'defend': '防守点位', 'hold': '架点', 'cover': '掩体', 'watch': '观察哨',
-      'bomb': '爆破点', 'sniper': '狙击位', 'smoke': '烟雾', 'flash': '闪光',
-      'danger': '危险', 'enemy': '敌人', 'loot': '物资', 'question': '未知'
+      'bomb': '爆破点', 'sniper': '狙击位', 'danger': '危险', 'loot': '物资'
     };
     return map[type] || '点位';
   }
+
     // ========== 工具切换 ==========
   const toolBar = document.querySelector('.flex-wrap.gap-2.mt-4.justify-center');
   if (toolBar) {
@@ -10889,10 +12156,281 @@ window.toggleTacticalPointPanel = function() {
         btnSpan.textContent = '收起';
     }
 };
+
+
+
   // 初始化绘制
   redrawCanvas();
-  console.log('✅ 战术板修复版（分层绘制）已启动');
+  // 切换坐标模式
+window.toggleCoordinateMode = function() {
+    coordinateMode = !coordinateMode;
+    const btn = document.getElementById('coordinateModeBtn');
+    if (coordinateMode) {
+        tacCanvas.style.cursor = 'crosshair';
+        btn?.classList.add('active');
+        showToast('坐标模式：点击地图生成战术坐标', 'info');
+    } else {
+        tacCanvas.style.cursor = 'crosshair';
+        btn?.classList.remove('active');
+        showToast('坐标模式已关闭', 'info');
+    }
+};
+
+// 显示坐标浮层
+function showCoordinatePopup(x, y, coord) {
+
+
+    // 移除旧浮层
+    const oldPopup = document.querySelector('.coordinate-popup');
+    if (oldPopup) oldPopup.remove();
+    window.lastTacticalCoord = coord;
+    const popup = document.createElement('div');
+    popup.className = 'coordinate-popup';
+    popup.style.cssText = `
+        position: absolute;
+        left: ${x}px;
+        top: ${y - 50}px;
+        background: linear-gradient(135deg, #FF6B35, #FF4757);
+        color: white;
+        padding: 12px 16px;
+        border-radius: 40px;
+        font-size: 16px;
+        font-weight: bold;
+        box-shadow: 0 8px 20px rgba(255,107,53,0.4);
+        z-index: 200;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        transform: translateX(-50%);
+        white-space: nowrap;
+        pointer-events: auto;
+        border: 2px solid white;
+    `;
+    popup.innerHTML = `
+        <span style="font-family: monospace;">${coord}</span>
+        <button onclick="copyCoordinate('${coord}')" style="background: white; color: #FF6B35; border: none; border-radius: 30px; padding: 6px 16px; font-weight: bold; cursor: pointer;">复制</button>
+        <button onclick="this.parentElement.remove()" style="background: transparent; color: white; border: none; font-size: 18px; cursor: pointer;">×</button>
+    `;
+    canvasContainer.appendChild(popup);
+    
+    // 5秒后自动消失
+    setTimeout(() => popup.remove(), 5000);
 }
+
+// 复制坐标
+window.copyCoordinate = function(coord) {
+    universalCopy(coord);
+};
+
+function fallbackCopy(text) {
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textarea);
+    showToast('✅ 战术坐标已复制', 'success');
+}
+
+
+   // ========== 保存蓝图（仅点位和文字） ==========
+  window.saveBlueprint = function() {
+    // 收集所有放置的点位
+    const points = [];
+    document.querySelectorAll('.placed-point').forEach(el => {
+      points.push({
+        type: el.dataset.type,
+        x: parseFloat(el.getAttribute('data-x')),
+        y: parseFloat(el.getAttribute('data-y'))
+      });
+    });
+      window.copyBlueprintCode = function(code, btn) {
+    // 震动反馈（移动端）
+    if (navigator.vibrate) navigator.vibrate(10);
+    
+    const fallbackCopy = () => {
+      const textarea = document.createElement('textarea');
+      textarea.value = code;
+      textarea.style.position = 'fixed';
+      textarea.style.top = '0';
+      textarea.style.left = '0';
+      textarea.style.opacity = '0';
+      textarea.style.pointerEvents = 'none';
+      document.body.appendChild(textarea);
+      textarea.focus();
+      textarea.select();
+      textarea.setSelectionRange(0, 99999);
+      try {
+        const successful = document.execCommand('copy');
+        if (successful) {
+          showToast('✅ 蓝图码已复制', 'success');
+          if (btn) {
+            btn.innerHTML = '<i class="fas fa-check"></i> 已复制';
+            btn.style.background = '#2ecc71';
+            setTimeout(() => {
+              btn.innerHTML = '<i class="far fa-copy mr-2"></i>复制蓝图码';
+              btn.style.background = '';
+            }, 1500);
+          }
+        } else {
+          showToast('❌ 复制失败，请手动复制', 'error');
+        }
+      } catch (err) {
+        showToast('❌ 复制失败', 'error');
+      }
+      document.body.removeChild(textarea);
+    };
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(code).then(() => {
+        showToast('✅ 蓝图码已复制', 'success');
+        if (btn) {
+          btn.innerHTML = '<i class="fas fa-check"></i> 已复制';
+          btn.style.background = '#2ecc71';
+          setTimeout(() => {
+            btn.innerHTML = '<i class="far fa-copy mr-2"></i>复制蓝图码';
+            btn.style.background = '';
+          }, 1500);
+        }
+      }).catch(fallbackCopy);
+    } else {
+      fallbackCopy();
+    }
+  };
+    // 收集文字对象
+    const texts = textObjects || [];
+    
+    const blueprint = {
+      version: 1,
+      points: points,
+      texts: texts
+    };
+    
+    // 压缩为 Base64 短码
+    const jsonStr = JSON.stringify(blueprint);
+    const base64 = btoa(encodeURIComponent(jsonStr).replace(/%([0-9A-F]{2})/g, (match, p1) => {
+      return String.fromCharCode('0x' + p1);
+    }));
+    
+window.lastTacticalBlueprint = base64;
+
+    // 显示蓝图码弹窗
+    showBlueprintCode(base64);
+  };
+
+
+  // ========== 加载蓝图 ==========
+   function showBlueprintCode(code) {
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay active';
+    overlay.style.zIndex = '10000';
+    overlay.innerHTML = `
+      <div class="modal-content active" style="max-width: 500px;">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="font-display text-xl">📋 战术蓝图已生成</h2>
+          <button onclick="this.closest('.modal-overlay').remove()" class="w-8 h-8 rounded-full flex items-center justify-center" style="background: var(--surface);"><i class="fas fa-times"></i></button>
+        </div>
+        <p class="text-sm mb-3" style="color: var(--muted);">复制下方代码，分享给战友。对方在战术板点击「加载蓝图」并粘贴即可复现你的战术布局。</p>
+        <div class="p-4 rounded-xl mb-3" style="background: var(--surface); border: 2px solid var(--accent); word-break: break-all;">
+          <code style="font-family: monospace; font-size: 14px;">${code}</code>
+        </div>
+        <button class="btn-warm w-full py-3" id="copyBlueprintBtn" data-code="${code}">
+          <i class="far fa-copy mr-2"></i>复制蓝图码
+        </button>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+    
+    // 绑定复制事件（兼容移动端）
+    const copyBtn = overlay.querySelector('#copyBlueprintBtn');
+    const handler = function(e) {
+      e.stopPropagation();
+      const code = copyBtn.getAttribute('data-code');
+      copyBlueprintCode(code, copyBtn);
+    };
+    copyBtn.addEventListener('click', handler);
+    copyBtn.addEventListener('touchstart', handler, { passive: false });
+    
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) overlay.remove();
+    });
+  }
+  
+    window.applyBlueprint = function() {
+    const input = document.getElementById('blueprintInput');
+    if (!input) return;
+    const code = input.value.trim();
+    if (!code) {
+      showToast('请输入蓝图码', 'error');
+      return;
+    }
+    
+    try {
+      // 解码 Base64
+      const jsonStr = decodeURIComponent(atob(code).split('').map(c => {
+        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+      }).join(''));
+      const blueprint = JSON.parse(jsonStr);
+      
+      // 清空当前画布上的所有点位
+      document.querySelectorAll('.placed-point').forEach(el => el.remove());
+      
+      // 恢复点位
+      if (blueprint.points && Array.isArray(blueprint.points)) {
+        blueprint.points.forEach(p => {
+          addPlacedPoint(p.type, p.x, p.y);
+        });
+      }
+      
+      // 恢复文字对象
+      if (blueprint.texts && Array.isArray(blueprint.texts)) {
+        textObjects = blueprint.texts;
+      }
+      
+      // 重绘画布
+      redrawCanvas();
+      
+      // 关闭弹窗
+      document.querySelector('.modal-overlay.active')?.remove();
+      showToast('✅ 战术蓝图加载成功！', 'success');
+    } catch (e) {
+      console.error('蓝图解析失败:', e);
+      showToast('❌ 蓝图码无效或已损坏', 'error');
+    }
+  };
+
+console.log('✅ 战术板修复版（分层绘制）已启动');
+}
+
+// ==================== 全局蓝图加载函数 ====================
+function loadBlueprint() {
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay active';
+  overlay.style.zIndex = '10000';
+  overlay.innerHTML = `
+    <div class="modal-content active" style="max-width: 500px;">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="font-display text-xl">📂 加载战术蓝图</h2>
+        <button onclick="this.closest('.modal-overlay').remove()" class="w-8 h-8 rounded-full flex items-center justify-center" style="background: var(--surface);"><i class="fas fa-times"></i></button>
+      </div>
+      <p class="text-sm mb-3" style="color: var(--muted);">粘贴战友分享的蓝图码，点击加载即可复现战术布局。</p>
+      <textarea id="blueprintInput" placeholder="粘贴蓝图码..." class="w-full p-3 rounded-xl mb-3" style="background: var(--surface); border: 2px solid var(--border); color: var(--text); min-height: 120px;"></textarea>
+      <div class="flex gap-2">
+        <button class="btn-warm flex-1 py-3" onclick="applyBlueprint()">
+          <i class="fas fa-check mr-2"></i>加载
+        </button>
+        <button class="btn-ghost flex-1 py-3" onclick="this.closest('.modal-overlay').remove()">
+          取消
+        </button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) overlay.remove();
+  });
+}
+
 function drawTacticalBaseMap() {
   if (!tacCtx) {
     const canvas = document.getElementById('tacticalCanvas');
@@ -11225,6 +12763,7 @@ async function loadAdminData() {
       </div>
     </div>`;
   });
+loadAdminHomeBannerList(); // 新增：加载首页轮播管理列表
 }
 
 async function uploadBanner() {
@@ -11937,7 +13476,7 @@ if (bgInput) {
       img.src = ev.target.result;
     };
     reader.readAsDataURL(file);
-    e.target.value = ''; // 允许重复上传同一文件
+    e.target.value = ''; // 允许重复上传同一文件  
   });
 }
   initBGM();
@@ -12799,6 +14338,909 @@ function enableHorizontalDragScroll(element) {
   `;
   document.head.appendChild(style);
 }
+
+// 生成每日题目（可以根据你的数据源扩展）
+function generateDailyPuzzle() {
+  const today = getTodayStr();
+  const saved = localStorage.getItem(DAILY_PUZZLE_KEY);
+  if (saved) {
+    try {
+      const data = JSON.parse(saved);
+      if (data.date === today) return data;
+    } catch(e) {}
+  }
+  
+  // 题库（后续可替换为爬虫数据）
+  const puzzles = [
+    {
+      question: '在零号大坝，哪个坐标最近三天内交火最频繁？',
+      hint: '靠近行政楼东侧，老六最爱蹲的地方。',
+      map: 'ZERO',
+      answerX: 320,
+      answerY: 180,
+      tolerance: 30 // 允许误差范围（像素）
+    },
+    {
+      question: '航天基地撤离点通常位于哪个区域？',
+      hint: '地图东北角，有直升机停机坪。',
+      map: 'SPACE',
+      answerX: 600,
+      answerY: 120,
+      tolerance: 40
+    },
+    {
+      question: '长弓溪谷的狙击高点在哪里？',
+      hint: '地图中央的高塔，视野覆盖全图。',
+      map: 'LONG',
+      answerX: 400,
+      answerY: 250,
+      tolerance: 35
+    }
+  ];
+  
+  // 根据日期选择题目（确保每天固定一道）
+  const dayOfYear = Math.floor((new Date() - new Date(new Date().getFullYear(), 0, 0)) / 86400000);
+  const puzzle = puzzles[dayOfYear % puzzles.length];
+  
+  const newData = {
+    date: today,
+    ...puzzle,
+    answered: false
+  };
+  localStorage.setItem(DAILY_PUZZLE_KEY, JSON.stringify(newData));
+  return newData;
+}
+
+// 渲染猜图卡片
+function renderDailyPuzzle() {
+  const container = document.getElementById('dailyPuzzleContainer');
+  if (!container) {
+    console.warn('dailyPuzzleContainer 不存在，稍后重试');
+    setTimeout(renderDailyPuzzle, 100);
+    return;
+  }
+  
+  const puzzle = generateDailyPuzzle();
+  const statusEl = document.getElementById('puzzleStatus');
+  if (!statusEl) return;
+  
+  if (puzzle.answered) {
+    statusEl.textContent = '已完成';
+    statusEl.style.background = '#2ecc7120';
+    statusEl.style.color = '#2ecc71';
+    container.innerHTML = `
+      <div class="text-center py-4">
+        <i class="fas fa-check-circle text-2xl mb-2" style="color: #2ecc71;"></i>
+        <p class="text-sm font-bold" style="color: #2ecc71;">今日已完成</p>
+        <p class="text-xs mt-1" style="color: var(--muted);">明天再来挑战吧！</p>
+      </div>
+    `;
+    return;
+  }
+  
+  statusEl.textContent = '未作答';
+  statusEl.style.background = '#FFD70020';
+  statusEl.style.color = '#FFD700';
+  
+  container.innerHTML = `
+    <div class="space-y-3">
+      <p class="text-sm font-medium">${puzzle.question}</p>
+      <div class="flex items-center gap-2">
+        <button class="btn-warm text-xs px-4 py-2 flex-1" onclick="startPuzzleGuess()">
+          <i class="fas fa-map-pin mr-1"></i>去战术板猜点
+        </button>
+        <button class="btn-ghost text-xs px-3 py-2" onclick="showPuzzleHint()">
+          <i class="fas fa-lightbulb"></i> 提示
+        </button>
+      </div>
+      <p class="text-xs" style="color: var(--muted);">
+        <i class="fas fa-info-circle mr-1"></i>点击「去战术板猜点」后，在战术板上点击你猜测的位置
+      </p>
+    </div>
+  `;
+}
+// 开始猜图模式（进入战术板并激活猜图状态）
+window.startPuzzleGuess = function() {
+  const puzzle = generateDailyPuzzle();
+  if (puzzle.answered) {
+    showToast('今日已经答过了', 'info');
+    return;
+  }
+  
+  // 切换到战术板标签
+  switchTab('tactical');
+  
+  // 激活猜图模式（在战术板中设置一个全局标志）
+  window.puzzleGuessMode = true;
+  window.currentPuzzle = puzzle;
+  
+  showToast(`请在战术板上点击你猜测的位置（误差 ${puzzle.tolerance} 像素内）`, 'info');
+  
+  // 高亮提示
+  const canvas = document.getElementById('tacticalCanvas');
+  if (canvas) {
+    canvas.style.outline = '4px solid #FFD700';
+    canvas.style.outlineOffset = '2px';
+  }
+};
+
+// 显示提示
+window.showPuzzleHint = function() {
+  const puzzle = generateDailyPuzzle();
+  showToast(`💡 提示：${puzzle.hint}`, 'info');
+};
+
+// 检查猜图答案（在战术板的点击事件中调用）
+window.checkPuzzleAnswer = function(clickX, clickY) {
+  if (!window.puzzleGuessMode || !window.currentPuzzle) return false;
+  
+  const puzzle = window.currentPuzzle;
+  const dist = Math.sqrt(Math.pow(clickX - puzzle.answerX, 2) + Math.pow(clickY - puzzle.answerY, 2));
+  
+  if (dist <= puzzle.tolerance) {
+    // 答对了！
+    window.puzzleGuessMode = false;
+    
+    // 标记为已答
+    const saved = JSON.parse(localStorage.getItem(DAILY_PUZZLE_KEY));
+    saved.answered = true;
+    localStorage.setItem(DAILY_PUZZLE_KEY, JSON.stringify(saved));
+    
+    // 移除高亮
+    const canvas = document.getElementById('tacticalCanvas');
+    if (canvas) canvas.style.outline = '';
+    
+    // 奖励经验
+    if (APP.user && APP.profile) {
+      APP.profile.exp = (APP.profile.exp || 0) + 50;
+      // 检查升级
+      const levelUp = APP.profile.exp >= APP.profile.level * 100;
+      if (levelUp) {
+        APP.profile.level++;
+        APP.profile.exp -= (APP.profile.level - 1) * 100;
+      }
+      // 更新数据库（如果有）
+      if (sb && APP.user) {
+        sb.from('profiles').update({ exp: APP.profile.exp, level: APP.profile.level }).eq('id', APP.user.id);
+      }
+    }
+    
+    showToast('🎉 恭喜你猜对了！经验+50！', 'success');
+    
+    // 刷新猜图卡片
+    renderDailyPuzzle();
+    
+    // 在点击位置显示正确标记
+    addPlacedPoint('loot', puzzle.answerX, puzzle.answerY);
+    
+    return true;
+  } else {
+    showToast(`❌ 位置偏差较大（距离 ${Math.round(dist)} 像素），再试试`, 'error');
+    return false;
+  }
+};
+
+
+// ==================== 三角洲·万能猜（全局） ====================
+const UNIVERSAL_QUIZ_KEY = 'delta_universal_quiz';
+const QUIZ_CRAWLER_KEY = 'delta_quiz_crawler_pool';
+
+let fetchedQuizBank = [];           // 存储从 quiz_bank.json 获取的题目
+let quizBankLoaded = false;        // 标记是否已加载
+
+// ========== 增强版：带本地缓存和每日更新的爬虫题库拉取 ==========
+const REMOTE_QUIZ_CACHE_KEY = 'delta_quiz_remote_cache_v1';
+const CACHE_DURATION = 2 * 60 * 60 * 1000; // 缓存有效期：2小时
+
+async function fetchQuizBankFromCrawler(forceRefresh = false) {
+  // 1. 如果不是强制刷新，先尝试读取缓存
+  if (!forceRefresh) {
+    try {
+      const cached = localStorage.getItem(REMOTE_QUIZ_CACHE_KEY);
+      if (cached) {
+        const cacheData = JSON.parse(cached);
+        // 检查缓存是否过期
+        if (cacheData.expires > Date.now()) {
+          console.log('✅ 使用本地缓存的爬虫题库，', cacheData.data.length, '道题');
+          fetchedQuizBank = cacheData.data;
+          quizBankLoaded = true;
+          return fetchedQuizBank;
+        } else {
+          console.log('⏰ 本地题库缓存已过期，将重新拉取');
+        }
+      }
+    } catch (e) {
+      console.warn('读取题库缓存失败', e);
+    }
+  }
+
+  // 2. 如果已经加载过且不是强制刷新，直接返回（避免重复请求）
+  if (quizBankLoaded && !forceRefresh) return fetchedQuizBank;
+
+  console.log('🌐 正在从网络获取最新题库...');
+  const urls = [
+    'https://cdn.jsdelivr.net/gh/shi111567/delta-gunsmith-crawler@main/quiz_bank.json',
+    'https://raw.githubusercontent.com/shi111567/delta-gunsmith-crawler/main/quiz_bank.json',
+    './quiz_bank.json'  // 本地备用
+  ];
+
+  for (const url of urls) {
+    try {
+      const response = await fetch(url, { cache: 'no-cache' });
+      if (!response.ok) continue;
+      const data = await response.json();
+      if (Array.isArray(data) && data.length > 0) {
+        fetchedQuizBank = data;
+        quizBankLoaded = true;
+
+        // 3. 存入本地缓存，设置过期时间
+        const cacheData = {
+          data: data,
+          expires: Date.now() + CACHE_DURATION,
+          lastUpdate: new Date().toISOString()
+        };
+        localStorage.setItem(REMOTE_QUIZ_CACHE_KEY, JSON.stringify(cacheData));
+        console.log('✅ 已更新题库缓存，', data.length, '道题，有效期至', new Date(cacheData.expires).toLocaleTimeString());
+        return data;
+      }
+    } catch (e) {
+      console.warn(`⚠️ 从 ${url} 加载题目失败`, e);
+    }
+  }
+
+  // 4. 网络全部失败，尝试使用过期的缓存（救命稻草）
+  console.warn('⚠️ 所有网络源均失败，尝试使用过期缓存');
+  try {
+    const cached = localStorage.getItem(REMOTE_QUIZ_CACHE_KEY);
+    if (cached) {
+      const cacheData = JSON.parse(cached);
+      fetchedQuizBank = cacheData.data;
+      quizBankLoaded = true;
+      console.log('🆘 使用过期缓存题库，', fetchedQuizBank.length, '道题');
+      return fetchedQuizBank;
+    }
+  } catch (e) {}
+
+  // 5. 连缓存都没有，只能靠种子题库了
+  console.warn('⚠️ 无任何可用题库，将使用种子数据');
+  return [];
+}
+// ---------- 题库种子 ----------
+const QUIZ_SEEDS = { /* ...保持不变... */ };
+
+// ---------- 从爬虫数据自动生成题目（扩库） ----------
+function expandQuizPoolFromCrawler() { /* ...保持不变... */ }
+
+// ---------- 获取今日题目（修改为异步，合并爬虫题库） ----------
+async function getTodayQuiz() {
+  const today = getTodayStr();
+  const saved = localStorage.getItem(UNIVERSAL_QUIZ_KEY);
+  if (saved) {
+    try {
+      const data = JSON.parse(saved);
+      if (data.date === today) return data;
+    } catch(e) {}
+  }
+  
+  // 等待爬虫题库加载
+  // 检查是否为新的一天，如果是则强制刷新题库
+const lastQuizDate = localStorage.getItem('delta_quiz_last_fetch_date');
+if (lastQuizDate !== today) {
+  console.log('📅 新的一天，强制刷新爬虫题库');
+  quizBankLoaded = false;
+  await fetchQuizBankFromCrawler(true);
+  localStorage.setItem('delta_quiz_last_fetch_date', today);
+} else if (!quizBankLoaded) {
+  await fetchQuizBankFromCrawler();
+}
+  
+  // 合并所有题目源
+  let allQuestions = [];
+  Object.values(QUIZ_SEEDS).forEach(arr => allQuestions.push(...arr));
+  const crawlerPool = JSON.parse(localStorage.getItem(QUIZ_CRAWLER_KEY) || '[]');
+  allQuestions.push(...crawlerPool);
+  allQuestions.push(...fetchedQuizBank);
+  
+  if (allQuestions.length === 0) allQuestions = QUIZ_SEEDS.weapons;
+  
+  const shuffled = [...allQuestions].sort(() => Math.random() - 0.5);
+  const selected = shuffled.slice(0, 5).map(q => ({ ...q, category: q.category || 'general' }));
+  
+  const quizData = {
+    date: today,
+    questions: selected,
+    currentIndex: 0,
+    score: 0,
+    completed: false,
+    userAnswers: []
+  };
+  localStorage.setItem(UNIVERSAL_QUIZ_KEY, JSON.stringify(quizData));
+  return quizData;
+}
+
+// ---------- 渲染万能猜卡片（改为异步） ----------
+async function renderUniversalQuiz() {
+  const container = document.getElementById('universalQuizContainer');
+  if (!container) return;
+  
+  expandQuizPoolFromCrawler();
+  
+  const quiz = await getTodayQuiz();
+  const statusBadge = document.getElementById('quizStatusBadge');
+  
+  if (quiz.completed) {
+    statusBadge.textContent = '已完成';
+    statusBadge.style.background = '#2ecc71';
+    container.innerHTML = `
+      <div class="text-center py-4">
+        <i class="fas fa-trophy text-3xl mb-2" style="color: #FFD700;"></i>
+        <p class="text-sm font-bold">今日挑战已完成</p>
+        <p class="text-xs mt-1" style="color: var(--muted);">得分: ${quiz.score}/${quiz.questions.length}</p>
+        <p class="text-xs mt-2" style="color: var(--accent);">明天再来挑战新题目吧！</p>
+      </div>
+    `;
+    return;
+  }
+  
+  const q = quiz.questions[quiz.currentIndex];
+  const progress = ((quiz.currentIndex) / quiz.questions.length) * 100;
+  
+  statusBadge.textContent = `${quiz.currentIndex + 1}/${quiz.questions.length}`;
+  
+  let html = `
+    <div class="space-y-3">
+      <div class="quiz-progress">
+        <div class="quiz-progress-fill" style="width: ${progress}%;"></div>
+      </div>
+      <p class="text-sm font-medium">${q.q || q.question}</p>
+      <div class="space-y-2" id="quizOptionsContainer">
+  `;
+  
+  const opts = q.opts || q.options;
+  opts.forEach((opt, idx) => {
+    html += `<div class="quiz-option" data-opt-index="${idx}" onclick="handleQuizAnswer(${idx})">${opt}</div>`;
+  });
+  
+  html += `</div></div>`;
+  container.innerHTML = html;
+}
+
+// 处理答案（部分调整以适应爬虫题目的字段）
+window.handleQuizAnswer = function(selectedIdx) {
+  const quiz = JSON.parse(localStorage.getItem(UNIVERSAL_QUIZ_KEY));
+  if (!quiz || quiz.completed) return;
+  
+  const q = quiz.questions[quiz.currentIndex];
+  const isCorrect = (selectedIdx === q.ans || selectedIdx === q.answer);
+  
+  if (navigator.vibrate) navigator.vibrate(isCorrect ? 10 : [30, 30]);
+  
+  const options = document.querySelectorAll('.quiz-option');
+  options.forEach((opt, idx) => {
+    opt.style.pointerEvents = 'none';
+    if (idx === (q.ans ?? q.answer)) opt.classList.add('correct');
+    else if (idx === selectedIdx && !isCorrect) opt.classList.add('wrong');
+  });
+  
+  quiz.userAnswers.push({ q: q.q || q.question, selected: selectedIdx, correct: isCorrect });
+  if (isCorrect) quiz.score++;
+  
+  setTimeout(() => {
+    if (quiz.currentIndex + 1 < quiz.questions.length) {
+      quiz.currentIndex++;
+      localStorage.setItem(UNIVERSAL_QUIZ_KEY, JSON.stringify(quiz));
+      renderUniversalQuiz();
+    } else {
+      quiz.completed = true;
+      localStorage.setItem(UNIVERSAL_QUIZ_KEY, JSON.stringify(quiz));
+      
+      if (APP.user && APP.profile) {
+        const expGain = quiz.score * 10;
+        APP.profile.exp = (APP.profile.exp || 0) + expGain;
+        const levelUp = APP.profile.exp >= APP.profile.level * 100;
+        if (levelUp) {
+          APP.profile.level++;
+          APP.profile.exp -= (APP.profile.level - 1) * 100;
+        }
+        if (sb && APP.user) {
+          sb.from('profiles').update({ exp: APP.profile.exp, level: APP.profile.level }).eq('id', APP.user.id);
+        }
+        showToast(`🎉 挑战完成！得分 ${quiz.score}/${quiz.questions.length}，经验+${expGain}！`, 'success');
+      }
+      
+      renderUniversalQuiz();
+      if (typeof updateIntelSummary === 'function') updateIntelSummary();
+    }
+  }, 800);
+};
+// ==================== 每日战术猜图（全局） ====================
+// ==================== 三角洲万象猜 · 完整题库与逻辑 ====================
+const QUIZ_CONFIG = {
+  dailyLimit: 3,
+  storageKey: 'delta_wanxiang_quiz',
+};
+
+// 万象题库
+const QUIZ_DATABASE = [
+  // === 枪械类 ===
+  { category: '枪械', question: '这把枪以高射速和稳定性著称，是新手入门的首选突击步枪。', answer: 'M4A1', clues: ['它使用5.56毫米子弹', '它的原型是美国柯尔特公司设计', '在三角洲行动中，它的后坐力非常可控'], difficulty: 1 },
+  { category: '枪械', question: '这把狙击枪是游戏中最具威力的一把，能够一击致命。', answer: 'AWM', clues: ['它使用.338马格南子弹', '它的枪声非常独特', '它通常只在空投中出现'], difficulty: 2 },
+  { category: '枪械', question: '这把冲锋枪以其极高的射速和近战爆发力闻名。', answer: 'Vector', clues: ['它使用.45 ACP子弹', '它的外形非常紧凑', '它的射速超过1000 RPM'], difficulty: 2 },
+  { category: '枪械', question: '这把霰弹枪是近距离作战的王者，能够一枪击倒敌人。', answer: 'S12K', clues: ['它是半自动霰弹枪', '它可以装配步枪配件', '它在房区作战中极具威胁'], difficulty: 1 },
+  
+  // === 地图类 ===
+  { category: '地图', question: '这张地图以航天发射设施为背景，拥有复杂的室内外结构。', answer: '航天基地', clues: ['地图中央有一个巨大的火箭', '撤离点通常位于地图边缘', '这张地图有多个地下通道'], difficulty: 1 },
+  { category: '地图', question: '这张地图是一个巨大的水坝区域，拥有高低落差极大的地形。', answer: '零号大坝', clues: ['地图中央是一个大坝', '地图分为上下两层', '行政楼是热门交战点'], difficulty: 1 },
+  
+  // === 干员类 ===
+  { category: '干员', question: '这名干员是突击兵种，擅长快速突破和近距离作战。', answer: '红狼', clues: ['他的技能是“肾上腺素”', '他使用霰弹枪或冲锋枪时更强', '他的背景故事与狼群有关'], difficulty: 1 },
+  { category: '干员', question: '这名干员是侦察兵种，能够探测敌人位置。', answer: '金卢娜', clues: ['她的技能是“扫描脉冲”', '她能够短时间内透视墙壁', '她的定位是团队的信息核心'], difficulty: 1 },
+  
+  // === 道具类 ===
+  { category: '道具', question: '这个战术道具能够制造一片烟雾，遮挡敌人视线。', answer: '烟雾弹', clues: ['它可以用来掩护队友', '热成像可以穿透它', '它是最常用的战术道具之一'], difficulty: 1 },
+  { category: '道具', question: '这个医疗物品能够缓慢恢复生命值。', answer: '医疗包', clues: ['使用需要读条时间', '它可以治疗重伤', '它比绷带效果更强'], difficulty: 1 },
+  
+  // === 战术类 ===
+  { category: '战术', question: '这种战术是指小队成员分散站位，从多个角度同时攻击敌人。', answer: '交叉火力', clues: ['它需要良好的团队配合', '它能让敌人难以应对', '它通常用于防守或伏击'], difficulty: 2 },
+  { category: '战术', question: '这种打法是指玩家不携带高级装备，以低成本进入战局。', answer: '跑刀', clues: ['它的目标是“以小博大”', '它通常只带一把近战武器或便宜枪', '它适合熟悉地图的老手'], difficulty: 1 },
+];
+
+// 当前游戏状态
+let quizState = {
+  currentQuiz: null,
+  currentClueIndex: 0,
+  status: 'idle', // idle, playing, finished
+  todayCount: 0,
+  winStreak: 0,
+  history: []
+};
+
+// 初始化万象猜
+function initWanxiangQuiz() {
+  loadQuizState();
+  updateQuizUI();
+  renderQuizStartView();
+}
+
+// 加载本地存储的状态
+function loadQuizState() {
+  const saved = localStorage.getItem(QUIZ_CONFIG.storageKey);
+  if (saved) {
+    try {
+      const data = JSON.parse(saved);
+      const today = getTodayStr();
+      if (data.date === today) {
+        quizState.todayCount = data.todayCount || 0;
+        quizState.winStreak = data.winStreak || 0;
+        quizState.history = data.history || [];
+      } else {
+        quizState.todayCount = 0;
+        quizState.winStreak = 0;
+        quizState.history = [];
+      }
+    } catch(e) {}
+  }
+  updateQuizStats();
+}
+
+// 保存状态
+function saveQuizState() {
+  const data = {
+    date: getTodayStr(),
+    todayCount: quizState.todayCount,
+    winStreak: quizState.winStreak,
+    history: quizState.history.slice(-10)
+  };
+  localStorage.setItem(QUIZ_CONFIG.storageKey, JSON.stringify(data));
+}
+
+// 更新统计显示
+function updateQuizStats() {
+  document.getElementById('quizTodayCount').textContent = quizState.todayCount;
+  document.getElementById('quizWinStreak').textContent = quizState.winStreak;
+}
+
+// 随机获取题目
+function getRandomQuiz() {
+  const randomIndex = Math.floor(Math.random() * QUIZ_DATABASE.length);
+  return { ...QUIZ_DATABASE[randomIndex] };
+}
+
+// 开始挑战
+window.startQuiz = function() {
+  if (quizState.todayCount >= QUIZ_CONFIG.dailyLimit) {
+    showToast('今日挑战次数已用完，明天再来吧！', 'warning');
+    return;
+  }
+  
+  quizState.currentQuiz = getRandomQuiz();
+  quizState.currentClueIndex = 0;
+  quizState.status = 'playing';
+  
+  document.getElementById('quizCategoryLabel').textContent = `今日挑战 · 猜${quizState.currentQuiz.category}`;
+  document.getElementById('quizDescription').textContent = quizState.currentQuiz.question;
+  document.getElementById('quizStatus').textContent = '挑战中';
+  
+  document.getElementById('quizStartView').style.display = 'none';
+  document.getElementById('quizPlayView').style.display = 'block';
+  document.getElementById('quizResultView').style.display = 'none';
+  
+  showClue(0);
+};
+
+// 显示线索
+function showClue(index) {
+  const quiz = quizState.currentQuiz;
+  const totalClues = quiz.clues.length;
+  document.getElementById('quizClueIndex').textContent = index + 1;
+  document.getElementById('quizClueTotal').textContent = totalClues;
+  
+  if (index < totalClues) {
+    document.getElementById('quizCurrentClue').textContent = quiz.clues[index];
+  }
+  
+  // 更新得分提示
+  const baseScore = 30;
+  const remainingScore = Math.max(10, baseScore - index * 5);
+  document.getElementById('quizScoreHint').textContent = `答对+${remainingScore}经验`;
+}
+
+// 下一条线索
+window.nextQuizClue = function() {
+  if (quizState.status !== 'playing') return;
+  const quiz = quizState.currentQuiz;
+  const nextIndex = quizState.currentClueIndex + 1;
+  if (nextIndex < quiz.clues.length) {
+    quizState.currentClueIndex = nextIndex;
+    showClue(nextIndex);
+  } else {
+    showToast('已经是最后一条线索了，快猜吧！', 'info');
+  }
+};
+
+// 提交答案
+window.submitQuizAnswer = function() {
+  if (quizState.status !== 'playing') return;
+  const input = document.getElementById('quizAnswerInput');
+  const answer = input.value.trim();
+  if (!answer) {
+    showToast('请输入答案', 'warning');
+    return;
+  }
+  
+  const quiz = quizState.currentQuiz;
+  const isCorrect = answer.toLowerCase() === quiz.answer.toLowerCase();
+  
+  if (isCorrect) {
+    handleCorrect();
+  } else {
+    showToast('答案不正确，再想想或使用下一条线索', 'error');
+    input.value = '';
+    input.focus();
+  }
+};
+
+// 回答正确处理
+function handleCorrect() {
+  const quiz = quizState.currentQuiz;
+  const clueUsed = quizState.currentClueIndex;
+  const baseScore = 30;
+  const earnedExp = Math.max(10, baseScore - clueUsed * 5);
+  
+  quizState.status = 'finished';
+  quizState.todayCount++;
+  quizState.winStreak++;
+  quizState.history.push({
+    category: quiz.category,
+    answer: quiz.answer,
+    correct: true,
+    cluesUsed: clueUsed + 1,
+    exp: earnedExp,
+    time: new Date().toISOString()
+  });
+  
+  saveQuizState();
+  updateQuizStats();
+  
+  // 发放经验
+  if (APP.user && APP.profile) {
+    APP.profile.exp = (APP.profile.exp || 0) + earnedExp;
+    const levelUp = APP.profile.exp >= APP.profile.level * 100;
+    if (levelUp) {
+      APP.profile.level++;
+      APP.profile.exp -= (APP.profile.level - 1) * 100;
+    }
+    if (sb && APP.user) {
+      sb.from('profiles').update({ exp: APP.profile.exp, level: APP.profile.level }).eq('id', APP.user.id);
+    }
+  }
+  
+  // 显示结果
+  showQuizResult(true, quiz.answer, earnedExp);
+};
+
+// 放弃
+window.giveUpQuiz = function() {
+  if (quizState.status !== 'playing') return;
+  const quiz = quizState.currentQuiz;
+  quizState.status = 'finished';
+  quizState.winStreak = 0;
+  quizState.history.push({
+    category: quiz.category,
+    answer: quiz.answer,
+    correct: false,
+    cluesUsed: quizState.currentClueIndex + 1,
+    time: new Date().toISOString()
+  });
+  
+  saveQuizState();
+  updateQuizStats();
+  
+  showQuizResult(false, quiz.answer, 0);
+};
+
+// 显示结果视图
+function showQuizResult(isCorrect, answer, exp) {
+  document.getElementById('quizPlayView').style.display = 'none';
+  document.getElementById('quizResultView').style.display = 'block';
+  document.getElementById('quizStatus').textContent = isCorrect ? '已完成' : '已放弃';
+  
+  const iconEl = document.getElementById('quizResultIcon');
+  const titleEl = document.getElementById('quizResultTitle');
+  const msgEl = document.getElementById('quizResultMessage');
+  
+  if (isCorrect) {
+    iconEl.innerHTML = '<i class="fas fa-trophy" style="color: #FFD700;"></i>';
+    titleEl.textContent = '🎉 回答正确！';
+    titleEl.style.color = '#2ecc71';
+    msgEl.textContent = `恭喜你猜对了！答案是“${answer}”，获得 ${exp} 点经验！`;
+  } else {
+    iconEl.innerHTML = '<i class="fas fa-times-circle" style="color: #e74c3c;"></i>';
+    titleEl.textContent = '😢 挑战失败';
+    titleEl.style.color = '#e74c3c';
+    msgEl.textContent = `正确答案是“${answer}”，下次继续努力！`;
+  }
+}
+
+// 刷新题目
+window.refreshQuiz = function() {
+  if (quizState.status === 'playing') {
+    if (!confirm('当前挑战尚未完成，确定要换一题吗？')) return;
+  }
+  quizState.status = 'idle';
+  renderQuizStartView();
+  const randomQuiz = getRandomQuiz();
+  document.getElementById('quizDescription').textContent = randomQuiz.question;
+  document.getElementById('quizCategoryLabel').textContent = `今日挑战 · 猜${randomQuiz.category}`;
+  document.getElementById('quizStatus').textContent = '未开始';
+};
+
+// 渲染开始视图
+function renderQuizStartView() {
+  document.getElementById('quizStartView').style.display = 'block';
+  document.getElementById('quizPlayView').style.display = 'none';
+  document.getElementById('quizResultView').style.display = 'none';
+  document.getElementById('quizStatus').textContent = '未开始';
+  
+  const randomQuiz = getRandomQuiz();
+  document.getElementById('quizDescription').textContent = randomQuiz.question;
+  document.getElementById('quizCategoryLabel').textContent = `今日挑战 · 猜${randomQuiz.category}`;
+}
+
+// 分享结果
+window.shareQuizResult = function() {
+  const text = `我在三角洲墨辰电竞的“万象猜”中答对了！连胜${quizState.winStreak}场，快来挑战吧！`;
+  if (navigator.share) {
+    navigator.share({ title: '三角洲万象猜', text: text });
+  } else {
+    navigator.clipboard?.writeText(text);
+    showToast('分享文案已复制', 'success');
+  }
+};
+
+// 显示历史记录
+window.showQuizHistory = function() {
+  const history = quizState.history;
+  if (history.length === 0) {
+    showToast('暂无挑战记录', 'info');
+    return;
+  }
+  const recent = history.slice(-5).reverse();
+  const text = recent.map(h => {
+    const status = h.correct ? '✅' : '❌';
+    return `${status} ${h.category} · ${h.answer}`;
+  }).join('\n');
+  alert('最近5条记录：\n' + text);
+};
+
+// 更新UI
+function updateQuizUI() {
+  updateQuizStats();
+}
+
+// 页面加载时初始化
+document.addEventListener('DOMContentLoaded', () => {
+  setTimeout(() => {
+    initWanxiangQuiz();
+  }, 500);
+});
+const DAILY_PUZZLE_KEY = 'delta_daily_puzzle';
+
+// 获取今天的日期字符串（YYYY-MM-DD）
+function getTodayStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+// 生成每日题目
+function generateDailyPuzzle() {
+  const today = getTodayStr();
+  const saved = localStorage.getItem(DAILY_PUZZLE_KEY);
+  if (saved) {
+    try {
+      const data = JSON.parse(saved);
+      if (data.date === today) return data;
+    } catch(e) {}
+  }
+  
+  const puzzles = [
+    {
+      question: '在零号大坝，哪个坐标最近三天内交火最频繁？',
+      hint: '靠近行政楼东侧，老六最爱蹲的地方。',
+      map: 'ZERO',
+      answerX: 320,
+      answerY: 180,
+      tolerance: 30
+    },
+    {
+      question: '航天基地撤离点通常位于哪个区域？',
+      hint: '地图东北角，有直升机停机坪。',
+      map: 'SPACE',
+      answerX: 600,
+      answerY: 120,
+      tolerance: 40
+    },
+    {
+      question: '长弓溪谷的狙击高点在哪里？',
+      hint: '地图中央的高塔，视野覆盖全图。',
+      map: 'LONG',
+      answerX: 400,
+      answerY: 250,
+      tolerance: 35
+    }
+  ];
+  
+  const dayOfYear = Math.floor((new Date() - new Date(new Date().getFullYear(), 0, 0)) / 86400000);
+  const puzzle = puzzles[dayOfYear % puzzles.length];
+  
+  const newData = {
+    date: today,
+    ...puzzle,
+    answered: false
+  };
+  localStorage.setItem(DAILY_PUZZLE_KEY, JSON.stringify(newData));
+  return newData;
+}
+
+// 渲染猜图卡片
+function renderDailyPuzzle() {
+  const container = document.getElementById('dailyPuzzleContainer');
+  if (!container) {
+    console.warn('dailyPuzzleContainer 不存在，稍后重试');
+    setTimeout(renderDailyPuzzle, 100);
+    return;
+  }
+  
+  const puzzle = generateDailyPuzzle();
+  const statusEl = document.getElementById('puzzleStatus');
+  if (!statusEl) return;
+  
+  if (puzzle.answered) {
+    statusEl.textContent = '已完成';
+    statusEl.style.background = '#2ecc7120';
+    statusEl.style.color = '#2ecc71';
+    container.innerHTML = `
+      <div class="text-center py-4">
+        <i class="fas fa-check-circle text-2xl mb-2" style="color: #2ecc71;"></i>
+        <p class="text-sm font-bold" style="color: #2ecc71;">今日已完成</p>
+        <p class="text-xs mt-1" style="color: var(--muted);">明天再来挑战吧！</p>
+      </div>
+    `;
+    return;
+  }
+  
+  statusEl.textContent = '未作答';
+  statusEl.style.background = '#FFD70020';
+  statusEl.style.color = '#FFD700';
+  
+  container.innerHTML = `
+    <div class="space-y-3">
+      <p class="text-sm font-medium">${puzzle.question}</p>
+      <div class="flex items-center gap-2">
+        <button class="btn-warm text-xs px-4 py-2 flex-1" onclick="startPuzzleGuess()">
+          <i class="fas fa-map-pin mr-1"></i>去战术板猜点
+        </button>
+        <button class="btn-ghost text-xs px-3 py-2" onclick="showPuzzleHint()">
+          <i class="fas fa-lightbulb"></i> 提示
+        </button>
+      </div>
+      <p class="text-xs" style="color: var(--muted);">
+        <i class="fas fa-info-circle mr-1"></i>点击「去战术板猜点」后，在战术板上点击你猜测的位置
+      </p>
+    </div>
+  `;
+}
+
+// 开始猜图模式
+window.startPuzzleGuess = function() {
+  const puzzle = generateDailyPuzzle();
+  if (puzzle.answered) {
+    showToast('今日已经答过了', 'info');
+    return;
+  }
+  
+  switchTab('tactical');
+  window.puzzleGuessMode = true;
+  window.currentPuzzle = puzzle;
+  
+  showToast(`请在战术板上点击你猜测的位置（误差 ${puzzle.tolerance} 像素内）`, 'info');
+  
+  const canvas = document.getElementById('tacticalCanvas');
+  if (canvas) {
+    canvas.style.outline = '4px solid #FFD700';
+    canvas.style.outlineOffset = '2px';
+  }
+};
+
+// 显示提示
+window.showPuzzleHint = function() {
+  const puzzle = generateDailyPuzzle();
+  showToast(`💡 提示：${puzzle.hint}`, 'info');
+};
+
+// 检查答案
+window.checkPuzzleAnswer = function(clickX, clickY) {
+  if (!window.puzzleGuessMode || !window.currentPuzzle) return false;
+  
+  const puzzle = window.currentPuzzle;
+  const dist = Math.sqrt(Math.pow(clickX - puzzle.answerX, 2) + Math.pow(clickY - puzzle.answerY, 2));
+  
+  if (dist <= puzzle.tolerance) {
+    window.puzzleGuessMode = false;
+    
+    const saved = JSON.parse(localStorage.getItem(DAILY_PUZZLE_KEY));
+    saved.answered = true;
+    localStorage.setItem(DAILY_PUZZLE_KEY, JSON.stringify(saved));
+    
+    const canvas = document.getElementById('tacticalCanvas');
+    if (canvas) canvas.style.outline = '';
+    
+    if (APP.user && APP.profile) {
+      APP.profile.exp = (APP.profile.exp || 0) + 50;
+      const levelUp = APP.profile.exp >= APP.profile.level * 100;
+      if (levelUp) {
+        APP.profile.level++;
+        APP.profile.exp -= (APP.profile.level - 1) * 100;
+      }
+      if (sb && APP.user) {
+        sb.from('profiles').update({ exp: APP.profile.exp, level: APP.profile.level }).eq('id', APP.user.id);
+      }
+    }
+    
+    showToast('🎉 恭喜你猜对了！经验+50！', 'success');
+    renderDailyPuzzle();
+    
+    if (typeof addPlacedPoint === 'function') {
+      addPlacedPoint('loot', puzzle.answerX, puzzle.answerY);
+    }
+    
+    return true;
+  } else {
+    showToast(`❌ 位置偏差较大（距离 ${Math.round(dist)} 像素），再试试`, 'error');
+    return false;
+  }
+};
+
 // ==================== 战术情报中心（整合版逻辑） ====================
 let topicRadarChartV2 = null;
 let intelCenterLoaded = false;
@@ -12820,13 +15262,43 @@ function toggleIntelligenceCenter() {
         loadVoiceWallV2();
         renderTopicRadarV2();
         intelCenterLoaded = true;
+        renderDailyPuzzle();
       }, 50);
     }
+renderDailyPuzzle(); 
+   updateIntelSummary();
   } else {
     content.classList.add('hidden');
     icon.style.transform = 'rotate(0deg)';
   }
 }
+
+function updateIntelSummary() {
+    const summaryEl = document.getElementById('intelSummary');
+    if (!summaryEl) return;
+    
+    let count = 0;
+    // 王牌对决剩余次数
+    const today = new Date().toDateString();
+    const pkData = JSON.parse(localStorage.getItem('delta_pk_data_v2') || '{}');
+    const used = pkData[today] || 0;
+    const pkRemaining = 3 - used;
+    if (pkRemaining > 0) count++;
+    
+    // 语音简报数量（假设超过0条就算一项）
+    const voiceBadge = document.getElementById('voiceCountBadge');
+    if (voiceBadge) {
+        const voiceCount = parseInt(voiceBadge.textContent) || 0;
+        if (voiceCount > 0) count++;
+    }
+    
+    // 每日猜图是否完成
+    const puzzleData = JSON.parse(localStorage.getItem('delta_daily_puzzle') || '{}');
+    if (puzzleData.date === getTodayStr() && !puzzleData.answered) count++;
+    
+    summaryEl.textContent = count + '项情报待阅';
+}
+
 
 // ========== 王牌对决 V2 ==========
 const PK_CONFIG_V2 = { dailyLimit: 3, storageKey: 'delta_pk_data_v2' };
@@ -14133,6 +16605,7 @@ function performHomeRefresh() {
     renderTopicCards();
     loadOnlineEscorts();
     loadHotRecommend();
+    loadCommunityTacticalStream();
     loadSquads();
     loadPosts(true);
     
@@ -14147,6 +16620,209 @@ if ('ontouchstart' in window) {
     document.addEventListener('touchstart', handleTouchStart, { passive: false });
     document.addEventListener('touchmove', handleTouchMove, { passive: false });
     document.addEventListener('touchend', handleTouchEnd);
+}
+
+// ==================== 首页轮播（管理员可管理） ====================
+let homeBannerSwiper = null;
+
+// 加载首页轮播图
+async function loadHomeBanners() {
+  const wrapper = document.getElementById('homeBannerWrapper');
+  const placeholder = document.getElementById('homeBannerPlaceholder');
+  const container = document.getElementById('homeBannerContainer');
+  if (!wrapper) return;
+  
+  // ========== 第一步：查询数据库 ==========
+  const { data, error } = await sb
+    .from('home_banners')
+    .select('*')
+    .eq('active', true)
+    .order('sort_order', { ascending: true })
+    .order('created_at', { ascending: false });
+  
+  // ========== 第二步：处理无数据情况 ==========
+  if (error || !data || data.length === 0) {
+    // 显示占位符，隐藏轮播
+    if (placeholder) placeholder.style.display = 'flex';
+    if (homeBannerSwiper) {
+      homeBannerSwiper.destroy();
+      homeBannerSwiper = null;
+    }
+    // 同时隐藏引导标题（如果之前显示过）
+    const guideEl = document.querySelector('.home-banner-guide');
+    if (guideEl) guideEl.style.display = 'none';
+    return;
+  }
+  
+  // ========== 第三步：有数据，处理显示 ==========
+  // 隐藏占位符
+  if (placeholder) placeholder.style.display = 'none';
+  
+  // 显示并更新引导标题（取第一张轮播图的 guide_title）
+  const guideEl = document.querySelector('.home-banner-guide');
+  if (guideEl) {
+    const firstBanner = data[0];
+    const guideText = firstBanner.guide_title || '热门推荐';
+    // 保留图标，只更新文字部分
+    const span = guideEl.querySelector('span');
+    if (span) {
+      span.textContent = guideText;
+    } else {
+      guideEl.innerHTML = `<i class="fas fa-bullhorn mr-1.5"></i><span>${guideText}</span>`;
+    }
+    guideEl.style.display = 'inline-flex';
+  }
+  
+
+  // 渲染轮播项
+  wrapper.innerHTML = data.map(banner => `
+    <div class="swiper-slide home-banner-slide">
+      <img src="${banner.image_url}" class="w-full h-full object-cover" alt="${banner.title || ''}">
+      ${banner.link ? `<a href="${banner.link}" target="_blank" class="absolute inset-0 z-10"></a>` : ''}
+      <div class="banner-overlay">
+        <div class="banner-title">${banner.title || ''}</div>
+        ${banner.description ? `<div class="banner-desc">${banner.description}</div>` : ''}
+      </div>
+    </div>
+  `).join('');
+  
+  // 初始化 Swiper
+  if (homeBannerSwiper) homeBannerSwiper.destroy();
+  homeBannerSwiper = new Swiper('#homeBannerSwiper', {
+    loop: data.length > 1,
+    autoplay: { 
+      delay: 4000, 
+      disableOnInteraction: false,
+      pauseOnMouseEnter: true
+    },
+    pagination: { 
+      el: '.swiper-pagination', 
+      clickable: true,
+      dynamicBullets: true
+    },
+    navigation: { 
+      nextEl: '.swiper-button-next', 
+      prevEl: '.swiper-button-prev' 
+    },
+    effect: 'slide',
+    speed: 600,
+    grabCursor: true,
+    touchRatio: 1,
+    touchAngle: 45,
+    simulateTouch: true,
+  });
+  
+  // 悬停暂停动效
+  if (container) {
+    container.addEventListener('mouseenter', () => {
+      homeBannerSwiper?.autoplay?.stop();
+    });
+    container.addEventListener('mouseleave', () => {
+      homeBannerSwiper?.autoplay?.start();
+    });
+  }
+}
+
+// 管理员上传首页轮播图
+async function uploadHomeBanner() {
+const guideTitle = document.getElementById('homeBannerGuideTitle').value.trim() || '热门推荐';
+  if (!APP.isAdmin) { showToast('无权限'); return; }
+  
+  const file = document.getElementById('homeBannerFile').files[0];
+  if (!file) { showToast('请选择图片'); return; }
+  
+  const title = document.getElementById('homeBannerTitle').value.trim();
+  const desc = document.getElementById('homeBannerDesc').value.trim();
+  const link = document.getElementById('homeBannerLink').value.trim();
+  
+  const btn = event.target;
+  btn.disabled = true;
+  btn.textContent = '上传中...';
+  
+  try {
+    const ext = file.name.split('.').pop();
+    const path = `home_banners/${Date.now()}_${Math.random().toString(36).substr(2, 6)}.${ext}`;
+    const { error: uploadError } = await sb.storage.from('posts').upload(path, file);
+    if (uploadError) throw uploadError;
+    
+    const { data: { publicUrl } } = sb.storage.from('posts').getPublicUrl(path);
+    
+    const { error: insertError } = await sb.from('home_banners').insert({
+      image_url: publicUrl,
+      title: title || null,
+      description: desc || null,
+      link: link || null,
+    });
+    if (insertError) throw insertError;
+    
+    showToast('轮播图已上传', 'success');
+    // 清空表单
+    document.getElementById('homeBannerFile').value = '';
+    document.getElementById('homeBannerTitle').value = '';
+    document.getElementById('homeBannerDesc').value = '';
+    document.getElementById('homeBannerLink').value = '';
+    
+    loadHomeBanners();            // 刷新首页轮播
+    loadAdminHomeBannerList();    // 刷新管理列表
+  } catch (e) {
+    showToast('上传失败: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '上传轮播图';
+  }
+}
+
+// 管理员后台加载轮播列表
+async function loadAdminHomeBannerList() {
+  const listEl = document.getElementById('homeBannerList');
+  if (!listEl) return;
+  
+  const { data } = await sb.from('home_banners')
+    .select('*')
+    .order('sort_order', { ascending: true })
+    .order('created_at', { ascending: false });
+  
+  if (!data || data.length === 0) {
+    listEl.innerHTML = '<p class="text-xs text-center py-2" style="color:var(--muted);">暂无轮播图</p>';
+    return;
+  }
+  
+  listEl.innerHTML = data.map(b => `
+    <div class="flex items-center gap-2 p-2 rounded-lg" style="background:var(--surface);">
+      <img src="${b.image_url}" class="w-10 h-10 object-cover rounded cursor-pointer" onclick="openLightbox('${b.image_url}')">
+      <div class="flex-1 min-w-0">
+        <div class="text-xs font-medium truncate">${b.title || '无标题'}</div>
+        <div class="text-xs truncate" style="color:var(--muted);">${b.link || '无链接'}</div>
+      </div>
+      <div class="flex items-center gap-1">
+        <button class="text-xs px-2 py-1 rounded ${b.active ? 'text-green-400' : 'text-gray-400'}" 
+                onclick="toggleHomeBannerActive('${b.id}', ${!b.active})">
+          ${b.active ? '显示' : '隐藏'}
+        </button>
+        <button class="text-xs text-red-400" onclick="deleteHomeBanner('${b.id}')">
+          <i class="fas fa-trash"></i>
+        </button>
+      </div>
+    </div>
+  `).join('');
+}
+
+// 切换轮播图显示/隐藏
+async function toggleHomeBannerActive(id, active) {
+  if (!APP.isAdmin) return;
+  await sb.from('home_banners').update({ active }).eq('id', id);
+  loadAdminHomeBannerList();
+  loadHomeBanners();
+}
+
+// 删除轮播图
+async function deleteHomeBanner(id) {
+  if (!APP.isAdmin) return;
+  if (!confirm('确定删除这张轮播图吗？')) return;
+  await sb.from('home_banners').delete().eq('id', id);
+  showToast('已删除');
+  loadAdminHomeBannerList();
+  loadHomeBanners();
 }
 
 </script>
