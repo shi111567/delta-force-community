@@ -9574,7 +9574,12 @@ function applyLoadoutFilters() {
       </div>
       <div class="flex items-center justify-between pt-2 border-t" style="border-color: var(--border);">
         <code class="text-xs font-mono px-2 py-1 rounded" style="background: var(--surface); color: var(--accent);">${l.code}</code>
-        <button class="text-xs px-4 py-2 rounded-full font-bold" style="background: var(--accent); color: white;" onclick="event.stopPropagation(); copyLoadoutCode('${l.code}', this)"><i class="far fa-copy mr-1"></i>复制</button>
+        <button class="text-xs px-4 py-2 rounded-full font-bold" 
+        style="background: var(--accent); color: white; border: none; cursor: pointer;"
+        onclick="event.stopPropagation(); copyLoadoutCode('${l.code}', this)"
+        ontouchstart="event.stopPropagation(); copyLoadoutCode('${l.code}', this)">
+    <i class="far fa-copy mr-1"></i>复制
+</button>
       </div>
     </div>
   `).join('');
@@ -9631,64 +9636,59 @@ function updateWeaponDropdownOptions() {
 
 // ==================== 增强复制功能（带状态反馈） ====================
 function copyLoadoutCode(code, btn) {
-  // 震动反馈（移动端）
-  if (navigator.vibrate) navigator.vibrate(10);
-  
-  // 按钮反馈动画
-  const applySuccessStyle = () => {
-    if (btn && btn.tagName === 'BUTTON') {
-      const originalHTML = btn.innerHTML;
-      btn.innerHTML = '<i class="fas fa-check"></i> 已复制';
-      btn.style.background = '#2ecc71';
-      btn.style.color = 'white';
-      btn.disabled = true;
-      setTimeout(() => {
-        btn.innerHTML = originalHTML;
-        btn.style.background = '';
-        btn.style.color = '';
-        btn.disabled = false;
-      }, 1500);
-    }
-  };
+    // 震动反馈
+    if (navigator.vibrate) navigator.vibrate(10);
 
-  // 移动端稳健复制方案
-  const fallbackCopy = () => {
-    const textarea = document.createElement('textarea');
-    textarea.value = code;
-    textarea.style.position = 'fixed';
-    textarea.style.top = '0';
-    textarea.style.left = '0';
-    textarea.style.opacity = '0';
-    textarea.style.pointerEvents = 'none';
-    document.body.appendChild(textarea);
-    textarea.focus();
-    textarea.select();
-    textarea.setSelectionRange(0, 99999);
-    try {
-      const successful = document.execCommand('copy');
-      if (successful) {
-        showToast('✅ 改枪码已复制', 'success');
-        applySuccessStyle();
-      } else {
-        showToast('❌ 复制失败，请手动复制', 'error');
-      }
-    } catch (err) {
-      showToast('❌ 复制失败，请手动复制', 'error');
-    }
-    document.body.removeChild(textarea);
-  };
+    const fallbackCopy = () => {
+        const textarea = document.createElement('textarea');
+        textarea.value = code;
+        textarea.style.position = 'fixed';
+        textarea.style.top = '0';
+        textarea.style.left = '0';
+        textarea.style.opacity = '0';
+        textarea.style.pointerEvents = 'none';
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        textarea.setSelectionRange(0, 99999);
+        try {
+            const successful = document.execCommand('copy');
+            if (successful) {
+                showToast('✅ 改枪码已复制', 'success');
+                if (btn) {
+                    btn.innerHTML = '<i class="fas fa-check"></i> 已复制';
+                    btn.style.background = '#2ecc71';
+                    setTimeout(() => {
+                        btn.innerHTML = '<i class="far fa-copy mr-1"></i>复制';
+                        btn.style.background = '';
+                    }, 1500);
+                }
+            } else {
+                showToast('❌ 复制失败，请手动复制', 'error');
+            }
+        } catch (err) {
+            showToast('❌ 复制失败', 'error');
+        }
+        document.body.removeChild(textarea);
+    };
 
-  // 优先使用 Clipboard API
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(code).then(() => {
-      showToast('✅ 改枪码已复制', 'success');
-      applySuccessStyle();
-    }).catch(fallbackCopy);
-  } else {
-    fallbackCopy();
-  }
+    // 优先使用 Clipboard API
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(code).then(() => {
+            showToast('✅ 改枪码已复制', 'success');
+            if (btn) {
+                btn.innerHTML = '<i class="fas fa-check"></i> 已复制';
+                btn.style.background = '#2ecc71';
+                setTimeout(() => {
+                    btn.innerHTML = '<i class="far fa-copy mr-1"></i>复制';
+                    btn.style.background = '';
+                }, 1500);
+            }
+        }).catch(fallbackCopy);
+    } else {
+        fallbackCopy();
+    }
 }
-
 // ==================== 覆盖原有的 renderLoadoutList（整合下拉更新） ====================
 const originalRenderLoadoutList = renderLoadoutList;
 renderLoadoutList = function() {
