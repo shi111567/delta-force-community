@@ -9634,45 +9634,61 @@ function copyLoadoutCode(code, btn) {
   // 震动反馈（移动端）
   if (navigator.vibrate) navigator.vibrate(10);
   
+  // 按钮反馈动画
+  const applySuccessStyle = () => {
+    if (btn && btn.tagName === 'BUTTON') {
+      const originalHTML = btn.innerHTML;
+      btn.innerHTML = '<i class="fas fa-check"></i> 已复制';
+      btn.style.background = '#2ecc71';
+      btn.style.color = 'white';
+      btn.disabled = true;
+      setTimeout(() => {
+        btn.innerHTML = originalHTML;
+        btn.style.background = '';
+        btn.style.color = '';
+        btn.disabled = false;
+      }, 1500);
+    }
+  };
+
+  // 移动端稳健复制方案
   const fallbackCopy = () => {
     const textarea = document.createElement('textarea');
     textarea.value = code;
     textarea.style.position = 'fixed';
+    textarea.style.top = '0';
+    textarea.style.left = '0';
     textarea.style.opacity = '0';
+    textarea.style.pointerEvents = 'none';
     document.body.appendChild(textarea);
+    textarea.focus();
     textarea.select();
     textarea.setSelectionRange(0, 99999);
-    document.execCommand('copy');
+    try {
+      const successful = document.execCommand('copy');
+      if (successful) {
+        showToast('✅ 改枪码已复制', 'success');
+        applySuccessStyle();
+      } else {
+        showToast('❌ 复制失败，请手动复制', 'error');
+      }
+    } catch (err) {
+      showToast('❌ 复制失败，请手动复制', 'error');
+    }
     document.body.removeChild(textarea);
-    showToast('✅ 改枪码已复制', 'success');
-    updateButtonSuccess(btn);
   };
-  
-  const updateButtonSuccess = (btn) => {
-    if (!btn || btn.tagName !== 'BUTTON') return;
-    const originalHTML = btn.innerHTML;
-    btn.innerHTML = '<i class="fas fa-check"></i> 已复制';
-    btn.style.background = '#2ecc71';
-    btn.style.color = 'white';
-    btn.disabled = true;
-    setTimeout(() => {
-      btn.innerHTML = originalHTML;
-      btn.style.background = '';
-      btn.style.color = '';
-      btn.disabled = false;
-    }, 2000);
-  };
-  
+
   // 优先使用 Clipboard API
   if (navigator.clipboard && navigator.clipboard.writeText) {
     navigator.clipboard.writeText(code).then(() => {
       showToast('✅ 改枪码已复制', 'success');
-      updateButtonSuccess(btn);
+      applySuccessStyle();
     }).catch(fallbackCopy);
   } else {
     fallbackCopy();
   }
 }
+
 // ==================== 覆盖原有的 renderLoadoutList（整合下拉更新） ====================
 const originalRenderLoadoutList = renderLoadoutList;
 renderLoadoutList = function() {
@@ -13750,50 +13766,76 @@ function showBudgetDetail(loadoutName) {
 // 从详情页复制全部改枪码（带状态反馈）
 function copyAllBudgetCodesFromDetail(loadoutName, btn) {
   const loadout = BUDGET_LOADOUTS.find(l => l.name === loadoutName);
-  if (!loadout) return;
+  if (!loadout) {
+    showToast('方案不存在', 'error');
+    return;
+  }
   
   const codes = loadout.weapons.filter(w => w.code).map(w => `${w.name}: ${w.code}`).join('\n');
-  if (codes) {
-    navigator.clipboard?.writeText(codes).then(() => {
-      // 按钮状态反馈
+  if (!codes) {
+    showToast('该方案暂无改枪码', 'info');
+    return;
+  }
+
+  // 震动反馈
+  if (navigator.vibrate) navigator.vibrate(10);
+
+  // 按钮反馈动画
+  const applySuccessStyle = () => {
+    if (btn && btn.tagName === 'BUTTON') {
       const originalHTML = btn.innerHTML;
       btn.innerHTML = '<i class="fas fa-check mr-2"></i>已复制';
       btn.classList.add('copied');
       btn.style.background = '#2ecc71';
+      btn.style.color = 'white';
+      btn.disabled = true;
       setTimeout(() => {
         btn.innerHTML = originalHTML;
         btn.classList.remove('copied');
         btn.style.background = '';
+        btn.style.color = '';
+        btn.disabled = false;
       }, 2000);
+    }
+  };
+
+  // 降级复制方案
+  const fallbackCopy = () => {
+    const textarea = document.createElement('textarea');
+    textarea.value = codes;
+    textarea.style.position = 'fixed';
+    textarea.style.top = '0';
+    textarea.style.left = '0';
+    textarea.style.opacity = '0';
+    textarea.style.pointerEvents = 'none';
+    document.body.appendChild(textarea);
+    textarea.focus();
+    textarea.select();
+    textarea.setSelectionRange(0, 99999);
+    try {
+      const successful = document.execCommand('copy');
+      if (successful) {
+        showToast(`📋 「${loadout.name}」的所有改枪码已复制`, 'success');
+        applySuccessStyle();
+      } else {
+        showToast('❌ 复制失败，请手动复制', 'error');
+      }
+    } catch (err) {
+      showToast('❌ 复制失败，请手动复制', 'error');
+    }
+    document.body.removeChild(textarea);
+  };
+
+  // 优先 Clipboard API
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(codes).then(() => {
       showToast(`📋 「${loadout.name}」的所有改枪码已复制`, 'success');
-    }).catch(() => fallbackCopy(codes, btn));
+      applySuccessStyle();
+    }).catch(fallbackCopy);
   } else {
-    showToast('该方案暂无改枪码', 'info');
+    fallbackCopy();
   }
 }
-
-// 降级复制方案
-function fallbackCopy(text, btn) {
-  const textarea = document.createElement('textarea');
-  textarea.value = text;
-  document.body.appendChild(textarea);
-  textarea.select();
-  document.execCommand('copy');
-  document.body.removeChild(textarea);
-  if (btn) {
-    const originalHTML = btn.innerHTML;
-    btn.innerHTML = '<i class="fas fa-check mr-2"></i>已复制';
-    btn.classList.add('copied');
-    btn.style.background = '#2ecc71';
-    setTimeout(() => {
-      btn.innerHTML = originalHTML;
-      btn.classList.remove('copied');
-      btn.style.background = '';
-    }, 2000);
-  }
-  showToast(`📋 改枪码已复制`, 'success');
-}
-
 function generateRecommendations() {
   const container = document.getElementById('recommendCardsContainer');
   if (!container) return;
@@ -13884,27 +13926,78 @@ function generateRecommendations() {
 }
 
 // 从卡片复制（带状态反馈）
-function copyAllBudgetCodesFromCard(loadoutName, btn) {
+window.copyAllBudgetCodesFromCard = function(loadoutName, btn) {
   const loadout = BUDGET_LOADOUTS.find(l => l.name === loadoutName);
-  if (!loadout) return;
+  if (!loadout) {
+    showToast('方案不存在', 'error');
+    return;
+  }
   
   const codes = loadout.weapons.filter(w => w.code).map(w => `${w.name}: ${w.code}`).join('\n');
-  if (codes) {
-    navigator.clipboard?.writeText(codes).then(() => {
+  if (!codes) {
+    showToast('该方案暂无改枪码', 'info');
+    return;
+  }
+
+  // 震动反馈（移动端）
+  if (navigator.vibrate) navigator.vibrate(10);
+
+  // 按钮反馈动画
+  const applySuccessStyle = () => {
+    if (btn && btn.tagName === 'BUTTON') {
       const originalHTML = btn.innerHTML;
       btn.innerHTML = '<i class="fas fa-check mr-2"></i>已复制';
       btn.classList.add('copied');
+      btn.style.background = '#2ecc71';
+      btn.style.color = 'white';
+      btn.disabled = true;
       setTimeout(() => {
         btn.innerHTML = originalHTML;
         btn.classList.remove('copied');
+        btn.style.background = '';
+        btn.style.color = '';
+        btn.disabled = false;
       }, 2000);
-      showToast(`📋 「${loadout.name}」的所有改枪码已复制`, 'success');
-    }).catch(() => fallbackCopy(codes, btn));
-  } else {
-    showToast('该方案暂无改枪码', 'info');
-  }
-}
+    }
+  };
 
+  // 移动端稳健复制降级方案
+  const fallbackCopy = () => {
+    const textarea = document.createElement('textarea');
+    textarea.value = codes;
+    textarea.style.position = 'fixed';
+    textarea.style.top = '0';
+    textarea.style.left = '0';
+    textarea.style.opacity = '0';
+    textarea.style.pointerEvents = 'none';
+    document.body.appendChild(textarea);
+    textarea.focus();
+    textarea.select();
+    textarea.setSelectionRange(0, 99999);
+    try {
+      const successful = document.execCommand('copy');
+      if (successful) {
+        showToast(`📋 「${loadout.name}」的所有改枪码已复制`, 'success');
+        applySuccessStyle();
+      } else {
+        showToast('❌ 复制失败，请手动复制', 'error');
+      }
+    } catch (err) {
+      showToast('❌ 复制失败，请手动复制', 'error');
+    }
+    document.body.removeChild(textarea);
+  };
+
+  // 优先使用 Clipboard API
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(codes).then(() => {
+      showToast(`📋 「${loadout.name}」的所有改枪码已复制`, 'success');
+      applySuccessStyle();
+    }).catch(fallbackCopy);
+  } else {
+    fallbackCopy();
+  }
+};
 // 复制全部改枪码（兼容旧版）
 function copyAllBudgetCodes(loadoutName) {
   const loadout = BUDGET_LOADOUTS.find(l => l.name === loadoutName);
