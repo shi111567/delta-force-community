@@ -7002,20 +7002,38 @@ window.handleTacticalAttachment = function(code, type) {
     showToast(`在战术板上查找坐标: ${code}`, 'info');
     // 可以扩展：自动在地图上标记该坐标
   } else if (type === 'blueprint') {
+    // 先切换到战术板
     switchTab('tactical');
+    // 延迟一点确保 DOM 已切换
     setTimeout(() => {
-      // 模拟粘贴并加载蓝图
-      const input = document.getElementById('blueprintInput');
-      if (input) {
-        input.value = code;
-        if (typeof window.applyBlueprint === 'function') {
-          window.applyBlueprint();
+        // 打开加载蓝图弹窗（如果已存在则先移除，避免重复）
+        let modal = document.querySelector('#loadBlueprintModal');
+        if (!modal) {
+            // 调用现有的 loadBlueprint 函数打开弹窗
+            if (typeof loadBlueprint === 'function') {
+                loadBlueprint(); // 这个函数会创建弹窗
+            } else {
+                showToast('蓝图加载功能不可用', 'error');
+                return;
+            }
         }
-      } else {
-        showToast('请手动粘贴蓝图码加载', 'info');
-      }
+        // 再延迟一点等待弹窗 DOM 生成
+        setTimeout(() => {
+            const input = document.getElementById('blueprintInput');
+            if (input) {
+                input.value = code;
+                // 自动调用加载
+                if (typeof applyBlueprint === 'function') {
+                    applyBlueprint();
+                } else {
+                    showToast('自动加载失败，请手动点击加载按钮', 'info');
+                }
+            } else {
+                showToast('未找到蓝图输入框，请手动粘贴', 'info');
+            }
+        }, 200);
     }, 300);
-  }
+}
 };
 
 function openProfile() {
@@ -13445,31 +13463,32 @@ console.log('✅ 战术板修复版（分层绘制）已启动');
 
 // ==================== 全局蓝图加载函数 ====================
 function loadBlueprint() {
-  const overlay = document.createElement('div');
-  overlay.className = 'modal-overlay active';
-  overlay.style.zIndex = '10000';
-  overlay.innerHTML = `
-    <div class="modal-content active" style="max-width: 500px;">
-      <div class="flex justify-between items-center mb-4">
-        <h2 class="font-display text-xl">📂 加载战术蓝图</h2>
-        <button onclick="this.closest('.modal-overlay').remove()" class="w-8 h-8 rounded-full flex items-center justify-center" style="background: var(--surface);"><i class="fas fa-times"></i></button>
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay active';
+    overlay.id = 'loadBlueprintModal';  // 添加 ID 方便后续查找
+    overlay.style.zIndex = '10000';
+    overlay.innerHTML = `
+      <div class="modal-content active" style="max-width: 500px;">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="font-display text-xl">📂 加载战术蓝图</h2>
+          <button onclick="this.closest('.modal-overlay').remove()" class="w-8 h-8 rounded-full flex items-center justify-center" style="background: var(--surface);"><i class="fas fa-times"></i></button>
+        </div>
+        <p class="text-sm mb-3" style="color: var(--muted);">粘贴战友分享的蓝图码，点击加载即可复现战术布局。</p>
+        <textarea id="blueprintInput" placeholder="粘贴蓝图码..." class="w-full p-3 rounded-xl mb-3" style="background: var(--surface); border: 2px solid var(--border); color: var(--text); min-height: 120px;"></textarea>
+        <div class="flex gap-2">
+          <button class="btn-warm flex-1 py-3" onclick="applyBlueprint()">
+            <i class="fas fa-check mr-2"></i>加载
+          </button>
+          <button class="btn-ghost flex-1 py-3" onclick="this.closest('.modal-overlay').remove()">
+            取消
+          </button>
+        </div>
       </div>
-      <p class="text-sm mb-3" style="color: var(--muted);">粘贴战友分享的蓝图码，点击加载即可复现战术布局。</p>
-      <textarea id="blueprintInput" placeholder="粘贴蓝图码..." class="w-full p-3 rounded-xl mb-3" style="background: var(--surface); border: 2px solid var(--border); color: var(--text); min-height: 120px;"></textarea>
-      <div class="flex gap-2">
-        <button class="btn-warm flex-1 py-3" onclick="applyBlueprint()">
-          <i class="fas fa-check mr-2"></i>加载
-        </button>
-        <button class="btn-ghost flex-1 py-3" onclick="this.closest('.modal-overlay').remove()">
-          取消
-        </button>
-      </div>
-    </div>
-  `;
-  document.body.appendChild(overlay);
-  overlay.addEventListener('click', (e) => {
-    if (e.target === overlay) overlay.remove();
-  });
+    `;
+    document.body.appendChild(overlay);
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) overlay.remove();
+    });
 }
 
 function drawTacticalBaseMap() {
