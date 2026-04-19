@@ -249,15 +249,17 @@ tailwind.config = {
 let discoverSwiper = null;
 async function loadDiscoverBanners() {
   const wrapper = document.getElementById('discoverBannerWrapper');
-  if (!wrapper) return;
-  
+  const container = document.getElementById('discoverBannerContainer');
+  if (!wrapper || !container) return;
+
   // 模拟公告数据（可替换为真实数据库查询）
   const banners = [
     { image: 'https://picsum.photos/800/300?random=1', title: 'S9赛季火热开启', link: '#' },
     { image: 'https://picsum.photos/800/300?random=2', title: '护航员招募计划', link: '#' },
     { image: 'https://picsum.photos/800/300?random=3', title: '周末双倍经验', link: '#' }
   ];
-  
+
+  // 渲染轮播项
   wrapper.innerHTML = banners.map(b => `
     <div class="swiper-slide">
       <img src="${b.image}" class="w-full h-full object-cover" alt="${b.title}">
@@ -266,15 +268,44 @@ async function loadDiscoverBanners() {
       </div>
     </div>
   `).join('');
-  
-  if (discoverSwiper) discoverSwiper.destroy();
-  discoverSwiper = new Swiper('#discoverBannerSwiper', {
-    loop: true,
-    autoplay: { delay: 3000 },
-    pagination: { el: '.swiper-pagination', clickable: true },
-  });
-}
 
+  // 定义一个函数用于初始化 Swiper
+  const initSwiper = () => {
+    if (discoverSwiper) discoverSwiper.destroy();
+    discoverSwiper = new Swiper('#discoverBannerSwiper', {
+      loop: true,
+      autoplay: { delay: 3000 },
+      pagination: { el: '.swiper-pagination', clickable: true },
+    });
+    console.log('✅ 发现页轮播初始化成功');
+  };
+
+  // 如果容器已经有宽度，直接初始化
+  if (container.offsetWidth > 0) {
+    initSwiper();
+    return;
+  }
+
+  // 否则使用 ResizeObserver 等待宽度出现
+  console.log('⏳ 等待发现页轮播容器获得宽度...');
+  let timeoutId = setTimeout(() => {
+    console.warn('⚠️ 等待轮播容器超时，强制初始化');
+    observer.disconnect();
+    initSwiper();
+  }, 2000); // 最多等2秒
+
+  const observer = new ResizeObserver((entries) => {
+    for (const entry of entries) {
+      if (entry.contentRect.width > 0) {
+        clearTimeout(timeoutId);
+        observer.disconnect();
+        initSwiper();
+        break;
+      }
+    }
+  });
+  observer.observe(container);
+}
 // 2. 数据看板
 async function loadDiscoverStats() {
   // 在线人数（复用全局在线计数）
@@ -2883,6 +2914,531 @@ body::before {
 #filterDrawerOverlay.active .modal-content {
   transform: translateX(0);
 }
+/* ===== 关注模块 · 军事化增强版（三端自适应） ===== */
+#followingTab {
+  animation: followingFadeIn 0.4s ease-out;
+}
+@keyframes followingFadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* 顶部战场栏 */
+.following-hero-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  margin-bottom: 20px;
+  background: linear-gradient(135deg, rgba(255,107,53,0.08) 0%, rgba(255,71,87,0.04) 100%);
+  border: 1.5px solid var(--border);
+  border-radius: 24px;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 8px 20px var(--shadow);
+}
+.following-hero-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--accent);
+}
+.following-hero-title {
+  font-family: 'ZCOOL QingKe HuangYou', sans-serif;
+  letter-spacing: 2px;
+  text-shadow: 0 0 15px var(--glow);
+}
+.following-hero-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+.following-stat-badge {
+  font-weight: 800;
+  font-size: 22px;
+  color: var(--accent);
+  line-height: 1;
+}
+.following-stat-label {
+  color: var(--muted);
+  font-size: 12px;
+}
+.following-divider {
+  margin: 0 8px;
+  color: var(--border);
+}
+
+/* 通用区块 */
+.following-section {
+  margin-bottom: 28px;
+}
+.following-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+.following-header-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--text);
+}
+.following-header-title i {
+  color: var(--accent);
+  font-size: 18px;
+}
+.following-header-hint {
+  font-size: 12px;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.following-refresh-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 30px;
+  padding: 6px 12px;
+  color: var(--muted);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.following-refresh-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: rgba(255,107,53,0.05);
+}
+
+/* Story 环（横向滑动） */
+.following-stories-wrapper {
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  padding: 8px 4px 16px;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.following-stories-wrapper::-webkit-scrollbar {
+  display: none;
+}
+.following-story-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+.following-story-item:hover {
+  transform: translateY(-4px);
+}
+.following-story-avatar-wrapper {
+  position: relative;
+  padding: 3px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), #FFD700, var(--accent2));
+}
+.following-story-avatar {
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid var(--bg);
+  box-shadow: 0 4px 12px var(--shadow);
+}
+.following-story-badge {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  width: 22px;
+  height: 22px;
+  background: var(--accent);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 10px;
+  border: 2px solid var(--bg);
+}
+.following-story-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  max-width: 80px;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.following-story-time {
+  font-size: 10px;
+  color: var(--muted);
+}
+.online-dot {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 12px;
+  height: 12px;
+  background: #2ecc71;
+  border-radius: 50%;
+  border: 2px solid var(--bg);
+  box-shadow: 0 0 8px #2ecc71;
+  animation: onlinePulse 1.5s infinite;
+}
+
+/* 推荐关注网格 */
+.following-recommend-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+.following-recommend-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  border-radius: 20px;
+  backdrop-filter: blur(8px);
+  transition: all 0.25s;
+  cursor: pointer;
+}
+.following-recommend-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px var(--glow);
+}
+.following-recommend-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--accent);
+}
+.following-recommend-info {
+  flex: 1;
+  min-width: 0;
+}
+.following-recommend-name {
+  font-weight: 700;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.following-recommend-badge {
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 30px;
+  background: var(--accent);
+  color: white;
+}
+.following-recommend-stats {
+  display: flex;
+  gap: 16px;
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.following-recommend-btn {
+  padding: 6px 14px;
+  border-radius: 30px;
+  background: transparent;
+  border: 1.5px solid var(--accent);
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.following-recommend-btn:hover {
+  background: var(--accent);
+  color: white;
+}
+
+/* 排行榜列表 */
+.following-rank-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.following-rank-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 16px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  transition: all 0.2s;
+}
+.following-rank-item:hover {
+  border-color: var(--accent);
+  background: rgba(255,107,53,0.02);
+}
+.following-rank-medal {
+  width: 32px;
+  text-align: center;
+  font-weight: 800;
+  font-size: 18px;
+}
+.following-rank-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.following-rank-info {
+  flex: 1;
+}
+.following-rank-name {
+  font-weight: 700;
+  font-size: 14px;
+}
+.following-rank-level {
+  font-size: 11px;
+  color: var(--muted);
+}
+.following-rank-score {
+  font-weight: 800;
+  font-size: 16px;
+  color: var(--accent);
+}
+.following-rank-label {
+  font-size: 11px;
+  color: var(--muted);
+  margin-left: 4px;
+}
+
+/* 话题云 */
+.following-topic-cloud {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.following-topic-tag {
+  padding: 8px 18px;
+  border-radius: 40px;
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  color: var(--text);
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 2px 6px var(--shadow);
+}
+.following-topic-tag:hover {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 16px var(--glow);
+}
+.following-topic-tag i {
+  margin-right: 6px;
+  opacity: 0.8;
+}
+
+/* 动态流过滤器 */
+.following-feed-actions {
+  display: flex;
+  gap: 6px;
+}
+.following-filter-chip {
+  padding: 6px 14px;
+  border-radius: 30px;
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.following-filter-chip.active {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+}
+.following-feed-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+}
+.following-feed-card {
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  border-radius: 20px;
+  padding: 16px;
+  transition: all 0.25s;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+}
+.following-feed-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-4px);
+  box-shadow: 0 16px 28px var(--glow);
+}
+.following-feed-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.following-feed-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.following-feed-author {
+  font-weight: 700;
+  font-size: 14px;
+}
+.following-feed-time {
+  font-size: 11px;
+  color: var(--muted);
+  margin-left: auto;
+}
+.following-feed-title {
+  font-weight: 800;
+  font-size: 16px;
+  margin-bottom: 8px;
+  line-height: 1.4;
+}
+.following-feed-desc {
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 12px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.following-feed-media {
+  width: 100%;
+  height: 160px;
+  object-fit: cover;
+  border-radius: 12px;
+  margin-bottom: 12px;
+  background: var(--surface);
+}
+.following-feed-stats {
+  display: flex;
+  gap: 20px;
+  font-size: 12px;
+  color: var(--muted);
+  padding-top: 8px;
+  border-top: 1px dashed var(--border);
+}
+.following-feed-tag {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 20px;
+  background: var(--accent)20;
+  color: var(--accent);
+  font-size: 11px;
+  margin-right: 6px;
+}
+
+/* 空状态 */
+.following-empty-state {
+  text-align: center;
+  padding: 60px 20px;
+}
+.following-empty-graphic {
+  font-size: 80px;
+  color: var(--border);
+  margin-bottom: 20px;
+  opacity: 0.5;
+}
+.following-empty-state h3 {
+  font-size: 24px;
+  font-weight: 700;
+  margin-bottom: 12px;
+  color: var(--text);
+}
+.following-empty-state p {
+  color: var(--muted);
+  margin-bottom: 28px;
+}
+.following-cta-btn {
+  padding: 14px 32px;
+  border-radius: 60px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  color: white;
+  font-weight: 800;
+  font-size: 16px;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 8px 20px var(--glow);
+  transition: all 0.2s;
+}
+.following-cta-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 12px 28px var(--glow);
+}
+
+/* 加载更多 */
+.following-feed-loading {
+  text-align: center;
+  padding: 24px;
+  color: var(--muted);
+}
+
+/* ===== 三端自适应 ===== */
+@media (max-width: 768px) {
+  .following-hero-bar {
+    padding: 12px 16px;
+  }
+  .following-hero-title {
+    font-size: 16px;
+  }
+  .following-stat-badge {
+    font-size: 18px;
+  }
+  .following-story-avatar {
+    width: 56px;
+    height: 56px;
+  }
+  .following-recommend-grid {
+    grid-template-columns: 1fr;
+  }
+  .following-feed-container {
+    grid-template-columns: 1fr;
+  }
+  .following-filter-chip {
+    padding: 4px 10px;
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 480px) {
+  .following-hero-right {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+  .following-header-title {
+    font-size: 14px;
+  }
+  .following-rank-item {
+    padding: 10px 12px;
+  }
+  .following-rank-avatar {
+    width: 32px;
+    height: 32px;
+  }
+}
 /* ===== 阅读历史抽屉 ===== */
 #historyDrawerOverlay .modal-content {
   transform: translateX(100%);
@@ -3278,7 +3834,7 @@ body {
 </section>
 -->
 <!-- 首页 Tab -->
-  <div id="homeTab">
+  <div id="homeTab" style="display:block">
 <!-- 首页轮播图（仅管理员可管理） -->
 <div class="relative rounded-2xl overflow-hidden" id="homeBannerContainer" style="height: 200px; border: 1.5px solid var(--border); box-shadow: 0 8px 20px var(--shadow);">
   <!-- 新增：引导标题（悬浮左上角） -->
@@ -3793,15 +4349,116 @@ body {
   </div>
 </div>
 
-       <!-- 关注 Tab -->
-  <div id="followingTab" style="display:none">
-    <h2 class="font-display text-2xl mb-4" style="color:var(--accent)">关注动态</h2>
-    <div class="masonry" id="followingGrid"></div>
-    <div id="emptyFollowing" class="text-center py-16" style="color:var(--muted)">
-      <i class="fas fa-user-plus text-4xl mb-3 block" style="color:var(--border)"></i>
-      <p>关注其他干员，查看他们的最新动态</p>
+       <!-- ==================== 关注 Tab（增强版 · 军事化重构） ==================== -->
+<div id="followingTab" style="display:none">
+
+  <!-- 顶部战场状态栏 -->
+  <div class="following-hero-bar">
+    <div class="following-hero-left">
+      <i class="fas fa-satellite-dish"></i>
+      <span class="following-hero-title">战术关注网络</span>
+    </div>
+    <div class="following-hero-right">
+      <span class="following-stat-badge" id="followingCountDisplay">0</span>
+      <span class="following-stat-label">已关注干员</span>
+      <span class="following-divider">|</span>
+      <span class="following-stat-badge" id="followingTodayPosts">0</span>
+      <span class="following-stat-label">今日动态</span>
     </div>
   </div>
+
+  <!-- 关注用户的 Story 环（横向滑动） -->
+  <div class="following-section" id="followingStorySection">
+    <div class="following-section-header">
+      <div class="following-header-title">
+        <i class="fas fa-circle-user"></i>
+        <span>关注干员 · 最新动态</span>
+      </div>
+      <span class="following-header-hint"><i class="fas fa-chevron-right"></i> 滑动查看</span>
+    </div>
+    <div class="following-stories-wrapper" id="followingStoriesContainer">
+      <!-- 动态渲染 -->
+    </div>
+  </div>
+
+  <!-- 智能推荐关注（你可能想关注） -->
+  <div class="following-section" id="followingRecommendSection">
+    <div class="following-section-header">
+      <div class="following-header-title">
+        <i class="fas fa-crosshairs" style="color: #FFD700;"></i>
+        <span>推荐关注 · 高价值目标</span>
+      </div>
+      <button class="following-refresh-btn" onclick="loadFollowingRecommendations()">
+        <i class="fas fa-sync-alt"></i>
+      </button>
+    </div>
+    <div class="following-recommend-grid" id="followingRecommendGrid">
+      <!-- 动态渲染 -->
+    </div>
+  </div>
+
+  <!-- 关注用户活跃榜 -->
+  <div class="following-section">
+    <div class="following-section-header">
+      <div class="following-header-title">
+        <i class="fas fa-trophy" style="color: #FFD700;"></i>
+        <span>关注干员 · 火力排行榜</span>
+      </div>
+      <span class="following-header-hint"><i class="fas fa-fire"></i> 近7天活跃度</span>
+    </div>
+    <div class="following-rank-list" id="followingRankList">
+      <!-- 动态渲染 -->
+    </div>
+  </div>
+
+  <!-- 关注话题聚合 -->
+  <div class="following-section">
+    <div class="following-section-header">
+      <div class="following-header-title">
+        <i class="fas fa-hashtag" style="color: var(--accent);"></i>
+        <span>关注圈 · 热门话题</span>
+      </div>
+    </div>
+    <div class="following-topic-cloud" id="followingTopicCloud">
+      <!-- 动态渲染 -->
+    </div>
+  </div>
+
+  <!-- 关注动态时间线（瀑布流） -->
+  <div class="following-section">
+    <div class="following-section-header">
+      <div class="following-header-title">
+        <i class="fas fa-newspaper"></i>
+        <span>实时战报 · 关注流</span>
+      </div>
+      <div class="following-feed-actions">
+        <button class="following-filter-chip active" data-filter="all" onclick="filterFollowingFeed('all')">全部</button>
+        <button class="following-filter-chip" data-filter="post" onclick="filterFollowingFeed('post')">图文</button>
+        <button class="following-filter-chip" data-filter="video" onclick="filterFollowingFeed('video')">视频</button>
+        <button class="following-filter-chip" data-filter="vote" onclick="filterFollowingFeed('vote')">投票</button>
+      </div>
+    </div>
+    <div class="following-feed-container" id="followingFeedContainer">
+      <!-- 动态渲染瀑布流 -->
+    </div>
+    <div class="following-feed-loading" id="followingFeedLoading" style="display:none;">
+      <i class="fas fa-spinner fa-pulse"></i> 加载更多战报...
+    </div>
+  </div>
+
+  <!-- 空状态（未关注任何人） -->
+  <div id="followingEmptyState" class="following-empty-state" style="display:none;">
+    <div class="following-empty-graphic">
+      <i class="fas fa-user-astronaut"></i>
+    </div>
+    <h3>侦察卫星未捕获目标</h3>
+    <p>你还没有关注任何干员，前往首页发现更多战友</p>
+    <button class="following-cta-btn" onclick="switchTab('discover')">
+      <i class="fas fa-compass"></i> 探索战场
+    </button>
+  </div>
+
+</div>
 
   <!-- 搜索 Tab（发现页） -->
   <div id="searchTab" style="display:none">
@@ -6093,13 +6750,14 @@ function switchTab(tab) {
     renderToolbox();
     renderTopicCards();
     loadOnlineEscorts();
-    loadHotRecommend();
+    setTimeout(() => loadHomeBanners(), 50);
     setTimeout(() => loadSquads(), 50);
     loadPosts(true);
   } else if (tab === 'discover') {
     loadRanks();
     loadRisingRank();
     loadDiscoverBanners();
+    loadHomeBanners();  // 直接调用，内部会自检宽度
     loadDiscoverStats();
     loadDiscoverTopics();
     loadDiscoverEscorts();
@@ -8667,6 +9325,9 @@ async function followUser(userId) {
     showToast('关注成功');
   }
   
+
+
+
   // 刷新个人主页计数
   renderProfile();
   // 刷新当前列表
@@ -8689,6 +9350,381 @@ if (!APP.followedIds.length) {
   grid.innerHTML = '';
   (data||[]).forEach((p, i) => grid.appendChild(createPostCard(p, i)));
 }
+
+// ==================== 关注模块 · 军事化增强版逻辑 ====================
+let followingState = {
+  stories: [],
+  recommendations: [],
+  rankList: [],
+  topicCloud: [],
+  feedFilter: 'all',
+  feedPage: 1,
+  feedAllLoaded: false,
+  feedLoading: false,
+  feedData: []
+};
+
+// 渲染整个关注页面
+async function renderFollowingTab() {
+  if (!APP.user) {
+    const emptyState = document.getElementById('followingEmptyState');
+    if (emptyState) emptyState.style.display = 'block';
+    return;
+  }
+  await loadFollowingIds();
+  
+  if (APP.followedIds.length === 0) {
+    // 显示空状态引导，同时保留推荐关注、火力榜、话题云模块（用占位内容填充）
+    const emptyState = document.getElementById('followingEmptyState');
+    const storySection = document.getElementById('followingStorySection');
+    const rankContainer = document.getElementById('followingRankList');
+    const topicContainer = document.getElementById('followingTopicCloud');
+    const feedSection = document.querySelector('#followingTab .following-section:last-of-type');
+    const recSection = document.getElementById('followingRecommendSection');
+    
+    if (emptyState) emptyState.style.display = 'block';
+    if (storySection) storySection.style.display = 'none';
+    if (rankContainer) rankContainer.innerHTML = '<div class="text-center py-4" style="color:var(--muted);">关注干员后解锁火力榜</div>';
+    if (topicContainer) topicContainer.innerHTML = '<div class="text-center py-2" style="color:var(--muted);">关注干员后查看热门话题</div>';
+    if (feedSection) feedSection.style.display = 'none';
+    if (recSection) recSection.style.display = 'block';
+    
+    loadFollowingRecommendations();
+    updateFollowingStats();
+    return;
+  }
+  
+  // 有关注用户时的正常显示逻辑
+  const emptyState = document.getElementById('followingEmptyState');
+  if (emptyState) emptyState.style.display = 'none';
+  document.querySelectorAll('#followingTab .following-section').forEach(s => s.style.display = 'block');
+  
+  updateFollowingStats();
+  await Promise.all([
+    loadFollowingStories(),
+    loadFollowingRank(),
+    loadFollowingTopicCloud(),
+    loadFollowingFeed(true)
+  ]);
+  loadFollowingRecommendations(); // 推荐不阻塞
+}
+// 更新统计数字
+async function updateFollowingStats() {
+  const countEl = document.getElementById('followingCountDisplay');
+  if (countEl) countEl.textContent = APP.followedIds.length;
+  
+  const today = new Date().toISOString().split('T')[0];
+  const { count } = await sb.from('posts')
+    .select('*', { count: 'exact', head: true })
+    .in('user_id', APP.followedIds)
+    .gte('created_at', today);
+  const todayPostsEl = document.getElementById('followingTodayPosts');
+  if (todayPostsEl) todayPostsEl.textContent = count || 0;
+}
+
+// 加载关注用户的 Story 环（最新动态）
+async function loadFollowingStories() {
+  const container = document.getElementById('followingStoriesContainer');
+  if (!container) return;
+  container.innerHTML = '<div class="text-center py-4" style="color:var(--muted);"><i class="fas fa-spinner fa-pulse"></i> 扫描战场...</div>';
+  
+  const { data: profiles } = await sb.from('profiles')
+    .select('id, username, avatar_url, last_active_at')
+    .in('id', APP.followedIds)
+    .order('last_active_at', { ascending: false })
+    .limit(10);
+  
+  if (!profiles || profiles.length === 0) {
+    container.innerHTML = '<div class="text-center py-4" style="color:var(--muted);">暂无动态</div>';
+    return;
+  }
+  
+  const storiesHtml = await Promise.all(profiles.map(async (p) => {
+    const { data: latestPost } = await sb.from('posts')
+      .select('created_at, post_type')
+      .eq('user_id', p.id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const hasNew = latestPost && (new Date() - new Date(latestPost.created_at)) < 86400000;
+    return `
+      <div class="following-story-item" onclick="viewUserProfile('${p.id}')">
+        <div class="following-story-avatar-wrapper">
+          <img src="${p.avatar_url || dicebearUrl(p.username)}" class="following-story-avatar">
+          ${hasNew ? '<span class="online-dot"></span>' : ''}
+          ${hasNew ? '<span class="following-story-badge"><i class="fas fa-plus"></i></span>' : ''}
+        </div>
+        <span class="following-story-name">${p.username}</span>
+        <span class="following-story-time">${latestPost ? timeAgo(latestPost.created_at) : '近期无动态'}</span>
+      </div>
+    `;
+  }));
+  container.innerHTML = storiesHtml.join('');
+}
+
+// 加载关注用户排行榜（按近7天发帖数+获赞数）
+async function loadFollowingRank() {
+  const container = document.getElementById('followingRankList');
+  if (!container) return;
+  container.innerHTML = '<div class="text-center py-4" style="color:var(--muted);">计算火力值...</div>';
+  
+  const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString();
+  const { data: posts } = await sb.from('posts')
+    .select('user_id, upvotes')
+    .in('user_id', APP.followedIds)
+    .gte('created_at', weekAgo);
+  
+  const userScores = {};
+  APP.followedIds.forEach(id => userScores[id] = 0);
+  (posts || []).forEach(p => {
+    userScores[p.user_id] = (userScores[p.user_id] || 0) + 10 + (p.upvotes || 0) * 2;
+  });
+  
+  const sortedUsers = Object.entries(userScores)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5);
+  
+  if (sortedUsers.length === 0) {
+    container.innerHTML = '<div class="text-center py-4" style="color:var(--muted);">暂无数据</div>';
+    return;
+  }
+  
+  const userIds = sortedUsers.map(([id]) => id);
+  const { data: profiles } = await sb.from('profiles')
+    .select('id, username, avatar_url, level')
+    .in('id', userIds);
+  const userMap = {};
+  (profiles || []).forEach(p => userMap[p.id] = p);
+  
+  container.innerHTML = sortedUsers.map(([id, score], index) => {
+    const user = userMap[id] || { username: '干员', avatar_url: dicebearUrl('default'), level: 1 };
+    const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index+1}`;
+    return `
+      <div class="following-rank-item" onclick="viewUserProfile('${id}')">
+        <div class="following-rank-medal">${medal}</div>
+        <img src="${user.avatar_url}" class="following-rank-avatar">
+        <div class="following-rank-info">
+          <div class="following-rank-name">${user.username}</div>
+          <div class="following-rank-level">Lv.${user.level}</div>
+        </div>
+        <div>
+          <span class="following-rank-score">${score}</span>
+          <span class="following-rank-label">火力值</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// 加载关注话题云
+async function loadFollowingTopicCloud() {
+  const container = document.getElementById('followingTopicCloud');
+  if (!container) return;
+  
+  const { data: posts } = await sb.from('posts')
+    .select('tags')
+    .in('user_id', APP.followedIds)
+    .limit(50);
+  
+  const tagCount = {};
+  (posts || []).forEach(p => {
+    (p.tags || []).forEach(t => tagCount[t] = (tagCount[t] || 0) + 1);
+  });
+  
+  const sortedTags = Object.entries(tagCount)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 8);
+  
+  if (sortedTags.length === 0) {
+    container.innerHTML = '<div class="text-center py-2" style="color:var(--muted);">关注用户暂无话题</div>';
+    return;
+  }
+  
+  container.innerHTML = sortedTags.map(([tag, count]) => `
+    <span class="following-topic-tag" onclick="selectTopicFromCloud('${tag}')">
+      <i class="fas fa-fire"></i> #${tag} <span style="opacity:0.7; margin-left:4px;">${count}</span>
+    </span>
+  `).join('');
+}
+
+// 加载推荐关注
+async function loadFollowingRecommendations() {
+  const container = document.getElementById('followingRecommendGrid');
+  if (!container) return;
+  container.innerHTML = '<div class="col-span-2 text-center py-4" style="color:var(--muted);">扫描高价值目标...</div>';
+  
+  // 构建要排除的用户ID数组
+  const excludeIds = APP.followedIds.concat(APP.user ? APP.user.id : []);
+  
+  let query = sb.from('profiles')
+    .select('id, username, avatar_url, followers_count, level')
+    .order('followers_count', { ascending: false })
+    .limit(4);
+  
+  // 排除当前用户和已关注用户
+  if (excludeIds.length > 0) {
+    // 正确语法：直接传递数组或使用 .in() 的否定形式，Supabase 会自动处理 UUID 格式
+    // 方法一：使用 .not('id', 'in', excludeIds) （较新版本支持）
+    // 方法二：使用 .filter() 自定义条件
+    // 这里采用最可靠的自定义过滤方式
+    query = query.filter('id', 'not.in', `(${excludeIds.join(',')})`);
+  }
+  
+  const { data: allUsers, error } = await query;
+  
+  if (error) {
+    console.error('推荐关注查询失败:', error);
+    container.innerHTML = '<div class="col-span-2 text-center py-4" style="color:var(--muted);">加载失败，请刷新</div>';
+    return;
+  }
+  
+  if (!allUsers || allUsers.length === 0) {
+    container.innerHTML = '<div class="col-span-2 text-center py-4" style="color:var(--muted);">暂无推荐</div>';
+    return;
+  }
+  
+  container.innerHTML = allUsers.map(u => `
+    <div class="following-recommend-card" onclick="viewUserProfile('${u.id}')">
+      <img src="${u.avatar_url || dicebearUrl(u.username)}" class="following-recommend-avatar">
+      <div class="following-recommend-info">
+        <div class="following-recommend-name">
+          ${u.username}
+          <span class="following-recommend-badge">Lv.${u.level}</span>
+        </div>
+        <div class="following-recommend-stats">
+          <span><i class="fas fa-users"></i> ${u.followers_count || 0}</span>
+        </div>
+      </div>
+      <button class="following-recommend-btn" onclick="event.stopPropagation(); followUser('${u.id}')">
+        <i class="fas fa-user-plus"></i> 关注
+      </button>
+    </div>
+  `).join('');
+}
+// 加载关注动态流
+async function loadFollowingFeed(reset = false) {
+  if (followingState.feedLoading) return;
+  if (!reset && followingState.feedAllLoaded) return;
+  
+  followingState.feedLoading = true;
+  const container = document.getElementById('followingFeedContainer');
+  const loadingEl = document.getElementById('followingFeedLoading');
+  
+  if (reset) {
+    followingState.feedPage = 1;
+    followingState.feedAllLoaded = false;
+    container.innerHTML = '';
+  }
+  loadingEl.style.display = 'block';
+  
+  let query = sb.from('posts')
+    .select('*, profiles(username, avatar_url)')
+    .in('user_id', APP.followedIds)
+    .neq('post_type', 'story')
+    .order('created_at', { ascending: false })
+    .range((followingState.feedPage - 1) * 10, followingState.feedPage * 10 - 1);
+  
+  if (followingState.feedFilter === 'post') query = query.eq('post_type', 'normal');
+  else if (followingState.feedFilter === 'video') query = query.not('media_urls', 'eq', '{}');
+  else if (followingState.feedFilter === 'vote') query = query.eq('post_type', 'vote');
+  
+  const { data, error } = await query;
+  loadingEl.style.display = 'none';
+  
+  if (error || !data || data.length === 0) {
+    if (reset) container.innerHTML = '<div class="col-span-full text-center py-8" style="color:var(--muted);">关注用户暂无动态</div>';
+    followingState.feedAllLoaded = true;
+    followingState.feedLoading = false;
+    return;
+  }
+  
+  data.forEach(post => {
+    const card = createFollowingFeedCard(post);
+    container.appendChild(card);
+  });
+  
+  if (data.length < 10) followingState.feedAllLoaded = true;
+  followingState.feedPage++;
+  followingState.feedLoading = false;
+}
+
+// 创建动态卡片
+function createFollowingFeedCard(post) {
+  const div = document.createElement('div');
+  div.className = 'following-feed-card';
+  div.onclick = () => openComments(post.id);
+  
+  const mediaUrl = (post.media_urls || [])[0];
+  const mediaHtml = mediaUrl ? 
+    (mediaUrl.match(/\.(mp4|webm)$/i) ? 
+      `<video src="${mediaUrl}" class="following-feed-media" preload="metadata"></video>` :
+      `<img src="${mediaUrl}" class="following-feed-media">`) : '';
+  
+  div.innerHTML = `
+    <div class="following-feed-header">
+      <img src="${post.profiles?.avatar_url || dicebearUrl('u')}" class="following-feed-avatar">
+      <span class="following-feed-author">${post.profiles?.username || '干员'}</span>
+      <span class="following-feed-time">${timeAgo(post.created_at)}</span>
+    </div>
+    <div class="following-feed-title">${post.title}</div>
+    ${post.description ? `<div class="following-feed-desc">${post.description}</div>` : ''}
+    ${mediaHtml}
+    <div class="following-feed-stats">
+      <span><i class="far fa-thumbs-up"></i> ${post.upvotes || 0}</span>
+      <span><i class="far fa-comment"></i> ${post.comments_count || 0}</span>
+      <span><i class="far fa-heart"></i> ${post.favorites_count || 0}</span>
+    </div>
+    ${(post.tags || []).slice(0,2).map(t => `<span class="following-feed-tag">#${t}</span>`).join('')}
+  `;
+  return div;
+}
+
+// 过滤动态流
+function filterFollowingFeed(filter) {
+  followingState.feedFilter = filter;
+  document.querySelectorAll('.following-filter-chip').forEach(chip => {
+    chip.classList.toggle('active', chip.dataset.filter === filter);
+  });
+  loadFollowingFeed(true);
+}
+
+// 滚动加载更多
+function setupFollowingInfiniteScroll() {
+  const feedContainer = document.getElementById('followingFeedContainer');
+  if (!feedContainer) return;
+  
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting && !followingState.feedLoading && !followingState.feedAllLoaded) {
+        loadFollowingFeed();
+      }
+    });
+  }, { rootMargin: '200px' });
+  
+  const sentinel = document.createElement('div');
+  sentinel.id = 'followingFeedSentinel';
+  sentinel.style.height = '10px';
+  feedContainer.parentNode.appendChild(sentinel);
+  observer.observe(sentinel);
+}
+
+// 覆盖原有的 loadFollowingPosts 以接入新系统
+const originalLoadFollowingPosts = loadFollowingPosts;
+loadFollowingPosts = function() {
+  renderFollowingTab();
+};
+
+// 修改 switchTab 中对 following 的处理
+const originalSwitchTab = switchTab;
+switchTab = function(tab) {
+  originalSwitchTab(tab);
+  if (tab === 'following') {
+    setTimeout(() => {
+      renderFollowingTab();
+      setupFollowingInfiniteScroll();
+    }, 50);
+  }
+};
 // ==================== 护航专区 ====================
 async function loadEscortVideos(reset = true) {
   if (escortState.loading) return;
@@ -10821,6 +11857,8 @@ function updateWeaponDropdownOptions() {
 
 // ==================== 增强复制功能（带状态反馈） ====================
 function copyLoadoutCode(code, btn) {
+    console.log('copyLoadoutCode 被调用, code:', code, 'btn:', btn);
+    
     // 震动反馈
     if (navigator.vibrate) navigator.vibrate(10);
 
@@ -10857,7 +11895,6 @@ function copyLoadoutCode(code, btn) {
         document.body.removeChild(textarea);
     };
 
-    // 优先使用 Clipboard API
     if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(code).then(() => {
             showToast('✅ 改枪码已复制', 'success');
@@ -10874,6 +11911,7 @@ function copyLoadoutCode(code, btn) {
         fallbackCopy();
     }
 }
+
 // ==================== 覆盖原有的 renderLoadoutList（整合下拉更新） ====================
 const originalRenderLoadoutList = renderLoadoutList;
 renderLoadoutList = function() {
@@ -16625,14 +17663,58 @@ if ('ontouchstart' in window) {
 // ==================== 首页轮播（管理员可管理） ====================
 let homeBannerSwiper = null;
 
-// 加载首页轮播图
+// 加载首页轮播图（增强版：修复首次加载不显示）
 async function loadHomeBanners() {
   const wrapper = document.getElementById('homeBannerWrapper');
   const placeholder = document.getElementById('homeBannerPlaceholder');
   const container = document.getElementById('homeBannerContainer');
   if (!wrapper) return;
   
-  // ========== 第一步：查询数据库 ==========
+   // 如果容器宽度为0，检查 homeTab 是否可见
+  if (container.offsetWidth === 0) {
+    const homeTab = document.getElementById('homeTab');
+    const isHomeVisible = homeTab && homeTab.style.display !== 'none';
+    
+    if (!isHomeVisible) {
+      console.warn('首页Tab未显示，等待切换后再加载轮播');
+      // 监听首页显示事件（通过 MutationObserver 或直接在 switchTab 中触发）
+      const observer = new MutationObserver((mutations) => {
+        mutations.forEach(mut => {
+          if (mut.type === 'attributes' && mut.attributeName === 'style') {
+            if (homeTab.style.display !== 'none' && container.offsetWidth > 0) {
+              observer.disconnect();
+              loadHomeBanners();
+            }
+          }
+        });
+      });
+      observer.observe(homeTab, { attributes: true });
+      // 超时强制加载
+      setTimeout(() => {
+        observer.disconnect();
+        console.error('首页轮播加载超时');
+      }, 5000);
+      return;
+    }
+    
+    // 如果 homeTab 可见但容器宽度仍为0，使用 ResizeObserver
+    console.warn('轮播容器尺寸为0，等待宽度出现...');
+    const resizeObserver = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (entry.contentRect.width > 0) {
+        resizeObserver.disconnect();
+        loadHomeBanners();
+      }
+    });
+    resizeObserver.observe(container);
+    setTimeout(() => {
+      resizeObserver.disconnect();
+      console.error('轮播容器等待超时，放弃加载');
+    }, 5000);
+    return;
+  }
+
+  // 查询数据库
   const { data, error } = await sb
     .from('home_banners')
     .select('*')
@@ -16640,30 +17722,24 @@ async function loadHomeBanners() {
     .order('sort_order', { ascending: true })
     .order('created_at', { ascending: false });
   
-  // ========== 第二步：处理无数据情况 ==========
+  // 处理无数据情况
   if (error || !data || data.length === 0) {
-    // 显示占位符，隐藏轮播
     if (placeholder) placeholder.style.display = 'flex';
     if (homeBannerSwiper) {
       homeBannerSwiper.destroy();
       homeBannerSwiper = null;
     }
-    // 同时隐藏引导标题（如果之前显示过）
     const guideEl = document.querySelector('.home-banner-guide');
     if (guideEl) guideEl.style.display = 'none';
     return;
   }
   
-  // ========== 第三步：有数据，处理显示 ==========
-  // 隐藏占位符
+  // 隐藏占位符，显示引导标题
   if (placeholder) placeholder.style.display = 'none';
-  
-  // 显示并更新引导标题（取第一张轮播图的 guide_title）
   const guideEl = document.querySelector('.home-banner-guide');
   if (guideEl) {
     const firstBanner = data[0];
     const guideText = firstBanner.guide_title || '热门推荐';
-    // 保留图标，只更新文字部分
     const span = guideEl.querySelector('span');
     if (span) {
       span.textContent = guideText;
@@ -16672,7 +17748,6 @@ async function loadHomeBanners() {
     }
     guideEl.style.display = 'inline-flex';
   }
-  
 
   // 渲染轮播项
   wrapper.innerHTML = data.map(banner => `
@@ -16686,8 +17761,13 @@ async function loadHomeBanners() {
     </div>
   `).join('');
   
-  // 初始化 Swiper
-  if (homeBannerSwiper) homeBannerSwiper.destroy();
+  // 销毁旧 Swiper 实例
+  if (homeBannerSwiper) {
+    homeBannerSwiper.destroy(true, true);
+    homeBannerSwiper = null;
+  }
+  
+  // 创建新 Swiper 实例
   homeBannerSwiper = new Swiper('#homeBannerSwiper', {
     loop: data.length > 1,
     autoplay: { 
@@ -16710,6 +17790,12 @@ async function loadHomeBanners() {
     touchRatio: 1,
     touchAngle: 45,
     simulateTouch: true,
+    // 关键：初始化后立即更新
+    on: {
+      init: function() {
+        setTimeout(() => this.update(), 50);
+      },
+    }
   });
   
   // 悬停暂停动效
@@ -16721,6 +17807,12 @@ async function loadHomeBanners() {
       homeBannerSwiper?.autoplay?.start();
     });
   }
+  // 修复首次加载不显示问题：延迟强制刷新 Swiper
+  setTimeout(() => {
+    if (homeBannerSwiper) {
+      homeBannerSwiper.update();
+    }
+  }, 150);
 }
 
 // 管理员上传首页轮播图
@@ -16762,7 +17854,9 @@ const guideTitle = document.getElementById('homeBannerGuideTitle').value.trim() 
     document.getElementById('homeBannerDesc').value = '';
     document.getElementById('homeBannerLink').value = '';
     
-    loadHomeBanners();            // 刷新首页轮播
+       setTimeout(() => {
+      loadHomeBanners();
+    }, 50);      // 刷新首页轮播
     loadAdminHomeBannerList();    // 刷新管理列表
   } catch (e) {
     showToast('上传失败: ' + e.message, 'error');
@@ -16825,6 +17919,13 @@ async function deleteHomeBanner(id) {
   loadHomeBanners();
 }
 
+</script>
+<script>
+  window.addEventListener('load', function() {
+    if (typeof loadHomeBanners === 'function') {
+      setTimeout(loadHomeBanners, 200);
+    }
+  });
 </script>
 </body>
 
