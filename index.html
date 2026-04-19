@@ -4015,13 +4015,16 @@ body {
       
       <!-- 操作按钮组 -->
       <div class="flex gap-2">
-        <button class="btn-ghost flex-1 py-2 text-sm" onclick="nextQuizClue()">
-          <i class="fas fa-chevron-right mr-1"></i>下一条线索
-        </button>
-        <button class="btn-ghost flex-1 py-2 text-sm" onclick="giveUpQuiz()">
-          <i class="fas fa-flag-checkered mr-1"></i>放弃
-        </button>
-      </div>
+  <button class="btn-ghost flex-1 py-2 text-sm" id="quizPrevClueBtn" onclick="prevQuizClue()" disabled>
+    <i class="fas fa-chevron-left mr-1"></i>上一条
+  </button>
+  <button class="btn-ghost flex-1 py-2 text-sm" id="quizNextClueBtn" onclick="nextQuizClue()">
+    <i class="fas fa-chevron-right mr-1"></i>下一条
+  </button>
+  <button class="btn-ghost flex-1 py-2 text-sm" onclick="giveUpQuiz()">
+    <i class="fas fa-flag-checkered mr-1"></i>放弃
+  </button>
+</div>
       <p class="text-xs text-center mt-3" style="color: var(--muted);">
         <i class="fas fa-info-circle mr-1"></i>线索越少答对，奖励越高
       </p>
@@ -15792,42 +15795,184 @@ window.handleQuizAnswer = function(selectedIdx) {
   }, 800);
 };
 // ==================== 每日战术猜图（全局） ====================
-// ==================== 三角洲万象猜 · 完整题库与逻辑 ====================
+// ==================== 三角洲万象猜 · 完整题库与逻辑（简化版，直接信任爬虫分类） ====================
 const QUIZ_CONFIG = {
   dailyLimit: 3,
   storageKey: 'delta_wanxiang_quiz',
 };
 
-// 万象题库
-const QUIZ_DATABASE = [
-  // === 枪械类 ===
+// 静态题库（仅用于提供线索库，不参与题目生成）
+const STATIC_QUIZ_DATABASE = [
+  // === 枪械类（保留给可能的枪械题）===
   { category: '枪械', question: '这把枪以高射速和稳定性著称，是新手入门的首选突击步枪。', answer: 'M4A1', clues: ['它使用5.56毫米子弹', '它的原型是美国柯尔特公司设计', '在三角洲行动中，它的后坐力非常可控'], difficulty: 1 },
   { category: '枪械', question: '这把狙击枪是游戏中最具威力的一把，能够一击致命。', answer: 'AWM', clues: ['它使用.338马格南子弹', '它的枪声非常独特', '它通常只在空投中出现'], difficulty: 2 },
   { category: '枪械', question: '这把冲锋枪以其极高的射速和近战爆发力闻名。', answer: 'Vector', clues: ['它使用.45 ACP子弹', '它的外形非常紧凑', '它的射速超过1000 RPM'], difficulty: 2 },
-  { category: '枪械', question: '这把霰弹枪是近距离作战的王者，能够一枪击倒敌人。', answer: 'S12K', clues: ['它是半自动霰弹枪', '它可以装配步枪配件', '它在房区作战中极具威胁'], difficulty: 1 },
-  
   // === 地图类 ===
   { category: '地图', question: '这张地图以航天发射设施为背景，拥有复杂的室内外结构。', answer: '航天基地', clues: ['地图中央有一个巨大的火箭', '撤离点通常位于地图边缘', '这张地图有多个地下通道'], difficulty: 1 },
   { category: '地图', question: '这张地图是一个巨大的水坝区域，拥有高低落差极大的地形。', answer: '零号大坝', clues: ['地图中央是一个大坝', '地图分为上下两层', '行政楼是热门交战点'], difficulty: 1 },
-  
   // === 干员类 ===
   { category: '干员', question: '这名干员是突击兵种，擅长快速突破和近距离作战。', answer: '红狼', clues: ['他的技能是“肾上腺素”', '他使用霰弹枪或冲锋枪时更强', '他的背景故事与狼群有关'], difficulty: 1 },
   { category: '干员', question: '这名干员是侦察兵种，能够探测敌人位置。', answer: '金卢娜', clues: ['她的技能是“扫描脉冲”', '她能够短时间内透视墙壁', '她的定位是团队的信息核心'], difficulty: 1 },
-  
   // === 道具类 ===
   { category: '道具', question: '这个战术道具能够制造一片烟雾，遮挡敌人视线。', answer: '烟雾弹', clues: ['它可以用来掩护队友', '热成像可以穿透它', '它是最常用的战术道具之一'], difficulty: 1 },
   { category: '道具', question: '这个医疗物品能够缓慢恢复生命值。', answer: '医疗包', clues: ['使用需要读条时间', '它可以治疗重伤', '它比绷带效果更强'], difficulty: 1 },
-  
   // === 战术类 ===
   { category: '战术', question: '这种战术是指小队成员分散站位，从多个角度同时攻击敌人。', answer: '交叉火力', clues: ['它需要良好的团队配合', '它能让敌人难以应对', '它通常用于防守或伏击'], difficulty: 2 },
   { category: '战术', question: '这种打法是指玩家不携带高级装备，以低成本进入战局。', answer: '跑刀', clues: ['它的目标是“以小博大”', '它通常只带一把近战武器或便宜枪', '它适合熟悉地图的老手'], difficulty: 1 },
 ];
 
+// 按类别存储的线索库（从静态题库中提取）
+const CLUES_LIBRARY = {
+  '枪械': [],
+  '地图': [],
+  '干员': [],
+  '道具': [],
+  '战术': [],
+  '兵种': [],      // 兵种题专用线索
+  '物品价值': [],  // 物品价值题专用线索
+  '战术打法': []   // 战术打法题专用线索
+};
+
+// 从静态题库填充线索库
+for (const item of STATIC_QUIZ_DATABASE) {
+  if (CLUES_LIBRARY[item.category]) {
+    CLUES_LIBRARY[item.category].push(...item.clues);
+  }
+}
+
+// 为缺少线索的类别手动补充（确保每条线索至少3条）
+const extraClues = {
+  '兵种': [
+    '突击兵种擅长正面突破，压制力强',
+    '侦察兵种擅长获取情报，机动性高',
+    '支援兵种提供治疗和弹药补给',
+    '工程兵种擅长破坏和建造掩体',
+    '每个兵种都有专属的主武器',
+    '兵种选择影响团队战术配合'
+  ],
+  '物品价值': [
+    '高价值物品通常在危险区域刷新',
+    '市场价格受供需影响',
+    '某些物品可以兑换高级装备',
+    '收藏品价值随时间变化'
+  ],
+  '战术打法': [
+    '需要与队友配合执行',
+    '根据地图和局势灵活选择',
+    '高手常用的策略之一',
+    '能有效提高胜率'
+  ]
+};
+for (const [cat, clues] of Object.entries(extraClues)) {
+  if (CLUES_LIBRARY[cat]) {
+    CLUES_LIBRARY[cat].push(...clues);
+  }
+}
+// 去重并确保每个类别至少有3条线索
+for (const cat in CLUES_LIBRARY) {
+  CLUES_LIBRARY[cat] = [...new Set(CLUES_LIBRARY[cat])];
+  while (CLUES_LIBRARY[cat].length < 3) {
+    CLUES_LIBRARY[cat].push('与' + cat + '相关的游戏内容');
+  }
+}
+
+// 当前使用的题库（从爬虫加载）
+let QUIZ_DATABASE = [];
+
+// 从爬虫拉取题目，直接使用其 category 和 clues（如果爬虫没有线索，则从 CLUES_LIBRARY 中随机抽取）
+async function loadRemoteQuizDatabase() {
+  const urls = [
+    'https://raw.githubusercontent.com/shi111567/delta-gunsmith-crawler/main/quiz_bank.json?t=' + Date.now(),
+    'https://cdn.jsdelivr.net/gh/shi111567/delta-gunsmith-crawler@main/quiz_bank.json?t=' + Date.now()
+  ];
+  
+  for (const url of urls) {
+    try {
+      const response = await fetch(url, { cache: 'no-cache' });
+      if (!response.ok) continue;
+      const remoteData = await response.json();
+      if (!Array.isArray(remoteData) || remoteData.length === 0) continue;
+      
+      const converted = [];
+      for (const item of remoteData) {
+        let question = '';
+        let answer = '';
+        let category = item.category || '通用';
+        let clues = [];
+        
+        // 提取问题
+        if (typeof item.q === 'string' && item.q.trim()) {
+          question = item.q.trim();
+        } else if (typeof item.question === 'string' && item.question.trim()) {
+          question = item.question.trim();
+        } else {
+          continue;
+        }
+        
+        // 提取答案
+        if (typeof item.answer === 'string' && item.answer.trim()) {
+          answer = item.answer.trim();
+        } else if (Array.isArray(item.opts) && typeof item.ans === 'number') {
+          answer = item.opts[item.ans] || '';
+        } else if (Array.isArray(item.options) && typeof item.answer === 'number') {
+          answer = item.options[item.answer] || '';
+        } else {
+          continue;
+        }
+        if (!answer) continue;
+        
+        // 优先使用爬虫自带的线索
+        if (Array.isArray(item.clues) && item.clues.length) {
+          clues = item.clues.filter(c => typeof c === 'string' && c.trim());
+        }
+        
+        // 如果爬虫没有提供线索，则从 CLUES_LIBRARY 中为该类别随机抽取3条
+        if (clues.length === 0) {
+          const lib = CLUES_LIBRARY[category] || CLUES_LIBRARY['枪械'];
+          if (lib && lib.length) {
+            const shuffled = [...lib];
+            for (let i = shuffled.length - 1; i > 0; i--) {
+              const j = Math.floor(Math.random() * (i + 1));
+              [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+            clues = shuffled.slice(0, 3);
+            while (clues.length < 3) clues.push('游戏内相关知识');
+          } else {
+            clues = ['与' + category + '相关的知识', '游戏内常见内容', '试试常见答案'];
+          }
+        }
+        
+        converted.push({
+          category: category,
+          question: question,
+          answer: answer,
+          clues: clues,
+          difficulty: item.difficulty || 1
+        });
+      }
+      
+      if (converted.length > 0) {
+        QUIZ_DATABASE = converted;
+        console.log(`✅ 万象猜题库已从爬虫更新，共 ${QUIZ_DATABASE.length} 题`);
+        if (typeof loadQuizState === 'function') loadQuizState();
+        if (typeof updateQuizUI === 'function') updateQuizUI();
+        if (typeof renderQuizStartView === 'function') renderQuizStartView();
+        return;
+      }
+    } catch (e) {
+      console.warn('拉取爬虫题库失败:', url, e);
+    }
+  }
+  
+  console.warn('⚠️ 使用本地静态题库');
+  QUIZ_DATABASE = [...STATIC_QUIZ_DATABASE];
+}
+
 // 当前游戏状态
 let quizState = {
   currentQuiz: null,
   currentClueIndex: 0,
-  status: 'idle', // idle, playing, finished
+  status: 'idle',
   todayCount: 0,
   winStreak: 0,
   history: []
@@ -15835,12 +15980,13 @@ let quizState = {
 
 // 初始化万象猜
 function initWanxiangQuiz() {
-  loadQuizState();
-  updateQuizUI();
-  renderQuizStartView();
+  loadRemoteQuizDatabase().finally(() => {
+    loadQuizState();
+    updateQuizUI();
+    renderQuizStartView();
+  });
 }
 
-// 加载本地存储的状态
 function loadQuizState() {
   const saved = localStorage.getItem(QUIZ_CONFIG.storageKey);
   if (saved) {
@@ -15861,7 +16007,6 @@ function loadQuizState() {
   updateQuizStats();
 }
 
-// 保存状态
 function saveQuizState() {
   const data = {
     date: getTodayStr(),
@@ -15872,14 +16017,15 @@ function saveQuizState() {
   localStorage.setItem(QUIZ_CONFIG.storageKey, JSON.stringify(data));
 }
 
-// 更新统计显示
 function updateQuizStats() {
-  document.getElementById('quizTodayCount').textContent = quizState.todayCount;
-  document.getElementById('quizWinStreak').textContent = quizState.winStreak;
+  const countEl = document.getElementById('quizTodayCount');
+  const streakEl = document.getElementById('quizWinStreak');
+  if (countEl) countEl.textContent = quizState.todayCount;
+  if (streakEl) streakEl.textContent = quizState.winStreak;
 }
 
-// 随机获取题目
 function getRandomQuiz() {
+  if (!QUIZ_DATABASE.length) return STATIC_QUIZ_DATABASE[0];
   const randomIndex = Math.floor(Math.random() * QUIZ_DATABASE.length);
   return { ...QUIZ_DATABASE[randomIndex] };
 }
@@ -15890,65 +16036,86 @@ window.startQuiz = function() {
     showToast('今日挑战次数已用完，明天再来吧！', 'warning');
     return;
   }
-  
   quizState.currentQuiz = getRandomQuiz();
   quizState.currentClueIndex = 0;
   quizState.status = 'playing';
   
-  document.getElementById('quizCategoryLabel').textContent = `今日挑战 · 猜${quizState.currentQuiz.category}`;
-  document.getElementById('quizDescription').textContent = quizState.currentQuiz.question;
-  document.getElementById('quizStatus').textContent = '挑战中';
+  // 更新分类标签（确保显示正确类别）
+  const categoryLabel = document.getElementById('quizCategoryLabel');
+  if (categoryLabel) {
+    categoryLabel.textContent = `今日挑战 · 猜${quizState.currentQuiz.category}`;
+  }
+  const descriptionEl = document.getElementById('quizDescription');
+  const statusEl = document.getElementById('quizStatus');
+  if (descriptionEl) descriptionEl.textContent = quizState.currentQuiz.question;
+  if (statusEl) statusEl.textContent = '挑战中';
   
-  document.getElementById('quizStartView').style.display = 'none';
-  document.getElementById('quizPlayView').style.display = 'block';
-  document.getElementById('quizResultView').style.display = 'none';
+  const startView = document.getElementById('quizStartView');
+  const playView = document.getElementById('quizPlayView');
+  const resultView = document.getElementById('quizResultView');
+  if (startView) startView.style.display = 'none';
+  if (playView) playView.style.display = 'block';
+  if (resultView) resultView.style.display = 'none';
   
   showClue(0);
 };
 
-// 显示线索
 function showClue(index) {
   const quiz = quizState.currentQuiz;
   const totalClues = quiz.clues.length;
-  document.getElementById('quizClueIndex').textContent = index + 1;
-  document.getElementById('quizClueTotal').textContent = totalClues;
+  if (index < 0) index = 0;
+  if (index >= totalClues) index = totalClues - 1;
+  quizState.currentClueIndex = index;
   
-  if (index < totalClues) {
-    document.getElementById('quizCurrentClue').textContent = quiz.clues[index];
+  const clueIndexSpan = document.getElementById('quizClueIndex');
+  const clueTotalSpan = document.getElementById('quizClueTotal');
+  const currentClueDiv = document.getElementById('quizCurrentClue');
+  const scoreHintSpan = document.getElementById('quizScoreHint');
+  
+  if (clueIndexSpan) clueIndexSpan.textContent = index + 1;
+  if (clueTotalSpan) clueTotalSpan.textContent = totalClues;
+  if (currentClueDiv && index < totalClues) {
+    currentClueDiv.textContent = quiz.clues[index];
   }
   
-  // 更新得分提示
   const baseScore = 30;
   const remainingScore = Math.max(10, baseScore - index * 5);
-  document.getElementById('quizScoreHint').textContent = `答对+${remainingScore}经验`;
+  if (scoreHintSpan) scoreHintSpan.textContent = `答对+${remainingScore}经验`;
+  
+  const prevBtn = document.getElementById('quizPrevClueBtn');
+  const nextBtn = document.getElementById('quizNextClueBtn');
+  if (prevBtn) prevBtn.disabled = (index === 0);
+  if (nextBtn) nextBtn.disabled = (index === totalClues - 1);
 }
 
-// 下一条线索
+// 上一个线索
+window.prevQuizClue = function() {
+  if (quizState.status !== 'playing') return;
+  const newIndex = quizState.currentClueIndex - 1;
+  if (newIndex >= 0) showClue(newIndex);
+};
+
+// 下一个线索
 window.nextQuizClue = function() {
   if (quizState.status !== 'playing') return;
-  const quiz = quizState.currentQuiz;
-  const nextIndex = quizState.currentClueIndex + 1;
-  if (nextIndex < quiz.clues.length) {
-    quizState.currentClueIndex = nextIndex;
-    showClue(nextIndex);
+  const newIndex = quizState.currentClueIndex + 1;
+  if (newIndex < quizState.currentQuiz.clues.length) {
+    showClue(newIndex);
   } else {
     showToast('已经是最后一条线索了，快猜吧！', 'info');
   }
 };
 
-// 提交答案
 window.submitQuizAnswer = function() {
   if (quizState.status !== 'playing') return;
   const input = document.getElementById('quizAnswerInput');
+  if (!input) return;
   const answer = input.value.trim();
   if (!answer) {
     showToast('请输入答案', 'warning');
     return;
   }
-  
-  const quiz = quizState.currentQuiz;
-  const isCorrect = answer.toLowerCase() === quiz.answer.toLowerCase();
-  
+  const isCorrect = answer.toLowerCase() === quizState.currentQuiz.answer.toLowerCase();
   if (isCorrect) {
     handleCorrect();
   } else {
@@ -15958,12 +16125,10 @@ window.submitQuizAnswer = function() {
   }
 };
 
-// 回答正确处理
 function handleCorrect() {
   const quiz = quizState.currentQuiz;
   const clueUsed = quizState.currentClueIndex;
-  const baseScore = 30;
-  const earnedExp = Math.max(10, baseScore - clueUsed * 5);
+  const earnedExp = Math.max(10, 30 - clueUsed * 5);
   
   quizState.status = 'finished';
   quizState.todayCount++;
@@ -15976,11 +16141,9 @@ function handleCorrect() {
     exp: earnedExp,
     time: new Date().toISOString()
   });
-  
   saveQuizState();
   updateQuizStats();
   
-  // 发放经验
   if (APP.user && APP.profile) {
     APP.profile.exp = (APP.profile.exp || 0) + earnedExp;
     const levelUp = APP.profile.exp >= APP.profile.level * 100;
@@ -15992,12 +16155,9 @@ function handleCorrect() {
       sb.from('profiles').update({ exp: APP.profile.exp, level: APP.profile.level }).eq('id', APP.user.id);
     }
   }
-  
-  // 显示结果
   showQuizResult(true, quiz.answer, earnedExp);
-};
+}
 
-// 放弃
 window.giveUpQuiz = function() {
   if (quizState.status !== 'playing') return;
   const quiz = quizState.currentQuiz;
@@ -16010,37 +16170,38 @@ window.giveUpQuiz = function() {
     cluesUsed: quizState.currentClueIndex + 1,
     time: new Date().toISOString()
   });
-  
   saveQuizState();
   updateQuizStats();
-  
   showQuizResult(false, quiz.answer, 0);
 };
 
-// 显示结果视图
 function showQuizResult(isCorrect, answer, exp) {
-  document.getElementById('quizPlayView').style.display = 'none';
-  document.getElementById('quizResultView').style.display = 'block';
-  document.getElementById('quizStatus').textContent = isCorrect ? '已完成' : '已放弃';
-  
+  const playView = document.getElementById('quizPlayView');
+  const resultView = document.getElementById('quizResultView');
+  const statusEl = document.getElementById('quizStatus');
   const iconEl = document.getElementById('quizResultIcon');
   const titleEl = document.getElementById('quizResultTitle');
   const msgEl = document.getElementById('quizResultMessage');
   
-  if (isCorrect) {
-    iconEl.innerHTML = '<i class="fas fa-trophy" style="color: #FFD700;"></i>';
-    titleEl.textContent = '🎉 回答正确！';
-    titleEl.style.color = '#2ecc71';
-    msgEl.textContent = `恭喜你猜对了！答案是“${answer}”，获得 ${exp} 点经验！`;
-  } else {
-    iconEl.innerHTML = '<i class="fas fa-times-circle" style="color: #e74c3c;"></i>';
-    titleEl.textContent = '😢 挑战失败';
-    titleEl.style.color = '#e74c3c';
-    msgEl.textContent = `正确答案是“${answer}”，下次继续努力！`;
+  if (playView) playView.style.display = 'none';
+  if (resultView) resultView.style.display = 'block';
+  if (statusEl) statusEl.textContent = isCorrect ? '已完成' : '已放弃';
+  
+  if (iconEl && titleEl && msgEl) {
+    if (isCorrect) {
+      iconEl.innerHTML = '<i class="fas fa-trophy" style="color: #FFD700;"></i>';
+      titleEl.textContent = '🎉 回答正确！';
+      titleEl.style.color = '#2ecc71';
+      msgEl.textContent = `恭喜你猜对了！答案是“${answer}”，获得 ${exp} 点经验！`;
+    } else {
+      iconEl.innerHTML = '<i class="fas fa-times-circle" style="color: #e74c3c;"></i>';
+      titleEl.textContent = '😢 挑战失败';
+      titleEl.style.color = '#e74c3c';
+      msgEl.textContent = `正确答案是“${answer}”，下次继续努力！`;
+    }
   }
 }
 
-// 刷新题目
 window.refreshQuiz = function() {
   if (quizState.status === 'playing') {
     if (!confirm('当前挑战尚未完成，确定要换一题吗？')) return;
@@ -16048,24 +16209,31 @@ window.refreshQuiz = function() {
   quizState.status = 'idle';
   renderQuizStartView();
   const randomQuiz = getRandomQuiz();
-  document.getElementById('quizDescription').textContent = randomQuiz.question;
-  document.getElementById('quizCategoryLabel').textContent = `今日挑战 · 猜${randomQuiz.category}`;
-  document.getElementById('quizStatus').textContent = '未开始';
+  const descEl = document.getElementById('quizDescription');
+  const catEl = document.getElementById('quizCategoryLabel');
+  const statusEl = document.getElementById('quizStatus');
+  if (descEl) descEl.textContent = randomQuiz.question;
+  if (catEl) catEl.textContent = `今日挑战 · 猜${randomQuiz.category}`;
+  if (statusEl) statusEl.textContent = '未开始';
 };
 
-// 渲染开始视图
 function renderQuizStartView() {
-  document.getElementById('quizStartView').style.display = 'block';
-  document.getElementById('quizPlayView').style.display = 'none';
-  document.getElementById('quizResultView').style.display = 'none';
-  document.getElementById('quizStatus').textContent = '未开始';
+  const startView = document.getElementById('quizStartView');
+  const playView = document.getElementById('quizPlayView');
+  const resultView = document.getElementById('quizResultView');
+  const statusEl = document.getElementById('quizStatus');
+  if (startView) startView.style.display = 'block';
+  if (playView) playView.style.display = 'none';
+  if (resultView) resultView.style.display = 'none';
+  if (statusEl) statusEl.textContent = '未开始';
   
   const randomQuiz = getRandomQuiz();
-  document.getElementById('quizDescription').textContent = randomQuiz.question;
-  document.getElementById('quizCategoryLabel').textContent = `今日挑战 · 猜${randomQuiz.category}`;
+  const descEl = document.getElementById('quizDescription');
+  const catEl = document.getElementById('quizCategoryLabel');
+  if (descEl) descEl.textContent = randomQuiz.question;
+  if (catEl) catEl.textContent = `今日挑战 · 猜${randomQuiz.category}`;
 }
 
-// 分享结果
 window.shareQuizResult = function() {
   const text = `我在三角洲墨辰电竞的“万象猜”中答对了！连胜${quizState.winStreak}场，快来挑战吧！`;
   if (navigator.share) {
@@ -16076,7 +16244,6 @@ window.shareQuizResult = function() {
   }
 };
 
-// 显示历史记录
 window.showQuizHistory = function() {
   const history = quizState.history;
   if (history.length === 0) {
@@ -16084,18 +16251,13 @@ window.showQuizHistory = function() {
     return;
   }
   const recent = history.slice(-5).reverse();
-  const text = recent.map(h => {
-    const status = h.correct ? '✅' : '❌';
-    return `${status} ${h.category} · ${h.answer}`;
-  }).join('\n');
+  const text = recent.map(h => `${h.correct ? '✅' : '❌'} ${h.category} · ${h.answer}`).join('\n');
   alert('最近5条记录：\n' + text);
 };
 
-// 更新UI
 function updateQuizUI() {
   updateQuizStats();
 }
-
 // 页面加载时初始化
 document.addEventListener('DOMContentLoaded', () => {
   setTimeout(() => {
