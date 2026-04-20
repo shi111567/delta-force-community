@@ -6937,6 +6937,39 @@ async function loadHotRecommend() {
   `).join('');
 }
 
+// 切换战术卡片菜单显示
+window.toggleTacticalCardMenu = function(e, postId) {
+    e.stopPropagation();
+    const menu = document.getElementById('tacticalMenu-' + postId);
+    if (!menu) return;
+    // 关闭其他打开的菜单
+    document.querySelectorAll('.tactical-card-menu').forEach(m => {
+        if (m.id !== 'tacticalMenu-' + postId) m.classList.add('hidden');
+    });
+    menu.classList.toggle('hidden');
+};
+
+// 删除战术帖子
+window.deleteTacticalPost = async function(postId) {
+    if (!APP.user) return;
+    if (!confirm('确定删除这个战术分享吗？')) return;
+    
+    const { error } = await sb.from('posts').delete().eq('id', postId);
+    if (error) {
+        showToast('删除失败', 'error');
+        return;
+    }
+    showToast('战术分享已删除', 'success');
+    // 刷新战术流
+    loadCommunityTacticalStream();
+};
+
+// 点击其他区域关闭菜单
+document.addEventListener('click', function() {
+    document.querySelectorAll('.tactical-card-menu').forEach(m => m.classList.add('hidden'));
+});
+
+
 async function loadCommunityTacticalStream() {
   const container = document.getElementById('communityStreamList');
   if (!container) return;
@@ -6967,23 +7000,38 @@ async function loadCommunityTacticalStream() {
     const user = post.profiles || {};
     const isCoord = attach.type === 'coordinate';
     const code = attach.code || '';
+    const isAuthor = APP.user && APP.user.id === post.user_id;
+    const canEdit = isAuthor || APP.isAdmin;
+    
     return `
-      <div class="stream-card flex-shrink-0" style="width: 180px; background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 12px; cursor: pointer;" onclick="handleTacticalAttachment('${code}', '${attach.type}')">
-        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+      <div class="stream-card flex-shrink-0" style="width: 200px; background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 12px; position: relative;">
+        ${canEdit ? `
+        <div style="position: absolute; top: 8px; right: 8px; z-index: 10;">
+          <button class="text-xs px-2 py-1 rounded-full" style="background: var(--surface); border: 1px solid var(--border); color: var(--muted);" onclick="event.stopPropagation(); toggleTacticalCardMenu(event, '${post.id}')">
+            <i class="fas fa-ellipsis-v"></i>
+          </button>
+          <div class="tactical-card-menu hidden absolute right-0 top-6 card-base p-1 space-y-1 text-xs" style="min-width: 80px;" id="tacticalMenu-${post.id}">
+            <button class="w-full text-left px-2 py-1 rounded hover:bg-red-500/10 text-red-400" onclick="event.stopPropagation(); deleteTacticalPost('${post.id}')">
+              <i class="fas fa-trash mr-1"></i>删除
+            </button>
+          </div>
+        </div>
+        ` : ''}
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;" onclick="viewUserProfile('${user.id || ''}')">
           <img src="${user.avatar_url || dicebearUrl(user.username || 'default')}" style="width: 24px; height: 24px; border-radius: 50%; object-fit: cover;">
           <span class="text-xs font-medium truncate">${user.username || '干员'}</span>
         </div>
-        <div class="text-xs mb-2" style="color: var(--accent);">
+        <div class="text-xs mb-2" style="color: var(--accent);" onclick="handleTacticalAttachment('${code}', '${attach.type}')">
           <i class="fas fa-${isCoord ? 'map-pin' : 'save'} mr-1"></i>
           ${isCoord ? code : '战术蓝图'}
         </div>
-        <div class="text-xs truncate" style="color: var(--muted);">${post.title || '分享了一个战术'}</div>
-        <button class="btn-ghost text-xs w-full mt-2 py-1" onclick="event.stopPropagation(); handleTacticalAttachment('${code}', '${attach.type}')">
+        <div class="text-xs truncate mb-2" style="color: var(--muted);">${post.title || '分享了一个战术'}</div>
+        <button class="btn-ghost text-xs w-full py-1" onclick="handleTacticalAttachment('${code}', '${attach.type}')">
           <i class="fas fa-${isCoord ? 'map-pin' : 'download'} mr-1"></i>${isCoord ? '查看坐标' : '加载蓝图'}
         </button>
       </div>
     `;
-  }).join('');
+}).join('');
   
   // 为电脑端添加横向拖拽滚动
   if (typeof enableHorizontalDragScroll === 'function') {
@@ -7001,9 +7049,10 @@ window.handleTacticalAttachment = function(code, type) {
     switchTab('tactical');
     showToast(`在战术板上查找坐标: ${code}`, 'info');
     // 可以扩展：自动在地图上标记该坐标
-  } else if (type === 'blueprint') {
+   } else if (type === 'blueprint') {
     // 先切换到战术板
     switchTab('tactical');
+    showToast('📋 正在加载战术蓝图...', 'info');
     // 延迟一点确保 DOM 已切换
     setTimeout(() => {
         // 打开加载蓝图弹窗（如果已存在则先移除，避免重复）
@@ -7026,12 +7075,12 @@ window.handleTacticalAttachment = function(code, type) {
                 if (typeof applyBlueprint === 'function') {
                     applyBlueprint();
                 } else {
-                    showToast('自动加载失败，请手动点击加载按钮', 'info');
+                    showToast('请手动点击「加载」按钮', 'info');
                 }
             } else {
                 showToast('未找到蓝图输入框，请手动粘贴', 'info');
             }
-        }, 200);
+        }, 300);  // 将延迟从 200 调整为 300，更稳定
     }, 300);
 }
 };
@@ -12953,6 +13002,18 @@ if (pointPanel) {
     showToast(`点击画布放置 ${getPointLabel(type)} · 右键可取消`, 'info');
   }
 
+function activatePlaceMode(type) {
+    placeMode = true;
+    currentPointType = type;
+    tacCanvas.style.cursor = 'crosshair';
+    canvasContainer.style.outline = '3px solid var(--accent)';
+    canvasContainer.style.outlineOffset = '2px';
+    const cancelBtn = document.getElementById('cancelPlaceModePanelBtn');
+    if (cancelBtn) cancelBtn.style.display = 'inline-block';
+    showToast(`点击画布放置 ${getPointLabel(type)} · 右键可取消`, 'info');
+}
+window.activatePlaceMode = activatePlaceMode;   // 新增这行
+
    // 取消放置模式
   window.cancelPlaceMode = function() {
     placeMode = false;
@@ -13292,90 +13353,125 @@ function fallbackCopy(text) {
 }
 
 
-   // ========== 保存蓝图（仅点位和文字） ==========
-  window.saveBlueprint = function() {
-    // 收集所有放置的点位
-    const points = [];
-    document.querySelectorAll('.placed-point').forEach(el => {
-      points.push({
-        type: el.dataset.type,
-        x: parseFloat(el.getAttribute('data-x')),
-        y: parseFloat(el.getAttribute('data-y'))
-      });
+  // ========== 保存蓝图（完整版：含自由绘制与背景） ==========
+window.saveBlueprint = async function() {
+  showToast('📸 正在生成战术蓝图...', 'info');
+  
+  // 收集所有放置的点位
+  const points = [];
+  document.querySelectorAll('.placed-point').forEach(el => {
+    points.push({
+      type: el.dataset.type,
+      x: parseFloat(el.getAttribute('data-x')),
+      y: parseFloat(el.getAttribute('data-y'))
     });
-      window.copyBlueprintCode = function(code, btn) {
+  });
+  
+  // 收集文字对象
+  const texts = textObjects || [];
+  
+  // === 生成合并图层（背景 + 自由绘制） ===
+  const mergeCanvas = document.createElement('canvas');
+  mergeCanvas.width = 800;
+  mergeCanvas.height = 500;
+  const mergeCtx = mergeCanvas.getContext('2d');
+  
+  // 绘制背景层（包含上传底图或默认网格）
+  mergeCtx.drawImage(bgCanvas, 0, 0);
+  // 绘制自由绘制层
+  mergeCtx.drawImage(freeCanvas, 0, 0);
+  
+  // 将合并图层转为 Blob 并上传
+  const blob = await new Promise(resolve => mergeCanvas.toBlob(resolve, 'image/png'));
+  const path = `${APP.user.id}/blueprint_bg_${Date.now()}.png`;
+  const { error: uploadError } = await sb.storage.from('posts').upload(path, blob, {
+    contentType: 'image/png',
+    cacheControl: '3600'
+  });
+  
+  if (uploadError) {
+    console.error('背景上传失败:', uploadError);
+    showToast('背景上传失败，蓝图将不含背景', 'warning');
+  }
+  
+  const { data: { publicUrl } } = sb.storage.from('posts').getPublicUrl(path);
+  const mergedBgUrl = uploadError ? null : publicUrl;
+  
+  // 构建蓝图对象
+  const blueprint = {
+    version: 2,  // 新版本号
+    mergedBgUrl: mergedBgUrl,
+    points: points,
+    texts: texts,
+    createdAt: new Date().toISOString()
+  };
+  
+  // 压缩为 Base64
+  const jsonStr = JSON.stringify(blueprint);
+  const base64 = btoa(encodeURIComponent(jsonStr).replace(/%([0-9A-F]{2})/g, (match, p1) => {
+    return String.fromCharCode('0x' + p1);
+  }));
+  
+  window.lastTacticalBlueprint = base64;
+  
+  // 显示蓝图码弹窗
+  showBlueprintCode(base64);
+};
+
+// ========== 辅助函数：复制蓝图码到剪贴板 ==========
+function copyBlueprintCode(code, btn) {
     // 震动反馈（移动端）
     if (navigator.vibrate) navigator.vibrate(10);
     
-    const fallbackCopy = () => {
-      const textarea = document.createElement('textarea');
-      textarea.value = code;
-      textarea.style.position = 'fixed';
-      textarea.style.top = '0';
-      textarea.style.left = '0';
-      textarea.style.opacity = '0';
-      textarea.style.pointerEvents = 'none';
-      document.body.appendChild(textarea);
-      textarea.focus();
-      textarea.select();
-      textarea.setSelectionRange(0, 99999);
-      try {
-        const successful = document.execCommand('copy');
-        if (successful) {
-          showToast('✅ 蓝图码已复制', 'success');
-          if (btn) {
+    // 复制成功后的按钮视觉反馈
+    const showSuccess = () => {
+        if (btn) {
             btn.innerHTML = '<i class="fas fa-check"></i> 已复制';
             btn.style.background = '#2ecc71';
             setTimeout(() => {
-              btn.innerHTML = '<i class="far fa-copy mr-2"></i>复制蓝图码';
-              btn.style.background = '';
+                btn.innerHTML = '<i class="far fa-copy mr-2"></i>复制蓝图码';
+                btn.style.background = '';
             }, 1500);
-          }
-        } else {
-          showToast('❌ 复制失败，请手动复制', 'error');
         }
-      } catch (err) {
-        showToast('❌ 复制失败', 'error');
-      }
-      document.body.removeChild(textarea);
     };
 
+    // 通用的复制降级方案（兼容所有浏览器）
+    const fallbackCopy = () => {
+        const textarea = document.createElement('textarea');
+        textarea.value = code;
+        textarea.style.position = 'fixed';
+        textarea.style.top = '0';
+        textarea.style.left = '0';
+        textarea.style.opacity = '0';
+        textarea.style.pointerEvents = 'none';
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        textarea.setSelectionRange(0, 99999);
+        try {
+            const successful = document.execCommand('copy');
+            if (successful) {
+                showToast('✅ 蓝图码已复制', 'success');
+                showSuccess();
+            } else {
+                showToast('❌ 复制失败，请手动复制', 'error');
+            }
+        } catch (err) {
+            showToast('❌ 复制失败', 'error');
+        }
+        document.body.removeChild(textarea);
+    };
+
+    // 优先使用现代的 Clipboard API
     if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(code).then(() => {
-        showToast('✅ 蓝图码已复制', 'success');
-        if (btn) {
-          btn.innerHTML = '<i class="fas fa-check"></i> 已复制';
-          btn.style.background = '#2ecc71';
-          setTimeout(() => {
-            btn.innerHTML = '<i class="far fa-copy mr-2"></i>复制蓝图码';
-            btn.style.background = '';
-          }, 1500);
-        }
-      }).catch(fallbackCopy);
+        navigator.clipboard.writeText(code).then(() => {
+            showToast('✅ 蓝图码已复制', 'success');
+            showSuccess();
+        }).catch(fallbackCopy);
     } else {
-      fallbackCopy();
+        fallbackCopy();
     }
-  };
-    // 收集文字对象
-    const texts = textObjects || [];
-    
-    const blueprint = {
-      version: 1,
-      points: points,
-      texts: texts
-    };
-    
-    // 压缩为 Base64 短码
-    const jsonStr = JSON.stringify(blueprint);
-    const base64 = btoa(encodeURIComponent(jsonStr).replace(/%([0-9A-F]{2})/g, (match, p1) => {
-      return String.fromCharCode('0x' + p1);
-    }));
-    
-window.lastTacticalBlueprint = base64;
-
-    // 显示蓝图码弹窗
-    showBlueprintCode(base64);
-  };
+}
 
 
   // ========== 加载蓝图 ==========
@@ -13415,48 +13511,75 @@ window.lastTacticalBlueprint = base64;
     });
   }
   
-    window.applyBlueprint = function() {
-    const input = document.getElementById('blueprintInput');
-    if (!input) return;
-    const code = input.value.trim();
-    if (!code) {
-      showToast('请输入蓝图码', 'error');
-      return;
+    window.applyBlueprint = async function() {
+  const input = document.getElementById('blueprintInput');
+  if (!input) return;
+  const code = input.value.trim();
+  if (!code) {
+    showToast('请输入蓝图码', 'error');
+    return;
+  }
+  
+  try {
+    // 解码 Base64
+    const jsonStr = decodeURIComponent(atob(code).split('').map(c => {
+      return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+    }).join(''));
+    const blueprint = JSON.parse(jsonStr);
+    
+    // 清空当前画布上的所有点位
+    document.querySelectorAll('.placed-point').forEach(el => el.remove());
+    
+    // === 处理背景：如果有 mergedBgUrl，则下载并设置为底图 ===
+    if (blueprint.mergedBgUrl) {
+      showToast('🖼️ 加载战术背景...', 'info');
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        // 将下载的图片绘制到背景层
+        bgCtx.clearRect(0, 0, 800, 500);
+        bgCtx.drawImage(img, 0, 0, 800, 500);
+        // 叠加网格（保持可读性）
+        drawTacticalGridOverlayOnCtx(bgCtx);
+        // 重绘主画布
+        redrawCanvas();
+        showToast('✅ 背景加载成功', 'success');
+      };
+      img.onerror = () => {
+        showToast('背景图片加载失败，使用默认网格', 'warning');
+        drawBackgroundToOffscreen();
+        redrawCanvas();
+      };
+      img.src = blueprint.mergedBgUrl;
+    } else {
+      // 无背景则恢复默认网格
+      drawBackgroundToOffscreen();
     }
     
-    try {
-      // 解码 Base64
-      const jsonStr = decodeURIComponent(atob(code).split('').map(c => {
-        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-      }).join(''));
-      const blueprint = JSON.parse(jsonStr);
-      
-      // 清空当前画布上的所有点位
-      document.querySelectorAll('.placed-point').forEach(el => el.remove());
-      
-      // 恢复点位
-      if (blueprint.points && Array.isArray(blueprint.points)) {
-        blueprint.points.forEach(p => {
-          addPlacedPoint(p.type, p.x, p.y);
-        });
-      }
-      
-      // 恢复文字对象
-      if (blueprint.texts && Array.isArray(blueprint.texts)) {
-        textObjects = blueprint.texts;
-      }
-      
-      // 重绘画布
-      redrawCanvas();
-      
-      // 关闭弹窗
-      document.querySelector('.modal-overlay.active')?.remove();
-      showToast('✅ 战术蓝图加载成功！', 'success');
-    } catch (e) {
-      console.error('蓝图解析失败:', e);
-      showToast('❌ 蓝图码无效或已损坏', 'error');
+    // 恢复点位
+    if (blueprint.points && Array.isArray(blueprint.points)) {
+      blueprint.points.forEach(p => {
+        addPlacedPoint(p.type, p.x, p.y);
+      });
     }
-  };
+    
+    // 恢复文字对象
+    if (blueprint.texts && Array.isArray(blueprint.texts)) {
+      textObjects = blueprint.texts;
+    }
+    
+    // 重绘画布
+    redrawCanvas();
+    
+    // 关闭弹窗
+    document.querySelector('.modal-overlay.active')?.remove();
+    showToast('🎉 战术蓝图加载成功！', 'success');
+    
+  } catch (e) {
+    console.error('蓝图解析失败:', e);
+    showToast('❌ 蓝图码无效或已损坏', 'error');
+  }
+};
 
 console.log('✅ 战术板修复版（分层绘制）已启动');
 }
@@ -17445,6 +17568,7 @@ function showBudgetDetail(loadoutName) {
 }
 
 // 从详情页复制全部改枪码（带状态反馈）
+// 从详情页复制全部改枪码（带状态反馈）
 function copyAllBudgetCodesFromDetail(loadoutName, btn) {
   const loadout = BUDGET_LOADOUTS.find(l => l.name === loadoutName);
   if (!loadout) {
@@ -17507,7 +17631,7 @@ function copyAllBudgetCodesFromDetail(loadoutName, btn) {
     document.body.removeChild(textarea);
   };
 
-  // 优先 Clipboard API
+  // 优先使用 Clipboard API
   if (navigator.clipboard && navigator.clipboard.writeText) {
     navigator.clipboard.writeText(codes).then(() => {
       showToast(`📋 「${loadout.name}」的所有改枪码已复制`, 'success');
@@ -17517,6 +17641,7 @@ function copyAllBudgetCodesFromDetail(loadoutName, btn) {
     fallbackCopy();
   }
 }
+
 function generateRecommendations() {
   const container = document.getElementById('recommendCardsContainer');
   if (!container) return;
