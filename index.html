@@ -1345,6 +1345,145 @@ function updateConsoleOnlineCount() {
 // 监听在线人数变化（假设已有在线计数逻辑，这里定期同步）
 setInterval(updateConsoleOnlineCount, 2000);
 updateConsoleOnlineCount();
+
+/* ==================== BGM 播放器 · 呼吸展开版 ==================== */
+.bgm-player {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  z-index: 9999;
+  
+  /* 毛玻璃基底 */
+  background: rgba(20, 18, 30, 0.7);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 140, 90, 0.2);
+  border-radius: 60px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 107, 53, 0.1) inset;
+  
+  /* 核心：用 max-width 和 padding 控制展开/收缩 */
+  max-width: 56px;
+  padding: 8px;
+  transition: max-width 0.4s cubic-bezier(0.2, 0.9, 0.4, 1), 
+              padding 0.3s ease,
+              border-radius 0.3s ease,
+              box-shadow 0.3s ease,
+              background 0.3s ease;
+  overflow: hidden;
+  white-space: nowrap;
+  touch-action: none; /* 保持可拖拽 */
+  cursor: grab;
+}
+
+/* 展开状态 */
+.bgm-player:hover,
+.bgm-player.expanded {
+  max-width: 420px;
+  padding: 12px 18px;
+  border-radius: 40px;
+  background: rgba(255, 140, 90, 0.25);
+  box-shadow: 0 20px 40px rgba(255, 107, 53, 0.2), 0 0 0 1.5px var(--accent) inset;
+}
+
+/* 紧凑条内容：只显示播放按钮 */
+.bgm-compact {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 展开内容：默认透明度为0，展开时渐显 */
+.bgm-extended {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  opacity: 0;
+  transform: translateX(-10px);
+  transition: opacity 0.3s ease 0.1s, transform 0.3s ease 0.1s;
+}
+
+.bgm-player:hover .bgm-extended,
+.bgm-player.expanded .bgm-extended {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* 播放按钮呼吸效果 */
+.bgm-play-btn {
+  position: relative;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.bgm-player.playing .bgm-play-btn {
+  animation: softPulse 2s infinite;
+}
+@keyframes softPulse {
+  0%, 100% { box-shadow: 0 0 5px var(--accent); }
+  50% { box-shadow: 0 0 15px var(--accent); }
+}
+
+/* 进度条流光 */
+.bgm-progress-fill {
+  background: linear-gradient(90deg, #FF6B35, #FFD700) !important;
+  position: relative;
+  overflow: hidden;
+}
+.bgm-progress-fill::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+  animation: shimmer 2.5s infinite;
+}
+@keyframes shimmer {
+  0% { left: -100%; }
+  100% { left: 100%; }
+}
+
+/* 快捷键提示融合条 */
+.bgm-hotkey-inline {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-top: 4px;
+  margin-top: 2px;
+  border-top: 1px dashed rgba(255,255,255,0.15);
+  font-size: 10px;
+  color: var(--muted);
+}
+.bgm-hotkey-inline i {
+  font-size: 10px;
+  color: var(--accent);
+}
+
+/* 移动端适配：点击展开而非悬停 */
+@media (max-width: 768px) {
+  .bgm-player {
+    max-width: 56px;
+  }
+  .bgm-player.expanded {
+    max-width: 360px;
+  }
+  .bgm-hotkey-inline {
+    font-size: 9px;
+  }
+}
+@media (max-width: 480px) {
+  .bgm-player.expanded {
+    max-width: 280px;
+    padding: 10px 14px;
+  }
+  .bgm-extended .flex.items-center.gap-2 {
+    flex-wrap: wrap;
+  }
+}
+
+/* 保持拖拽时抓取光标 */
+.bgm-player.dragging {
+  cursor: grabbing !important;
+}
 </style>
 
 <style>
@@ -1946,11 +2085,14 @@ pointer-events: auto !important;
   /* BGM 播放器 */
     .bgm-player {
     position: fixed; bottom: 20px; left: 20px; z-index: 9999;
-    background: var(--card); border: 3px solid var(--accent);
-    border-radius: 20px; backdrop-filter: blur(12px);
+    background: rgba(255, 140, 90, 0.15);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border: 3px solid var(--accent);
+    border-radius: 20px; 
     box-shadow: 0 8px 30px var(--glow); padding: 12px 16px;
     transition: all 0.3s; max-width: 340px;
-touch-action: none; /* 禁止浏览器默认的滚动、缩放等触摸行为 */
+    touch-action: none;
   }
     /* 悬停展开控制 */
   .bgm-compact { display: flex; }
@@ -5541,38 +5683,59 @@ body {
     </div>
   </div>
 </div>
-<!-- ===== BGM 播放器（可悬停展开） ===== -->
+<!-- ===== BGM 播放器（融合式设计） ===== -->
 <div class="bgm-player draggable" id="bgmPlayer">
-  <!-- 紧凑条：只显示播放按钮 -->
+  <!-- 紧凑态：只有播放按钮 -->
   <div class="bgm-compact">
-    <button onclick="bgmToggle()" class="w-10 h-10 rounded-full flex items-center justify-center" style="background:linear-gradient(135deg,#FF6B35,#FF4757)" id="bgmPlayBtn">
+    <button onclick="bgmToggle()" class="w-10 h-10 rounded-full flex items-center justify-center bgm-play-btn" style="background:linear-gradient(135deg,#FF6B35,#FF4757)" id="bgmPlayBtn">
       <i class="fas fa-play text-white text-sm"></i>
     </button>
   </div>
 
-  <!-- 悬停时展开的完整控件 -->
+  <!-- 展开态：完整控件（悬停或点击后渐显） -->
   <div class="bgm-extended">
+    <!-- 第一行：播放控制 + 歌曲信息 -->
     <div class="flex items-center gap-2">
-      <button onclick="bgmPrev()" class="text-xs" style="color:var(--muted)"><i class="fas fa-backward-step"></i></button>
-      <button onclick="bgmToggle()" class="w-8 h-8 rounded-full flex items-center justify-center" style="background:linear-gradient(135deg,#FF6B35,#FF4757)" id="bgmPlayBtnExtended">
-        <i class="fas fa-play text-white text-xs"></i>
+      <button onclick="bgmPrev()" class="w-7 h-7 rounded-full flex items-center justify-center hover:bg-white/10 transition"><i class="fas fa-backward-step text-xs"></i></button>
+      <button onclick="bgmToggle()" class="w-9 h-9 rounded-full flex items-center justify-center bgm-play-btn" style="background:linear-gradient(135deg,#FF6B35,#FF4757)" id="bgmPlayBtnExtended">
+        <i class="fas fa-play text-white text-sm"></i>
       </button>
-      <button onclick="bgmNext()" class="text-xs" style="color:var(--muted)"><i class="fas fa-forward-step"></i></button>
+      <button onclick="bgmNext()" class="w-7 h-7 rounded-full flex items-center justify-center hover:bg-white/10 transition"><i class="fas fa-forward-step text-xs"></i></button>
+      
       <div class="flex-1 min-w-0">
-        <div class="text-xs font-bold truncate" id="bgmTitle">未播放</div>
+        <div class="flex items-center gap-2">
+          <span class="text-xs font-bold truncate" id="bgmTitle">未播放</span>
+          <button onclick="bgmToggleFavorite()" class="text-xs hover:scale-110 transition" id="bgmFavoriteIcon"><i class="far fa-heart"></i></button>
+        </div>
         <div class="flex items-center gap-1 text-[10px]" style="color:var(--muted)">
           <span id="bgmCurrentTime">0:00</span>
-          <div class="flex-1 h-1 rounded cursor-pointer" style="background:var(--surface)" onclick="bgmSeek(event)">
-            <div class="h-full rounded" style="background:linear-gradient(90deg,#FF6B35,#FFD700);width:0%" id="bgmProgressFill"></div>
+          <div class="flex-1 h-1.5 rounded-full cursor-pointer" onclick="bgmSeek(event)" style="background:rgba(255,255,255,0.1)">
+            <div class="h-full rounded-full bgm-progress-fill" style="width:0%" id="bgmProgressFill"></div>
           </div>
           <span id="bgmDuration">0:00</span>
         </div>
       </div>
-      <input type="range" min="0" max="100" value="50" class="w-12" style="accent-color:var(--accent)" onchange="bgmSetVolume(this.value)" id="bgmVol">
-      <button onclick="openModal('musicSearchModal')" class="text-xs" style="color:var(--muted)" title="搜索歌曲"><i class="fas fa-search"></i></button>
-      <button onclick="toggleBgmPlaylist()" class="text-xs" style="color:var(--muted)" title="播放列表"><i class="fas fa-list"></i></button>
+      
+      <button onclick="bgmCycleMode()" class="bgm-mode-indicator" title="切换播放模式">
+        <i class="fas fa-repeat" id="bgmModeIcon"></i>
+      </button>
+      <input type="range" min="0" max="100" value="50" class="w-10" style="accent-color:var(--accent)" onchange="bgmSetVolume(this.value)" id="bgmVol">
+      <button onclick="openModal('musicSearchModal')" class="w-6 h-6 rounded-full flex items-center justify-center hover:bg-white/10"><i class="fas fa-search text-xs"></i></button>
+      <button onclick="toggleBgmPlaylist()" class="w-6 h-6 rounded-full flex items-center justify-center hover:bg-white/10"><i class="fas fa-list text-xs"></i></button>
+      <button onclick="toggleLyricsPanel()" class="w-6 h-6 rounded-full flex items-center justify-center hover:bg-white/10"><i class="fas fa-microphone-lines text-xs"></i></button>
     </div>
-    <div id="bgmPlaylist" style="display:none" class="mt-2 max-h-40 overflow-y-auto space-y-1"></div>
+    
+    <!-- 第二行：快捷键融合提示条 -->
+    <div class="bgm-hotkey-inline">
+      <i class="fas fa-keyboard"></i>
+      <span>空格播放/暂停 · Ctrl+←→快进/退 · Ctrl+N/P上下曲</span>
+    </div>
+    
+    <!-- 歌词面板（默认隐藏） -->
+    <div id="bgmLyricsPanel" class="bgm-lyrics-panel" style="display:none;"></div>
+    
+    <!-- 播放列表（默认隐藏） -->
+    <div id="bgmPlaylist" style="display:none" class="mt-1 max-h-32 overflow-y-auto space-y-1"></div>
   </div>
 </div>
 
@@ -14544,7 +14707,7 @@ const BGM_SONGS = [
   { name:'暗夜侦察', url:'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3' }
 ];
 
-const bgmState = { playing: false, idx: 0, audio: null, volume: 0.5, playlist: [...BGM_SONGS], currentTime: 0, duration: 0 };
+const bgmState = { playing: false, idx: 0, audio: null, volume: 0.5, playlist: [...BGM_SONGS], currentTime: 0, duration: 0, mode: 'list-loop', favorites: new Set() };
 
 function initBGM() {
   const saved = localStorage.getItem('bgm_custom_playlist');
@@ -14721,6 +14884,14 @@ ignoreFrom: 'input, button, #bgmPlaylist, #bgmPlaylist *',
     player.setAttribute('data-y', targetY);
   });
 }
+  // ===== 移动端点击展开播放器 =====
+  const player = document.getElementById('bgmPlayer');
+  if (player && window.innerWidth <= 768) {
+    player.addEventListener('click', (e) => {
+      if (e.target.closest('button') || e.target.closest('input')) return;
+      player.classList.toggle('expanded');
+    });
+  }
 
 function loadBGMTrack() {
   if (!bgmState.playlist.length) return;
@@ -14757,6 +14928,7 @@ function bgmToggle() {
     bgmState.playing = true;
   }
   updateBGMBtn();
+  document.getElementById('bgmPlayer')?.classList.toggle('playing', bgmState.playing);
   if(window._bgmSaveState) window._bgmSaveState();
 }
 
@@ -14791,7 +14963,10 @@ function bgmSetVolume(val) {
   bgmState.audio.volume = bgmState.volume;
   if(window._bgmSaveState) window._bgmSaveState();
 }
-
+// 移动端显示快捷键提示（Toast 形式）
+function showBGMShortcutHint() {
+  showToast('🎵 空格播放/暂停 · Ctrl+←→快进/退 · Ctrl+N/P上下曲', 'info');
+}
 function bgmSeek(e) {
   if (!bgmState.audio.duration) return;
   const rect = e.currentTarget.getBoundingClientRect();
@@ -14823,6 +14998,39 @@ function playBGMIdx(i) {
   renderBGMPlaylist();
   if(window._bgmSaveState) window._bgmSaveState();
 }
+// ===== 播放模式切换 =====
+function bgmCycleMode() {
+  const modes = ['list-loop', 'single-loop', 'random'];
+  const idx = modes.indexOf(bgmState.mode);
+  bgmState.mode = modes[(idx + 1) % modes.length];
+  const icon = document.getElementById('bgmModeIcon');
+  if (icon) {
+    const icons = { 'list-loop': 'fa-repeat', 'single-loop': 'fa-repeat-1', 'random': 'fa-shuffle' };
+    icon.className = `fas ${icons[bgmState.mode]}`;
+  }
+  const modeNames = { 'list-loop': '列表循环', 'single-loop': '单曲循环', 'random': '随机播放' };
+  showToast('播放模式: ' + modeNames[bgmState.mode], 'info');
+}
+
+// ===== 收藏切换 =====
+function bgmToggleFavorite() {
+  const song = bgmState.playlist[bgmState.idx];
+  if (!song) return;
+  const icon = document.getElementById('bgmFavoriteIcon');
+  if (bgmState.favorites.has(song.url)) {
+    bgmState.favorites.delete(song.url);
+    if (icon) icon.innerHTML = '<i class="far fa-heart"></i>';
+  } else {
+    bgmState.favorites.add(song.url);
+    if (icon) icon.innerHTML = '<i class="fas fa-heart" style="color:#FF4757;"></i>';
+  }
+}
+
+// ===== 歌词面板切换 =====
+function toggleLyricsPanel() {
+  const panel = document.getElementById('bgmLyricsPanel');
+  if (panel) panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+}
 async function searchMusic() {
   const keyword = $('musicSearchInput').value.trim();
   if (!keyword) { showToast('请输入搜索关键词'); return; }
@@ -14831,8 +15039,7 @@ async function searchMusic() {
     const data = await resp.json();
     const results = $('musicSearchResults');
     results.innerHTML = '';
-    // 原代码类似：
-// results.innerHTML += `<div class="flex items-center gap-2 ..."> ... </div>`;
+
 
 // 请用下面的代码替换整段 results.innerHTML += 的循环：
 (data || []).slice(0, 10).forEach(s => {
