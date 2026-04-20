@@ -1023,6 +1023,328 @@ function enableHorizontalDragScroll(element) {
     font-size: 12px;
   }
 }
+/* ==================== 战术控制台样式 ==================== */
+.tactical-console {
+  --console-gap: 14px;
+  --console-radius: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--console-gap);
+  margin-bottom: 24px;
+}
+/* 总折叠样式 */
+.console-header {
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.console-header:hover {
+  background: rgba(255,107,53,0.08);
+}
+.tactical-console.console-collapsed .card-body {
+  display: none !important;
+}
+/* 顶部标题栏 */
+.console-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 8px;
+}
+.console-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'ZCOOL QingKe HuangYou', sans-serif;
+  font-size: 20px;
+  color: var(--accent);
+  letter-spacing: 2px;
+}
+.console-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.live-dot {
+  width: 8px;
+  height: 8px;
+  background: #2ecc71;
+  border-radius: 50%;
+  animation: pulseLive 1.5s infinite;
+}
+@keyframes pulseLive { 0%,100%{opacity:1} 50%{opacity:0.5} }
+
+/* 行容器 */
+.console-row {
+  display: grid;
+  gap: var(--console-gap);
+}
+.console-row-3 { grid-template-columns: 1fr 1fr 1fr; }
+.console-row-2 { grid-template-columns: 1fr 1fr; }
+
+/* 通用卡片 */
+.console-card {
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  border-radius: var(--console-radius);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 8px 20px var(--shadow);
+  transition: all 0.25s ease;
+  overflow: hidden;
+}
+.console-card:hover {
+  border-color: var(--accent);
+  box-shadow: 0 16px 30px var(--glow);
+  transform: translateY(-2px);
+}
+.console-card-full { grid-column: 1 / -1; }
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  background: rgba(255,107,53,0.05);
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  user-select: none;
+}
+.card-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--text);
+}
+.card-title i { color: var(--accent); font-size: 18px; }
+.card-badge {
+  padding: 2px 10px;
+  border-radius: 30px;
+  background: var(--accent);
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  margin-left: 8px;
+}
+.card-badge.live { background: #2ecc71; }
+.card-hint { font-size: 11px; color: var(--muted); }
+.card-body { padding: 16px 18px; }
+
+/* 按钮系统 */
+.console-btn {
+  border: none;
+  border-radius: 30px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.console-btn.primary {
+  background: var(--accent);
+  color: white;
+  padding: 10px 18px;
+  box-shadow: 0 4px 12px var(--glow);
+}
+.console-btn.ghost {
+  background: transparent;
+  border: 1.5px solid var(--border);
+  color: var(--text);
+  padding: 8px 14px;
+}
+.console-btn.small { padding: 6px 12px; font-size: 12px; }
+.console-icon-btn {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.console-icon-btn:hover {
+  background: var(--surface);
+  color: var(--accent);
+}
+
+/* 万象猜内部微调 */
+.quiz-desc { font-size: 13px; color: var(--muted); margin-bottom: 12px; }
+.quiz-clue-header { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 8px; }
+.quiz-clue-card {
+  background: var(--surface);
+  border: 1px solid var(--accent);
+  border-radius: 12px;
+  padding: 12px;
+  text-align: center;
+  font-weight: bold;
+  margin-bottom: 12px;
+}
+.quiz-input-group { display: flex; gap: 8px; margin-bottom: 12px; }
+.quiz-input-group input {
+  flex: 1;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 30px;
+  padding: 8px 14px;
+  color: var(--text);
+}
+.quiz-actions { display: flex; gap: 8px; }
+.quiz-hint { font-size: 11px; color: var(--muted); text-align: center; margin-top: 12px; }
+.quiz-footer-stats {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  font-size: 12px;
+}
+
+/* 情报中心横向布局 */
+.intel-horizontal-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1.2fr;
+  gap: 16px;
+align-items: stretch; /* 新增：让所有卡片高度拉伸至行高 */
+}
+.intel-subcard {
+  background: var(--surface);
+  border-radius: 16px;
+  padding: 12px;
+ display: flex;
+  flex-direction: column; /* 新增：内部内容使用弹性列布局 */
+  height: 100%;           /* 新增：撑满父容器高度 */
+}
+.intel-subheader {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  font-weight: 600;
+  font-size: 13px;
+}
+.intel-badge {
+  background: rgba(255,107,53,0.2);
+  padding: 2px 8px;
+  border-radius: 30px;
+  font-size: 10px;
+}
+.intel-subfooter { margin-top: 12px; }
+.pk-mini-container { min-height: 60px; }
+.voice-mini-list { max-height: 100px; overflow-y: auto; font-size: 12px; }
+.radar-mini-container { height: 80px; }
+.radar-mini-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+  font-size: 10px;
+}
+.radar-mini-legend span span {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 3px;
+}
+
+/* 横向滚动区域 */
+.escort-horizontal-scroll,
+.topics-horizontal-scroll,
+.stream-horizontal-scroll {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+  scrollbar-width: thin;
+}
+.squad-list-container { max-height: 200px; overflow-y: auto; }
+
+/* 折叠箭头动画 */
+.toggle-arrow { transition: transform 0.3s; }
+.card-header.collapsed .toggle-arrow { transform: rotate(180deg); }
+
+/* 移动端适配 */
+@media (max-width: 768px) {
+  .console-row-3,
+  .console-row-2,
+  .intel-horizontal-layout {
+    grid-template-columns: 1fr;
+  }
+  .console-card-full { grid-column: 1; }
+}
+// 情报中心折叠切换
+window.toggleConsoleIntel = function() {
+  const header = document.querySelector('#intelConsoleCard .card-header');
+  const body = document.getElementById('intelConsoleBody');
+  const arrow = document.getElementById('intelToggleArrow');
+  if (!body) return;
+  const isHidden = body.style.display === 'none';
+  body.style.display = isHidden ? 'block' : 'none';
+  if (header) header.classList.toggle('collapsed', !isHidden);
+  if (arrow) {
+    arrow.className = isHidden ? 'fas fa-chevron-up toggle-arrow' : 'fas fa-chevron-down toggle-arrow';
+  }
+  
+  // 展开时强制重绘雷达图（延迟确保 DOM 更新完成）
+  if (!isHidden) {
+    setTimeout(() => {
+      // 先销毁旧图表
+      if (window.topicRadarChartV2) {
+        window.topicRadarChartV2.destroy();
+        window.topicRadarChartV2 = null;
+      }
+      // 重新绘制
+      if (typeof renderTopicRadarV2 === 'function') {
+        renderTopicRadarV2();
+      }
+    }, 200);
+  }
+};
+
+  // 展开时重新绘制雷达图（确保容器可见且有尺寸）
+  if (!isHidden) {
+    setTimeout(() => {
+      if (typeof renderTopicRadarV2 === 'function') {
+        renderTopicRadarV2();
+      }
+    }, 150);
+  }
+};
+
+
+// 组队大厅折叠切换
+window.toggleSquadModuleNew = function() {
+  const header = document.querySelector('#squadConsoleCard .card-header');
+  const body = document.getElementById('squadConsoleBody');
+  const arrow = document.getElementById('squadToggleArrow');
+  if (body) {
+    const isHidden = body.style.display === 'none';
+    body.style.display = isHidden ? 'block' : 'none';
+    if (header) header.classList.toggle('collapsed', !isHidden);
+    if (arrow) {
+      arrow.className = isHidden ? 'fas fa-chevron-up toggle-arrow' : 'fas fa-chevron-down toggle-arrow';
+    }
+  }
+};
+
+// 同步在线人数到控制台标题栏
+function updateConsoleOnlineCount() {
+  const countEl = document.getElementById('onlineCount');
+  const consoleCountEl = document.getElementById('consoleOnlineCount');
+  if (countEl && consoleCountEl) {
+    consoleCountEl.textContent = countEl.textContent;
+  }
+}
+// 监听在线人数变化（假设已有在线计数逻辑，这里定期同步）
+setInterval(updateConsoleOnlineCount, 2000);
+updateConsoleOnlineCount();
 </style>
 
 <style>
@@ -3871,6 +4193,7 @@ body {
   <div class="flex items-center justify-between mb-2">
     <h3 class="font-display text-sm flex items-center gap-2"><i class="fas fa-toolbox" style="color: var(--accent);"></i> 干员工具箱</h3>
     <span class="text-xs" style="color: var(--muted);">滑动查看更多 <i class="fas fa-arrow-right ml-1"></i></span>
+<i class="fas fa-chevron-up recommend-section-icon" id="recommendSectionIcon"></i>
   </div>
   <div class="flex gap-3 overflow-x-auto pb-2" id="toolboxBar" style="scrollbar-width: none; cursor: grab;">
     <!-- 动态渲染 -->
@@ -3960,272 +4283,198 @@ body {
   </div>
 </div>
 
-<!-- ==================== 三角洲万象猜 · 每日挑战 ==================== -->
-<div class="card-base mb-4 overflow-hidden" style="background: linear-gradient(135deg, rgba(255,107,53,0.08) 0%, rgba(255,71,87,0.04) 100%); border: 1.5px solid var(--accent); box-shadow: 0 8px 24px var(--glow);">
-  <!-- 标题栏 -->
-  <div class="flex items-center justify-between p-4 border-b" style="border-color: var(--border);">
-    <div class="flex items-center gap-3">
-      <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background: linear-gradient(135deg, var(--accent), var(--accent2));">
-        <i class="fas fa-puzzle-piece text-white text-lg"></i>
-      </div>
-      <div>
-        <h3 class="font-display text-lg tracking-wider" style="color: var(--accent);">三角洲万象猜</h3>
-        <p class="text-xs" style="color: var(--muted);" id="quizCategoryLabel">今日挑战 · 猜枪械</p>
-      </div>
-    </div>
-    <div class="flex items-center gap-2">
-      <span class="text-xs px-3 py-1 rounded-full" style="background: var(--accent); color: white;" id="quizStatus">未开始</span>
-      <button class="w-8 h-8 rounded-full flex items-center justify-center" style="background: var(--surface); border: 1px solid var(--border);" onclick="refreshQuiz()" title="换一题">
-        <i class="fas fa-sync-alt text-xs" style="color: var(--muted);"></i>
-      </button>
-    </div>
-  </div>
+<!-- ==================== 战术控制台 · 全新布局 ==================== -->
+<div class="tactical-console">
   
-  <!-- 内容区 -->
-  <div class="p-5">
-    <!-- 未开始状态 -->
-    <div id="quizStartView">
-      <p class="text-sm mb-4" style="color: var(--text);" id="quizDescription">根据线索猜出正确的答案，答对可获得经验奖励！</p>
-      <button class="btn-warm w-full py-3 text-base font-bold" onclick="startQuiz()">
-        <i class="fas fa-play mr-2"></i>开始挑战
-      </button>
+  <!-- 顶部标题栏 -->
+ <div class="console-header" onclick="toggleWholeConsole()" style="cursor: pointer;">
+  <div class="console-title">
+    <i class="fas fa-bolt"></i>
+    <span>战术控制台</span>
+  </div>
+  <div class="console-status">
+    <span class="live-dot"></span>
+    <span id="consoleOnlineCount">0</span> 人在线
+    <i class="fas fa-chevron-up toggle-arrow" id="consoleToggleArrow" style="margin-left: 10px;"></i>
+  </div>
+</div>
+
+  <!-- 第一行：三列卡片 -->
+  <div class="console-row console-row-3">
+    <!-- 卡片1：三角洲万象猜 -->
+    <div class="console-card">
+      <div class="card-header">
+        <div class="card-title">
+          <i class="fas fa-puzzle-piece"></i>
+          <span>万象猜</span>
+        </div>
+        <span class="card-badge" id="quizStatus">未开始</span>
+      </div>
+      <div class="card-body">
+        <div id="quizStartView">
+          <p class="quiz-desc" id="quizDescription">根据线索猜答案</p>
+          <button class="console-btn primary" onclick="startQuiz()"><i class="fas fa-play"></i>开始</button>
+        </div>
+        <div id="quizPlayView" style="display: none;">
+          <div class="quiz-clue-header">
+            <span>线索 <span id="quizClueIndex">1</span>/<span id="quizClueTotal">5</span></span>
+            <span id="quizScoreHint">+30经验</span>
+          </div>
+          <div class="quiz-clue-card" id="quizCurrentClue">加载中...</div>
+          <div class="quiz-input-group">
+            <input type="text" id="quizAnswerInput" placeholder="输入答案" autocomplete="off">
+            <button class="console-icon-btn" onclick="submitQuizAnswer()"><i class="fas fa-arrow-right"></i></button>
+          </div>
+          <div class="quiz-actions">
+            <button class="console-btn ghost small" id="quizPrevClueBtn" onclick="prevQuizClue()" disabled><i class="fas fa-chevron-left"></i></button>
+            <button class="console-btn ghost small" id="quizNextClueBtn" onclick="nextQuizClue()"><i class="fas fa-chevron-right"></i></button>
+            <button class="console-btn ghost small" onclick="giveUpQuiz()">放弃</button>
+          </div>
+          <p class="quiz-hint"><i class="fas fa-info-circle"></i>线索越少奖励越高</p>
+        </div>
+        <div id="quizResultView" style="display: none;">
+          <div class="quiz-result">
+            <div id="quizResultIcon" class="quiz-result-icon"></div>
+            <h4 id="quizResultTitle"></h4>
+            <p id="quizResultMessage"></p>
+            <div class="quiz-result-actions">
+              <button class="console-btn primary small" onclick="startQuiz()">再来</button>
+              <button class="console-btn ghost small" onclick="shareQuizResult()">分享</button>
+            </div>
+          </div>
+        </div>
+        <div class="quiz-footer-stats">
+          <span><i class="fas fa-calendar-check"></i> <span id="quizTodayCount">0</span>/3</span>
+          <span><i class="fas fa-trophy"></i> <span id="quizWinStreak">0</span></span>
+          <span onclick="showQuizHistory()"><i class="fas fa-history"></i> 记录</span>
+        </div>
+      </div>
     </div>
-    
-    <!-- 挑战中状态 -->
-    <div id="quizPlayView" style="display: none;">
-      <!-- 进度条/线索计数 -->
-      <div class="flex items-center justify-between mb-3">
-        <span class="text-xs font-bold" style="color: var(--accent);">线索 <span id="quizClueIndex">1</span>/<span id="quizClueTotal">5</span></span>
-        <span class="text-xs" style="color: var(--muted);" id="quizScoreHint">答对+30经验</span>
+
+    <!-- 卡片2：在线护航员 -->
+    <div class="console-card">
+      <div class="card-header">
+        <div class="card-title">
+          <i class="fas fa-shield-halved"></i>
+          <span>在线护航员</span>
+        </div>
+        <span class="card-hint">滑动 <i class="fas fa-arrow-right"></i></span>
       </div>
-      
-      <!-- 当前线索卡片 -->
-      <div class="p-5 rounded-xl mb-4 text-center" style="background: var(--surface); border: 2px solid var(--accent);">
-        <i class="fas fa-lightbulb text-2xl mb-2" style="color: #FFD700;"></i>
-        <p class="text-lg font-bold" style="color: var(--text);" id="quizCurrentClue">正在加载线索...</p>
+      <div class="card-body">
+        <div class="escort-horizontal-scroll" id="onlineEscortBar"></div>
       </div>
-      
-      <!-- 输入区域 -->
-      <div class="relative mb-3">
-        <input type="text" id="quizAnswerInput" placeholder="输入你的答案..." class="w-full px-4 py-3 pr-12 rounded-xl text-base" style="background: var(--surface); border: 2px solid var(--border); color: var(--text);" autocomplete="off">
-        <button class="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full flex items-center justify-center" style="background: var(--accent); color: white;" onclick="submitQuizAnswer()">
-          <i class="fas fa-arrow-right"></i>
-        </button>
+    </div>
+
+    <!-- 卡片3：热门话题 -->
+    <div class="console-card">
+      <div class="card-header">
+        <div class="card-title">
+          <i class="fas fa-fire"></i>
+          <span>热门话题</span>
+        </div>
+        <button class="console-icon-btn" onclick="loadMoreTopics()"><i class="fas fa-sync-alt"></i></button>
       </div>
-      
-      <!-- 操作按钮组 -->
-      <div class="flex gap-2">
-  <button class="btn-ghost flex-1 py-2 text-sm" id="quizPrevClueBtn" onclick="prevQuizClue()" disabled>
-    <i class="fas fa-chevron-left mr-1"></i>上一条
+      <div class="card-body">
+        <div class="topics-horizontal-scroll" id="topicBubbleBar"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 第二行：战术情报中心（通栏，可折叠） -->
+  <div class="console-card console-card-full" id="intelConsoleCard">
+    <div class="card-header" onclick="toggleConsoleIntel()">
+      <div class="card-title">
+        <i class="fas fa-satellite-dish"></i>
+        <span>战术情报中心</span>
+        <span class="card-badge live">实时</span>
+      </div>
+      <i class="fas fa-chevron-up toggle-arrow" id="intelToggleArrow"></i>
+    </div>
+    <div class="card-body" id="intelConsoleBody">
+      <div class="intel-horizontal-layout">
+        <!-- 王牌对决 -->
+        <div class="intel-subcard">
+          <div class="intel-subheader">
+            <span><i class="fas fa-crosshairs"></i> 王牌对决</span>
+            <span class="intel-badge" id="pkRemainingV2">剩余3次</span>
+          </div>
+          <div id="pkBattleContainerV2" class="pk-mini-container">匹配中...</div>
+          <div class="intel-subfooter">
+            <button class="console-btn ghost small" onclick="refreshPKBattleV2()"><i class="fas fa-redo-alt"></i>换一批</button>
+          </div>
+        </div>
+        <!-- 语音简报 -->
+        <div class="intel-subcard">
+          <div class="intel-subheader">
+            <span><i class="fas fa-broadcast-tower"></i> 战术回响</span>
+            <span class="intel-badge" id="voiceCountBadge">0条</span>
+          </div>
+          <div id="voiceWallListV2" class="voice-mini-list">📻 截获信号中...</div>
+          <div class="intel-subfooter">
+            <button class="console-btn ghost small" onclick="refreshVoiceWallV2()"><i class="fas fa-sync-alt"></i>刷新</button>
+          </div>
+        </div>
+        <!-- 热度雷达 -->
+        <div class="intel-subcard radar-subcard">
+          <div class="intel-subheader">
+            <span><i class="fas fa-chart-pie"></i> 热度雷达</span>
+          </div>
+          <div class="radar-mini-container" style="position: relative;">
+  <canvas id="topicRadarChartV2" width="600" height="160" style="width:100%; height:100%; display:block;"></canvas>
+  <button onclick="renderTopicRadarV2()" style="position: absolute; bottom: 5px; right: 5px; background: var(--accent); color: white; border: none; border-radius: 20px; padding: 2px 10px; font-size: 10px; z-index: 10;">
+    <i class="fas fa-sync-alt"></i> 刷新
   </button>
-  <button class="btn-ghost flex-1 py-2 text-sm" id="quizNextClueBtn" onclick="nextQuizClue()">
-    <i class="fas fa-chevron-right mr-1"></i>下一条
-  </button>
-  <button class="btn-ghost flex-1 py-2 text-sm" onclick="giveUpQuiz()">
-    <i class="fas fa-flag-checkered mr-1"></i>放弃
-  </button>
 </div>
-      <p class="text-xs text-center mt-3" style="color: var(--muted);">
-        <i class="fas fa-info-circle mr-1"></i>线索越少答对，奖励越高
-      </p>
-    </div>
-    
-    <!-- 结果状态 -->
-    <div id="quizResultView" style="display: none;">
-      <div class="text-center py-3">
-        <div id="quizResultIcon" class="text-5xl mb-2"></div>
-        <h4 class="font-bold text-lg mb-1" id="quizResultTitle"></h4>
-        <p class="text-sm mb-4" style="color: var(--muted);" id="quizResultMessage"></p>
-        <div class="flex gap-2">
-          <button class="btn-warm flex-1 py-2" onclick="startQuiz()">
-            <i class="fas fa-redo-alt mr-1"></i>再来一题
-          </button>
-          <button class="btn-ghost flex-1 py-2" onclick="shareQuizResult()">
-            <i class="fas fa-share-alt mr-1"></i>分享
-          </button>
+          <div class="radar-mini-legend">
+            <span><span style="background:#FF6B35;"></span>突击</span>
+            <span><span style="background:#2ecc71;"></span>工程</span>
+            <span><span style="background:#3498db;"></span>侦察</span>
+            <span><span style="background:#f1c40f;"></span>支援</span>
+          </div>
         </div>
       </div>
     </div>
   </div>
-  
-  <!-- 底部统计 -->
-  <div class="px-5 pb-4 flex items-center justify-between">
-    <div class="flex items-center gap-3">
-      <span class="text-xs" style="color: var(--muted);"><i class="fas fa-calendar-check mr-1"></i>今日已答 <span id="quizTodayCount">0</span>/3</span>
-      <span class="text-xs" style="color: var(--muted);"><i class="fas fa-trophy mr-1"></i>连胜 <span id="quizWinStreak">0</span></span>
-    </div>
-    <span class="text-xs" style="color: var(--accent); cursor: pointer;" onclick="showQuizHistory()">
-      <i class="fas fa-history mr-1"></i>记录
-    </span>
-  </div>
-</div>
 
+  <!-- 第三行：两列（组队大厅 + 社区战术流） -->
+  <div class="console-row console-row-2">
+    <!-- 组队大厅 -->
+    <div class="console-card" id="squadConsoleCard">
+      <div class="card-header" onclick="toggleSquadModuleNew()">
+        <div class="card-title">
+          <i class="fas fa-users"></i>
+          <span>组队大厅</span>
+          <span class="card-badge" id="squadCountBadge">0</span>
+        </div>
+        <div class="card-header-actions">
+          <button class="console-icon-btn" onclick="event.stopPropagation(); loadSquads()"><i class="fas fa-sync-alt"></i></button>
+          <i class="fas fa-chevron-up toggle-arrow" id="squadToggleArrow"></i>
+        </div>
+      </div>
+      <div class="card-body" id="squadConsoleBody">
+        <div id="squadListContainer" class="squad-list-container">点击「发布组队」开始招募</div>
+      </div>
+    </div>
 
-<!-- ==================== 战术情报中心（整合版） ==================== -->
-<div class="card-base mb-4 overflow-hidden" style="background: linear-gradient(145deg, var(--card) 0%, rgba(255,107,53,0.05) 100%); border: 1px solid var(--border);">
-  <!-- 总标题栏：点击展开/折叠全部 -->
-  <div class="flex items-center justify-between p-4 cursor-pointer" onclick="toggleIntelligenceCenter()">
-    <div class="flex items-center gap-3">
-      <div class="relative">
-        <i class="fas fa-satellite-dish text-xl" style="color: var(--accent);"></i>
-        <span class="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+    <!-- 社区战术流 -->
+    <div class="console-card">
+      <div class="card-header">
+        <div class="card-title">
+          <i class="fas fa-share-alt"></i>
+          <span>社区战术流</span>
+          <span class="card-badge">最新</span>
+        </div>
+        <button class="console-icon-btn" onclick="loadCommunityTacticalStream()"><i class="fas fa-sync-alt"></i></button>
       </div>
-      <h3 class="font-display text-lg tracking-wider">战术情报中心</h3>
-      <span class="text-xs px-3 py-1 rounded-full" style="background: var(--accent); color: white;" id="intelUpdateBadge">实时</span>
-    </div>
-    <div class="flex items-center gap-3">
-      <span class="text-xs hidden sm:inline" style="color: var(--muted);" id="intelSummary">3项情报待阅</span>
-      <i class="fas fa-chevron-down transition-transform duration-300" id="intelCenterIcon" style="color: var(--muted);"></i>
-    </div>
-  </div>
-  
-  <!-- 折叠内容区 -->
-  <div id="intelCenterContent" class="px-4 pb-4 hidden">
-    <!-- 双栏布局：王牌对决 + 语音广场 -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
-      
-      <!-- 左侧：王牌对决 -->
-      <div class="p-4 rounded-xl" style="background: rgba(255,107,53,0.05); border: 1px solid var(--border);">
-        <div class="flex items-center gap-2 mb-3">
-          <i class="fas fa-crosshairs" style="color: var(--accent);"></i>
-          <h4 class="font-bold text-sm">⚔️ 王牌对决 · 段位赛</h4>
-          <span class="text-xs px-2 py-0.5 rounded-full ml-auto" style="background: var(--accent); color: white;" id="pkRemainingV2">剩余 3 次</span>
-        </div>
-        <div id="pkBattleContainerV2" class="min-h-28">
-          <div class="text-center py-6 text-xs" style="color: var(--muted);"><i class="fas fa-spinner fa-pulse mr-2"></i>匹配对手中...</div>
-        </div>
-        <div class="flex justify-between items-center mt-3">
-          <button class="btn-ghost text-xs px-3 py-1" onclick="refreshPKBattleV2()"><i class="fas fa-redo-alt mr-1"></i>换一批</button>
-          <span class="text-xs" style="color: var(--muted);"><i class="fas fa-trophy mr-1"></i>实时积分榜</span>
-        </div>
-      </div>
-      
-      <!-- 右侧：战术回响·语音简报 -->
-      <div class="p-4 rounded-xl" style="background: rgba(0,229,255,0.03); border: 1px solid var(--border);">
-        <div class="flex items-center gap-2 mb-3">
-          <i class="fas fa-broadcast-tower" style="color: #00e5ff;"></i>
-          <h4 class="font-bold text-sm">📡 战术回响 · 语音简报</h4>
-          <span class="text-xs px-2 py-0.5 rounded-full ml-auto" style="background: #00e5ff20; color: #00e5ff;" id="voiceCountBadge">0条</span>
-        </div>
-        <div id="voiceWallListV2" class="space-y-2 max-h-40 overflow-y-auto pr-1">
-          <div class="text-center py-6 text-xs" style="color: var(--muted);">📻 截获战场信号中...</div>
-        </div>
-        <div class="flex justify-end mt-2">
-          <button class="text-xs btn-ghost px-3 py-1" onclick="refreshVoiceWallV2()"><i class="fas fa-sync-alt mr-1"></i>刷新</button>
-        </div>
-      </div>
-    </div>
-    
-
-    <!-- 底部：战备物资·热度雷达（全宽） -->
-    <div class="p-4 rounded-xl" style="background: rgba(255,215,0,0.02); border: 1px solid var(--border);">
-      <div class="flex items-center gap-2 mb-2">
-        <i class="fas fa-chart-pie" style="color: var(--accent);"></i>
-        <h4 class="font-bold text-sm">📊 战备物资 · 热度雷达</h4>
-        <span class="text-xs ml-auto" style="color: var(--muted);">六大兵种/战术实时热度</span>
-      </div>
-      <div class="relative w-full" style="height: 160px;">
-        <canvas id="topicRadarChartV2" width="600" height="160" style="width:100%; height:100%; display:block;"></canvas>
-      </div>
-      <div class="flex justify-center gap-6 mt-2 text-[10px] flex-wrap" style="color: var(--muted);">
-        <span><span class="inline-block w-2 h-2 rounded-full mr-1" style="background: #FF6B35;"></span>突击</span>
-        <span><span class="inline-block w-2 h-2 rounded-full mr-1" style="background: #2ecc71;"></span>工程</span>
-        <span><span class="inline-block w-2 h-2 rounded-full mr-1" style="background: #3498db;"></span>侦察</span>
-        <span><span class="inline-block w-2 h-2 rounded-full mr-1" style="background: #f1c40f;"></span>支援</span>
-        <span><span class="inline-block w-2 h-2 rounded-full mr-1" style="background: #9b59b6;"></span>战术</span>
-        <span><span class="inline-block w-2 h-2 rounded-full mr-1" style="background: #e67e22;"></span>武器</span>
+      <div class="card-body">
+        <div id="communityStreamList" class="stream-horizontal-scroll">加载中...</div>
       </div>
     </div>
   </div>
 </div>
-<!-- 横向快捷功能区：在线护航员 + 常看博主 -->
-<section class="mb-4">
-  <div class="flex items-center justify-between mb-2">
-    <h3 class="font-display text-sm flex items-center gap-2"><i class="fas fa-shield-alt" style="color: var(--accent);"></i> 在线护航员</h3>
-    <span class="text-xs" style="color: var(--muted);">滑动查看更多 <i class="fas fa-arrow-right ml-1"></i></span>
-  </div>
-  <div class="flex gap-3 overflow-x-auto pb-2" style="scrollbar-width: none;" id="onlineEscortBar">
-    <!-- 动态渲染，稍后通过JS生成 -->
-  </div>
-</section>
-<!-- 话题广场 -->
-<!-- 热门话题 · 动态气泡栏（可拖拽滑动） -->
-<div class="mb-5">
-  <div class="flex items-center justify-between mb-2 cursor-pointer" id="topicSectionHeader" onclick="toggleTopicSection()">
-    <h3 class="font-display text-base flex items-center gap-2">
-      <i class="fas fa-fire" style="color: var(--accent);"></i> 热门话题
-    </h3>
-    <div class="flex items-center gap-2">
-      <button class="text-xs btn-ghost px-3 py-1" onclick="event.stopPropagation(); loadMoreTopics()">
-        <i class="fas fa-sync-alt mr-1"></i>换一批
-      </button>
-      <i class="fas fa-chevron-down topic-section-icon" id="topicSectionIcon"></i>
-    </div>
-  </div>
-  <div id="topicSectionBody" class="topic-section-body expanded">
-    <div class="topic-bubble-bar flex gap-3 overflow-x-auto pb-2" id="topicBubbleBar" style="scrollbar-width: none; cursor: grab;">
-      <!-- 动态渲染话题气泡 -->
-    </div>
-  </div>
-</div>
+<!-- ==================== 战术控制台结束 ==================== -->
 
-
-<!-- 热门推荐 -->
-<div class="mb-6">
-  <div class="flex items-center justify-between mb-2 cursor-pointer" id="recommendSectionHeader" onclick="toggleRecommendSection()">
-    <h3 class="font-display text-base flex items-center gap-2">
-      <i class="fas fa-fire" style="color:#FF4757"></i>热门推荐
-    </h3>
-    <i class="fas fa-chevron-down recommend-section-icon" id="recommendSectionIcon"></i>
-  </div>
-  <div id="recommendSectionBody" class="recommend-section-body expanded">
-    <div id="hotRecommendList" class="grid grid-cols-1 md:grid-cols-2 gap-2"></div>
-  </div>
-</div>
-
-<!-- 组队大厅展示区 -->
-<div id="squadListSection" class="mb-4">
-  <!-- 总折叠栏头部 -->
-  <div class="flex items-center justify-between mb-2 cursor-pointer" id="squadSectionHeader" onclick="toggleSquadSection()">
-    <h3 class="font-display text-sm flex items-center gap-2">
-      <i class="fas fa-users" style="color: var(--accent);"></i> 
-      组队大厅
-      <span id="squadCountBadge" class="text-xs px-2 py-0.5 rounded-full" style="background: var(--surface); color: var(--accent);">0</span>
-    </h3>
-    <div class="flex items-center gap-2">
-      <button class="text-xs btn-ghost px-2 py-1" onclick="event.stopPropagation(); loadSquads()">
-        <i class="fas fa-sync-alt mr-1"></i>刷新
-      </button>
-      <i class="fas fa-chevron-down squad-section-icon" id="squadSectionIcon"></i>
-    </div>
-  </div>
-
-  <!-- 可折叠的内容区域 -->
-  <div id="squadSectionBody" class="squad-section-body expanded">
-    <div id="squadListContainer" class="space-y-2">
-      <div class="text-center py-4 text-xs" style="color:var(--muted);">点击下方「发布组队」开始招募</div>
-    </div>
-  </div>
-</div>
-
-<!-- 社区战术流 -->
-<div class="mb-4">
-  <div class="flex items-center justify-between mb-2">
-    <h3 class="font-display text-sm flex items-center gap-2">
-      <i class="fas fa-share-alt" style="color: var(--accent);"></i> 
-      社区战术流
-      <span class="text-xs px-2 py-0.5 rounded-full" style="background: var(--surface); color: var(--accent);">最新分享</span>
-    </h3>
-    <button class="text-xs btn-ghost px-2 py-1" onclick="loadCommunityTacticalStream()">
-      <i class="fas fa-sync-alt mr-1"></i>刷新
-    </button>
-  </div>
-  <div id="communityStreamList" class="flex gap-3 overflow-x-auto pb-2" style="scrollbar-width: none;">
-    <!-- 动态渲染战术流卡片 -->
-    <div class="text-center py-4 text-xs w-full" style="color: var(--muted);">加载中...</div>
-  </div>
-</div>
-    <!-- 置顶帖 -->
+  <!-- 置顶帖 -->
     <div id="topPostArea" class="mb-4"></div>
 
     <!-- 瀑布流帖子列表 -->
@@ -4252,6 +4501,9 @@ body {
   <div class="mb-6">
     <div class="relative rounded-2xl overflow-hidden" id="discoverBannerContainer" style="height: 160px;">
       <div class="absolute inset-0 bg-gradient-to-r from-orange-500/20 to-red-500/20"></div>
+<div class="relative w-full" style="height: 160px;">
+  <canvas id="topicRadarChartV2" width="600" height="160" style="width:100%; height:100%; display:block;"></canvas>
+</div>
       <div class="swiper-container h-full" id="discoverBannerSwiper">
         <div class="swiper-wrapper" id="discoverBannerWrapper"></div>
         <div class="swiper-pagination"></div>
@@ -4315,6 +4567,7 @@ body {
       <button class="text-xs btn-ghost px-3 py-1" onclick="refreshDiscoverTopics()">
         <i class="fas fa-sync-alt mr-1"></i>换一批
       </button>
+<i class="fas fa-chevron-up topic-section-icon" id="topicSectionIcon"></i>
     </div>
     <div id="discoverTopicCloud" class="flex flex-wrap gap-3 justify-center"></div>
   </div>
@@ -4343,6 +4596,7 @@ body {
       <button class="text-xs btn-ghost px-3 py-1" onclick="refreshDiscoverVideos()">
         <i class="fas fa-sync-alt mr-1"></i>刷新
       </button>
+<i class="fas fa-chevron-up squad-section-icon" id="squadSectionIcon"></i>
     </div>
     <div class="masonry" id="discoverVideoGrid"></div>
     <div id="discoverVideoEmpty" class="text-center py-8 hidden" style="color: var(--muted);">
@@ -4493,7 +4747,7 @@ body {
     <div id="internalSearchFilters" class="flex flex-wrap items-center gap-2 mb-4">
       <div class="filter-dropdown" id="searchTypeDropdown">
         <button class="btn-ghost text-sm px-4 py-2 flex items-center gap-1" onclick="toggleFilterDropdown('searchTypeDropdown')">
-          <span id="currentSearchTypeLabel">全部</span> <i class="fas fa-chevron-down text-xs"></i>
+          <span id="currentSearchTypeLabel">全部</span> <i class="fas fa-chevron-up transition-transform duration-300" id="intelCenterIcon" style="color: var(--muted);"></i>
         </button>
         <div class="filter-menu hidden">
           <button class="filter-option" data-type="all" onclick="selectSearchType('all')"><i class="fas fa-globe"></i>全部</button>
@@ -6364,6 +6618,59 @@ function toggleTheme() {
 }
 applyTheme(localStorage.getItem('themePref') || 'light');
 
+// ==================== 战术控制台专用折叠函数（新增，与旧函数不冲突） ====================
+window.toggleConsoleIntel = function() {
+  const header = document.querySelector('#intelConsoleCard .card-header');
+  const body = document.getElementById('intelConsoleBody');
+  const arrow = document.getElementById('intelToggleArrow');
+  if (!body) return;
+  const isHidden = body.style.display === 'none';
+  body.style.display = isHidden ? 'block' : 'none';
+  if (header) header.classList.toggle('collapsed', !isHidden);
+  if (arrow) {
+    arrow.className = isHidden ? 'fas fa-chevron-up toggle-arrow' : 'fas fa-chevron-down toggle-arrow';
+  }
+};
+
+window.toggleSquadModuleNew = function() {
+  const header = document.querySelector('#squadConsoleCard .card-header');
+  const body = document.getElementById('squadConsoleBody');
+  const arrow = document.getElementById('squadToggleArrow');
+  if (!body) return;
+  const isHidden = body.style.display === 'none';
+  body.style.display = isHidden ? 'block' : 'none';
+  if (header) header.classList.toggle('collapsed', !isHidden);
+  if (arrow) {
+    arrow.className = isHidden ? 'fas fa-chevron-up toggle-arrow' : 'fas fa-chevron-down toggle-arrow';
+  }
+};
+
+// 总折叠：点击整个控制台标题栏，收起/展开所有卡片内容
+window.toggleWholeConsole = function() {
+  const consolePanel = document.querySelector('.tactical-console');
+  if (!consolePanel) return;
+  const bodies = consolePanel.querySelectorAll('.card-body');
+  const header = consolePanel.querySelector('.console-header');
+  const arrow = document.getElementById('consoleToggleArrow');
+  const isCollapsed = consolePanel.classList.toggle('console-collapsed');
+  bodies.forEach(body => {
+    body.style.display = isCollapsed ? 'none' : '';
+  });
+  if (header) header.classList.toggle('collapsed', isCollapsed);
+  if (arrow) {
+    arrow.className = isCollapsed ? 'fas fa-chevron-down toggle-arrow' : 'fas fa-chevron-up toggle-arrow';
+  }
+};
+
+// 同步在线人数到控制台标题栏
+function updateConsoleOnlineCount() {
+  const countEl = document.getElementById('onlineCount');
+  const consoleCountEl = document.getElementById('consoleOnlineCount');
+  if (countEl && consoleCountEl) consoleCountEl.textContent = countEl.textContent;
+}
+setInterval(updateConsoleOnlineCount, 2000);
+updateConsoleOnlineCount();
+
 // ==================== 智能滚动按钮 ====================
 function smartScroll() {
   const scrollY = window.scrollY;
@@ -6756,6 +7063,16 @@ function switchTab(tab) {
     setTimeout(() => loadHomeBanners(), 50);
     setTimeout(() => loadSquads(), 50);
     loadPosts(true);
+  // ===== 新增：确保雷达图在情报中心展开时正常显示 =====
+  setTimeout(() => {
+    const body = document.getElementById('intelConsoleBody');
+    if (body && body.style.display !== 'none') {
+      if (typeof renderTopicRadarV2 === 'function') {
+        renderTopicRadarV2();
+      }
+    }
+  }, 300);
+  // ===== 新增结束 =====
   } else if (tab === 'discover') {
     loadRanks();
     loadRisingRank();
@@ -6781,6 +7098,7 @@ function switchTab(tab) {
   // 8. 触发 resize 事件，确保移动端适配
   window.dispatchEvent(new Event('resize'));
   console.log('🎉 switchTab 执行完毕');
+
 }
 
 
@@ -11580,9 +11898,9 @@ function showStatsModal() {
     const angles = labels.map((_, i) => (i * 60 - 90) * Math.PI / 180);
     
     ctx.clearRect(0, 0, 180, 100);
-    ctx.strokeStyle = 'rgba(255,255,255,0.1)';
-    ctx.fillStyle = '#ccddee';
-    ctx.font = 'bold 7px "Noto Sans SC"';
+    ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+    ctx.fillStyle = 'rgba(255, 107, 53, 0.35)';
+    ctx.font = 'bold 13px "Noto Sans SC"';
     for(let i = 0; i < 6; i++){
       const x = centerX + Math.cos(angles[i]) * (radius + 12);
       const y = centerY + Math.sin(angles[i]) * (radius + 12);
@@ -11599,7 +11917,7 @@ function showStatsModal() {
     ctx.closePath();
     ctx.fillStyle = 'rgba(255,107,53,0.3)';
     ctx.fill();
-    ctx.strokeStyle = '#FF6B35';
+    ctx.strokeStyle = '#FF6B35'; ctx.lineWidth = 3;
     ctx.lineWidth = 1.5;
     ctx.stroke();
   }, 100);
@@ -15287,7 +15605,7 @@ function openDamageCalculatorModal() {
       ctx.clearRect(0, 0, w, h);
       
       ctx.beginPath();
-      ctx.arc(cx, cy, r, 0, 2*Math.PI);
+      ctx.arc(x, y, 5, 0, 2 * Math.PI);
       ctx.strokeStyle = 'rgba(255,255,255,0.1)';
       ctx.lineWidth = 6;
       ctx.stroke();
@@ -16594,10 +16912,11 @@ function toggleIntelligenceCenter() {
   if (!content || !icon) return;
   
   if (content.classList.contains('hidden')) {
+    // 展开
     content.classList.remove('hidden');
-    icon.style.transform = 'rotate(180deg)';
+    icon.className = 'fas fa-chevron-up transition-transform duration-300';
     
-    // 首次展开时加载所有数据
+    // 加载数据
     if (!intelCenterLoaded) {
       setTimeout(() => {
         loadPKBattleV2();
@@ -16605,13 +16924,21 @@ function toggleIntelligenceCenter() {
         renderTopicRadarV2();
         intelCenterLoaded = true;
         renderDailyPuzzle();
-      }, 50);
+      }, 100);
+    } else {
+      // 如果已加载过，但可能被销毁，重新渲染雷达图
+      setTimeout(() => {
+        if (!topicRadarChartV2) {
+          renderTopicRadarV2();
+        }
+      }, 100);
     }
-renderDailyPuzzle(); 
-   updateIntelSummary();
+    renderDailyPuzzle();
+    updateIntelSummary();
   } else {
+    // 折叠
     content.classList.add('hidden');
-    icon.style.transform = 'rotate(0deg)';
+    icon.className = 'fas fa-chevron-down transition-transform duration-300';
   }
 }
 
@@ -16788,66 +17115,65 @@ function refreshVoiceWallV2() {
   showToast('战场信号已刷新', 'success');
 }
 
+
 // ========== 雷达图 V2（终极清晰版：独立合成层 + 超采样） ==========
 async function renderTopicRadarV2() {
   const canvas = document.getElementById('topicRadarChartV2');
-  if (!canvas) return;
-  
-  const container = canvas.parentElement;
-  if (!container) return;
-  
-  // 固定容器高度
-  container.style.height = '200px';
-  container.style.minHeight = '200px';
-  container.style.width = '100%';
-  
-  if (container.clientHeight === 0) {
-    setTimeout(renderTopicRadarV2, 100);
+  if (!canvas) {
+    console.warn('❌ 雷达图画布不存在');
     return;
   }
-  
-  // 使用更高的 DPR 进行超采样（最大 3 倍），让文字和线条极致清晰
-  const dpr = Math.min(window.devicePixelRatio || 1, 3);
-  const displayWidth = container.clientWidth || 600;
-  const displayHeight = 200;
-  
-  canvas.width = displayWidth * dpr;
-  canvas.height = displayHeight * dpr;
-  canvas.style.width = displayWidth + 'px';
-  canvas.style.height = displayHeight + 'px';
+
+  const container = canvas.parentElement;
+  if (!container) return;
+
+  // 强制给容器和画布设置明确尺寸（防止 CSS 遗漏）
+  container.style.width = '100%';
+  container.style.height = '160px';
+  container.style.position = 'relative';
+  canvas.style.width = '100%';
+  canvas.style.height = '100%';
   canvas.style.display = 'block';
-  // 强制 Canvas 创建独立的合成层，完全隔离父级的 transform 影响
-  canvas.style.transform = 'translateZ(0)';
-  canvas.style.willChange = 'transform';
-  canvas.style.backfaceVisibility = 'hidden';
-  
-  const ctx = canvas.getContext('2d');
-  ctx.scale(dpr, dpr);
-  
+
+  // 等待容器尺寸有效（宽度 > 0）
+  if (container.offsetWidth === 0 || container.offsetHeight === 0) {
+    console.warn('⏳ 雷达图容器尺寸为0，200ms后重试...');
+    setTimeout(() => renderTopicRadarV2(), 200);
+    return;
+  }
+
+  // 销毁旧图表
+  if (window.topicRadarChartV2) {
+    try { window.topicRadarChartV2.destroy(); } catch (e) {}
+    window.topicRadarChartV2 = null;
+  }
+
+  // 获取数据（带默认值）
   const categories = ['突击', '工程', '侦察', '支援', '战术研讨', '武器评测'];
-  
+  let counts = [];
   try {
-    const counts = await Promise.all(categories.map(async (cat) => {
+    counts = await Promise.all(categories.map(async (cat) => {
       if (['突击', '工程', '侦察', '支援'].includes(cat)) {
-        const { count } = await sb.from('posts').select('*', { count: 'exact', head: true }).eq('operator_class', cat);
-        return count || 0;
+        const { count, error } = await sb.from('posts').select('*', { count: 'exact', head: true }).eq('operator_class', cat);
+        return error ? 1 : (count || 1);
       } else {
-        const { count } = await sb.from('posts').select('*', { count: 'exact', head: true }).contains('tags', [cat]);
-        return count || 0;
+        const { count, error } = await sb.from('posts').select('*', { count: 'exact', head: true }).contains('tags', [cat]);
+        return error ? 1 : (count || 1);
       }
     }));
+  } catch (e) {
+    console.error('雷达图数据获取失败', e);
+    counts = [1, 1, 1, 1, 1, 1];
+  }
+
+  const total = counts.reduce((a, b) => a + b, 0) || 1;
+  const dataValues = counts.map(c => Math.round((c / total) * 100));
+
+  try {
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
     
-    const total = counts.reduce((a, b) => a + b, 0) || 1;
-    const dataValues = counts.map(c => Math.round((c / total) * 100));
-    
-    if (topicRadarChartV2) topicRadarChartV2.destroy();
-    
-    const textColor = getComputedStyle(document.body).getPropertyValue('--text').trim() || '#F5E6D3';
-    const mutedColor = getComputedStyle(document.body).getPropertyValue('--muted').trim() || '#A0897A';
-    const borderColor = getComputedStyle(document.body).getPropertyValue('--border').trim() || 'rgba(255,140,90,0.15)';
-    
-    // Chart.js 配置：关闭响应式与动画，完全由 Canvas 自身控制渲染
-    topicRadarChartV2 = new Chart(ctx, {
+    window.topicRadarChartV2 = new Chart(ctx, {
       type: 'radar',
       data: {
         labels: categories,
@@ -16859,60 +17185,33 @@ async function renderTopicRadarV2() {
           pointBackgroundColor: '#FFD700',
           pointBorderColor: '#fff',
           pointBorderWidth: 1.5,
-          pointRadius: 5,
-          pointHoverRadius: 6,
+          pointRadius: 4,
         }]
       },
       options: {
-        responsive: false,            // 完全固定尺寸，禁止任何重计算
+        responsive: false,
         maintainAspectRatio: false,
-        devicePixelRatio: dpr,        // 告知 Chart.js 使用高 DPR 渲染
-        animation: false,             // 关闭动画防止重绘闪烁
-        hover: {
-          mode: 'point',
-          intersect: true,
-          animationDuration: 0
-        },
+        animation: false,
         scales: {
           r: {
             beginAtZero: true,
             max: 100,
-            ticks: { 
-              stepSize: 20, 
-              color: mutedColor, 
-              font: { size: 11, weight: '600' }
-            },
-            grid: { 
-              color: borderColor,
-              lineWidth: 0.5,
-              circular: true
-            },
-            pointLabels: { 
-              color: textColor, 
-              font: { size: 12, weight: 'bold' }
-            }
+            ticks: { stepSize: 20, color: '#A0897A' },
+            grid: { color: 'rgba(255,140,90,0.15)' },
+            pointLabels: { color: '#F5E6D3', font: { size: 11, weight: 'bold' } }
           }
         },
-        plugins: { 
-          legend: { display: false }, 
-          tooltip: { 
-            enabled: true,
-            backgroundColor: '#1C120D',
-            titleColor: '#F5E6D3',
-            bodyColor: '#A0897A',
-            bodyFont: { size: 12 },
-            padding: 8
-          } 
-        }
+        plugins: { legend: { display: false } }
       }
     });
-    
-    console.log('✅ 雷达图渲染成功 (独立合成层超采样模式)');
+    console.log('✅ 雷达图渲染成功', dataValues);
   } catch (e) {
-    console.error('雷达图渲染失败:', e);
-    container.innerHTML = '<div class="text-center py-8 text-xs" style="color: var(--muted);">图表加载失败，请刷新页面</div>';
+    console.error('❌ 雷达图初始化失败', e);
+    container.innerHTML = '<div class="text-center py-8 text-xs" style="color:var(--muted);">图表加载失败</div>';
   }
 }
+
+
 // 更新情报中心摘要（可选）
 function updateIntelSummary() {
   const summaryEl = document.getElementById('intelSummary');
