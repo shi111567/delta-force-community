@@ -1462,9 +1462,10 @@ updateConsoleOnlineCount();
 @media (max-width: 768px) {
   .bgm-player {
     max-width: 56px;
+transition: max-width 0.3s ease;
   }
   .bgm-player.expanded {
-    max-width: 360px;
+    max-width: 320px;
   }
   .bgm-hotkey-inline {
     font-size: 9px;
@@ -14795,10 +14796,16 @@ function initBGM() {
   }
 
   // ========== 拖拽与吸附（使用 interact.js） ==========
-  interact('#bgmPlayer').draggable({
-ignoreFrom: 'input, button, #bgmPlaylist, #bgmPlaylist *',
+    interact('#bgmPlayer').draggable({
+    ignoreFrom: 'input, button, #bgmPlaylist, #bgmPlaylist *, #bgmLyricsPanel, #bgmLyricsPanel *',
     inertia: true,
-    autoScroll: true,
+    autoScroll: false,
+    modifiers: [
+      interact.modifiers.restrictRect({
+        restriction: 'parent',
+        endOnly: true
+      })
+    ],
     listeners: {
       start: function (event) {
         event.target.style.transition = 'none';
@@ -14812,7 +14819,7 @@ ignoreFrom: 'input, button, #bgmPlaylist, #bgmPlaylist *',
         target.setAttribute('data-x', x);
         target.setAttribute('data-y', y);
       },
-                  end: function (event) {
+      end: function (event) {
         var target = event.target;
         var x = parseFloat(target.getAttribute('data-x')) || 0;
         var y = parseFloat(target.getAttribute('data-y')) || 0;
@@ -14821,28 +14828,18 @@ ignoreFrom: 'input, button, #bgmPlaylist, #bgmPlaylist *',
         var screenHeight = window.innerHeight;
         var playerHeight = target.offsetHeight || 80;
         
-        var EDGE_OFFSET = 60;        // 吸附后保留露出的宽度
-        var SNAP_THRESHOLD = 150;    // 距离边缘小于此值时触发吸附
+        var EDGE_OFFSET = 60;
+        var SNAP_THRESHOLD = 150;
         
-        var currentX = x;
-        var currentY = y;
+        var targetX = x;
+        var targetY = Math.max(10, Math.min(y, screenHeight - playerHeight - 10));
         
-        // 计算播放器左右边缘距离屏幕边缘的距离
-        var distToLeft = currentX + playerWidth;   // 播放器左边隐藏了多少（负值表示完全在屏幕内）
-        var distToRight = screenWidth - (currentX + playerWidth); // 播放器右边距离屏幕右边缘
-        
-        var targetX = currentX;  // 默认保持原位
-        var targetY = Math.max(60, Math.min(currentY, screenHeight - playerHeight - 20)); // Y轴始终限制
-        
-        // 判断是否靠近左边：播放器右边距离屏幕左边缘小于阈值
-        if (currentX + playerWidth < SNAP_THRESHOLD) {
-          targetX = -playerWidth + EDGE_OFFSET;  // 吸附到左边
+        // 左右吸附
+        if (x + playerWidth < SNAP_THRESHOLD) {
+          targetX = -playerWidth + EDGE_OFFSET;
+        } else if (screenWidth - x < SNAP_THRESHOLD) {
+          targetX = screenWidth - EDGE_OFFSET;
         }
-        // 判断是否靠近右边：播放器左边距离屏幕右边缘小于阈值
-        else if (screenWidth - currentX < SNAP_THRESHOLD) {
-          targetX = screenWidth - EDGE_OFFSET;   // 吸附到右边
-        }
-        // 否则 targetX 保持 currentX，即不吸附
         
         target.style.transition = 'left 0.3s ease, top 0.3s ease';
         target.style.left = targetX + 'px';
@@ -14884,13 +14881,23 @@ ignoreFrom: 'input, button, #bgmPlaylist, #bgmPlaylist *',
     player.setAttribute('data-y', targetY);
   });
 }
-  // ===== 移动端点击展开播放器 =====
+    // ===== 移动端点击播放器空白区域切换展开/收缩 =====
   const player = document.getElementById('bgmPlayer');
   if (player && window.innerWidth <= 768) {
-    player.addEventListener('click', (e) => {
-      if (e.target.closest('button') || e.target.closest('input')) return;
+    // 移除之前可能绑定的监听器
+    player.removeEventListener('click', player._toggleExpandHandler);
+    
+    const toggleHandler = (e) => {
+      // 如果点击的是按钮、输入框、进度条容器，不触发
+      if (e.target.closest('button') || e.target.closest('input') || e.target.closest('.bgm-progress-container')) {
+        return;
+      }
+      // 切换 expanded 类
       player.classList.toggle('expanded');
-    });
+    };
+    
+    player._toggleExpandHandler = toggleHandler;
+    player.addEventListener('click', toggleHandler);
   }
 
 function loadBGMTrack() {
