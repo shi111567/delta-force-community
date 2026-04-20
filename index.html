@@ -4231,6 +4231,62 @@ body {
   transform: rotate(180deg);
 }
 
+/* ===== 物资行情/任务/TTK 弹窗专属样式 ===== */
+.loot-cat-chip {
+  padding: 6px 14px; border-radius: 30px; background: var(--surface); border: 1.5px solid var(--border);
+  color: var(--text); font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.2s; white-space: nowrap;
+}
+.loot-cat-chip.active { background: var(--accent); color: white; border-color: var(--accent); }
+.loot-item-row {
+  display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border-radius: 12px;
+  background: var(--surface); border: 1px solid transparent; transition: all 0.15s; cursor: pointer;
+}
+.loot-item-row:hover { border-color: var(--accent); transform: translateX(2px); }
+.loot-item-left { display: flex; align-items: center; gap: 8px; }
+.loot-item-icon { width: 28px; height: 28px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+.loot-item-info { display: flex; flex-direction: column; }
+.loot-item-name { font-weight: 600; font-size: 13px; }
+.loot-item-desc { font-size: 10px; color: var(--muted); }
+.loot-item-right { text-align: right; }
+.loot-item-price { font-weight: 800; font-size: 15px; }
+.loot-price-up { color: #2ecc71; }
+.loot-price-down { color: #e74c3c; }
+.loot-price-stable { color: var(--muted); }
+.loot-item-trend { font-size: 10px; display: flex; align-items: center; justify-content: flex-end; gap: 3px; }
+.loot-item-unit { font-size: 10px; font-weight: 400; color: var(--muted); }
+.task-item-modal {
+  display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 14px;
+  background: var(--surface); border: 1px solid transparent; transition: all 0.15s; cursor: pointer;
+}
+.task-item-modal:hover { border-color: var(--accent); }
+.task-item-modal.completed { opacity: 0.7; background: rgba(46, 204, 113, 0.08); }
+.task-check-modal {
+  width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--border);
+  background: transparent; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.2s;
+}
+.task-check-modal.completed { background: #2ecc71; border-color: #2ecc71; color: white; }
+.task-content-modal { flex: 1; min-width: 0; }
+.task-name-modal { font-weight: 700; font-size: 13px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.task-phase-badge { font-size: 9px; padding: 2px 8px; border-radius: 30px; background: var(--accent)20; color: var(--accent); }
+.task-desc-modal { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.task-reward-modal { font-size: 11px; font-weight: 600; color: #FFD700; white-space: nowrap; }
+.ttk-item-modal {
+  display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px;
+  background: var(--surface); border: 1px solid transparent; transition: all 0.15s; cursor: pointer;
+}
+.ttk-item-modal:hover { border-color: var(--accent); }
+.ttk-rank-modal { width: 32px; font-weight: 800; font-size: 16px; text-align: center; }
+.ttk-rank-1 { color: #FFD700; }
+.ttk-rank-2 { color: #C0C0C0; }
+.ttk-rank-3 { color: #CD7F32; }
+.ttk-weapon-modal { flex: 1; font-weight: 600; font-size: 13px; }
+.ttk-stats-modal { display: flex; align-items: center; gap: 12px; }
+.ttk-value-modal { font-weight: 800; font-size: 15px; padding: 3px 10px; border-radius: 20px; min-width: 60px; text-align: center; }
+.ttk-fast { background: #2ecc7120; color: #2ecc71; }
+.ttk-mid { background: #f1c40f20; color: #f1c40f; }
+.ttk-slow { background: #e74c3c20; color: #e74c3c; }
+.ttk-damage-modal { font-size: 11px; color: var(--muted); }
+
 </style>
 <script src="https://cdn.jsdelivr.net/npm/interactjs@1.10.27/dist/interact.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/tus-js-client@4.1.0/dist/tus.min.js"></script>
@@ -6150,11 +6206,146 @@ body {
       <h2 class="font-display text-xl"><i class="fas fa-id-card mr-2"></i>战绩卡片</h2>
       <button onclick="closeModal('statsModal')" class="w-8 h-8 rounded-full flex items-center justify-center" style="background:var(--surface)"><i class="fas fa-times"></i></button>
     </div>
+
     <div id="statsModalContent">
       <!-- 动态渲染战绩卡片 -->
     </div>
   </div>
 </div>
+
+<!-- ==================== 物资价格弹窗 ==================== -->
+<div class="modal-overlay" id="lootPriceModal">
+  <div class="modal-content" style="max-width: 520px; max-height: 85vh; overflow-y: auto;">
+    <div class="flex justify-between items-center mb-3">
+      <h2 class="font-display text-xl flex items-center gap-2">
+        <i class="fas fa-coins" style="color: #FFD700;"></i> 物资实时行情
+        <span class="text-xs px-2 py-1 rounded-full" style="background: var(--accent); color: white;" id="lootUpdateBadge">更新中</span>
+      </h2>
+      <div class="flex items-center gap-2">
+        <button class="w-8 h-8 rounded-full flex items-center justify-center" style="background: var(--surface);" onclick="refreshLootPrices()" title="刷新价格">
+          <i class="fas fa-sync-alt"></i>
+        </button>
+        <button onclick="closeModal('lootPriceModal')" class="w-8 h-8 rounded-full flex items-center justify-center" style="background: var(--surface);">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+    </div>
+    <!-- 搜索栏 -->
+    <div class="relative mb-3">
+      <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-sm" style="color: var(--muted);"></i>
+      <input type="text" id="lootSearchInputModal" placeholder="搜索物资名称..." class="w-full pl-10 pr-4 py-2.5 rounded-xl text-sm" style="background: var(--surface); border: 1.5px solid var(--border); color: var(--text);">
+    </div>
+    <!-- 分类标签 -->
+    <div class="flex gap-2 mb-3 overflow-x-auto pb-1" id="lootCategoryTabs">
+      <button class="loot-cat-chip active" data-cat="all">全部</button>
+      <button class="loot-cat-chip" data-cat="red">🔴 红色</button>
+      <button class="loot-cat-chip" data-cat="gold">🟡 金色</button>
+      <button class="loot-cat-chip" data-cat="purple">🟣 紫色</button>
+      <button class="loot-cat-chip" data-cat="blue">🔵 蓝色</button>
+    </div>
+    <!-- 价格趋势说明 -->
+    <div class="flex items-center justify-between mb-2 text-xs" style="color: var(--muted);">
+      <span><i class="fas fa-chart-line mr-1" style="color: #2ecc71;"></i>涨 <i class="fas fa-chart-line ml-2" style="color: #e74c3c;"></i>跌</span>
+      <span>单格价值排序</span>
+    </div>
+    <!-- 物资列表 -->
+    <div id="lootPriceList" class="space-y-1 max-h-96 overflow-y-auto">
+      <div class="text-center py-8" style="color: var(--muted);">
+        <i class="fas fa-spinner fa-pulse fa-2x mb-2"></i>
+        <p>正在抓取最新行情...</p>
+      </div>
+    </div>
+    <p class="text-xs text-center mt-3" style="color: var(--muted);">
+      <i class="fas fa-database mr-1"></i><span id="lootDataSource">数据来源：交易行实时抓取</span>
+    </p>
+  </div>
+</div>
+
+<!-- ==================== 赛季任务追踪弹窗 ==================== -->
+<div class="modal-overlay" id="seasonTaskModal">
+  <div class="modal-content" style="max-width: 480px; max-height: 85vh; overflow-y: auto;">
+    <div class="flex justify-between items-center mb-3">
+      <h2 class="font-display text-xl flex items-center gap-2">
+        <i class="fas fa-tasks" style="color: var(--accent);"></i> S9赛季任务
+        <span class="text-xs px-2 py-1 rounded-full" style="background: var(--accent); color: white;">3x3保险箱</span>
+      </h2>
+      <div class="flex items-center gap-2">
+        <button class="w-8 h-8 rounded-full flex items-center justify-center" style="background: var(--surface);" onclick="refreshSeasonTasks()" title="同步进度">
+          <i class="fas fa-cloud-upload-alt"></i>
+        </button>
+        <button onclick="closeModal('seasonTaskModal')" class="w-8 h-8 rounded-full flex items-center justify-center" style="background: var(--surface);">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+    </div>
+    <!-- 进度总览 -->
+    <div class="task-progress-card p-4 rounded-xl mb-4" style="background: linear-gradient(135deg, var(--accent)10, var(--accent2)10); border: 1.5px solid var(--accent);">
+      <div class="flex items-center justify-between mb-2">
+        <span class="font-bold">总进度</span>
+        <span class="font-bold" id="taskOverallProgress">0/15</span>
+      </div>
+      <div class="exp-bar h-2.5"><div class="exp-fill" id="taskProgressBar" style="width: 0%;"></div></div>
+      <div class="flex items-center justify-between mt-3">
+        <div class="text-center">
+          <div class="text-xl font-bold" id="taskPhase1Count">0/7</div>
+          <div class="text-xs" style="color: var(--muted);">第一阶段</div>
+        </div>
+        <div class="text-center">
+          <div class="text-xl font-bold" id="taskPhase2Count">0/6</div>
+          <div class="text-xs" style="color: var(--muted);">第二阶段</div>
+        </div>
+        <div class="text-center">
+          <div class="text-xl font-bold" id="taskPhase3Count">0/2</div>
+          <div class="text-xs" style="color: var(--muted);">第三阶段</div>
+        </div>
+      </div>
+    </div>
+    <!-- 任务列表 -->
+    <div id="seasonTaskListModal" class="space-y-2 max-h-96 overflow-y-auto"></div>
+    <p class="text-xs text-center mt-3" style="color: var(--muted);">
+      <i class="fas fa-cloud mr-1"></i>进度自动同步至云端 · S9赛季「鼠鼠3x3」
+    </p>
+  </div>
+</div>
+
+<!-- ==================== 武器TTK排行弹窗 ==================== -->
+<div class="modal-overlay" id="ttkRankModal">
+  <div class="modal-content" style="max-width: 480px; max-height: 85vh; overflow-y: auto;">
+    <div class="flex justify-between items-center mb-3">
+      <h2 class="font-display text-xl flex items-center gap-2">
+        <i class="fas fa-chart-bar" style="color: var(--accent);"></i> 武器TTK排行
+        <span class="text-xs px-2 py-1 rounded-full" style="background: var(--accent); color: white;" id="ttkModeLabel">5级甲·近</span>
+      </h2>
+      <div class="flex items-center gap-2">
+        <button class="w-8 h-8 rounded-full flex items-center justify-center" style="background: var(--surface);" onclick="refreshTTKData()" title="刷新数据">
+          <i class="fas fa-sync-alt"></i>
+        </button>
+        <button onclick="closeModal('ttkRankModal')" class="w-8 h-8 rounded-full flex items-center justify-center" style="background: var(--surface);">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+    </div>
+    <!-- 筛选条件 -->
+    <div class="flex gap-2 mb-4">
+      <select id="ttkArmorSelectModal" class="flex-1 px-3 py-2.5 rounded-xl text-sm" style="background: var(--surface); border: 1.5px solid var(--border); color: var(--text);">
+        <option value="4">4级护甲</option>
+        <option value="5" selected>5级护甲</option>
+        <option value="6">6级护甲</option>
+      </select>
+      <select id="ttkRangeSelectModal" class="flex-1 px-3 py-2.5 rounded-xl text-sm" style="background: var(--surface); border: 1.5px solid var(--border); color: var(--text);">
+        <option value="near" selected>近距离</option>
+        <option value="mid">中距离</option>
+      </select>
+    </div>
+    <!-- 排行榜列表 -->
+    <div id="ttkRankListModal" class="space-y-1 max-h-96 overflow-y-auto"></div>
+    <p class="text-xs text-center mt-3" style="color: var(--muted);">
+      <i class="fas fa-calculator mr-1"></i>TTK = 击杀所需时间，数值越小越强 · S9赛季数据
+    </p>
+  </div>
+</div>
+
+
 
 <div class="modal-overlay" id="musicSearchModal">
   <div class="modal-content" style="max-width:440px">
@@ -10930,7 +11121,10 @@ function renderToolbox() {
     { id: 'tactical', icon: 'fa-map', name: '战术板', desc: '绘制战术路线图' },
     { id: 'tasks', icon: 'fa-calendar-check', name: '每日任务', desc: '查看日常任务' },
     { id: 'damage', icon: 'fa-calculator', name: '伤害计算', desc: '计算武器伤害' },
-    { id: 'timer', icon: 'fa-stopwatch', name: '撤离计时', desc: '撤离时间倒计时' }
+    { id: 'timer', icon: 'fa-stopwatch', name: '撤离计时', desc: '撤离时间倒计时' },
+  { id: 'lootPrice', icon: 'fa-coins', name: '物资行情', desc: '实时物资价格' },
+  { id: 'seasonTask', icon: 'fa-tasks', name: '赛季任务', desc: 'S9任务追踪' },
+  { id: 'ttkRank', icon: 'fa-chart-line', name: 'TTK排行', desc: '武器击杀时间' }
   ];
 
   const bar = document.getElementById('toolboxBar');
@@ -10989,10 +11183,31 @@ case 'budgetLoadout':
     case 'timer':
       openExtractionTimerModal();
       break;
+    case 'lootPrice':
+      if (navigator.vibrate) navigator.vibrate(10);
+      openModal('lootPriceModal');
+      loadLootPrices();
+      break;
+    case 'seasonTask':
+      if (navigator.vibrate) navigator.vibrate(10);
+      if (!APP.user) { openAuthModal(); showToast('请先登录同步任务进度'); return; }
+      openModal('seasonTaskModal');
+      loadSeasonTasks();
+      break;
+    case 'ttkRank':
+      if (navigator.vibrate) navigator.vibrate(10);
+      openModal('ttkRankModal');
+      loadTTKRank();
+      break;
     default:
       showToast('该功能正在开发中', 'info');
   }
 }
+
+
+
+
+
 // ==================== 配装推荐（数据库实时读取版） ====================
 let currentLoadoutData = [];
 let currentLoadoutFilter = 'all';
@@ -18737,6 +18952,296 @@ async function deleteHomeBanner(id) {
   loadAdminHomeBannerList();
   loadHomeBanners();
 }
+
+// ==================== 物资行情 + 赛季任务 + TTK排行 完整实现 ====================
+let lootPrices = [];
+let seasonTasks = [];
+let currentLootCat = 'all';
+let currentTTKArmor = 5;
+let currentTTKRange = 'near';
+let ttkWeapons = [];
+
+const LOOT_PRICE_URL = 'https://raw.githubusercontent.com/shi111567/delta-gunsmith-crawler/main/loot_prices.json';
+const TTK_DATA_URL = 'https://raw.githubusercontent.com/shi111567/delta-gunsmith-crawler/main/weapon_ttk.json';
+
+// ----- 物资行情 -----
+async function loadLootPrices() {
+  const container = document.getElementById('lootPriceList');
+  if (!container) return;
+  container.innerHTML = '<div class="text-center py-8" style="color: var(--muted);"><i class="fas fa-spinner fa-pulse fa-2x mb-2"></i><p>正在抓取最新行情...</p></div>';
+  try {
+    const response = await fetch(LOOT_PRICE_URL + '?t=' + Date.now());
+    if (!response.ok) throw new Error('网络响应失败');
+    const data = await response.json();
+    lootPrices = data;
+    document.getElementById('lootUpdateBadge').textContent = '实时';
+    document.getElementById('lootDataSource').textContent = '数据来源：交易行实时抓取 · 每日更新';
+  } catch (e) {
+    console.warn('实时数据获取失败，使用本地缓存', e);
+    const cached = localStorage.getItem('delta_loot_prices');
+    if (cached) {
+      lootPrices = JSON.parse(cached);
+    } else {
+      lootPrices = [
+        { name: '非洲之心', price: 1314, unit: '万', tier: 'red', trend: 'stable', change_percent: 0, desc: '最稀有藏品' },
+        { name: '金条', price: 286, unit: '万', tier: 'gold', trend: 'up', change_percent: 4.2, desc: '大坝22号协议箱' },
+        { name: '军用罐头', price: 1.5, unit: '万', tier: 'blue', trend: 'stable', change_percent: 0, desc: '蓝色三幻神' }
+      ];
+    }
+    document.getElementById('lootUpdateBadge').textContent = '缓存';
+    document.getElementById('lootDataSource').textContent = '数据来源：本地缓存 · 点击刷新获取最新';
+  }
+  renderLootList();
+  bindLootEvents();
+}
+
+function renderLootList() {
+  const container = document.getElementById('lootPriceList');
+  if (!container) return;
+  const searchTerm = document.getElementById('lootSearchInputModal')?.value.toLowerCase() || '';
+  let filtered = lootPrices.filter(item => {
+    if (currentLootCat !== 'all' && item.tier !== currentLootCat) return false;
+    if (searchTerm && !item.name.toLowerCase().includes(searchTerm)) return false;
+    return true;
+  });
+  filtered.sort((a, b) => b.price - a.price);
+  if (filtered.length === 0) {
+    container.innerHTML = '<div class="text-center py-8" style="color: var(--muted);"><i class="fas fa-search text-3xl mb-2 opacity-30"></i><p>没有找到相关物资</p></div>';
+    return;
+  }
+  container.innerHTML = filtered.map(item => {
+    const trendIcon = item.trend === 'up' ? '📈' : (item.trend === 'down' ? '📉' : '➡️');
+    const trendClass = item.trend === 'up' ? 'loot-price-up' : (item.trend === 'down' ? 'loot-price-down' : 'loot-price-stable');
+    const tierColors = { red: '#e74c3c20', gold: '#f1c40f20', purple: '#9b59b620', blue: '#3498db20' };
+    const tierTextColors = { red: '#e74c3c', gold: '#f1c40f', purple: '#9b59b6', blue: '#3498db' };
+    return `
+      <div class="loot-item-row" onclick="showLootDetailModal('${item.name}')">
+        <div class="loot-item-left">
+          <div class="loot-item-icon" style="background: ${tierColors[item.tier]}; color: ${tierTextColors[item.tier]};">
+            ${item.tier === 'red' ? '🔴' : item.tier === 'gold' ? '🟡' : item.tier === 'purple' ? '🟣' : '🔵'}
+          </div>
+          <div class="loot-item-info">
+            <span class="loot-item-name">${item.name}</span>
+            <span class="loot-item-desc">${item.desc || ''}</span>
+          </div>
+        </div>
+        <div class="loot-item-right">
+          <div class="loot-item-price">${item.price}<span class="loot-item-unit">${item.unit}</span></div>
+          <div class="loot-item-trend ${trendClass}">${trendIcon} ${item.change_percent > 0 ? '+' + item.change_percent + '%' : (item.change_percent < 0 ? item.change_percent + '%' : '稳定')}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function bindLootEvents() {
+  const searchInput = document.getElementById('lootSearchInputModal');
+  if (searchInput) {
+    searchInput.removeEventListener('input', renderLootList);
+    searchInput.addEventListener('input', renderLootList);
+  }
+  document.querySelectorAll('.loot-cat-chip').forEach(chip => {
+    chip.removeEventListener('click', chip._handler);
+    const handler = function() {
+      document.querySelectorAll('.loot-cat-chip').forEach(c => c.classList.remove('active'));
+      this.classList.add('active');
+      currentLootCat = this.dataset.cat;
+      renderLootList();
+    };
+    chip._handler = handler;
+    chip.addEventListener('click', handler);
+  });
+}
+
+window.refreshLootPrices = async function() {
+  if (navigator.vibrate) navigator.vibrate(10);
+  showToast('🔄 正在刷新最新行情...', 'info');
+  await loadLootPrices();
+  showToast('✅ 物资价格已更新', 'success');
+};
+
+window.showLootDetailModal = function(name) {
+  const item = lootPrices.find(i => i.name === name);
+  if (!item) return;
+  if (navigator.vibrate) navigator.vibrate(10);
+  showToast(`${item.name} · ${item.price}${item.unit} · ${item.desc || '暂无描述'}`, 'info');
+};
+
+// ----- 赛季任务 -----
+const S9_SEASON_TASKS = [
+  { id: 1, name: '长路伊始', phase: 1, desc: '机密/绝密行动，累计收益30万', reward: '顶级安全箱1天+20万' },
+  { id: 2, name: '初显锋芒', phase: 1, desc: '使用突击步枪/冲锋枪击败5名士兵', reward: '战地医疗箱x2+20万' },
+  { id: 3, name: '统筹物料', phase: 1, desc: '带出3件>紫色收集品', reward: '钥匙补给包x2+20万' },
+  { id: 4, name: '匿名信', phase: 1, desc: '上交海盗金币/银币/铜币', reward: '装备券x1+20万' },
+  { id: 5, name: '觅声追迹', phase: 1, desc: '大坝获取加密物证录音和盒子', reward: '体能强化剂x5+安全箱1天' },
+  { id: 6, name: '脑机静默', phase: 1, desc: '巴克什获取实验日志+破解2次电脑', reward: 'E型滤毒罐x2+20万' },
+  { id: 7, name: '父与子', phase: 1, desc: '航天基地中控区放置侦听模块', reward: '赛季★x2' },
+  { id: 8, name: '支配标杆', phase: 2, desc: '大坝/长弓溪谷完成铁穹/破壁者/硬通货', reward: '赛季★x2' },
+  { id: 9, name: '逃脱艺术', phase: 2, desc: '多地图指定撤离点撤离', reward: '3x3保险箱体验卡' },
+  { id: 10, name: '掘金狂潮', phase: 2, desc: '各地图藏宝堆拾取', reward: '哈夫币x50000' },
+  { id: 11, name: '生存演练', phase: 2, desc: '单局收益50万并撤离', reward: '顶级安全箱3天' },
+  { id: 12, name: '保障有力', phase: 2, desc: '特勤处制造任务', reward: '哈夫币x30000' },
+  { id: 13, name: '清洁工作', phase: 2, desc: '击杀各类AI', reward: '武器经验卡' },
+  { id: 14, name: '博物强识', phase: 2, desc: '带出收集品', reward: '哈夫币x40000' },
+  { id: 15, name: '飞升者行动', phase: 3, desc: '航天基地完成飞升者或焰火行动', reward: '赛季★x3' }
+];
+
+async function loadSeasonTasks() {
+  const container = document.getElementById('seasonTaskListModal');
+  if (!container) return;
+  container.innerHTML = '<div class="text-center py-8" style="color: var(--muted);"><i class="fas fa-spinner fa-pulse fa-2x mb-2"></i><p>同步任务进度中...</p></div>';
+  let completedMap = {};
+  if (APP.user && sb) {
+    try {
+      const { data, error } = await sb.from('user_season_tasks').select('task_id, completed').eq('user_id', APP.user.id);
+      if (!error && data) data.forEach(d => { completedMap[d.task_id] = d.completed; });
+    } catch (e) {}
+  }
+  if (Object.keys(completedMap).length === 0) {
+    try {
+      const local = JSON.parse(localStorage.getItem('delta_season_tasks') || '[]');
+      local.forEach(t => { completedMap[t.id] = t.completed; });
+    } catch (e) {}
+  }
+  seasonTasks = S9_SEASON_TASKS.map(t => ({ ...t, completed: completedMap[t.id] || false }));
+  renderSeasonTaskList();
+}
+
+function renderSeasonTaskList() {
+  const container = document.getElementById('seasonTaskListModal');
+  if (!container) return;
+  const completed = seasonTasks.filter(t => t.completed).length;
+  const total = seasonTasks.length;
+  const phase1Completed = seasonTasks.filter(t => t.phase === 1 && t.completed).length;
+  const phase2Completed = seasonTasks.filter(t => t.phase === 2 && t.completed).length;
+  const phase3Completed = seasonTasks.filter(t => t.phase === 3 && t.completed).length;
+  document.getElementById('taskOverallProgress').textContent = `${completed}/${total}`;
+  document.getElementById('taskProgressBar').style.width = (completed / total * 100) + '%';
+  document.getElementById('taskPhase1Count').textContent = `${phase1Completed}/7`;
+  document.getElementById('taskPhase2Count').textContent = `${phase2Completed}/6`;
+  document.getElementById('taskPhase3Count').textContent = `${phase3Completed}/2`;
+  const grouped = { 1: [], 2: [], 3: [] };
+  seasonTasks.forEach(t => grouped[t.phase].push(t));
+  let html = '';
+  [1, 2, 3].forEach(phase => {
+    const phaseName = phase === 1 ? '第一阶段' : (phase === 2 ? '第二阶段' : '第三阶段');
+    html += `<div class="text-xs font-bold mb-2 mt-3" style="color: var(--accent);">📋 ${phaseName}</div>`;
+    grouped[phase].forEach(task => {
+      html += `
+        <div class="task-item-modal ${task.completed ? 'completed' : ''}" onclick="toggleSeasonTaskModal(${task.id})">
+          <div class="task-check-modal ${task.completed ? 'completed' : ''}">
+            ${task.completed ? '<i class="fas fa-check"></i>' : ''}
+          </div>
+          <div class="task-content-modal">
+            <div class="task-name-modal">
+              ${task.name}
+              <span class="task-phase-badge">阶段${task.phase}</span>
+            </div>
+            <div class="task-desc-modal">${task.desc}</div>
+          </div>
+          <div class="task-reward-modal">🎁 ${task.reward}</div>
+        </div>
+      `;
+    });
+  });
+  container.innerHTML = html;
+}
+
+window.toggleSeasonTaskModal = async function(taskId) {
+  const task = seasonTasks.find(t => t.id === taskId);
+  if (!task) return;
+  task.completed = !task.completed;
+  if (navigator.vibrate) navigator.vibrate(10);
+  if (APP.user) {
+    await sb.from('user_season_tasks').upsert({
+      user_id: APP.user.id, task_id: taskId, completed: task.completed, updated_at: new Date().toISOString()
+    }, { onConflict: 'user_id, task_id' });
+  } else {
+    localStorage.setItem('delta_season_tasks', JSON.stringify(seasonTasks.map(t => ({ id: t.id, completed: t.completed }))));
+  }
+  renderSeasonTaskList();
+  showToast(task.completed ? '✅ 任务已完成' : '↩️ 任务已取消', 'success');
+};
+
+window.refreshSeasonTasks = async function() {
+  if (navigator.vibrate) navigator.vibrate(10);
+  await loadSeasonTasks();
+  showToast('✅ 任务进度已同步', 'success');
+};
+
+// ----- 武器TTK排行 -----
+async function loadTTKRank() {
+  const container = document.getElementById('ttkRankListModal');
+  if (!container) return;
+  container.innerHTML = '<div class="text-center py-8" style="color: var(--muted);"><i class="fas fa-spinner fa-pulse fa-2x mb-2"></i><p>加载枪械数据...</p></div>';
+  try {
+    const response = await fetch(TTK_DATA_URL + '?t=' + Date.now());
+    if (!response.ok) throw new Error('网络响应失败');
+    ttkWeapons = await response.json();
+  } catch (e) {
+    console.warn('TTK数据获取失败，使用内置数据', e);
+    ttkWeapons = [
+      { name: 'AS Val', damage: 34, fire_rate: 800, armor_pen: 48, category: '突击', ttk_4: 0.30, ttk_5: 0.38, ttk_6: 0.52 },
+      { name: 'Vector', damage: 32, fire_rate: 1091, armor_pen: 25, category: '冲锋', ttk_4: 0.22, ttk_5: 0.33, ttk_6: 0.49 },
+      { name: 'M7', damage: 38, fire_rate: 750, armor_pen: 42, category: '突击', ttk_4: 0.32, ttk_5: 0.40, ttk_6: 0.48 },
+    ];
+  }
+  renderTTKRankModal();
+  bindTTKEvents();
+}
+
+function renderTTKRankModal() {
+  const container = document.getElementById('ttkRankListModal');
+  if (!container) return;
+  const armorLevel = currentTTKArmor;
+  const range = currentTTKRange;
+  document.getElementById('ttkModeLabel').textContent = `${armorLevel}级甲·${range === 'near' ? '近' : '中'}`;
+  const ttkField = `ttk_${armorLevel}`;
+  const sorted = [...ttkWeapons].sort((a, b) => (a[ttkField] || 999) - (b[ttkField] || 999));
+  container.innerHTML = sorted.map((w, idx) => {
+    let ttk = w[ttkField] || 0;
+    if (range === 'mid') ttk = ttk * 1.2;
+    let rankClass = '', ttkClass = 'ttk-mid';
+    if (idx === 0) rankClass = 'ttk-rank-1';
+    else if (idx === 1) rankClass = 'ttk-rank-2';
+    else if (idx === 2) rankClass = 'ttk-rank-3';
+    if (ttk < 0.35) ttkClass = 'ttk-fast';
+    else if (ttk > 0.5) ttkClass = 'ttk-slow';
+    return `
+      <div class="ttk-item-modal" onclick="showToast('${w.name} · 伤害${w.damage} · 射速${w.fire_rate} · TTK ${ttk.toFixed(3)}s', 'info')">
+        <span class="ttk-rank-modal ${rankClass}">#${idx + 1}</span>
+        <span class="ttk-weapon-modal">${w.name}</span>
+        <div class="ttk-stats-modal">
+          <span class="ttk-value-modal ${ttkClass}">${ttk.toFixed(3)}s</span>
+          <span class="ttk-damage-modal">${w.damage}伤</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function bindTTKEvents() {
+  const armorSelect = document.getElementById('ttkArmorSelectModal');
+  const rangeSelect = document.getElementById('ttkRangeSelectModal');
+  if (armorSelect) {
+    armorSelect.removeEventListener('change', armorSelect._handler);
+    const handler = () => { currentTTKArmor = parseInt(armorSelect.value); renderTTKRankModal(); };
+    armorSelect._handler = handler;
+    armorSelect.addEventListener('change', handler);
+  }
+  if (rangeSelect) {
+    rangeSelect.removeEventListener('change', rangeSelect._handler);
+    const handler = () => { currentTTKRange = rangeSelect.value; renderTTKRankModal(); };
+    rangeSelect._handler = handler;
+    rangeSelect.addEventListener('change', handler);
+  }
+}
+
+window.refreshTTKData = function() {
+  if (navigator.vibrate) navigator.vibrate(10);
+  loadTTKRank();
+  showToast('✅ TTK数据已刷新', 'success');
+};
 
 </script>
 <script>
