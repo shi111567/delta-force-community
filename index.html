@@ -501,6 +501,14 @@ function enableHorizontalDragScroll(element) {
 
 
 <style>
+
+
+.bgm-player > *:not(canvas) {
+  position: relative;
+  z-index: 2;
+}
+
+
 /* 枪械表格行悬停动效 */
 .weapon-row {
   transition: background 0.2s ease, transform 0.2s ease;
@@ -1708,6 +1716,7 @@ transition: max-width 0.3s ease;
     font-size: 9px;
   }
 }
+
 @media (max-width: 480px) {
   .bgm-player.expanded {
     max-width: 280px;
@@ -1862,6 +1871,8 @@ transition: max-width 0.3s ease;
 .bgm-player.dragging {
   cursor: grabbing !important;
 }
+
+
 </style>
 
 <style>
@@ -6119,6 +6130,11 @@ body {
 </div>
 <!-- ===== BGM 播放器（融合式设计） ===== -->
 <div class="bgm-player draggable" id="bgmPlayer">
+
+
+<canvas id="bgmEffectCanvas" class="bgm-effect-canvas" style="position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:0; border-radius:inherit;"></canvas>
+
+
   <!-- 紧凑态：只有播放按钮 -->
   <div class="bgm-compact">
     <button onclick="bgmToggle()" class="w-10 h-10 rounded-full flex items-center justify-center bgm-play-btn" style="background:linear-gradient(135deg,#FF6B35,#FF4757)" id="bgmPlayBtn">
@@ -6180,6 +6196,11 @@ body {
         <i class="fas fa-volume-up"></i>
       </div>
       <div class="bgm-tool-buttons">
+
+
+<button onclick="window.cycleBgmEffect()" class="bgm-tool-btn" title="切换皮肤"><i class="fas fa-magic"></i></button>
+
+
 <button onclick="cycleLyricColor()" class="bgm-tool-btn" title="切换歌词颜色">
   <i class="fas fa-palette"></i>
 </button>
@@ -15362,24 +15383,23 @@ function renderNotifications() {
 }
 
 
-// ==================== 音乐数据云端同步 ====================
 
+
+
+// ==================== 音乐数据云端同步 ====================
 // ----- 搜索历史（云端+本地）-----
 async function addMusicSearchHistory(keyword) {
   if (!keyword || keyword.trim() === '') return;
   keyword = keyword.trim();
   
   if (!APP.user) {
-    // 本地存储
     let local = JSON.parse(localStorage.getItem('music_search_history') || '[]');
     local = local.filter(k => k !== keyword);
     local.unshift(keyword);
     if (local.length > 20) local.pop();
     localStorage.setItem('music_search_history', JSON.stringify(local));
   } else {
-    // 云端存储
     await sb.from('user_search_history').insert({ user_id: APP.user.id, keyword });
-    // 清理超过30条的历史（可选）
     const { data } = await sb.from('user_search_history')
       .select('id').eq('user_id', APP.user.id)
       .order('created_at', { ascending: false })
@@ -15414,6 +15434,9 @@ async function clearMusicSearchHistory() {
   renderMusicSearchHistory();
   showToast('搜索历史已清空', 'success');
 }
+
+
+
 
 function renderMusicSearchHistory() {
   const container = document.getElementById('musicHistoryList');
@@ -15455,41 +15478,35 @@ async function savePlaybackProgress() {
   const progress = {
     playlist: bgmState.playlist,
     current_index: bgmState.idx,
-    current_time: bgmState.audio.currentTime,
+    playback_time: bgmState.audio.currentTime,
     volume: bgmState.volume
   };
-  if (!APP.user) {
-    localStorage.setItem('bgm_playback_progress', JSON.stringify(progress));
-  } else {
-    await sb.from('user_playback_progress').upsert({
-      user_id: APP.user.id,
-      ...progress,
-      updated_at: new Date().toISOString()
-    }, { onConflict: 'user_id' });
-  }
+  // 纯本地存储
+  localStorage.setItem('bgm_playback_progress', JSON.stringify(progress));
 }
 
+
+
+
 async function loadPlaybackProgress() {
-  let progress = null;
-  if (!APP.user) {
-    const saved = localStorage.getItem('bgm_playback_progress');
-    if (saved) progress = JSON.parse(saved);
-  } else {
-    const { data } = await sb.from('user_playback_progress').select('*').eq('user_id', APP.user.id).single();
-    if (data) progress = data;
-  }
-  if (progress && progress.playlist && progress.playlist.length > 0) {
-    bgmState.playlist = progress.playlist;
-    bgmState.idx = progress.current_index || 0;
-    bgmState.volume = progress.volume || 0.5;
-    bgmState.audio.volume = bgmState.volume;
-    $('bgmVol').value = bgmState.volume * 100;
-    loadBGMTrack();
-    bgmState.audio.currentTime = progress.current_time || 0;
-    renderBGMPlaylist();
-    // 不自动播放，等待用户点击
-  }
+  const saved = localStorage.getItem('bgm_playback_progress');
+  if (!saved) return;
+  try {
+    const progress = JSON.parse(saved);
+    if (progress.playlist && progress.playlist.length) {
+      bgmState.playlist = progress.playlist;
+      bgmState.idx = progress.current_index || 0;
+      bgmState.volume = progress.volume || 0.5;
+      bgmState.audio.volume = bgmState.volume;
+      $('bgmVol').value = bgmState.volume * 100;
+      loadBGMTrack();
+      bgmState.audio.currentTime = progress.playback_time || 0;
+      renderBGMPlaylist();
+    }
+  } catch(e) {}
 }
+
+
 
 // 定期保存进度（每5秒）
 setInterval(() => {
@@ -15501,6 +15518,8 @@ window.addEventListener('beforeunload', () => {
   savePlaybackProgress();
 });
 
+
+
 // ----- 歌单保存/加载（云端+本地）-----
 async function saveCurrentPlaylistToCloud() {
   if (bgmState.playlist.length === 0) {
@@ -15509,7 +15528,6 @@ async function saveCurrentPlaylistToCloud() {
   }
   const name = prompt('输入歌单名称', '我的歌单');
   if (!name) return;
-  
   const songs = bgmState.playlist.map(s => ({ name: s.name, url: s.url, artist: s.artist || '' }));
   if (!APP.user) {
     const lists = JSON.parse(localStorage.getItem('bgm_local_playlists') || '{}');
@@ -15528,6 +15546,8 @@ async function saveCurrentPlaylistToCloud() {
   }
 }
 
+
+
 async function loadPlaylistFromCloud() {
   let lists = {};
   if (!APP.user) {
@@ -15539,8 +15559,6 @@ async function loadPlaylistFromCloud() {
   }
   const names = Object.keys(lists);
   if (names.length === 0) { showToast('没有保存的歌单', 'info'); return; }
-  
-  // 创建简单选择弹窗（实际可用下拉，这里用 prompt 示意）
   const choice = prompt('选择歌单序号:\n' + names.map((n,i) => `${i+1}. ${n}`).join('\n'));
   if (!choice) return;
   const idx = parseInt(choice) - 1;
@@ -15553,50 +15571,40 @@ async function loadPlaylistFromCloud() {
   }
 }
 
+
+
 // ----- 收藏歌曲（喜欢）-----
 async function toggleFavoriteCurrentSong() {
   const song = bgmState.playlist[bgmState.idx];
   if (!song) return;
-  if (!APP.user) {
-    let favs = JSON.parse(localStorage.getItem('bgm_favorites') || '[]');
-    const exists = favs.find(s => s.url === song.url);
-    if (exists) {
-      favs = favs.filter(s => s.url !== song.url);
-      showToast('已取消收藏', 'info');
-    } else {
-      favs.push({ name: song.name, url: song.url, artist: song.artist || '' });
-      showToast('已添加到收藏', 'success');
-    }
-    localStorage.setItem('bgm_favorites', JSON.stringify(favs));
+  
+  // 临时方案：只使用本地存储，避免 Supabase 406 错误
+  let favs = JSON.parse(localStorage.getItem('bgm_favorites') || '[]');
+  const exists = favs.find(s => s.url === song.url);
+  if (exists) {
+    favs = favs.filter(s => s.url !== song.url);
+    showToast('已取消收藏', 'info');
   } else {
-    const { data: existing } = await sb.from('user_favorite_songs').select('id').eq('user_id', APP.user.id).eq('url', song.url).single();
-    if (existing) {
-      await sb.from('user_favorite_songs').delete().eq('id', existing.id);
-      showToast('已取消收藏', 'info');
-    } else {
-      await sb.from('user_favorite_songs').insert({
-        user_id: APP.user.id, name: song.name, url: song.url, artist: song.artist || ''
-      });
-      showToast('已添加到收藏', 'success');
-    }
+    favs.push({ name: song.name, url: song.url, artist: song.artist || '' });
+    showToast('已添加到收藏', 'success');
   }
+  localStorage.setItem('bgm_favorites', JSON.stringify(favs));
   updateFavoriteButtonState();
 }
+
+
 
 async function updateFavoriteButtonState() {
   const song = bgmState.playlist[bgmState.idx];
   if (!song) return;
-  let isFav = false;
-  if (!APP.user) {
-    const favs = JSON.parse(localStorage.getItem('bgm_favorites') || '[]');
-    isFav = favs.some(s => s.url === song.url);
-  } else {
-    const { data } = await sb.from('user_favorite_songs').select('id').eq('user_id', APP.user.id).eq('url', song.url).single();
-    isFav = !!data;
-  }
+  const favs = JSON.parse(localStorage.getItem('bgm_favorites') || '[]');
+  const isFav = favs.some(s => s.url === song.url);
   const icon = document.getElementById('bgmFavoriteIcon');
   if (icon) icon.innerHTML = isFav ? '<i class="fas fa-heart" style="color:#FF4757;"></i>' : '<i class="far fa-heart"></i>';
 }
+
+
+
 
 // 在 loadBGMTrack 末尾添加更新收藏按钮状态
 const originalLoadBGMTrack = loadBGMTrack;
@@ -15610,6 +15618,9 @@ const originalToggleFav = bgmToggleFavorite;
 bgmToggleFavorite = function() {
   toggleFavoriteCurrentSong();
 };
+
+
+
 
 
 
@@ -15699,6 +15710,482 @@ function toggleLikeSong(song) {
 }
 
 // 在搜索时记录历史（修改searchMusic函数，在成功搜索后调用 addSearchHistory(keyword)）
+
+
+
+// ==================== 播放器沉浸式皮肤系统 · 暖色/动感/三端适配 ====================
+let bgmSkinType = 'swing';        // 当前皮肤
+let bgmEffectCanvas, bgmEffectCtx;
+let bgmSkinAnimation = null;
+let skinParticles = [];
+let skinFrame = 0;
+
+// ---------- 各皮肤绘制函数 ----------
+const BGM_SKINS = {
+  // 关闭特效
+  none: { init: () => {}, draw: () => {} },
+  
+  // 1. 秋千 · 童年 (暖色调)
+  swing: {
+    init: () => { skinFrame = 0; },
+    draw: (w, h) => {
+      bgmEffectCtx.clearRect(0, 0, w, h);
+      // 夕阳渐变背景
+      const grad = bgmEffectCtx.createLinearGradient(0, 0, 0, h);
+      grad.addColorStop(0, '#FFB347');
+      grad.addColorStop(0.7, '#FF8C5A');
+      grad.addColorStop(1, '#E85D2C');
+      bgmEffectCtx.fillStyle = grad;
+      bgmEffectCtx.fillRect(0, 0, w, h);
+      
+      const time = Date.now() / 300;
+      const swingX = w * 0.5 + Math.sin(time) * w * 0.15;
+      const swingY = h * 0.25 + Math.abs(Math.sin(time * 1.3)) * h * 0.05;
+      
+      // 秋千架
+      bgmEffectCtx.strokeStyle = '#5C2711';
+      bgmEffectCtx.lineWidth = 4;
+      bgmEffectCtx.beginPath();
+      bgmEffectCtx.moveTo(w * 0.2, h * 0.15);
+      bgmEffectCtx.lineTo(w * 0.8, h * 0.15);
+      bgmEffectCtx.moveTo(w * 0.35, h * 0.15);
+      bgmEffectCtx.lineTo(w * 0.35, h * 0.5);
+      bgmEffectCtx.moveTo(w * 0.65, h * 0.15);
+      bgmEffectCtx.lineTo(w * 0.65, h * 0.5);
+      bgmEffectCtx.stroke();
+      
+      // 秋千座椅
+      bgmEffectCtx.fillStyle = '#8B4513';
+      bgmEffectCtx.fillRect(swingX - 20, swingY, 40, 8);
+      // 绳子
+      bgmEffectCtx.strokeStyle = '#A0897A';
+      bgmEffectCtx.lineWidth = 2.5;
+      bgmEffectCtx.beginPath();
+      bgmEffectCtx.moveTo(w * 0.5 + Math.sin(time) * w * 0.05, h * 0.15);
+      bgmEffectCtx.lineTo(swingX - 12, swingY);
+      bgmEffectCtx.moveTo(w * 0.5 - Math.sin(time) * w * 0.05, h * 0.15);
+      bgmEffectCtx.lineTo(swingX + 12, swingY);
+      bgmEffectCtx.stroke();
+      
+      // 小孩 (暖色剪影)
+      bgmEffectCtx.fillStyle = '#3D2B1F';
+      bgmEffectCtx.beginPath();
+      bgmEffectCtx.arc(swingX, swingY - 10, 10, 0, Math.PI * 2);
+      bgmEffectCtx.fill();
+      bgmEffectCtx.fillRect(swingX - 6, swingY - 4, 12, 14);
+      
+      // 太阳
+      bgmEffectCtx.fillStyle = '#FFD700';
+      bgmEffectCtx.shadowColor = '#FFA500';
+      bgmEffectCtx.shadowBlur = 30;
+      bgmEffectCtx.beginPath();
+      bgmEffectCtx.arc(w * 0.85, h * 0.2, 25, 0, Math.PI * 2);
+      bgmEffectCtx.fill();
+      bgmEffectCtx.shadowBlur = 0;
+      
+      // 飞鸟
+      bgmEffectCtx.strokeStyle = '#5C2711';
+      bgmEffectCtx.lineWidth = 2;
+      for (let i = 0; i < 3; i++) {
+        const offset = (Date.now() / 200 + i * 30) % (w + 100) - 50;
+        bgmEffectCtx.beginPath();
+        bgmEffectCtx.moveTo(offset, h * 0.1 + i * 10);
+        bgmEffectCtx.quadraticCurveTo(offset + 10, h * 0.05, offset + 20, h * 0.1 + i * 5);
+        bgmEffectCtx.stroke();
+      }
+    }
+  },
+  
+  // 2. 纸飞机 · 梦想 (暖白/蓝)
+  paperplane: {
+    init: () => {
+      skinParticles = [];
+      for (let i=0; i<8; i++) {
+        skinParticles.push({
+          x: Math.random() * 300 - 100,
+          y: 50 + Math.random() * 200,
+          speed: 1.2 + Math.random() * 2,
+          rot: Math.random() * 0.5 - 0.25,
+          size: 16 + Math.random() * 10
+        });
+      }
+    },
+    draw: (w, h) => {
+      // 暖白天空渐变
+      const grad = bgmEffectCtx.createLinearGradient(0, 0, 0, h);
+      grad.addColorStop(0, '#FFE4B5');
+      grad.addColorStop(0.5, '#FFDAB9');
+      grad.addColorStop(1, '#E6E6FA');
+      bgmEffectCtx.fillStyle = grad;
+      bgmEffectCtx.fillRect(0, 0, w, h);
+      
+      // 云朵
+      bgmEffectCtx.fillStyle = 'rgba(255,255,255,0.7)';
+      for (let i=0; i<4; i++) {
+        const cx = (i * 120 + Date.now() * 0.05) % (w + 200) - 100;
+        bgmEffectCtx.beginPath();
+        bgmEffectCtx.arc(cx, 60, 30, 0, Math.PI*2);
+        bgmEffectCtx.arc(cx+30, 45, 25, 0, Math.PI*2);
+        bgmEffectCtx.arc(cx-20, 50, 20, 0, Math.PI*2);
+        bgmEffectCtx.fill();
+      }
+      
+      // 纸飞机
+      skinParticles.forEach(p => {
+        p.x += p.speed;
+        if (p.x > w + 100) { p.x = -100; p.y = 50 + Math.random() * 200; }
+        bgmEffectCtx.save();
+        bgmEffectCtx.translate(p.x, p.y);
+        bgmEffectCtx.rotate(p.rot);
+        bgmEffectCtx.fillStyle = '#FFFFFF';
+        bgmEffectCtx.shadowColor = '#FFB347';
+        bgmEffectCtx.shadowBlur = 12;
+        bgmEffectCtx.beginPath();
+        bgmEffectCtx.moveTo(0, 0);
+        bgmEffectCtx.lineTo(p.size, -p.size*0.4);
+        bgmEffectCtx.lineTo(p.size*0.7, 0);
+        bgmEffectCtx.lineTo(p.size, p.size*0.4);
+        bgmEffectCtx.closePath();
+        bgmEffectCtx.fill();
+        bgmEffectCtx.shadowBlur = 0;
+        bgmEffectCtx.restore();
+      });
+    }
+  },
+  
+  // 3. 超音速 · 飞行 (动感/橙色)
+  supersonic: {
+    init: () => { skinFrame = 0; },
+    draw: (w, h) => {
+      bgmEffectCtx.clearRect(0, 0, w, h);
+      const grad = bgmEffectCtx.createLinearGradient(0, 0, w*0.8, h);
+      grad.addColorStop(0, '#1a0a00');
+      grad.addColorStop(1, '#FF4500');
+      bgmEffectCtx.fillStyle = grad;
+      bgmEffectCtx.fillRect(0, 0, w, h);
+      
+      const time = Date.now() / 200;
+      const jetX = (time * 8) % (w + 200) - 100;
+      const jetY = h * 0.3 + Math.sin(time) * 20;
+      
+      // 音爆云
+      bgmEffectCtx.fillStyle = 'rgba(255, 140, 90, 0.2)';
+      bgmEffectCtx.beginPath();
+      bgmEffectCtx.ellipse(jetX - 30, jetY, 40, 25, 0, 0, Math.PI*2);
+      bgmEffectCtx.fill();
+      
+      // 飞机
+      bgmEffectCtx.fillStyle = '#FFD700';
+      bgmEffectCtx.shadowColor = '#FF8C00';
+      bgmEffectCtx.shadowBlur = 20;
+      bgmEffectCtx.beginPath();
+      bgmEffectCtx.moveTo(jetX, jetY);
+      bgmEffectCtx.lineTo(jetX - 35, jetY - 8);
+      bgmEffectCtx.lineTo(jetX - 25, jetY);
+      bgmEffectCtx.lineTo(jetX - 35, jetY + 8);
+      bgmEffectCtx.closePath();
+      bgmEffectCtx.fill();
+      
+      // 尾焰
+      bgmEffectCtx.fillStyle = '#FF4757';
+      bgmEffectCtx.beginPath();
+      bgmEffectCtx.moveTo(jetX - 30, jetY - 4);
+      bgmEffectCtx.lineTo(jetX - 60 + Math.sin(time)*5, jetY);
+      bgmEffectCtx.lineTo(jetX - 30, jetY + 4);
+      bgmEffectCtx.fill();
+      bgmEffectCtx.shadowBlur = 0;
+      
+      // 速度线
+      bgmEffectCtx.strokeStyle = '#FFD700';
+      bgmEffectCtx.lineWidth = 2;
+      for (let i=0; i<8; i++) {
+        const offset = (time * 15 + i * 40) % (w + 100) - 50;
+        bgmEffectCtx.beginPath();
+        bgmEffectCtx.moveTo(offset, h*0.4 + i*8);
+        bgmEffectCtx.lineTo(offset+30, h*0.4 + i*8);
+        bgmEffectCtx.stroke();
+      }
+    }
+  },
+  
+  // 4. 海面滑行 · 自由 (蓝绿/金色)
+  seaglide: {
+    init: () => { skinFrame = 0; },
+    draw: (w, h) => {
+      const grad = bgmEffectCtx.createLinearGradient(0, 0, 0, h);
+      grad.addColorStop(0, '#1E90FF');
+      grad.addColorStop(0.6, '#00CED1');
+      grad.addColorStop(1, '#FFD700');
+      bgmEffectCtx.fillStyle = grad;
+      bgmEffectCtx.fillRect(0, 0, w, h);
+      
+      const time = Date.now() / 400;
+      const waveOffset = Math.sin(time) * 15;
+      
+      // 波浪
+      bgmEffectCtx.fillStyle = 'rgba(255, 255, 255, 0.25)';
+      bgmEffectCtx.beginPath();
+      bgmEffectCtx.moveTo(0, h*0.7 + waveOffset);
+      for (let x=0; x<=w; x+=30) {
+        const y = h*0.7 + Math.sin(x/50 + time)*12 + waveOffset;
+        bgmEffectCtx.lineTo(x, y);
+      }
+      bgmEffectCtx.lineTo(w, h);
+      bgmEffectCtx.lineTo(0, h);
+      bgmEffectCtx.fill();
+      
+      // 快艇
+      const boatX = (time * 5) % (w + 100) - 50;
+      bgmEffectCtx.fillStyle = '#FFD700';
+      bgmEffectCtx.shadowColor = '#FF8C00';
+      bgmEffectCtx.shadowBlur = 15;
+      bgmEffectCtx.beginPath();
+      bgmEffectCtx.moveTo(boatX, h*0.65 + waveOffset);
+      bgmEffectCtx.lineTo(boatX-30, h*0.7 + waveOffset);
+      bgmEffectCtx.lineTo(boatX+20, h*0.7 + waveOffset);
+      bgmEffectCtx.closePath();
+      bgmEffectCtx.fill();
+      
+      // 浪花
+      bgmEffectCtx.fillStyle = '#FFFFFF';
+      bgmEffectCtx.shadowBlur = 10;
+      for (let i=0; i<3; i++) {
+        bgmEffectCtx.beginPath();
+        bgmEffectCtx.arc(boatX-20 + i*10, h*0.67 + waveOffset, 6, 0, Math.PI*2);
+        bgmEffectCtx.fill();
+      }
+      bgmEffectCtx.shadowBlur = 0;
+      
+      // 太阳倒影
+      bgmEffectCtx.fillStyle = '#FFD700';
+      bgmEffectCtx.globalAlpha = 0.3;
+      bgmEffectCtx.beginPath();
+      bgmEffectCtx.arc(w*0.8, h*0.15, 30, 0, Math.PI*2);
+      bgmEffectCtx.fill();
+      bgmEffectCtx.globalAlpha = 1.0;
+    }
+  },
+  
+  // 5. 希区柯克变焦 · 眩晕 (橙紫)
+  hitchcock: {
+    init: () => { skinFrame = 0; },
+    draw: (w, h) => {
+      bgmEffectCtx.fillStyle = '#1a0a2e';
+      bgmEffectCtx.fillRect(0, 0, w, h);
+      const time = Date.now() / 500;
+      const zoom = 0.8 + Math.sin(time * 0.5) * 0.3;
+      
+      bgmEffectCtx.save();
+      bgmEffectCtx.translate(w/2, h/2);
+      bgmEffectCtx.scale(zoom, zoom);
+      
+      // 螺旋隧道效果
+      for (let i=0; i<12; i++) {
+        const rot = time + i * 0.5;
+        bgmEffectCtx.strokeStyle = `hsla(${30 + i*20}, 80%, 60%, 0.5)`;
+        bgmEffectCtx.lineWidth = 8 - i*0.5;
+        bgmEffectCtx.beginPath();
+        bgmEffectCtx.ellipse(0, 0, 40 + i*15, 60 + i*10, rot, 0, Math.PI*2);
+        bgmEffectCtx.stroke();
+      }
+      bgmEffectCtx.restore();
+      
+      // 中心光点
+      bgmEffectCtx.fillStyle = '#FFD700';
+      bgmEffectCtx.shadowColor = '#FFA500';
+      bgmEffectCtx.shadowBlur = 40;
+      bgmEffectCtx.beginPath();
+      bgmEffectCtx.arc(w/2, h/2, 15, 0, Math.PI*2);
+      bgmEffectCtx.fill();
+      bgmEffectCtx.shadowBlur = 0;
+    }
+  },
+  
+  // 6. 超级赛亚人 · 爆气 (金/橙/红)
+  saiyan: {
+    init: () => { skinFrame = 0; },
+    draw: (w, h) => {
+      bgmEffectCtx.fillStyle = '#0a0502';
+      bgmEffectCtx.fillRect(0, 0, w, h);
+      
+      const time = Date.now() / 150;
+      const centerX = w/2, centerY = h/2;
+      
+      // 气焰
+      for (let i=0; i<16; i++) {
+        const angle = i * 0.4 + time * 0.2;
+        const length = 40 + Math.sin(time*3 + i)*15;
+        const x = centerX + Math.cos(angle)*length;
+        const y = centerY + Math.sin(angle)*length*0.8;
+        
+        const grad = bgmEffectCtx.createRadialGradient(x, y, 0, x, y, 30);
+        grad.addColorStop(0, '#FFD700');
+        grad.addColorStop(0.7, '#FF4500');
+        grad.addColorStop(1, 'transparent');
+        bgmEffectCtx.fillStyle = grad;
+        bgmEffectCtx.beginPath();
+        bgmEffectCtx.arc(x, y, 25, 0, Math.PI*2);
+        bgmEffectCtx.fill();
+      }
+      
+      // 中心能量球
+      const pulse = 20 + Math.sin(time*5)*5;
+      const grad = bgmEffectCtx.createRadialGradient(centerX, centerY, 0, centerX, centerY, pulse+20);
+      grad.addColorStop(0, '#FFFFFF');
+      grad.addColorStop(0.5, '#FFD700');
+      grad.addColorStop(1, '#FF4500');
+      bgmEffectCtx.fillStyle = grad;
+      bgmEffectCtx.shadowColor = '#FF8C00';
+      bgmEffectCtx.shadowBlur = 50;
+      bgmEffectCtx.beginPath();
+      bgmEffectCtx.arc(centerX, centerY, pulse, 0, Math.PI*2);
+      bgmEffectCtx.fill();
+      bgmEffectCtx.shadowBlur = 0;
+      
+      // 闪电
+      bgmEffectCtx.strokeStyle = '#FFF8DC';
+      bgmEffectCtx.lineWidth = 2.5;
+      for (let j=0; j<4; j++) {
+        const startX = centerX + (j%2===0 ? 40 : -40);
+        bgmEffectCtx.beginPath();
+        bgmEffectCtx.moveTo(startX, centerY-20);
+        bgmEffectCtx.lineTo(startX + 20, centerY-10);
+        bgmEffectCtx.lineTo(startX-10, centerY+15);
+        bgmEffectCtx.stroke();
+      }
+    }
+  },
+  
+  // 7. 哆啦A梦 · 童趣 (蓝/白/红)
+  doraemon: {
+    init: () => { skinFrame = 0; },
+    draw: (w, h) => {
+      const grad = bgmEffectCtx.createLinearGradient(0, 0, 0, h);
+      grad.addColorStop(0, '#87CEEB');
+      grad.addColorStop(1, '#FFB6C1');
+      bgmEffectCtx.fillStyle = grad;
+      bgmEffectCtx.fillRect(0, 0, w, h);
+      
+      const time = Date.now() / 600;
+      const doraX = w*0.7 + Math.sin(time)*15;
+      const doraY = h*0.5;
+      
+      // 哆啦A梦头像
+      bgmEffectCtx.fillStyle = '#1E90FF';
+      bgmEffectCtx.shadowColor = '#4169E1';
+      bgmEffectCtx.shadowBlur = 20;
+      bgmEffectCtx.beginPath();
+      bgmEffectCtx.arc(doraX, doraY, 35, 0, Math.PI*2);
+      bgmEffectCtx.fill();
+      // 脸白
+      bgmEffectCtx.fillStyle = '#FFFFFF';
+      bgmEffectCtx.beginPath();
+      bgmEffectCtx.arc(doraX-5, doraY-5, 20, 0, Math.PI*2);
+      bgmEffectCtx.fill();
+      // 眼睛
+      bgmEffectCtx.fillStyle = '#000000';
+      bgmEffectCtx.beginPath();
+      bgmEffectCtx.arc(doraX-15, doraY-12, 5, 0, Math.PI*2);
+      bgmEffectCtx.arc(doraX+10, doraY-12, 5, 0, Math.PI*2);
+      bgmEffectCtx.fill();
+      bgmEffectCtx.fillStyle = '#FFFFFF';
+      bgmEffectCtx.beginPath();
+      bgmEffectCtx.arc(doraX-13, doraY-15, 2, 0, Math.PI*2);
+      bgmEffectCtx.arc(doraX+12, doraY-15, 2, 0, Math.PI*2);
+      bgmEffectCtx.fill();
+      // 鼻子
+      bgmEffectCtx.fillStyle = '#FF0000';
+      bgmEffectCtx.beginPath();
+      bgmEffectCtx.arc(doraX-2, doraY-2, 6, 0, Math.PI*2);
+      bgmEffectCtx.fill();
+      // 胡须
+      bgmEffectCtx.strokeStyle = '#000000';
+      bgmEffectCtx.lineWidth = 2;
+      for (let i=-1; i<=1; i+=2) {
+        bgmEffectCtx.beginPath();
+        bgmEffectCtx.moveTo(doraX-20 + i*10, doraY-5);
+        bgmEffectCtx.lineTo(doraX-40 + i*10, doraY-15);
+        bgmEffectCtx.stroke();
+        bgmEffectCtx.beginPath();
+        bgmEffectCtx.moveTo(doraX-20 + i*10, doraY+2);
+        bgmEffectCtx.lineTo(doraX-40 + i*10, doraY+2);
+        bgmEffectCtx.stroke();
+      }
+      bgmEffectCtx.shadowBlur = 0;
+      
+      // 竹蜻蜓
+      bgmEffectCtx.fillStyle = '#FFD700';
+      bgmEffectCtx.beginPath();
+      bgmEffectCtx.ellipse(doraX-5, doraY-40, 20, 6, 0, 0, Math.PI*2);
+      bgmEffectCtx.fill();
+      
+      // 任意门
+      bgmEffectCtx.fillStyle = '#FF69B4';
+      bgmEffectCtx.fillRect(w*0.1, h*0.5, 50, 80);
+      bgmEffectCtx.fillStyle = '#FFB6C1';
+      bgmEffectCtx.fillRect(w*0.1+8, h*0.5+8, 34, 64);
+      
+      // 云
+      bgmEffectCtx.fillStyle = 'rgba(255,255,255,0.6)';
+      bgmEffectCtx.beginPath();
+      bgmEffectCtx.arc(w*0.3, h*0.2, 25, 0, Math.PI*2);
+      bgmEffectCtx.arc(w*0.35, h*0.15, 20, 0, Math.PI*2);
+      bgmEffectCtx.fill();
+    }
+  }
+};
+
+// ---------- 系统控制 ----------
+window.startBgmEffect = function() {
+  bgmEffectCanvas = document.getElementById('bgmEffectCanvas');
+  if (!bgmEffectCanvas) return;
+  bgmEffectCtx = bgmEffectCanvas.getContext('2d');
+  
+  const resize = () => {
+    const rect = bgmEffectCanvas.parentElement.getBoundingClientRect();
+    bgmEffectCanvas.width = rect.width || 300;
+    bgmEffectCanvas.height = rect.height || 200;
+    if (BGM_SKINS[bgmSkinType] && BGM_SKINS[bgmSkinType].init) {
+      BGM_SKINS[bgmSkinType].init();
+    }
+  };
+  
+  window.addEventListener('resize', resize);
+  const observer = new ResizeObserver(resize);
+  observer.observe(bgmEffectCanvas.parentElement);
+  resize();
+  
+  const animate = () => {
+    if (bgmSkinType !== 'none' && BGM_SKINS[bgmSkinType]) {
+      BGM_SKINS[bgmSkinType].draw(bgmEffectCanvas.width, bgmEffectCanvas.height);
+    } else {
+      bgmEffectCtx.clearRect(0, 0, bgmEffectCanvas.width, bgmEffectCanvas.height);
+    }
+    bgmSkinAnimation = requestAnimationFrame(animate);
+  };
+  animate();
+};
+
+window.switchBgmSkin = function(type) {
+  bgmSkinType = type;
+  if (BGM_SKINS[type] && BGM_SKINS[type].init) BGM_SKINS[type].init();
+  const names = {
+    none: '❌ 关闭', swing: '🌅 秋千·童年', paperplane: '✈️ 纸飞机', supersonic: '🚀 超音速',
+    seaglide: '🌊 海面滑行', hitchcock: '🌀 希区柯克', saiyan: '⚡ 超级赛亚人', doraemon: '🐱 哆啦A梦'
+  };
+  showToast(`🎨 皮肤：${names[type] || type}`, 'info');
+};
+
+window.cycleBgmSkin = function() {
+  const types = ['swing', 'paperplane', 'supersonic', 'seaglide', 'hitchcock', 'saiyan', 'doraemon', 'none'];
+  const idx = types.indexOf(bgmSkinType);
+  const next = types[(idx + 1) % types.length];
+  window.switchBgmSkin(next);
+};
+
+// 兼容旧函数名
+window.cycleBgmEffect = window.cycleBgmSkin;
+
 
 
 
@@ -15867,11 +16354,14 @@ function initBGM() {
         target.style.top = targetY + 'px';
         target.setAttribute('data-x', targetX);
         target.setAttribute('data-y', targetY);
-        
+        startBgmEffect();
         setTimeout(function() { target.style.transition = ''; }, 300);
+       
       }
     }
   });
+ window.startBgmEffect();  // 👈 这行放在这里
+
 }
 
 function updateKaraokeLyric() {
@@ -15907,19 +16397,19 @@ function loadBGMTrack() {
   const song = bgmState.playlist[bgmState.idx % bgmState.playlist.length];
   
  
-  
-    // 如果之前有音频上下文，先彻底销毁
-  if (audioCtx) {
-    audioCtx.close();
-    audioCtx = null;
-    analyser = null;
-    source = null;
-  }
 
 
   
   // 重置音频元素：先暂停，清空 src，再设置新 src
   const wasPlaying = bgmState.playing;
+
+// 断开旧的音频分析连接
+if (bgmState.audio._mediaSource) {
+  try { bgmState.audio._mediaSource.disconnect(); } catch(e) {}
+  bgmState.audio._mediaSource = null;
+}
+
+
   bgmState.audio.pause();
   bgmState.audio.src = '';
   bgmState.audio.load();
@@ -15995,6 +16485,8 @@ function updateBGMProgress() {
 }
 
 
+
+
 function bgmToggle() {
   if (bgmState.playing) {
     bgmState.audio.pause();
@@ -16002,29 +16494,27 @@ function bgmToggle() {
     updateBGMBtn();
     document.getElementById('bgmPlayer')?.classList.remove('playing');
   } else {
-    // 播放音频
     bgmState.audio.play().then(() => {
       bgmState.playing = true;
       updateBGMBtn();
       document.getElementById('bgmPlayer')?.classList.add('playing');
       
-      // 如果 AudioContext 存在且是挂起状态，则恢复
-      if (audioCtx && audioCtx.state === 'suspended') {
-        audioCtx.resume();
-      }
-      // 如果分析器从未初始化，现在初始化（第一次播放时）
+      // 确保 AudioContext 初始化并运行
       if (!audioCtx) {
         initAnalyzerOnce();
+      }
+      // 如果 AudioContext 是暂停状态（例如浏览器自动播放策略），则恢复
+      if (audioCtx && audioCtx.state === 'suspended') {
+        audioCtx.resume();
       }
     }).catch(err => {
       console.warn('播放失败:', err);
       bgmState.playing = false;
       updateBGMBtn();
-      showToast('播放失败，请重试', 'error');
+      showToast('播放失败，请手动点击播放', 'warning');
     });
   }
 }
-
 
 
 
@@ -16348,7 +16838,8 @@ function cycleWaveformStyle() {
 
 // ===== 音频分析器（单次初始化，全局复用） =====
 function initAnalyzerOnce() {
-  if (audioCtx) return; // 已经初始化过
+  // 使用全局标志确保整个页面生命周期只执行一次
+  if (window.__audioInitialized) return;
   
   try {
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -16358,22 +16849,23 @@ function initAnalyzerOnce() {
     bufferLength = analyser.frequencyBinCount;
     dataArray = new Uint8Array(bufferLength);
     
-    // 创建 MediaElementSource（仅一次）
+    // 整个生命周期只连接一次！
     source = audioCtx.createMediaElementSource(bgmState.audio);
     source.connect(analyser);
     analyser.connect(audioCtx.destination);
     
     startWaveformAnimation();
-    console.log('✅ 音频分析器初始化成功（全局单次）');
+    window.__audioInitialized = true;
+    console.log('✅ 音频分析器初始化成功（全局唯一）');
   } catch (e) {
-    console.warn('⚠️ 分析器初始化失败，将使用模拟波形', e);
+    console.warn('⚠️ 分析器初始化失败', e);
+    // 失败时也要标记，避免反复尝试
+    window.__audioInitialized = true;
     audioCtx = null;
     analyser = null;
     source = null;
   }
 }
-
-
 
 
 
