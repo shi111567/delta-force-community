@@ -4693,6 +4693,16 @@ body {
 <!-- Canvas 粒子背景 -->
 <canvas id="particle-canvas"></canvas>
 
+
+
+
+<!-- 动态背景容器（视频或图片） -->
+<div id="themeBgContainer" style="position:fixed; top:0; left:0; width:100%; height:100%; z-index:-2; pointer-events:none;"></div>
+<div id="themeBgOverlay" style="position:fixed; top:0; left:0; width:100%; height:100%; z-index:-1; background:rgba(0,0,0,0.2); pointer-events:none;"></div>
+
+
+
+
 <!-- 顶部导航栏 -->
 <nav class="top-nav" id="topNav">
   <div class="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">
@@ -4713,6 +4723,9 @@ body {
   <i class="fas fa-fire"></i> <span id="onlineCount">0</span> 人在线
 </span>
       <button onclick="toggleTheme()" class="w-8 h-8 rounded-full flex items-center justify-center" style="background:var(--surface);border:1px solid var(--border)" id="themeBtn" aria-label="切换主题">☀️</button>
+
+<button onclick="openThemeDrawer()" class="w-8 h-8 rounded-full flex items-center justify-center" style="background:var(--surface);border:1px solid var(--border)" aria-label="战区氛围">🎨</button>
+
       <div class="relative">
         <button onclick="openNotifModal()" class="w-8 h-8 rounded-full flex items-center justify-center" style="background:var(--surface);border:1px solid var(--border)" aria-label="通知">
           <i class="fas fa-bell text-sm" style="color:var(--muted)"></i>
@@ -5619,6 +5632,11 @@ body {
         <div class="text-xl font-bold" style="color: var(--accent);" id="budgetTotalCount">0</div>
         <div class="text-xs" style="color: var(--muted);">总方案数</div>
       </div>
+
+
+
+
+
       <div class="card-base p-3 text-center">
         <div class="text-xl font-bold" style="color: #2ecc71;" id="budgetAvgPrice">0</div>
         <div class="text-xs" style="color: var(--muted);">平均价格(万)</div>
@@ -5656,6 +5674,13 @@ body {
       <i class="fas fa-box-open text-4xl mb-3 opacity-30"></i>
       <p>暂无符合条件的方案，试试调整筛选条件</p>
     </div>
+
+<!-- ✅ 新增：加载更多按钮 -->
+<button id="budgetLoadMoreBtn" class="btn-ghost w-full py-3 mt-4" style="display:none;" onclick="loadMoreBudget()">
+  <i class="fas fa-chevron-down mr-2"></i>加载更多
+</button>
+
+
   </div>
 </div>
 <!-- 功能引导横幅（首次显示，可关闭） -->
@@ -5787,6 +5812,22 @@ body {
     </div>
   </div>
 </div>
+
+
+<!-- 战区氛围选择抽屉 -->
+<div id="themeDrawerOverlay" class="modal-overlay" style="z-index:1003;" onclick="closeThemeDrawer()">
+  <div class="modal-content" style="max-width:380px; margin-left:auto; margin-right:0; height:100%; max-height:100%; border-radius:20px 0 0 20px;" onclick="event.stopPropagation()">
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="font-display text-lg"><i class="fas fa-palette mr-2" style="color:var(--accent);"></i>战区氛围</h2>
+      <button onclick="closeThemeDrawer()" class="w-8 h-8 rounded-full flex items-center justify-center" style="background:var(--surface)"><i class="fas fa-times"></i></button>
+    </div>
+    <p class="text-xs mb-4" style="color:var(--muted);"><i class="fas fa-info-circle mr-1"></i>双击页面空白处也可快速切换</p>
+    <div id="themeListContainer" class="space-y-3">
+      <!-- 动态渲染皮肤列表 -->
+    </div>
+  </div>
+</div>
+
 
 <!-- 底部宣传横幅 -->
 <footer class="relative z-10 py-6 text-center" style="background:var(--card);border-top:1px solid var(--border)" id="footerBanner">
@@ -7913,8 +7954,8 @@ function switchTab(tab) {
   } else if (tab === 'tactical') {
     initTactical();
   } else if (tab === 'budgetLoadout') {
-    initBudgetLoadouts();
-    renderBudgetLoadouts();
+     budgetLoadoutsInitialized = false; // 重置标志，允许重新初始化
+     initBudgetLoadouts();
   }
 
   // 8. 触发 resize 事件，确保移动端适配
@@ -8105,9 +8146,21 @@ window.deleteTacticalPost = async function(postId) {
 };
 
 // 点击其他区域关闭菜单
-document.addEventListener('click', function() {
-    document.querySelectorAll('.tactical-card-menu').forEach(m => m.classList.add('hidden'));
+// 监听双击空白处切换皮肤
+document.addEventListener('dblclick', function(e) {
+  if (e.target.closest('button, input, textarea, a, .modal-overlay, .modal-content')) return;
+  
+  // 主动激活音频上下文，解决浏览器自动播放限制
+  if (bgmState && bgmState.audio && bgmState.audio.paused) {
+      bgmState.audio.play().then(() => {
+          bgmState.audio.pause();
+      }).catch(() => {});
+  }
+  
+  switchToNextTheme();
+  showToast(`✨ 沉浸氛围已切换`, 'info');
 });
+
 
 
 async function loadCommunityTacticalStream() {
@@ -15621,6 +15674,52 @@ bgmToggleFavorite = function() {
 
 
 
+// ==================== 沉浸式战区主题系统 ====================
+const BATTLEFIELD_THEMES = [
+
+  { 
+    id: 'hot', name: '🔥 热门战区', icon: '🔥',
+    wallpaperType: 'video', videoCategory: '1',
+    musicKeyword: '史诗 战斗 激昂 战歌', musicMood: 'epic',
+    uiColor: '#e74c3c', accentLight: '#ff6b6b', accentDark: '#c0392b'
+  },
+  { 
+    id: 'anime', name: '🎨 二次元', icon: '🎨',
+    wallpaperType: 'video', videoCategory: '6',
+    musicKeyword: '动漫 燃曲 二次元 OST', musicMood: 'anime',
+    uiColor: '#9b59b6', accentLight: '#c39bd3', accentDark: '#7d3c98'
+  },
+  { 
+    id: 'star', name: '⭐ 明星风尚', icon: '⭐',
+    wallpaperType: 'video', videoCategory: '4',
+    musicKeyword: '流行 抒情 中文金曲', musicMood: 'pop',
+    uiColor: '#f1c40f', accentLight: '#f7dc6f', accentDark: '#d4ac0d'
+  },
+  { 
+    id: '4k', name: '🏔️ 4K风景', icon: '🏔️',
+    wallpaperType: 'image', imageCategory: '0',
+    musicKeyword: '自然 宁静 轻音乐 钢琴', musicMood: 'ambient',
+    uiColor: '#2ecc71', accentLight: '#58d68d', accentDark: '#1e8449'
+  },
+  { 
+    id: 'game', name: '🎮 游戏壁纸', icon: '🎮',
+    wallpaperType: 'image', imageCategory: '8',
+    musicKeyword: '游戏 原声 电子 动感', musicMood: 'game',
+    uiColor: '#e67e22', accentLight: '#f0b27a', accentDark: '#ca6f1e'
+  },
+  { 
+    id: 'love', name: '💕 爱情美图', icon: '💕',
+    wallpaperType: 'image', imageCategory: '2',
+    musicKeyword: '浪漫 情歌 R&B 舒缓', musicMood: 'romantic',
+    uiColor: '#e84393', accentLight: '#fd79a8', accentDark: '#d63384'
+  }
+];
+let currentThemeIndex = 0;        // 当前皮肤索引
+let currentWallpaperData = null;  // 当前壁纸数据
+
+
+
+
 
 
 
@@ -17000,6 +17099,61 @@ async function searchMusic() {
   }
 }
 
+
+// ==================== 按关键词自动搜索音乐（供主题切换调用） ====================
+async function searchMusicByKeyword(keyword) {
+    if (!keyword) return null;
+    
+    const API_BASE = 'https://ncm.zhenxin.me';
+    // 策略1：先用用户指定的关键词搜索，如果失败，则回退到通用的"纯音乐"
+    const keywordsToTry = [keyword, '纯音乐'];
+    
+    for (const kw of keywordsToTry) {
+        try {
+            console.log(`🎵 正在尝试关键词：「${kw}」`);
+            // 1. 搜索歌曲
+            const searchResponse = await fetch(`${API_BASE}/search?keywords=${encodeURIComponent(kw)}&limit=30`);
+            if (!searchResponse.ok) continue;
+            
+            const searchData = await searchResponse.json();
+            if (!searchData.result?.songs?.length) {
+                console.warn(`关键词「${kw}」未找到歌曲`);
+                continue;
+            }
+            
+            // 2. 按热度排序，优先选择有高音质标签的歌曲
+            const songs = searchData.result.songs;
+            const highQualitySongs = songs.filter(s => s.h || s.sq || s.hr);
+            const sortedSongs = (highQualitySongs.length ? highQualitySongs : songs)
+                .sort((a, b) => (b.pop || 0) - (a.pop || 0));
+            
+            const selectedSong = sortedSongs[0];
+            
+            // 3. 获取播放链接
+            const urlResponse = await fetch(`${API_BASE}/song/url?id=${selectedSong.id}`);
+            const urlData = await urlResponse.json();
+            
+            if (urlData.data?.[0]?.url) {
+                console.log(`✅ 成功匹配歌曲：${selectedSong.name} - ${selectedSong.artists?.[0]?.name || '未知'}`);
+                return {
+                    name: selectedSong.name,
+                    url: urlData.data[0].url,
+                    artist: selectedSong.artists?.[0]?.name || '未知艺术家',
+                    songId: selectedSong.id
+                };
+            }
+        } catch (error) {
+            console.error(`尝试关键词「${kw}」失败:`, error);
+        }
+    }
+    
+    console.warn(`所有关键词均未找到可播放的音乐。`);
+    return null;
+}
+
+
+
+
 // 打开音乐搜索弹窗并加载历史记录
 function openMusicSearchWithHistory() {
   openModal('musicSearchModal');
@@ -17009,6 +17163,63 @@ function openMusicSearchWithHistory() {
     }
   }, 50);
 }
+
+// ==================== 自动搜索并播放主题音乐 ====================
+async function autoSearchAndPlayThemeMusic(keyword) {
+    if (!keyword) return;
+    
+    console.log(`🎵 正在为当前主题搜索音乐：「${keyword}」`);
+    const API_BASE = 'https://ncm.zhenxin.me';
+    
+    try {
+        const searchResponse = await fetch(`${API_BASE}/search?keywords=${encodeURIComponent(keyword)}`);
+        if (!searchResponse.ok) throw new Error('搜索失败');
+        const searchData = await searchResponse.json();
+        if (!searchData.result || !searchData.result.songs || searchData.result.songs.length === 0) {
+            console.warn(`未找到与「${keyword}」相关的歌曲`);
+            return;
+        }
+        
+        const firstSong = searchData.result.songs[0];
+        const songId = firstSong.id;
+        const songName = firstSong.name;
+        const artistName = firstSong.artists?.[0]?.name || '未知艺术家';
+        
+        const urlResponse = await fetch(`${API_BASE}/song/url?id=${songId}`);
+        if (!urlResponse.ok) throw new Error('获取播放链接失败');
+        const urlData = await urlResponse.json();
+        if (!urlData.data || !urlData.data[0] || !urlData.data[0].url) {
+            console.warn('无法获取该歌曲的播放地址');
+            return;
+        }
+        const playUrl = urlData.data[0].url;
+        
+        if (bgmState && bgmState.audio) {
+            bgmState.playlist = [{
+                name: songName,
+                url: playUrl,
+                artist: artistName,
+                songId: songId
+            }];
+            bgmState.idx = 0;
+            loadBGMTrack();
+            
+            bgmState.audio.play().then(() => {
+                bgmState.playing = true;
+                updateBGMBtn();
+                document.getElementById('bgmPlayer')?.classList.add('playing');
+                showToast(`🎵 正在播放：${songName} - ${artistName}`, 'success');
+            }).catch(err => {
+                console.warn('自动播放失败:', err);
+                showToast('🎵 音乐已准备，点击播放器即可播放', 'info');
+            });
+            renderBGMPlaylist();
+        }
+    } catch (error) {
+        console.error('自动搜索并播放音乐失败:', error);
+    }
+}
+
 
 
 
@@ -19486,13 +19697,14 @@ let BUDGET_LOADOUTS = [
 ];
 
 // 从爬虫获取实时热门方案（模拟异步请求）
-async function fetchBudgetLoadoutsFromCrawler() {
+async function fetchBudgetLoadoutsFromCrawler(forceRender = true) {
   showToast('正在获取最新热门方案...', 'info');
   const urls = [
     'https://cdn.jsdelivr.net/gh/shi111567/delta-gunsmith-crawler@main/budget_loadouts.json?t=' + Date.now(),
     'https://raw.githubusercontent.com/shi111567/delta-gunsmith-crawler/main/budget_loadouts.json?t=' + Date.now()
   ];
   
+  let loaded = false;
   for (const url of urls) {
     try {
       const response = await fetch(url, { cache: 'no-cache' });
@@ -19501,24 +19713,48 @@ async function fetchBudgetLoadoutsFromCrawler() {
       if (data && data.length > 0) {
         BUDGET_LOADOUTS = data;
         showToast(`✅ 已更新 ${data.length} 个热门方案`, 'success');
-        return data;
+        loaded = true;
+        break;
       }
     } catch (e) {
       console.warn('获取方案失败:', url);
     }
   }
   
-  // 网络失败时使用内置默认数据（已在前面定义）
-  showToast('📦 显示缓存方案', 'info');
+  if (!loaded) {
+    // 网络失败时保留原有数据（可能已经是之前加载过的）
+    showToast('📦 显示缓存方案', 'info');
+  }
+  
+  // ✅ 关键修复：数据更新后，根据当前模式强制刷新对应视图
+  if (forceRender) {
+    budgetDataReady = true;
+    if (currentBudgetMode === 'recommend') {
+      generateRecommendations();
+    } else {
+      renderBudgetLoadouts();
+    }
+  }
+  
   return BUDGET_LOADOUTS;
 }
+
+
+
 // 渲染起装方案网格
-function renderBudgetLoadouts() {
+let budgetPageSize = 12;
+let budgetCurrentPage = 1;
+let budgetFilteredData = [];
+
+function renderBudgetLoadouts(resetPage = true) {
   const grid = document.getElementById('budgetLoadoutGrid');
   const loadingEl = document.getElementById('budgetLoading');
   const emptyEl = document.getElementById('budgetEmpty');
+  const loadMoreBtn = document.getElementById('budgetLoadMoreBtn');
   
   if (!grid) return;
+
+  if (resetPage) budgetCurrentPage = 1;
 
   const scenarioFilter = document.getElementById('budgetScenarioFilter')?.value || 'all';
   const priceFilter = document.getElementById('budgetPriceFilter')?.value || 'all';
@@ -19536,17 +19772,31 @@ function renderBudgetLoadouts() {
     return true;
   });
 
-  // 更新统计
+  // 排序
+  filtered.sort((a, b) => {
+    const order = { '跑刀': 1, '卡战备': 2, '猛攻': 3, '绝密': 4, '通用': 5 };
+    if (a.scenario !== b.scenario) return order[a.scenario] - order[b.scenario];
+    return a.totalPrice - b.totalPrice;
+  });
+
+  budgetFilteredData = filtered;
   updateBudgetStats(filtered);
+
+  // 分页切片
+  const start = 0;
+  const end = budgetCurrentPage * budgetPageSize;
+  const pageData = filtered.slice(start, end);
 
   loadingEl.style.display = 'none';
   
   if (filtered.length === 0) {
     grid.innerHTML = '';
     emptyEl.classList.remove('hidden');
+    if (loadMoreBtn) loadMoreBtn.style.display = 'none';
     return;
   }
   emptyEl.classList.add('hidden');
+
 
   // 按场景分组，同场景内按价格排序
   filtered.sort((a, b) => {
@@ -19582,6 +19832,21 @@ function renderBudgetLoadouts() {
         </div>
       </div>
     `).join('');
+
+if (loadMoreBtn) {
+    if (end < filtered.length) {
+      loadMoreBtn.style.display = 'block';
+    } else {
+      loadMoreBtn.style.display = 'none';
+    }
+  }
+
+
+// 加载更多
+function loadMoreBudget() {
+  budgetCurrentPage++;
+  renderBudgetLoadouts(false);
+}
 
     const armorsHtml = item.armors.map(a => `
       <div class="flex items-center justify-between text-sm py-1.5 border-b border-dashed" style="border-color: var(--border);">
@@ -19894,36 +20159,32 @@ function copyAllBudgetCodes(loadoutName) {
     showToast('该方案暂无改枪码', 'info');
   }
 }
+
+
 // 初始化：首次加载时获取热门方案
 let budgetLoadoutsInitialized = false;
 async function initBudgetLoadouts() {
   if (budgetLoadoutsInitialized) return;
   budgetLoadoutsInitialized = true;
-  await fetchBudgetLoadoutsFromCrawler();
-  renderBudgetLoadouts();
-}
-
-// ==================== 初始化起装方案（修复版） ====================
-let currentBudgetMode = 'recommend';  // 默认选中智能推荐
-let budgetDataReady = false;
-
-// 保留原始函数的引用（必须在 initBudgetLoadouts 定义之后）
-const originalInitBudget = initBudgetLoadouts;
-initBudgetLoadouts = async function() {
-  await originalInitBudget();  // 加载数据
-  budgetDataReady = true;
   
-  // 等待下一帧，确保 DOM 更新
+  // 显示加载中状态
+  const loadingEl = document.getElementById('budgetLoading');
+  if (loadingEl) loadingEl.style.display = 'block';
+  
+  // 拉取数据，并强制渲染
+  await fetchBudgetLoadoutsFromCrawler(true);
+  
+  if (loadingEl) loadingEl.style.display = 'none';
+  
+  // 确保视图正确显示
   requestAnimationFrame(() => {
-    // 根据当前模式显示对应视图
     if (currentBudgetMode === 'recommend') {
       switchBudgetMode('recommend');
     } else {
       switchBudgetMode('browse');
     }
   });
-};
-
+}
 // 增强版模式切换（修复按钮状态与视图同步）
 function switchBudgetMode(mode) {
   currentBudgetMode = mode;
@@ -20214,19 +20475,34 @@ function generateRecommendations() {
                                    item.backpacks?.reduce((s,b)=>s+(b.price||0),0)) || 30
   }));
   
+  // ✅ 核心改动：生成 6 个推荐位（可按需改为 9 个）
   const sortedByPrice = [...candidates].sort((a, b) => a.totalPrice - b.totalPrice);
+  const sortedByPower = [...candidates].sort((a, b) => b.combatPower - a.combatPower);
   
+  // 极致性价比（价格最低且达标）
   const cheapPassed = sortedByPrice.find(l => l.combatPower >= thresholdValue) || sortedByPrice[0];
+  // 第二便宜
+  const secondCheap = sortedByPrice[1] || sortedByPrice[0];
+  // 战力最高
+  const highestPower = sortedByPower[0];
+  // 均衡型（价格中位数）
   const midIndex = Math.floor(sortedByPrice.length / 2);
   const balanced = sortedByPrice[midIndex] || sortedByPrice[0];
+  // 极限跑刀（最便宜）
   const cheapest = sortedByPrice[0];
+  // 高性价比战力（战力/价格比最高）
+  const bestValue = candidates.sort((a, b) => (b.combatPower / b.totalPrice) - (a.combatPower / a.totalPrice))[0];
   
   const recommendations = [
     { type: 'gold', title: '🥇 极致性价比', data: cheapPassed, threshold: thresholdValue },
     { type: 'silver', title: '🥈 均衡稳健型', data: balanced, threshold: thresholdValue },
-    { type: 'bronze', title: '🥉 极限跑刀流', data: cheapest, threshold: thresholdValue }
+    { type: 'bronze', title: '🥉 极限跑刀流', data: cheapest, threshold: thresholdValue },
+    { type: 'gold', title: '⚡ 战力天花板', data: highestPower, threshold: thresholdValue },
+    { type: 'silver', title: '💰 超值之选', data: bestValue, threshold: thresholdValue },
+    { type: 'bronze', title: '🛡️ 平民第二选', data: secondCheap, threshold: thresholdValue }
   ];
   
+  // 渲染（原有渲染逻辑不变）
   container.innerHTML = recommendations.map((rec, idx) => {
     const loadout = rec.data;
     const combatPower = loadout.combatPower;
@@ -20274,6 +20550,8 @@ function generateRecommendations() {
     timeEl.textContent = `数据更新于 ${today.getMonth()+1}.${today.getDate()}`;
   }
 }
+
+
 
 // 从卡片复制（带状态反馈）
 window.copyAllBudgetCodesFromCard = function(loadoutName, btn) {
@@ -21058,6 +21336,248 @@ window.refreshTTKData = function() {
   loadTTKRank();
   showToast('✅ TTK数据已刷新', 'success');
 };
+
+
+// ==================== 战区氛围系统逻辑 ====================
+
+function openThemeDrawer() {
+  renderThemeList();
+  openModal('themeDrawerOverlay');
+}
+function closeThemeDrawer() { closeModal('themeDrawerOverlay'); }
+
+function renderThemeList() {
+  const container = document.getElementById('themeListContainer');
+  if (!container) return;
+  container.innerHTML = BATTLEFIELD_THEMES.map((theme, idx) => {
+    const isActive = (idx === currentThemeIndex);
+    return `
+    <div class="p-4 rounded-xl transition-all" 
+         style="background: var(--surface); border: 2px solid ${isActive ? theme.uiColor : 'var(--border)'};">
+      <div class="flex items-center gap-3 mb-3 cursor-pointer" onclick="applyThemeByIndex(${idx}); closeThemeDrawer();">
+        <span class="text-2xl">${theme.icon || theme.name.charAt(0)}</span>
+        <div class="flex-1">
+          <div class="font-bold" style="color: ${theme.uiColor};">${theme.name}</div>
+          <div class="text-xs" style="color: var(--muted);">${theme.wallpaperType === 'video' ? '动态视频' : '4K静态'} · 智能配乐</div>
+        </div>
+        ${isActive ? '<i class="fas fa-check-circle" style="color: ' + theme.uiColor + ';"></i>' : ''}
+      </div>
+      <div class="flex gap-2">
+        <button class="flex-1 py-2 rounded-full text-xs font-bold transition-all" 
+                style="background: ${theme.uiColor}20; color: ${theme.uiColor}; border: 1px solid ${theme.uiColor}40;"
+                onclick="applyThemeByIndex(${idx}); closeThemeDrawer();">
+          <i class="fas fa-play mr-1"></i>应用主题
+        </button>
+        ${isActive ? `
+        <button class="px-4 py-2 rounded-full text-xs font-bold transition-all" 
+                style="background: var(--accent); color: white;"
+                onclick="event.stopPropagation(); refreshCurrentThemeWallpaper();">
+          <i class="fas fa-sync-alt mr-1"></i>换一批
+        </button>
+        ` : ''}
+      </div>
+    </div>
+  `}).join('');
+}
+
+
+function initThemeCanvas() {
+  themeCanvas = document.getElementById('themeCanvas');
+  if (!themeCanvas) return;
+  themeCtx = themeCanvas.getContext('2d');
+  resizeThemeCanvas();
+  window.addEventListener('resize', resizeThemeCanvas);
+  startThemeAnimation();
+}
+function resizeThemeCanvas() {
+  if (!themeCanvas) return;
+  themeCanvas.width = window.innerWidth;
+  themeCanvas.height = window.innerHeight;
+}
+function startThemeAnimation() {
+  if (themeAnimationFrame) cancelAnimationFrame(themeAnimationFrame);
+  const theme = BATTLEFIELD_THEMES[currentThemeIndex];
+  function animate() {
+    if (!themeCtx || !themeCanvas) return;
+    const w = themeCanvas.width;
+    const h = themeCanvas.height;
+    const grad = themeCtx.createLinearGradient(0, 0, w*0.8, h);
+    grad.addColorStop(0, theme.bgColor1);
+    grad.addColorStop(1, theme.bgColor2);
+    themeCtx.fillStyle = grad;
+    themeCtx.fillRect(0, 0, w, h);
+    if (theme.useCanvasEffect === 'rain') drawRainEffect(w, h);
+    else if (theme.useCanvasEffect === 'leaves') drawLeavesEffect(w, h);
+    else if (theme.useCanvasEffect === 'fire') drawFireEffect(w, h);
+    themeAnimationFrame = requestAnimationFrame(animate);
+  }
+  function drawRainEffect(w, h) {
+    if (!themeCtx) return;
+    themeCtx.strokeStyle = 'rgba(174, 194, 224, 0.4)';
+    themeCtx.lineWidth = 1.5;
+    const now = Date.now() / 50;
+    for (let i = 0; i < 80; i++) {
+      const x = (i * 37 + now) % w;
+      const y = (i * 83 + now * 2) % h;
+      themeCtx.beginPath();
+      themeCtx.moveTo(x, y);
+      themeCtx.lineTo(x - 10, y + 20);
+      themeCtx.stroke();
+    }
+  }
+  function drawLeavesEffect(w, h) {
+    if (!themeCtx) return;
+    themeCtx.fillStyle = 'rgba(230, 126, 34, 0.6)';
+    const now = Date.now() / 80;
+    for (let i = 0; i < 30; i++) {
+      const x = (i * 53 + now) % (w + 100) - 50;
+      const y = (i * 37 + now * 1.5) % (h + 100) - 50;
+      themeCtx.beginPath();
+      themeCtx.ellipse(x, y, 8, 5, 0.3, 0, Math.PI*2);
+      themeCtx.fill();
+    }
+  }
+  function drawFireEffect(w, h) {
+    if (!themeCtx) return;
+    const now = Date.now() / 100;
+    for (let i = 0; i < 20; i++) {
+      const x = w/2 + Math.sin(now + i) * 100 + i * 30;
+      const y = h - 50 + Math.cos(now*2 + i) * 30;
+      const grad = themeCtx.createRadialGradient(x, y, 0, x, y-20, 40);
+      grad.addColorStop(0, '#e74c3c');
+      grad.addColorStop(1, '#c0392b');
+      themeCtx.fillStyle = grad;
+      themeCtx.beginPath();
+      themeCtx.arc(x, y, 20 + Math.sin(now*3 + i)*10, 0, Math.PI*2);
+      themeCtx.fill();
+    }
+  }
+  animate();
+}
+
+
+
+// ==================== 动态壁纸获取 ====================
+async function fetchVideoWallpaper(category) {
+    try {
+        const url = `https://api.ahfi.cn/api/spzm?msg=${category}`;
+        const response = await fetch(url);
+        const data = await response.json();
+        if (data.code === 200 && data.url) {
+            return { videoUrl: data.url, posterUrl: data.img || '' };
+        }
+    } catch (e) {
+        console.warn('视频壁纸获取失败:', e);
+    }
+    return null;
+}
+
+async function fetchImageWallpaper(category) {
+    try {
+        const url = `https://www.yumus.cn/api/?target=img&brand=360&type=${category}`;
+        return { imageUrl: url };
+    } catch (e) {
+        console.warn('图片壁纸获取失败:', e);
+    }
+    return null;
+}
+
+async function applyThemeByIndex(index, isRefresh = false) {
+  const theme = BATTLEFIELD_THEMES[index];
+  
+  // 1. 切换 UI 主题色 (联动所有UI元素)
+  document.documentElement.style.setProperty('--accent', theme.uiColor);
+  document.documentElement.style.setProperty('--accent-light', theme.accentLight);
+  document.documentElement.style.setProperty('--accent-dark', theme.accentDark);
+  
+  // 2. 获取并应用壁纸
+  let wallpaperData = null;
+  if (theme.wallpaperType === 'video') {
+      wallpaperData = await fetchVideoWallpaper(theme.videoCategory);
+      if (wallpaperData) applyVideoWallpaper(wallpaperData.videoUrl, wallpaperData.posterUrl);
+  } else {
+      wallpaperData = await fetchImageWallpaper(theme.imageCategory);
+      if (wallpaperData) applyImageWallpaper(wallpaperData.imageUrl);
+  }
+  
+  // 3. 如果不是“刷新”操作，才播放新音乐（避免换壁纸时打断音乐）
+  if (!isRefresh) {
+      currentThemeIndex = index;
+      const musicData = await searchMusicByKeyword(theme.musicKeyword);
+      if (musicData && bgmState && bgmState.audio) {
+          bgmState.playlist = [musicData];
+          bgmState.idx = 0;
+          loadBGMTrack();
+          bgmState.audio.play().then(() => {
+              bgmState.playing = true; updateBGMBtn();
+              document.getElementById('bgmPlayer')?.classList.add('playing');
+          }).catch(() => {});
+          renderBGMPlaylist();
+      }
+      localStorage.setItem('delta_battlefield_theme', index);
+  }
+  
+  // 4. 显示提示信息
+  const action = isRefresh ? '🔄 壁纸已刷新' : `🎨 已切换至「${theme.name}」`;
+  showToast(`${action} ${wallpaperData ? '✅' : '⚠️ 使用默认背景'}`, isRefresh ? 'info' : 'success');
+  
+  // 5. 更新皮肤列表的高亮状态
+  renderThemeList();
+}
+
+
+// 切换到下一个主题
+function switchToNextTheme() {
+  const nextIndex = (currentThemeIndex + 1) % BATTLEFIELD_THEMES.length;
+  applyThemeByIndex(nextIndex);
+}
+
+// 刷新当前主题壁纸
+async function refreshCurrentThemeWallpaper() {
+  const theme = BATTLEFIELD_THEMES[currentThemeIndex];
+  let wallpaperData = null;
+  if (theme.wallpaperType === 'video') {
+      wallpaperData = await fetchVideoWallpaper(theme.videoCategory);
+      if (wallpaperData) applyVideoWallpaper(wallpaperData.videoUrl, wallpaperData.posterUrl);
+  } else {
+      wallpaperData = await fetchImageWallpaper(theme.imageCategory);
+      if (wallpaperData) applyImageWallpaper(wallpaperData.imageUrl);
+  }
+  showToast(`🔄 壁纸已刷新 ${wallpaperData ? '✅' : '⚠️'}`, 'info');
+}
+
+// 应用视频/图片壁纸
+function applyVideoWallpaper(videoUrl, posterUrl) {
+    let video = document.getElementById('themeVideo');
+    if (!video) {
+        video = document.createElement('video');
+        video.id = 'themeVideo';
+        video.muted = true; video.loop = true; video.playsInline = true;
+        video.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; object-fit:cover; z-index:-2; pointer-events:none;';
+        document.body.appendChild(video);
+    }
+    let img = document.getElementById('themeImage');
+    if (img) { img.style.opacity = '0'; setTimeout(() => img.remove(), 500); }
+    video.src = videoUrl; if (posterUrl) video.poster = posterUrl;
+    video.style.opacity = '0.4'; video.play().catch(() => {});
+}
+function applyImageWallpaper(imageUrl) {
+    let img = document.getElementById('themeImage');
+    if (!img) {
+        img = document.createElement('img');
+        img.id = 'themeImage';
+        img.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; object-fit:cover; z-index:-2; pointer-events:none;';
+        document.body.appendChild(img);
+    }
+    let video = document.getElementById('themeVideo');
+    if (video) { video.style.opacity = '0'; video.pause(); }
+    img.src = imageUrl; img.style.opacity = '0.4';
+}
+
+
+
+
+
 
 </script>
 <script>
