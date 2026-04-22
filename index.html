@@ -5816,6 +5816,11 @@ body {
       <!-- 我的帖子 -->
       <h3 class="font-bold mt-4 mb-2">我的帖子</h3>
       <div id="myPostsGrid" class="masonry"></div>
+
+<!-- 待使用权益 -->
+<h3 class="font-bold mt-4 mb-2"><i class="fas fa-gift mr-1" style="color: #FFD700;"></i>待使用权益</h3>
+<div id="profilePendingRewards" class="mb-4"></div>
+
       <!-- 我的收藏 -->
       <h3 class="font-bold mt-4 mb-2">我的收藏</h3>
       <div id="myFavoritesGrid" class="masonry"></div>
@@ -7414,42 +7419,6 @@ async function consumePendingReward(rewardType) {
 }
 
 
-// ========== 使用帖子置顶权 ==========
-async function usePinReward(postId) {
-  if (!APP.user) return;
-  const hasPin = await hasPendingReward('pin');
-  if (!hasPin) {
-    showToast('没有可用的置顶权', 'warning');
-    return;
-  }
-  
-  // 检查帖子是否属于当前用户（只能置顶自己的帖子）
-  const { data: post } = await sb.from('posts')
-    .select('user_id')
-    .eq('id', postId)
-    .single();
-  if (!post || post.user_id !== APP.user.id) {
-    showToast('只能置顶自己的帖子', 'warning');
-    return;
-  }
-  
-  // 消耗一个置顶权
-  const consumedId = await consumePendingReward('pin');
-  if (!consumedId) {
-    showToast('权益使用失败', 'error');
-    return;
-  }
-  
-  // 设置帖子置顶（24小时后自动失效，我们可以在数据库中设一个 expires_at 字段，但为了简单，先用 is_top_today）
-  const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
-  await sb.from('posts')
-    .update({ is_top_today: true, top_expires_at: expiresAt })
-    .eq('id', postId);
-  
-  showToast('帖子已置顶24小时！', 'success');
-  // 刷新我的帖子列表
-  loadMyPosts();
-}
 
 
 
@@ -10996,6 +10965,9 @@ function renderProfile() {
   loadMyPosts();
   // 我的收藏
   loadMyFavorites();
+
+  // 【新增】显示待使用权益
+  setTimeout(() => renderPendingRewardsInProfile(), 200);
 
 // 我的配装仓库 (新增)
   loadMyLoadoutFavorites();
@@ -15912,18 +15884,50 @@ async function loadRanks() {
 }
 
 // ==================== 我的帖子与收藏 ====================
-async function loadMyPosts() {
-  const { data } = await sb.from('posts').select('*').eq('user_id', APP.user.id).neq('post_type','story').order('created_at', { ascending: false }).limit(10);
+
+
+async function loadMyPosts() {  // ← 加上 async
+  if (!APP.user) return;
+  
+  // 【新增】检查用户是否有置顶权
+  const hasPin = await hasPendingReward('pin');
+  
+  const { data } = await sb.from('posts')
+    .select('*')
+    .eq('user_id', APP.user.id)
+    .neq('post_type','story')
+    .order('created_at', { ascending: false })
+    .limit(10);
+    
   const grid = $('myPostsGrid');
   grid.innerHTML = '';
-  (data||[]).forEach((p, i) => {
-       const div = document.createElement('div');
+  
+  (data||[]).forEach((p) => {
+    const div = document.createElement('div');
     div.className = 'masonry-item cursor-pointer';
     div.onclick = () => openComments(p.id);
-    div.innerHTML = `<div class="card-base p-3"><h4 class="font-bold text-sm">${p.title}</h4><div class="text-xs mt-1" style="color:var(--muted)"><i class="fas fa-thumbs-up mr-1"></i>${p.upvotes||0} · <i class="fas fa-comment mr-1"></i>${p.comments_count||0}</div></div>`;
+    
+    // 帖子卡片内容，如果有置顶权就多加一个按钮
+    div.innerHTML = `
+      <div class="card-base p-3">
+        <h4 class="font-bold text-sm">${p.title}</h4>
+        <div class="text-xs mt-1" style="color:var(--muted)">
+          <i class="fas fa-thumbs-up mr-1"></i>${p.upvotes||0} · 
+          <i class="fas fa-comment mr-1"></i>${p.comments_count||0}
+        </div>
+        ${hasPin ? `
+        <button class="btn-ghost text-xs w-full mt-2 py-1" 
+                onclick="event.stopPropagation(); usePinReward('${p.id}', '${p.title.replace(/'/g, "\\'")}')">
+          <i class="fas fa-thumbtack mr-1"></i>使用置顶权
+        </button>
+        ` : ''}
+      </div>
+    `;
     grid.appendChild(div);
   });
 }
+
+
 
 async function loadMyFavorites() {
   const { data } = await sb.from('favorites').select('post_id, posts(title, upvotes, comments_count)').eq('user_id', APP.user.id).order('created_at', { ascending: false }).limit(10);
@@ -18910,6 +18914,192 @@ function openDamageCalculatorModal() {
     document.head.appendChild(style);
   }
 
+
+
+// ==================== 权益使用系统 ====================
+
+// ========== 获取用户待使用权益 ==========
+async function getUserPendingRewards() {
+  if (!APP.user) return [];
+  try {
+    const { data } = await sb.from('profiles')
+      .select('pending_rewards')
+      .eq('id', APP.user.id)
+      .single();
+    return data?.pending_rewards || [];
+  } catch (e) {
+    console.warn('获取权益失败:', e);
+    return [];
+  }
+}
+
+// ========== 检查用户是否有特定类型的待使用权益 ==========
+async function hasPendingReward(rewardType) {
+  const rewards = await getUserPendingRewards();
+  return rewards.some(r => r.type === rewardType && !r.used);
+}
+
+// ========== 获取用户待使用权益数量 ==========
+async function getPendingRewardCount(rewardType) {
+  const rewards = await getUserPendingRewards();
+  if (rewardType) {
+    return rewards.filter(r => r.type === rewardType && !r.used).length;
+  }
+  return rewards.filter(r => !r.used).length;
+}
+
+// ========== 消耗一次权益 ==========
+async function consumePendingReward(rewardType) {
+  if (!APP.user) return false;
+  
+  const rewards = await getUserPendingRewards();
+  const index = rewards.findIndex(r => r.type === rewardType && !r.used);
+  
+  if (index === -1) {
+    showToast(`你没有可用的${rewardType === 'pin' ? '置顶权' : '命名权'}`, 'warning');
+    return false;
+  }
+  
+  // 标记为已使用
+  rewards[index].used = true;
+  rewards[index].usedAt = new Date().toISOString();
+  
+  const { error } = await sb.from('profiles')
+    .update({ pending_rewards: rewards })
+    .eq('id', APP.user.id);
+  
+  if (error) {
+    console.error('消耗权益失败:', error);
+    return false;
+  }
+  
+  // 同步本地
+  if (APP.profile) APP.profile.pending_rewards = rewards;
+  
+  return true;
+}
+
+// ========== 使用帖子置顶权 ==========
+async function usePinReward(postId, postTitle) {
+  if (!APP.user) { openAuthModal(); return; }
+  
+  // 检查是否有待使用的置顶权
+  const hasReward = await hasPendingReward('pin');
+  if (!hasReward) {
+    showToast('你没有可用的置顶权，快去开盲盒获取吧！', 'warning');
+    return;
+  }
+  
+  if (!confirm(`确定要将帖子「${postTitle}」置顶24小时吗？将消耗一次置顶权。`)) return;
+  
+  // 设置帖子置顶
+  const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+  const { error } = await sb.from('posts')
+    .update({ 
+      is_top_today: true,
+      pin_expires_at: expiresAt  // 需要先在 posts 表增加此字段，见下方SQL
+    })
+    .eq('id', postId);
+  
+  if (error) {
+    showToast('置顶失败: ' + error.message, 'error');
+    return;
+  }
+  
+  // 消耗权益
+  await consumePendingReward('pin');
+  
+  showToast('✅ 帖子已置顶，24小时内有效！', 'success');
+  
+  // 刷新帖子列表
+  if (APP.currentTab === 'home') loadPosts(true);
+  else if (APP.currentTab === 'profile') renderProfile();
+}
+
+// ========== 使用配装命名权 ==========
+async function useNamingReward(loadoutName, originalCode) {
+  if (!APP.user) { openAuthModal(); return; }
+  
+  const hasReward = await hasPendingReward('naming');
+  if (!hasReward) {
+    showToast('你没有可用的命名权，快去开盲盒获取吧！', 'warning');
+    return;
+  }
+  
+  // 弹窗让用户输入自定义名称
+  const newName = prompt('请输入你为这套配装起的名字（最多20个字）：', loadoutName);
+  if (!newName || newName.trim() === '') {
+    showToast('名称不能为空', 'warning');
+    return;
+  }
+  
+  const trimmedName = newName.trim().substring(0, 20);
+  
+  // 保存命名记录（可以新建表或存在 profiles 中）
+  const { error } = await sb.from('user_loadout_names').insert({
+    user_id: APP.user.id,
+    original_code: originalCode,
+    custom_name: trimmedName,
+    created_at: new Date().toISOString()
+  });
+  
+  if (error) {
+    console.error('保存命名失败:', error);
+    showToast('命名失败，请重试', 'error');
+    return;
+  }
+  
+  // 消耗权益
+  await consumePendingReward('naming');
+  
+  showToast(`✅ 命名成功！这套配装现在叫「${trimmedName}」`, 'success');
+  
+  // 刷新起装方案页面显示
+  if (typeof renderBudgetLoadouts === 'function') {
+    renderBudgetLoadouts();
+  }
+}
+
+// ========== 在个人主页显示待使用权益 ==========
+async function renderPendingRewardsInProfile() {
+  const container = document.getElementById('profilePendingRewards');
+  if (!container) return;
+  
+  const rewards = await getUserPendingRewards();
+  const unused = rewards.filter(r => !r.used);
+  
+  if (unused.length === 0) {
+    container.innerHTML = '<p class="text-xs" style="color: var(--muted);">暂无待使用权益</p>';
+    return;
+  }
+  
+  const pinCount = unused.filter(r => r.type === 'pin').length;
+  const namingCount = unused.filter(r => r.type === 'naming').length;
+  
+  container.innerHTML = `
+    <div class="flex gap-3">
+      ${pinCount > 0 ? `<span class="badge badge-gold text-xs"><i class="fas fa-thumbtack mr-1"></i>置顶权 x${pinCount}</span>` : ''}
+      ${namingCount > 0 ? `<span class="badge badge-silver text-xs"><i class="fas fa-pen mr-1"></i>命名权 x${namingCount}</span>` : ''}
+    </div>
+  `;
+}
+
+// ========== 修改个人主页，增加权益显示区域 ==========
+// 在 renderProfile 函数末尾添加以下调用：
+// setTimeout(() => renderPendingRewardsInProfile(), 200);
+
+// ========== 修改我的帖子列表，增加“使用置顶权”按钮 ==========
+// 在 loadMyPosts 函数渲染每个帖子时，如果用户有置顶权，显示按钮
+// 具体修改见下方说明
+
+// ========== 修改起装方案卡片，增加“使用命名权”按钮 ==========
+// 在 renderBudgetLoadouts 函数的卡片底部，如果用户有命名权，显示按钮
+// 具体修改见下方说明
+
+
+
+
+
   // 交互逻辑
   setTimeout(() => {
     // 状态更新
@@ -20678,36 +20868,6 @@ async function fetchBudgetLoadoutsFromCrawler(forceRender = true) {
 
 
 
-// ========== 使用配装命名权 ==========
-async function useNamingReward(loadoutName) {
-  if (!APP.user) return;
-  const hasNaming = await hasPendingReward('naming');
-  if (!hasNaming) {
-    showToast('没有可用的命名权', 'warning');
-    return;
-  }
-  
-  const newName = prompt('请输入新的方案名称（最多20字）:', loadoutName);
-  if (!newName || newName === loadoutName) return;
-  
-  // 消耗命名权
-  const consumedId = await consumePendingReward('naming');
-  if (!consumedId) {
-    showToast('权益使用失败', 'error');
-    return;
-  }
-  
-  // 更新 BUDGET_LOADOUTS 数组中的方案名称（内存中）
-  const loadout = BUDGET_LOADOUTS.find(l => l.name === loadoutName);
-  if (loadout) loadout.name = newName;
-  
-  // 如果有后台存储的配装方案表，也需要更新。这里仅演示前端更新，实际需要同步数据库。
-  // 我们简化：将命名记录存入另一张表，或直接在 welfare_activities 相关逻辑中处理。
-  // 因为您的起装方案来自 GitHub JSON，不适合直接修改，所以命名权可以改为允许用户自定义一个“收藏方案”的名称。
-  
-  showToast(`命名成功！方案已更名为“${newName}”`, 'success');
-  renderBudgetLoadouts(); // 重新渲染
-}
 
 
 
@@ -20718,7 +20878,9 @@ let budgetPageSize = 12;
 let budgetCurrentPage = 1;
 let budgetFilteredData = [];
 
-function renderBudgetLoadouts(resetPage = true) {
+async function renderBudgetLoadouts(resetPage = true) {
+ // 检查用户是否有命名权
+  const hasNaming = await hasPendingReward('naming');
   const grid = document.getElementById('budgetLoadoutGrid');
   const loadingEl = document.getElementById('budgetLoading');
   const emptyEl = document.getElementById('budgetEmpty');
@@ -20885,16 +21047,27 @@ function loadMoreBudget() {
       <i class="fas fa-lightbulb mr-1" style="color: #FFD700;"></i>${item.features || '点击查看详情'}
     </div>
     
-    <div class="flex justify-between items-center mt-3">
+    <div class="flex items-center justify-between mt-3">
   <span class="text-xs flex items-center gap-1 px-3 py-1.5 rounded-full" style="background: var(--accent)10; color: var(--accent);">
     <i class="fas fa-copy"></i> 点击卡片查看改枪码
   </span>
-  <button class="favorite-loadout-btn text-xs px-3 py-1.5 rounded-full transition-all" 
-          style="background: var(--surface); color: var(--muted); border: 1px solid var(--border);"
-          onclick="event.stopPropagation(); toggleFavoriteLoadout('${item.name.replace(/'/g, "\\'")}')"
-          data-name="${item.name.replace(/'/g, "\\'")}">
-    <i class="far fa-bookmark"></i> <span>收藏</span>
-  </button>
+  <div class="flex gap-1">
+    <button class="favorite-loadout-btn text-xs px-3 py-1.5 rounded-full transition-all" 
+            style="background: var(--surface); color: var(--muted); border: 1px solid var(--border);"
+            onclick="event.stopPropagation(); toggleFavoriteLoadout('${item.name.replace(/'/g, "\\'")}')"
+            data-name="${item.name.replace(/'/g, "\\'")}">
+      <i class="far fa-bookmark"></i> <span>收藏</span>
+    </button>
+
+const hasNaming = await hasPendingReward('naming'); // 在函数开头获取
+    ${hasNaming ? `
+    <button class="text-xs px-3 py-1.5 rounded-full transition-all" 
+            style="background: var(--accent); color: white; border: none;"
+            onclick="event.stopPropagation(); useNamingReward('${item.name.replace(/'/g, "\\'")}', '${item.weapons?.[0]?.code || ''}')">
+      <i class="fas fa-pen mr-1"></i>命名
+    </button>
+    ` : ''}
+  </div>
 </div>
   </div>
 `;
