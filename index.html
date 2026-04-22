@@ -5794,6 +5794,17 @@ body {
       <!-- 我的收藏 -->
       <h3 class="font-bold mt-4 mb-2">我的收藏</h3>
       <div id="myFavoritesGrid" class="masonry"></div>
+
+<!-- 我的配装仓库 -->
+<h3 class="font-bold mt-4 mb-2 flex items-center gap-2">
+  <i class="fas fa-box" style="color: var(--accent);"></i>我的配装仓库
+  <button class="text-xs btn-ghost px-2 py-1" onclick="exportAllFavoritesAsImage()">
+    <i class="fas fa-camera mr-1"></i>导出仓库卡片
+  </button>
+</h3>
+<div id="myLoadoutFavoritesGrid" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
+
+
     </div>
   </div>
 </main>
@@ -7956,6 +7967,8 @@ function switchTab(tab) {
   } else if (tab === 'budgetLoadout') {
      budgetLoadoutsInitialized = false; // 重置标志，允许重新初始化
      initBudgetLoadouts();
+// 加载收藏状态
+setTimeout(() => loadUserFavoriteStatus(), 300);
   }
 
   // 8. 触发 resize 事件，确保移动端适配
@@ -10311,7 +10324,12 @@ function renderProfile() {
   loadMyPosts();
   // 我的收藏
   loadMyFavorites();
+
+// 我的配装仓库 (新增)
+  loadMyLoadoutFavorites();
 }
+
+
 
 // 编辑资料
 function openEditProfile() {
@@ -11729,6 +11747,99 @@ case 'budgetLoadout':
 
 
 // ==================== 配装推荐（数据库实时读取版） ====================
+
+
+// ==================== 配装收藏功能 ====================
+
+// 切换收藏状态
+async function toggleFavoriteLoadout(loadoutName) {
+  if (!APP.user) {
+    openAuthModal();
+    showToast('请先登录才能收藏配装', 'warning');
+    return;
+  }
+  
+  const loadout = BUDGET_LOADOUTS.find(l => l.name === loadoutName);
+  if (!loadout) return;
+  
+  const btn = event.currentTarget;
+  const icon = btn.querySelector('i');
+  const span = btn.querySelector('span');
+  
+  // 检查是否已收藏
+  const { data: existing } = await sb
+    .from('user_loadout_favorites')
+    .select('id')
+    .eq('user_id', APP.user.id)
+    .eq('loadout_name', loadoutName)
+    .maybeSingle();
+  
+  if (existing) {
+    // 取消收藏
+    const { error } = await sb
+      .from('user_loadout_favorites')
+      .delete()
+      .eq('id', existing.id);
+    if (error) {
+      showToast('取消收藏失败', 'error');
+      return;
+    }
+    icon.className = 'far fa-bookmark';
+    span.textContent = '收藏';
+    btn.style.color = 'var(--muted)';
+    showToast('已取消收藏', 'info');
+  } else {
+    // 添加收藏
+    const { error } = await sb
+      .from('user_loadout_favorites')
+      .insert({
+        user_id: APP.user.id,
+        loadout_name: loadoutName,
+        loadout_data: loadout
+      });
+    if (error) {
+      showToast('收藏失败', 'error');
+      return;
+    }
+    icon.className = 'fas fa-bookmark';
+    span.textContent = '已收藏';
+    btn.style.color = '#f1c40f';
+    showToast('已添加到我的战术仓库', 'success');
+  }
+}
+
+// 加载用户收藏状态（页面加载时调用）
+async function loadUserFavoriteStatus() {
+  if (!APP.user) return;
+  
+  const { data } = await sb
+    .from('user_loadout_favorites')
+    .select('loadout_name')
+    .eq('user_id', APP.user.id);
+  
+  const favSet = new Set(data?.map(d => d.loadout_name) || []);
+  
+  // 更新所有收藏按钮状态
+  document.querySelectorAll('.favorite-loadout-btn').forEach(btn => {
+    const name = btn.dataset.name;
+    if (favSet.has(name)) {
+      const icon = btn.querySelector('i');
+      const span = btn.querySelector('span');
+      if (icon) icon.className = 'fas fa-bookmark';
+      if (span) span.textContent = '已收藏';
+      btn.style.color = '#f1c40f';
+    }
+  });
+}
+
+// 在渲染起装方案后调用（修改原有的 renderBudgetLoadouts 函数，在末尾添加一行）
+// 我们将在第四步统一修改
+
+
+
+
+
+
 let currentLoadoutData = [];
 let currentLoadoutFilter = 'all';
 
@@ -12677,6 +12788,98 @@ function sortWeaponTable(field) {
   renderWeaponTable();
 }
 
+
+// 导出配装仓库为精美图片
+async function exportAllFavoritesAsImage() {
+  if (!APP.user) {
+    openAuthModal();
+    return;
+  }
+  
+  const { data } = await sb
+    .from('user_loadout_favorites')
+    .select('loadout_data')
+    .eq('user_id', APP.user.id)
+    .order('created_at', { ascending: false });
+  
+  if (!data || data.length === 0) {
+    showToast('您的配装仓库是空的', 'warning');
+    return;
+  }
+  
+  showToast('正在生成分享卡片...', 'info');
+  
+  // 创建一个离屏容器用于截图
+  const container = document.createElement('div');
+  container.style.cssText = 'position:fixed; left:-9999px; top:0; width:600px; padding:24px; background:linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); color:#eee; font-family:"Noto Sans SC",sans-serif; border-radius:24px;';
+  
+  const loadoutsHtml = data.slice(0, 6).map(item => {
+    const l = item.loadout_data;
+    return `
+      <div style="background:rgba(255,255,255,0.05); border-radius:16px; padding:16px; margin-bottom:12px; border-left:4px solid #FF6B35;">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+          <span style="font-weight:bold; font-size:16px;">${l.name}</span>
+          <span style="background:#FF6B35; padding:4px 12px; border-radius:20px; font-size:12px; color:white;">${l.scenario || '通用'}</span>
+        </div>
+        <div style="display:flex; gap:16px; font-size:13px; opacity:0.8;">
+          <span>🔫 ${l.weapons?.[0]?.name || '未配置'}</span>
+          <span>💰 ${l.totalPrice}万</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+  
+  container.innerHTML = `
+    <div style="text-align:center; margin-bottom:20px;">
+      <div style="font-size:24px; font-weight:800; background:linear-gradient(135deg, #FF6B35, #FFD700); -webkit-background-clip:text; -webkit-text-fill-color:transparent;">⚡ 我的战术仓库 ⚡</div>
+      <div style="font-size:14px; opacity:0.7; margin-top:8px;">${APP.profile.username} · ${new Date().toLocaleDateString()}</div>
+    </div>
+    ${loadoutsHtml}
+    <div style="text-align:center; margin-top:20px; font-size:12px; opacity:0.5;">三角洲墨辰电竞 · 战术配装分享</div>
+  `;
+  
+  document.body.appendChild(container);
+  
+  // 使用 html2canvas 截图（需引入库，若未引入则在 index.html 中添加）
+  if (typeof html2canvas === 'undefined') {
+    await loadScript('https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js');
+  }
+  
+  try {
+    const canvas = await html2canvas(container, {
+      scale: 2,
+      backgroundColor: null,
+      allowTaint: false,
+      useCORS: true
+    });
+    
+    // 创建下载链接
+    const link = document.createElement('a');
+    link.download = `mochen_armory_${Date.now()}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+    
+    showToast('✅ 仓库卡片已保存', 'success');
+  } catch (e) {
+    console.error('截图失败:', e);
+    showToast('生成失败，请重试', 'error');
+  } finally {
+    document.body.removeChild(container);
+  }
+}
+
+// 动态加载脚本
+function loadScript(src) {
+  return new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = src;
+    script.onload = resolve;
+    script.onerror = reject;
+    document.head.appendChild(script);
+  });
+}
+
+
 // ==================== 战绩卡片（增强） ====================
 function showStatsModal() {
   const contentEl = document.getElementById('statsModalContent');
@@ -12904,6 +13107,8 @@ function bindLoadoutFilters() {
   });
 }
 // ==================== 筛选状态存储 ====================
+let currentBudgetMode = 'recommend';  // 默认选中智能推荐
+let budgetDataReady = false;
 let currentClassFilter = 'all';
 let currentPlaystyleFilter = 'all';
 let currentWeaponFilter = 'all';
@@ -15072,6 +15277,65 @@ async function loadMyFavorites() {
 // ==================== 验证码相关 ====================
 let currentCaptcha = '';
 let smsCodeMock = '';// 模拟短信验证码
+
+
+
+// 加载我的配装收藏
+async function loadMyLoadoutFavorites() {
+  if (!APP.user) return;
+  const grid = document.getElementById('myLoadoutFavoritesGrid');
+  if (!grid) return;
+  
+  const { data, error } = await sb
+    .from('user_loadout_favorites')
+    .select('*')
+    .eq('user_id', APP.user.id)
+    .order('created_at', { ascending: false });
+  
+  if (error || !data || data.length === 0) {
+    grid.innerHTML = '<div class="col-span-full text-center py-4 text-xs" style="color:var(--muted);"><i class="fas fa-box-open mr-1"></i>暂无收藏的配装方案</div>';
+    return;
+  }
+  
+  grid.innerHTML = data.map(item => {
+    const l = item.loadout_data;
+    return `
+      <div class="card-base p-4 relative group">
+        <div class="flex items-center justify-between mb-2">
+          <span class="font-bold text-sm">${l.name}</span>
+          <span class="tag-pill text-xs" style="background: var(--accent); color: white;">${l.scenario || '通用'}</span>
+        </div>
+        <div class="text-xs space-y-1 mb-3">
+          <div><i class="fas fa-gun w-4"></i> ${l.weapons?.[0]?.name || '未配置'}</div>
+          <div><i class="fas fa-coins w-4"></i> ${l.totalPrice}万</div>
+        </div>
+        <div class="flex gap-2">
+          <button class="flex-1 btn-ghost text-xs py-1.5" onclick="showBudgetDetail('${l.name.replace(/'/g, "\\'")}')">
+            <i class="fas fa-eye mr-1"></i>查看
+          </button>
+          <button class="flex-1 btn-ghost text-xs py-1.5" onclick="removeFavoriteLoadout('${item.id}')">
+            <i class="fas fa-trash-alt mr-1"></i>移除
+          </button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// 移除收藏
+async function removeFavoriteLoadout(favId) {
+  if (!APP.user) return;
+  const { error } = await sb.from('user_loadout_favorites').delete().eq('id', favId);
+  if (error) {
+    showToast('移除失败', 'error');
+    return;
+  }
+  showToast('已从仓库移除', 'success');
+  loadMyLoadoutFavorites();
+}
+
+
+
 
 function generateCaptcha() {
   currentCaptcha = Math.random().toString(36).substring(2, 6).toUpperCase();
@@ -19913,11 +20177,17 @@ function loadMoreBudget() {
       <i class="fas fa-lightbulb mr-1" style="color: #FFD700;"></i>${item.features || '点击查看详情'}
     </div>
     
-    <div class="flex justify-end mt-3">
-      <span class="text-xs flex items-center gap-1 px-3 py-1.5 rounded-full" style="background: var(--accent)10; color: var(--accent);">
-        <i class="fas fa-copy"></i> 点击卡片查看改枪码
-      </span>
-    </div>
+    <div class="flex justify-between items-center mt-3">
+  <span class="text-xs flex items-center gap-1 px-3 py-1.5 rounded-full" style="background: var(--accent)10; color: var(--accent);">
+    <i class="fas fa-copy"></i> 点击卡片查看改枪码
+  </span>
+  <button class="favorite-loadout-btn text-xs px-3 py-1.5 rounded-full transition-all" 
+          style="background: var(--surface); color: var(--muted); border: 1px solid var(--border);"
+          onclick="event.stopPropagation(); toggleFavoriteLoadout('${item.name.replace(/'/g, "\\'")}')"
+          data-name="${item.name.replace(/'/g, "\\'")}">
+    <i class="far fa-bookmark"></i> <span>收藏</span>
+  </button>
+</div>
   </div>
 `;
   }).join('');
