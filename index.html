@@ -4705,47 +4705,69 @@ body {
 
 <!-- 顶部导航栏 -->
 <nav class="top-nav" id="topNav">
-  <div class="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">
-    <div class="flex items-center gap-3">
-      <span class="font-display text-xl md:text-2xl" style="background:linear-gradient(135deg,#FF6B35,#FF4757);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">三角洲墨辰电竞</span>
+  <div class="max-w-7xl mx-auto px-2 sm:px-4 h-14 flex items-center justify-between">
+    <!-- 左侧 Logo -->
+    <div class="flex items-center gap-1 sm:gap-3">
+      <span class="font-display text-base sm:text-xl md:text-2xl truncate" style="background:linear-gradient(135deg,#FF6B35,#FF4757);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">三角洲墨辰电竞</span>
     </div>
+    
+    <!-- 中间导航（桌面端） -->
     <div class="hidden md:flex items-center gap-2">
       <button onclick="switchTab('home')" class="btn-ghost text-sm" id="navHome">首页</button>
       <button onclick="switchTab('discover')" class="btn-ghost text-sm" id="navDiscover">发现</button>
       <button onclick="switchTab('following')" class="btn-ghost text-sm" id="navFollowing">关注</button>
-<button onclick="switchTab('escort')" class="btn-ghost text-sm" id="navEscort"><i class="fas fa-shield-halved mr-1"></i>护航</button>
-<button onclick="switchTab('budgetLoadout')" class="btn-ghost text-sm" id="navBudget"><i class="fas fa-piggy-bank mr-1"></i>起装</button>
+      <button onclick="switchTab('escort')" class="btn-ghost text-sm" id="navEscort"><i class="fas fa-shield-halved mr-1"></i>护航</button>
+      <button onclick="switchTab('budgetLoadout')" class="btn-ghost text-sm" id="navBudget"><i class="fas fa-piggy-bank mr-1"></i>起装</button>
       <button onclick="openModal('publishModal')" class="btn-warm text-sm">发布</button>
     </div>
-    <div class="flex items-center gap-3">
-      <span id="bjTime" class="text-xs font-mono hidden sm:block" style="color:var(--muted)"></span>
-<span class="text-xs font-mono hidden sm:flex items-center gap-1" style="color:var(--accent)">
-  <i class="fas fa-fire"></i> <span id="onlineCount">0</span> 人在线
-</span>
-      <button onclick="toggleTheme()" class="w-8 h-8 rounded-full flex items-center justify-center" style="background:var(--surface);border:1px solid var(--border)" id="themeBtn" aria-label="切换主题">☀️</button>
+    
+    <!-- 右侧信息区（三端自适应） -->
+    <div class="flex items-center gap-1 sm:gap-3">
+      <!-- 北京时间（手机端缩小字体，始终显示） -->
+      <span id="bjTime" class="text-[9px] sm:text-xs font-mono whitespace-nowrap" style="color:var(--muted)"></span>
+      
+      <!-- 在线人数（手机端只显示数字+图标） -->
+      <span class="text-[9px] sm:text-xs font-mono flex items-center gap-0.5 whitespace-nowrap" style="color:var(--accent)">
+        <i class="fas fa-fire text-[10px]"></i> <span id="onlineCount">0</span><span class="hidden sm:inline ml-0.5">人在线</span>
+      </span>
+      
+      <!-- 积分（手机端只显示数字+图标） -->
+      <span class="text-[9px] sm:text-xs font-mono flex items-center gap-0.5 whitespace-nowrap" style="color: #FFD700;">
+        <i class="fas fa-coins text-[10px]"></i> <span id="userPointsDisplay">0</span><span class="hidden sm:inline ml-0.5">积分</span>
+      </span>
 
-<button onclick="openThemeDrawer()" class="w-8 h-8 rounded-full flex items-center justify-center" style="background:var(--surface);border:1px solid var(--border)" aria-label="战区氛围">🎨</button>
+      <!-- 主题切换 -->
+      <button onclick="toggleTheme()" class="w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center" style="background:var(--surface);border:1px solid var(--border)" id="themeBtn" aria-label="切换主题">☀️</button>
 
+      <!-- 战区氛围（移动端隐藏文字，只留图标） -->
+      <button onclick="openThemeDrawer()" class="w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center" style="background:var(--surface);border:1px solid var(--border)" aria-label="战区氛围">🎨</button>
+
+      <!-- 通知 -->
       <div class="relative">
-        <button onclick="openNotifModal()" class="w-8 h-8 rounded-full flex items-center justify-center" style="background:var(--surface);border:1px solid var(--border)" aria-label="通知">
-          <i class="fas fa-bell text-sm" style="color:var(--muted)"></i>
+        <button onclick="openNotifModal()" class="w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center" style="background:var(--surface);border:1px solid var(--border)" aria-label="通知">
+          <i class="fas fa-bell text-xs sm:text-sm" style="color:var(--muted)"></i>
         </button>
         <div class="notif-dot" id="notifDot" style="display:none"></div>
       </div>
-      <div class="relative">
-        <button onclick="openHistoryDrawer()" class="w-8 h-8 rounded-full flex items-center justify-center" style="background:var(--surface);border:1px solid var(--border)" aria-label="阅读历史">
-          <i class="fas fa-history text-sm" style="color:var(--muted)"></i>
+      
+      <!-- 阅读历史（移动端隐藏，避免太挤） -->
+      <div class="hidden sm:relative">
+        <button onclick="openHistoryDrawer()" class="w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center" style="background:var(--surface);border:1px solid var(--border)" aria-label="阅读历史">
+          <i class="fas fa-history text-xs sm:text-sm" style="color:var(--muted)"></i>
         </button>
       </div>
-<button onclick="openAuthModal()" class="btn-ghost text-sm" id="authBtn">登录/注册</button>
-      <button onclick="openProfile()" class="w-8 h-8 rounded-full overflow-hidden" style="border:2px solid var(--accent)" id="navAvatar" aria-label="个人主页">
+      
+      <!-- 登录/头像 -->
+      <button onclick="openAuthModal()" class="btn-ghost text-[10px] sm:text-sm px-1 sm:px-2" id="authBtn">登录</button>
+      <button onclick="openProfile()" class="w-7 h-7 sm:w-8 sm:h-8 rounded-full overflow-hidden flex-shrink-0" style="border:2px solid var(--accent)" id="navAvatar" aria-label="个人主页">
         <img src="" alt="头像" class="w-full h-full object-cover" id="navAvatarImg">
       </button>
-      <button onclick="logout()" class="btn-ghost text-sm" id="logoutBtn" style="display:none;">退出</button>
+      <button onclick="logout()" class="btn-ghost text-[10px] sm:text-sm" id="logoutBtn" style="display:none;">退出</button>
     </div>
   </div>
   <div id="loadingBar" class="absolute bottom-0 left-0 h-0.5 bg-accent" style="width:0%; transition:width 0.2s;"></div>
 </nav>
+
 
 <!-- 主内容区 -->
 <main class="relative z-10 pt-16 pb-20 max-w-7xl mx-auto px-4" id="mainContent">
@@ -5821,6 +5843,50 @@ body {
 <h3 class="font-bold mt-4 mb-2"><i class="fas fa-gift mr-1" style="color: #FFD700;"></i>待使用权益</h3>
 <div id="profilePendingRewards" class="mb-4"></div>
 
+<!-- 积分商城入口卡片 -->
+<div class="card-base p-4 mb-4 flex items-center justify-between cursor-pointer group hover:shadow-xl transition-all" 
+     style="background: linear-gradient(135deg, rgba(255,215,0,0.1) 0%, rgba(255,107,53,0.05) 100%); border-left: 6px solid #FFD700;"
+     onclick="openPointsShopModal()">
+  <div class="flex items-center gap-4">
+    <div class="w-12 h-12 rounded-full flex items-center justify-center" style="background: linear-gradient(135deg, #FFD700, #FF6B35);">
+      <i class="fas fa-store text-white text-xl"></i>
+    </div>
+    <div>
+      <h3 class="font-display text-base flex items-center gap-2">
+        积分商城
+        <span class="text-xs px-2 py-0.5 rounded-full" style="background: #FFD700; color: #1a1a2e;">兑换</span>
+      </h3>
+      <p class="text-xs" style="color: var(--muted);">置顶权·命名权·头像框·专属勋章</p>
+    </div>
+  </div>
+  <i class="fas fa-chevron-right text-lg group-hover:translate-x-1 transition-transform" style="color: var(--accent);"></i>
+</div>
+
+<!-- 邀请战友卡片 -->
+<div class="card-base p-4 mb-4 flex items-center justify-between cursor-pointer group hover:shadow-xl transition-all" 
+     style="background: linear-gradient(135deg, rgba(52,152,219,0.1) 0%, rgba(41,128,185,0.05) 100%); border-left: 6px solid #3498db;"
+     onclick="copyInviteCode()">
+  <div class="flex items-center gap-4">
+    <div class="w-12 h-12 rounded-full flex items-center justify-center" style="background: linear-gradient(135deg, #3498db, #2980b9);">
+      <i class="fas fa-user-plus text-white text-xl"></i>
+    </div>
+    <div>
+      <h3 class="font-display text-base flex items-center gap-2">
+        邀请战友
+        <span class="text-xs px-2 py-0.5 rounded-full" style="background: #3498db; color: white;">赚积分</span>
+      </h3>
+      <div class="flex items-center gap-2 mt-1" id="inviteCountContainer">
+        <span class="text-xs font-bold" style="color: #3498db;"><i class="fas fa-users mr-1"></i>已邀请 <span id="profileInviteCount">0</span> 人</span>
+      </div>
+      <p class="text-xs" style="color: var(--muted);">每邀请1人得5积分，满3人送盲盒</p>
+    </div>
+  </div>
+  <i class="fas fa-copy text-lg group-hover:scale-110 transition-transform" style="color: #3498db;"></i>
+</div>
+
+
+
+
       <!-- 我的收藏 -->
       <h3 class="font-bold mt-4 mb-2">我的收藏</h3>
       <div id="myFavoritesGrid" class="masonry"></div>
@@ -6154,7 +6220,12 @@ body {
         <div><span class="text-xs" style="color: var(--muted);">我的积分</span><span class="text-xl font-bold ml-2" style="color: var(--accent);" id="modalUserPoints">0</span></div>
         <div><span class="text-xs" style="color: var(--muted);">已推荐</span><span class="text-xl font-bold ml-2" style="color: #FFD700;" id="modalReferralCount">0</span></div>
       </div>
-      <button class="btn-warm text-sm px-4 py-2" onclick="openBlindBox()"><i class="fas fa-gift mr-1"></i>开盲盒 (10积分)</button>
+            <div class="flex gap-2">
+        <button class="btn-warm text-sm px-4 py-2" onclick="openBlindBox()"><i class="fas fa-gift mr-1"></i>开盲盒</button>
+        <button class="btn-ghost text-sm px-4 py-2" style="border-color: #FFD700; color: #FFD700;" onclick="closeModal('mutualAidModal'); openPointsShopModal();">
+          <i class="fas fa-store mr-1"></i>积分商城
+        </button>
+      </div>
     </div>
 
     <!-- Tab 切换 -->
@@ -7190,6 +7261,15 @@ async function loadUserPointsAndReferrals() {
 
 async function addUserPoints(amount) {
   if (!APP.user) return;
+
+  // ========== 周末双倍积分 ==========
+  const now = new Date();
+  const day = now.getDay(); // 0=周日, 6=周六
+  if (day === 0 || day === 6) {
+    amount = amount * 2;
+  }
+  // ========== 双倍结束 ==========
+
   try {
     const { data } = await sb.from('user_points').select('points').eq('user_id', APP.user.id).maybeSingle();
     const newPoints = (data?.points || 0) + amount;
@@ -7320,8 +7400,20 @@ async function openBlindBox() {
   await sb.from('user_points')
     .update({ points: data.points - 10 })
     .eq('user_id', APP.user.id);
+
+  // ========== 幸运值系统：每次开盲盒+10幸运值，满100触发保底 ==========
+  const { data: profLucky } = await sb.from('profiles').select('lucky_value').eq('id', APP.user.id).single();
+  let lucky = (profLucky?.lucky_value || 0) + 10;
+  let guaranteed = false;
+  if (lucky >= 100) {
+    guaranteed = true;
+    lucky = 0;
+  }
+  await sb.from('profiles').update({ lucky_value: lucky }).eq('id', APP.user.id);
+  // ========== 幸运值更新完成 ==========
+
   
-  // 奖励池
+    // 奖励池
   const rewards = [
     { type: 'points', name: '20积分', value: 20 },
     { type: 'badge', name: '实习课代表', badgeId: 'badge_welfare_new' },
@@ -7329,8 +7421,16 @@ async function openBlindBox() {
     { type: 'naming', name: '配装命名权' }
   ];
   
-  const reward = rewards[Math.floor(Math.random() * rewards.length)];
-  
+  // ========== 保底判断：如果幸运值满100，强制给金色传说勋章 ==========
+  let reward;
+  if (guaranteed) {
+    reward = { type: 'badge', name: '✨ 金色传说', badgeId: 'badge_welfare_gold' };
+  } else {
+    reward = rewards[Math.floor(Math.random() * rewards.length)];
+  }
+  // ========== 保底判断结束 ==========
+
+
   // 记录开奖
   await sb.from('blind_box_records').insert({
     user_id: APP.user.id,
@@ -7781,10 +7881,26 @@ window.claimTaskReward = async function(type, ev) {
       })
       .eq('id', APP.user.id);
 
+
     if (profileError) {
       console.error('[任务] 更新用户经验失败:', profileError);
       throw profileError;
     }
+
+
+    // ========== 新增：每日任务额外奖励积分 ==========
+    const pointsEarned = type === 'like' ? 5 : 3; // 点赞5分，发帖/评论3分
+    await addUserPoints(pointsEarned);
+    await sb.from('points_log').insert({ 
+      user_id: APP.user.id, 
+      amount: pointsEarned, 
+      reason: `每日任务-${type}` 
+    });
+    updateUserPointsUI();
+    showToast(`🎁 额外获得 ${pointsEarned} 积分！`, 'success');
+    // ========== 新增结束 ==========
+
+
 
     console.log(`[任务] 经验更新成功，当前经验: ${APP.profile.exp}, 等级: ${APP.profile.level}`);
 
@@ -8378,6 +8494,42 @@ async function handleRegister() {
 
    if (data.user) {
     // 4. 将邮箱存入 profiles 表，方便后续用户名登录和找回密码（使用 upsert 确保行存在）
+
+
+
+    // ========== 处理邀请关系 ==========
+    const urlParams = new URLSearchParams(window.location.search);
+    const refCode = urlParams.get('ref');
+    if (refCode) {
+      // 记录邀请关系
+      const { error: inviteError } = await sb.from('invites').insert({
+        inviter_id: refCode,
+        invitee_id: data.user.id
+      });
+      if (!inviteError) {
+        // 给邀请人加5积分
+        await addUserPointsToUser(refCode, 5);
+        await sb.from('points_log').insert({ user_id: refCode, amount: 5, reason: '邀请新用户' });
+        // 检查邀请人是否达到3人，送盲盒
+        const { count } = await sb.from('invites').select('*', { count: 'exact', head: true }).eq('inviter_id', refCode);
+        if (count >= 3) {
+          // 送盲盒（直接调用开盲盒逻辑，或者发放权益）
+          await savePendingReward(refCode, 'pin', '邀请盲盒奖励-置顶权');
+          // 发送通知
+          await sb.from('notifications').insert({
+            recipient_id: refCode,
+            sender_id: data.user.id,
+            type: 'system',
+            content: '🎉 你已成功邀请3位战友！获得盲盒奖励，请在个人中心查看。'
+          });
+        }
+        // 更新新人任务
+        updateNewbieTask(refCode, 'invite');
+      }
+    }
+    // ========== 邀请关系处理结束 ==========
+
+
     const { error: upsertError } = await sb.from('profiles').upsert({
       id: data.user.id,
       email: email,
@@ -8389,6 +8541,11 @@ async function handleRegister() {
     if (upsertError) console.warn('保存邮箱失败:', upsertError);
     
     showToast('注册成功，请登录');
+
+    // ========== 初始化新人任务 ==========
+    await sb.from('newbie_tasks').insert({ user_id: data.user.id });
+    // ========== 初始化完成 ==========
+
     switchAuthForm('login');
     $('regEmail').value = $('regUsername').value = $('regPhone').value = '';
     $('regSmsCode').value = $('regCaptchaInput').value = $('regPassword').value = $('regConfirmPwd').value = '';
@@ -9858,6 +10015,17 @@ if (postType === 'story') {
   document.body.appendChild(flash);
   setTimeout(() => flash.remove(), 1200);
   showToast('发布成功！');
+  // 更新新人任务
+  updateNewbieTask(APP.user.id, 'post');
+
+
+
+  // 发帖奖励积分
+  await addUserPoints(3);
+  await sb.from('points_log').insert({ user_id: APP.user.id, amount: 3, reason: '发布帖子' });
+  updateUserPointsUI();
+
+
   closeModal('publishModal');
   $('pubTitle').value = ''; $('pubDesc').value = ''; $('pubTags').value = '';
   $('pubMediaPreview').innerHTML = ''; $('pubMedia').value = '';
@@ -10134,6 +10302,25 @@ async function submitComment() {
   });
   if (error) { showToast('评论失败'); return; }
 
+
+  // ========== 处理@提及 ==========
+  const mentionRegex = /@(\S+)/g;
+  const mentionsList = [...content.matchAll(mentionRegex)].map(m => m[1]);
+  for (const username of mentionsList) {
+    const { data: targetUser } = await sb.from('profiles').select('id').eq('username', username).single();
+    if (targetUser && targetUser.id !== APP.user.id) {
+      await sb.from('notifications').insert({
+        recipient_id: targetUser.id,
+        sender_id: APP.user.id,
+        type: 'mention',
+        content: `${APP.profile.username} 在评论中提到了你`,
+        link: `/post/${APP.currentPostId}`
+      });
+    }
+  }
+  // ========== @提及处理结束 ==========
+
+
   // 更新评论计数
   const { data: post } = await sb.from('posts').select('comments_count, upvotes, downloads').eq('id', APP.currentPostId).single();
   if (post) {
@@ -10143,6 +10330,8 @@ async function submitComment() {
   }
 
   showToast('评论成功');
+  // 更新新人任务
+  updateNewbieTask(APP.user.id, 'comment');
   $('commentInput').value = ''; 
   $('commentInput').dataset.parentId = ''; 
   $('commentInput').dataset.voiceUrl = '';
@@ -10151,6 +10340,18 @@ async function submitComment() {
 async function likeComment(cid) {
   const { data: c } = await sb.from('comments').select('upvotes').eq('id', cid).single();
   if (c) await sb.from('comments').update({ upvotes: (c.upvotes||0)+1 }).eq('id', cid);
+
+  const { data: comment } = await sb.from('comments').select('user_id').eq('id', cid).single();
+  if (comment && comment.user_id !== APP.user.id) {
+    await sb.from('notifications').insert({
+      recipient_id: comment.user_id,
+      sender_id: APP.user.id,
+      type: 'like',
+      content: `${APP.profile.username} 赞了你的点评`,
+    });
+  }
+
+
   loadComments(APP.currentPostId);
 }
 
@@ -10907,9 +11108,217 @@ async function publishStory() {
 }
 
 
+
+// ==================== 权益使用系统（完整版） ====================
+
+// 获取用户待使用权益
+async function getUserPendingRewards() {
+  if (!APP.user) return [];
+  try {
+    const { data } = await sb.from('profiles')
+      .select('pending_rewards')
+      .eq('id', APP.user.id)
+      .single();
+    return data?.pending_rewards || [];
+  } catch (e) {
+    console.warn('获取权益失败:', e);
+    return [];
+  }
+}
+
+// 检查用户是否有特定类型的待使用权益
+async function hasPendingReward(rewardType) {
+  const rewards = await getUserPendingRewards();
+  return rewards.some(r => r.type === rewardType && !r.used);
+}
+
+// 获取用户待使用权益数量
+async function getPendingRewardCount(rewardType) {
+  const rewards = await getUserPendingRewards();
+  if (rewardType) {
+    return rewards.filter(r => r.type === rewardType && !r.used).length;
+  }
+  return rewards.filter(r => !r.used).length;
+}
+
+// 消耗一次权益
+async function consumePendingReward(rewardType) {
+  if (!APP.user) return false;
+  
+  const rewards = await getUserPendingRewards();
+  const index = rewards.findIndex(r => r.type === rewardType && !r.used);
+  
+  if (index === -1) {
+    showToast(`你没有可用的${rewardType === 'pin' ? '置顶权' : '命名权'}`, 'warning');
+    return false;
+  }
+  
+  rewards[index].used = true;
+  rewards[index].usedAt = new Date().toISOString();
+  
+  const { error } = await sb.from('profiles')
+    .update({ pending_rewards: rewards })
+    .eq('id', APP.user.id);
+  
+  if (error) {
+    console.error('消耗权益失败:', error);
+    return false;
+  }
+  
+  if (APP.profile) APP.profile.pending_rewards = rewards;
+  return true;
+}
+
+// 保存待使用的权益
+async function savePendingReward(userId, rewardType, rewardName) {
+  const { data: profile, error } = await sb.from('profiles')
+    .select('pending_rewards')
+    .eq('id', userId)
+    .single();
+  
+  let pending = profile?.pending_rewards || [];
+  if (!Array.isArray(pending)) pending = [];
+  
+  pending.push({
+    id: `${rewardType}_${Date.now()}`,
+    type: rewardType,
+    name: rewardName,
+    grantedAt: new Date().toISOString(),
+    used: false
+  });
+  
+  await sb.from('profiles')
+    .update({ pending_rewards: pending })
+    .eq('id', userId);
+}
+
+// 渲染个人主页的待使用权益区域
+async function renderPendingRewardsInProfile() {
+  const container = document.getElementById('profilePendingRewards');
+  if (!container) return;
+  
+  const rewards = await getUserPendingRewards();
+  const unused = rewards.filter(r => !r.used);
+  
+  if (unused.length === 0) {
+    container.innerHTML = '<p class="text-xs" style="color: var(--muted);">暂无待使用权益</p>';
+    return;
+  }
+  
+  const pinCount = unused.filter(r => r.type === 'pin').length;
+  const namingCount = unused.filter(r => r.type === 'naming').length;
+  
+  container.innerHTML = `
+    <div class="flex gap-3">
+      ${pinCount > 0 ? `<span class="badge badge-gold text-xs"><i class="fas fa-thumbtack mr-1"></i>置顶权 x${pinCount}</span>` : ''}
+      ${namingCount > 0 ? `<span class="badge badge-silver text-xs"><i class="fas fa-pen mr-1"></i>命名权 x${namingCount}</span>` : ''}
+    </div>
+  `;
+}
+
+// 使用帖子置顶权
+async function usePinReward(postId, postTitle) {
+  if (!APP.user) { openAuthModal(); return; }
+  
+  const hasReward = await hasPendingReward('pin');
+  if (!hasReward) {
+    showToast('你没有可用的置顶权，快去开盲盒获取吧！', 'warning');
+    return;
+  }
+  
+  if (!confirm(`确定要将帖子「${postTitle}」置顶24小时吗？将消耗一次置顶权。`)) return;
+  
+  const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+  const { error } = await sb.from('posts')
+    .update({ 
+      is_top_today: true,
+      pin_expires_at: expiresAt
+    })
+    .eq('id', postId);
+  
+  if (error) {
+    showToast('置顶失败: ' + error.message, 'error');
+    return;
+  }
+  
+  await consumePendingReward('pin');
+  showToast('✅ 帖子已置顶，24小时内有效！', 'success');
+  
+  if (APP.currentTab === 'home') loadPosts(true);
+  else if (APP.currentTab === 'profile') renderProfile();
+}
+
+// 使用配装命名权
+async function useNamingReward(loadoutName, originalCode) {
+  if (!APP.user) { openAuthModal(); return; }
+  
+  const hasReward = await hasPendingReward('naming');
+  if (!hasReward) {
+    showToast('你没有可用的命名权，快去开盲盒获取吧！', 'warning');
+    return;
+  }
+  
+  const newName = prompt('请输入你为这套配装起的名字（最多20个字）：', loadoutName);
+  if (!newName || newName.trim() === '') {
+    showToast('名称不能为空', 'warning');
+    return;
+  }
+  
+  const trimmedName = newName.trim().substring(0, 20);
+  
+  const { error } = await sb.from('user_loadout_names').insert({
+    user_id: APP.user.id,
+    original_code: originalCode,
+    custom_name: trimmedName,
+    created_at: new Date().toISOString()
+  });
+  
+  if (error) {
+    console.error('保存命名失败:', error);
+    showToast('命名失败，请重试', 'error');
+    return;
+  }
+  
+  await consumePendingReward('naming');
+  showToast(`✅ 命名成功！这套配装现在叫「${trimmedName}」`, 'success');
+  
+  if (typeof renderBudgetLoadouts === 'function') {
+    renderBudgetLoadouts();
+  }
+}
+
+// ========== 在个人主页显示待使用权益 ==========
+async function renderPendingRewardsInProfile() {
+  const container = document.getElementById('profilePendingRewards');
+  if (!container) return;
+  
+  const rewards = await getUserPendingRewards();
+  const unused = rewards.filter(r => !r.used);
+  
+  if (unused.length === 0) {
+    container.innerHTML = '<p class="text-xs" style="color: var(--muted);">暂无待使用权益</p>';
+    return;
+  }
+  
+  const pinCount = unused.filter(r => r.type === 'pin').length;
+  const namingCount = unused.filter(r => r.type === 'naming').length;
+  
+  container.innerHTML = `
+    <div class="flex gap-3">
+      ${pinCount > 0 ? `<span class="badge badge-gold text-xs"><i class="fas fa-thumbtack mr-1"></i>置顶权 x${pinCount}</span>` : ''}
+      ${namingCount > 0 ? `<span class="badge badge-silver text-xs"><i class="fas fa-pen mr-1"></i>命名权 x${namingCount}</span>` : ''}
+    </div>
+  `;
+}
+
+
+
+
 // ==================== 个人资料 ====================
 function renderProfile() {
   if (!APP.profile) return;
+  
+  // 更新基础信息
   $('profileAvatar').src = APP.profile.avatar_url || dicebearUrl('default');
   $('profileName').textContent = APP.profile.username;
   $('profileLevel').textContent = 'Lv.' + (APP.profile.level || 1);
@@ -10922,11 +11331,16 @@ function renderProfile() {
   $('statFollowers').textContent = APP.profile.followers_count || 0;
   $('statFollowing').textContent = APP.profile.following_count || 0;
 
-    // 勋章墙（包含系统成就和自定义勋章）
+  // 新增：显示积分余额
+  loadUserPointsAndReferrals().then(() => {
+    const pts = document.getElementById('modalUserPoints')?.textContent || '0';
+    const ptsDisplay = document.getElementById('profilePointsDisplay');
+    if (ptsDisplay) ptsDisplay.textContent = pts;
+  });
+
+  // 勋章墙（系统成就 + 自定义）
   const wall = $('achievementsWall');
   wall.innerHTML = '';
-  
-  // 1. 系统成就
   const sysBadges = [
     { id:'first_post', name:'初出茅庐', icon:'fa-flag', cls:'badge-bronze' },
     { id:'10_likes', name:'小有名气', icon:'fa-fire', cls:'badge-silver' },
@@ -10939,39 +11353,57 @@ function renderProfile() {
     const earned = achs.includes(b.id);
     wall.innerHTML += `<span class="badge ${b.cls}" style="${earned?'':'opacity:0.3;filter:grayscale(1)'}"><i class="fas ${b.icon} mr-1"></i>${b.name}</span>`;
   });
-  
-  // 2. 自定义勋章（管理员授予的）
   const customBadges = APP.profile.badges || [];
   customBadges.forEach(b => {
-    // 根据稀有度设置样式
     let cls = 'badge-bronze';
     if (b.rarity === 'epic') cls = 'badge-silver';
     else if (b.rarity === 'legend') cls = 'badge-gold';
     wall.innerHTML += `<span class="badge ${cls}" title="${b.name} (授予于 ${new Date(b.grantedAt).toLocaleDateString()})"><i class="fas fa-medal mr-1"></i>${b.icon} ${b.name}</span>`;
   });
-  
-  // 如果没有任何勋章，显示提示
-  if (wall.innerHTML === '') {
-    wall.innerHTML = '<span class="text-xs" style="color:var(--muted)">暂无勋章，多多互动解锁吧！</span>';
+  if (wall.innerHTML === '') wall.innerHTML = '<span class="text-xs" style="color:var(--muted)">暂无勋章，多多互动解锁吧！</span>';
+
+  loadSpirit();
+  loadCheckinStatus();
+  loadMyPosts();
+  loadMyFavorites();
+  setTimeout(() => renderPendingRewardsInProfile(), 200);
+  loadMyLoadoutFavorites();
+  // 加载邀请人数
+  loadInviteCount();
+
+  // ----- 新增：贡献数据面板（获赞、帮助人数、推荐数、命名数）-----
+  const statsContainer = document.getElementById('profileStatsGrid');
+  if (statsContainer) {
+    Promise.all([
+      sb.from('welfare_reviews').select('id', { count: 'exact', head: true }).eq('user_id', APP.user.id),
+      sb.from('welfare_referrals').select('id', { count: 'exact', head: true }).eq('referrer_id', APP.user.id),
+      sb.from('user_loadout_names').select('id', { count: 'exact', head: true }).eq('user_id', APP.user.id)
+    ]).then(([revRes, refRes, nameRes]) => {
+      const helpCount = (revRes.count || 0);
+      const refCount = (refRes.count || 0);
+      const nameCount = (nameRes.count || 0);
+      const likeCount = APP.profile.likes_received || 0;
+      statsContainer.innerHTML = `
+        <div class="grid grid-cols-4 gap-2 text-center">
+          <div><span class="font-bold text-lg" style="color: #FF4757;">${likeCount}</span><div class="text-[10px]">获赞</div></div>
+          <div><span class="font-bold text-lg" style="color: #2ecc71;">${helpCount}</span><div class="text-[10px]">帮助</div></div>
+          <div><span class="font-bold text-lg" style="color: #3498db;">${refCount}</span><div class="text-[10px]">推荐</div></div>
+          <div><span class="font-bold text-lg" style="color: #f1c40f;">${nameCount}</span><div class="text-[10px]">命名</div></div>
+        </div>
+      `;
+    });
   }
 
-  // 精灵
-  loadSpirit();
-
-  // 签到状态
-  loadCheckinStatus();
-
-  // 我的帖子
-  loadMyPosts();
-  // 我的收藏
-  loadMyFavorites();
-
-  // 【新增】显示待使用权益
-  setTimeout(() => renderPendingRewardsInProfile(), 200);
-
-// 我的配装仓库 (新增)
-  loadMyLoadoutFavorites();
+  // 新增：积分商城入口按钮
+  const shopBtn = document.getElementById('profileShopBtn');
+  if (shopBtn) {
+    shopBtn.onclick = () => openPointsShopModal();
+  }
 }
+
+
+
+
 
 
 
@@ -15853,8 +16285,10 @@ function saveTactical() {
     showToast('保存失败，可能是画布内容受保护', 'error');
   }
 }
+
+
 async function loadRanks() {
-  // 贡献榜：按获赞数
+  // 贡献榜
   const { data: contribute } = await sb.from('profiles').select('id, username, avatar_url, likes_received').order('likes_received', { ascending: false }).limit(10);
   const cEl = $('contributeRank');
   cEl.innerHTML = '';
@@ -15868,7 +16302,7 @@ async function loadRanks() {
     </div>`;
   });
 
-  // 红人榜：按粉丝数
+  // 红人榜
   const { data: stars } = await sb.from('profiles').select('id, username, avatar_url, followers_count').order('followers_count', { ascending: false }).limit(10);
   const sEl = $('starRank');
   sEl.innerHTML = '';
@@ -15881,7 +16315,48 @@ async function loadRanks() {
       <span class="text-xs" style="color:var(--accent)"><i class="fas fa-users mr-1"></i>${u.followers_count || 0}</span>
     </div>`;
   });
+
+  // 新增：本周点评榜（点评数量）
+  const weekAgo = new Date(Date.now() - 7*86400000).toISOString();
+  const { data: reviews } = await sb.from('welfare_reviews').select('user_id, profiles(username, avatar_url)').gte('created_at', weekAgo);
+  const reviewCounts = {};
+  reviews?.forEach(r => { const uid = r.user_id; reviewCounts[uid] = (reviewCounts[uid]||0)+1; });
+  const sortedReviewers = Object.entries(reviewCounts).sort((a,b) => b[1]-a[1]).slice(0,10);
+  const rEl = $('reviewRankList'); // 需要提前在HTML中创建容器
+  if (rEl) {
+    rEl.innerHTML = '';
+    sortedReviewers.forEach(([uid, count], i) => {
+      const user = reviews?.find(r => r.user_id === uid)?.profiles || {};
+      rEl.innerHTML += `<div class="rank-item flex items-center gap-3 p-2 rounded-lg" style="background:var(--surface)">
+        <span class="text-lg w-8 text-center">${i+1}</span>
+        <img src="${user.avatar_url || dicebearUrl(uid)}" class="w-8 h-8 rounded-full">
+        <span class="font-bold text-sm flex-1">${user.username || '干员'}</span>
+        <span class="text-xs" style="color:var(--accent)">${count} 点评</span>
+      </div>`;
+    });
+  }
+
+  // 新增：本月推荐榜
+  const monthAgo = new Date(Date.now() - 30*86400000).toISOString();
+  const { data: refs } = await sb.from('welfare_referrals').select('referrer_id, profiles!referrer_id(username, avatar_url)').gte('created_at', monthAgo);
+  const refCounts = {};
+  refs?.forEach(r => { const uid = r.referrer_id; refCounts[uid] = (refCounts[uid]||0)+1; });
+  const sortedRefs = Object.entries(refCounts).sort((a,b) => b[1]-a[1]).slice(0,10);
+  const refEl = $('referralRankList');
+  if (refEl) {
+    refEl.innerHTML = '';
+    sortedRefs.forEach(([uid, count], i) => {
+      const user = refs?.find(r => r.referrer_id === uid)?.profiles || {};
+      refEl.innerHTML += `<div class="rank-item flex items-center gap-3 p-2 rounded-lg" style="background:var(--surface)">
+        <span class="text-lg w-8 text-center">${i+1}</span>
+        <img src="${user.avatar_url || dicebearUrl(uid)}" class="w-8 h-8 rounded-full">
+        <span class="font-bold text-sm flex-1">${user.username || '干员'}</span>
+        <span class="text-xs" style="color:var(--accent)">${count} 推荐</span>
+      </div>`;
+    });
+  }
 }
+
 
 // ==================== 我的帖子与收藏 ====================
 
@@ -18916,189 +19391,6 @@ function openDamageCalculatorModal() {
 
 
 
-// ==================== 权益使用系统 ====================
-
-// ========== 获取用户待使用权益 ==========
-async function getUserPendingRewards() {
-  if (!APP.user) return [];
-  try {
-    const { data } = await sb.from('profiles')
-      .select('pending_rewards')
-      .eq('id', APP.user.id)
-      .single();
-    return data?.pending_rewards || [];
-  } catch (e) {
-    console.warn('获取权益失败:', e);
-    return [];
-  }
-}
-
-// ========== 检查用户是否有特定类型的待使用权益 ==========
-async function hasPendingReward(rewardType) {
-  const rewards = await getUserPendingRewards();
-  return rewards.some(r => r.type === rewardType && !r.used);
-}
-
-// ========== 获取用户待使用权益数量 ==========
-async function getPendingRewardCount(rewardType) {
-  const rewards = await getUserPendingRewards();
-  if (rewardType) {
-    return rewards.filter(r => r.type === rewardType && !r.used).length;
-  }
-  return rewards.filter(r => !r.used).length;
-}
-
-// ========== 消耗一次权益 ==========
-async function consumePendingReward(rewardType) {
-  if (!APP.user) return false;
-  
-  const rewards = await getUserPendingRewards();
-  const index = rewards.findIndex(r => r.type === rewardType && !r.used);
-  
-  if (index === -1) {
-    showToast(`你没有可用的${rewardType === 'pin' ? '置顶权' : '命名权'}`, 'warning');
-    return false;
-  }
-  
-  // 标记为已使用
-  rewards[index].used = true;
-  rewards[index].usedAt = new Date().toISOString();
-  
-  const { error } = await sb.from('profiles')
-    .update({ pending_rewards: rewards })
-    .eq('id', APP.user.id);
-  
-  if (error) {
-    console.error('消耗权益失败:', error);
-    return false;
-  }
-  
-  // 同步本地
-  if (APP.profile) APP.profile.pending_rewards = rewards;
-  
-  return true;
-}
-
-// ========== 使用帖子置顶权 ==========
-async function usePinReward(postId, postTitle) {
-  if (!APP.user) { openAuthModal(); return; }
-  
-  // 检查是否有待使用的置顶权
-  const hasReward = await hasPendingReward('pin');
-  if (!hasReward) {
-    showToast('你没有可用的置顶权，快去开盲盒获取吧！', 'warning');
-    return;
-  }
-  
-  if (!confirm(`确定要将帖子「${postTitle}」置顶24小时吗？将消耗一次置顶权。`)) return;
-  
-  // 设置帖子置顶
-  const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
-  const { error } = await sb.from('posts')
-    .update({ 
-      is_top_today: true,
-      pin_expires_at: expiresAt  // 需要先在 posts 表增加此字段，见下方SQL
-    })
-    .eq('id', postId);
-  
-  if (error) {
-    showToast('置顶失败: ' + error.message, 'error');
-    return;
-  }
-  
-  // 消耗权益
-  await consumePendingReward('pin');
-  
-  showToast('✅ 帖子已置顶，24小时内有效！', 'success');
-  
-  // 刷新帖子列表
-  if (APP.currentTab === 'home') loadPosts(true);
-  else if (APP.currentTab === 'profile') renderProfile();
-}
-
-// ========== 使用配装命名权 ==========
-async function useNamingReward(loadoutName, originalCode) {
-  if (!APP.user) { openAuthModal(); return; }
-  
-  const hasReward = await hasPendingReward('naming');
-  if (!hasReward) {
-    showToast('你没有可用的命名权，快去开盲盒获取吧！', 'warning');
-    return;
-  }
-  
-  // 弹窗让用户输入自定义名称
-  const newName = prompt('请输入你为这套配装起的名字（最多20个字）：', loadoutName);
-  if (!newName || newName.trim() === '') {
-    showToast('名称不能为空', 'warning');
-    return;
-  }
-  
-  const trimmedName = newName.trim().substring(0, 20);
-  
-  // 保存命名记录（可以新建表或存在 profiles 中）
-  const { error } = await sb.from('user_loadout_names').insert({
-    user_id: APP.user.id,
-    original_code: originalCode,
-    custom_name: trimmedName,
-    created_at: new Date().toISOString()
-  });
-  
-  if (error) {
-    console.error('保存命名失败:', error);
-    showToast('命名失败，请重试', 'error');
-    return;
-  }
-  
-  // 消耗权益
-  await consumePendingReward('naming');
-  
-  showToast(`✅ 命名成功！这套配装现在叫「${trimmedName}」`, 'success');
-  
-  // 刷新起装方案页面显示
-  if (typeof renderBudgetLoadouts === 'function') {
-    renderBudgetLoadouts();
-  }
-}
-
-// ========== 在个人主页显示待使用权益 ==========
-async function renderPendingRewardsInProfile() {
-  const container = document.getElementById('profilePendingRewards');
-  if (!container) return;
-  
-  const rewards = await getUserPendingRewards();
-  const unused = rewards.filter(r => !r.used);
-  
-  if (unused.length === 0) {
-    container.innerHTML = '<p class="text-xs" style="color: var(--muted);">暂无待使用权益</p>';
-    return;
-  }
-  
-  const pinCount = unused.filter(r => r.type === 'pin').length;
-  const namingCount = unused.filter(r => r.type === 'naming').length;
-  
-  container.innerHTML = `
-    <div class="flex gap-3">
-      ${pinCount > 0 ? `<span class="badge badge-gold text-xs"><i class="fas fa-thumbtack mr-1"></i>置顶权 x${pinCount}</span>` : ''}
-      ${namingCount > 0 ? `<span class="badge badge-silver text-xs"><i class="fas fa-pen mr-1"></i>命名权 x${namingCount}</span>` : ''}
-    </div>
-  `;
-}
-
-// ========== 修改个人主页，增加权益显示区域 ==========
-// 在 renderProfile 函数末尾添加以下调用：
-// setTimeout(() => renderPendingRewardsInProfile(), 200);
-
-// ========== 修改我的帖子列表，增加“使用置顶权”按钮 ==========
-// 在 loadMyPosts 函数渲染每个帖子时，如果用户有置顶权，显示按钮
-// 具体修改见下方说明
-
-// ========== 修改起装方案卡片，增加“使用命名权”按钮 ==========
-// 在 renderBudgetLoadouts 函数的卡片底部，如果用户有命名权，显示按钮
-// 具体修改见下方说明
-
-
-
-
 
   // 交互逻辑
   setTimeout(() => {
@@ -19168,32 +19460,32 @@ async function renderPendingRewardsInProfile() {
       drawRing(shots === '∞' ? 0 : Math.min(shots, 10), final);
     }
 
-    function drawRing(shots, dmg) {
-      if (!ringCanvas) return;
-      const ctx = ringCanvas.getContext('2d');
-      const w = 100, h = 100, cx = 50, cy = 50, r = 38;
-      ctx.clearRect(0, 0, w, h);
-      
-      ctx.beginPath();
-      ctx.arc(x, y, 5, 0, 2 * Math.PI);
-      ctx.strokeStyle = 'rgba(255,255,255,0.1)';
-      ctx.lineWidth = 6;
-      ctx.stroke();
+   function drawRing(shots, dmg) {
+  if (!ringCanvas) return;
+  const ctx = ringCanvas.getContext('2d');
+  const w = 100, h = 100, cx = 50, cy = 50, r = 38;
+  ctx.clearRect(0, 0, w, h);
+  
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, 2 * Math.PI);
+  ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+  ctx.lineWidth = 6;
+  ctx.stroke();
 
-      if (shots === 0) return;
-      const end = (shots / 10) * 2 * Math.PI - Math.PI/2;
-      const grad = ctx.createConicGradient(0, cx, cy);
-      grad.addColorStop(0, '#2ecc71');
-      grad.addColorStop(0.5, '#f1c40f');
-      grad.addColorStop(1, '#e74c3c');
-      
-      ctx.beginPath();
-      ctx.arc(cx, cy, r, -Math.PI/2, end);
-      ctx.strokeStyle = grad;
-      ctx.lineWidth = 6;
-      ctx.lineCap = 'round';
-      ctx.stroke();
-    }
+  if (shots === 0) return;
+  const end = (shots / 10) * 2 * Math.PI - Math.PI/2;
+  const grad = ctx.createConicGradient(0, cx, cy);
+  grad.addColorStop(0, '#2ecc71');
+  grad.addColorStop(0.5, '#f1c40f');
+  grad.addColorStop(1, '#e74c3c');
+  
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, -Math.PI/2, end);
+  ctx.strokeStyle = grad;
+  ctx.lineWidth = 6;
+  ctx.lineCap = 'round';
+  ctx.stroke();
+}
 
     // 事件绑定
     function bindSegmented(selector, callback) {
@@ -22489,6 +22781,145 @@ window.refreshTTKData = function() {
 };
 
 
+// ==================== 积分商城 ====================
+const SHOP_ITEMS = [
+  { id: 'pin', name: '帖子置顶权 (24h)', price: 30, icon: 'fa-thumbtack', color: '#FFD700' },
+  { id: 'naming', name: '配装命名权', price: 30, icon: 'fa-pen', color: '#C0C0C0' },
+  { id: 'frame_gold', name: '金色头像框', price: 50, icon: 'fa-circle', color: '#FFD700' },
+  { id: 'badge_shop_king', name: '👑 钞能力王者', price: 100, icon: 'fa-crown', color: '#FFD700' }
+];
+
+async function openPointsShopModal() {
+  if (!APP.user) { openAuthModal(); return; }
+  
+  // 获取当前积分
+  const { data } = await sb.from('user_points').select('points').eq('user_id', APP.user.id).maybeSingle();
+  const currentPoints = data?.points || 0;
+  
+  let modal = document.getElementById('pointsShopModal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'pointsShopModal';
+    modal.className = 'modal-overlay';
+    modal.innerHTML = `
+      <div class="modal-content" style="max-width:500px">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="font-display text-xl"><i class="fas fa-store mr-2" style="color:#FFD700;"></i>积分商城</h2>
+          <button onclick="closeModal('pointsShopModal')" class="w-8 h-8 rounded-full flex items-center justify-center" style="background:var(--surface)"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="flex items-center justify-between mb-4 p-3 rounded-xl" style="background: var(--surface);">
+          <span><i class="fas fa-coins mr-1" style="color:#FFD700;"></i>我的积分</span>
+          <span class="text-xl font-bold" style="color:#FFD700;" id="shopCurrentPoints">${currentPoints}</span>
+        </div>
+        <div class="space-y-3" id="shopItemsContainer"></div>
+        <p class="text-xs text-center mt-4" style="color:var(--muted);">兑换后权益将发放至个人中心，可在对应位置使用</p>
+      </div>
+    `;
+    document.body.appendChild(modal);
+  }
+  
+  const container = modal.querySelector('#shopItemsContainer');
+  container.innerHTML = SHOP_ITEMS.map(item => {
+    const canAfford = currentPoints >= item.price;
+    return `
+      <div class="p-4 rounded-xl flex items-center justify-between" style="background: var(--surface); border: 1px solid var(--border);">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-full flex items-center justify-center" style="background: ${item.color}20;">
+            <i class="fas ${item.icon}" style="color: ${item.color};"></i>
+          </div>
+          <div>
+            <div class="font-bold">${item.name}</div>
+            <div class="text-xs" style="color: var(--accent);">${item.price} 积分</div>
+          </div>
+        </div>
+        <button class="btn-ghost text-sm px-4 py-2" ${!canAfford ? 'disabled style="opacity:0.5;"' : ''} onclick="purchaseShopItem('${item.id}', ${item.price})">
+          ${canAfford ? '兑换' : '积分不足'}
+        </button>
+      </div>
+    `;
+  }).join('');
+  
+  openModal('pointsShopModal');
+}
+
+async function purchaseShopItem(itemId, price) {
+  if (!APP.user) return;
+  
+  const { data } = await sb.from('user_points').select('points').eq('user_id', APP.user.id).single();
+  if (!data || data.points < price) {
+    showToast('积分不足', 'error');
+    return;
+  }
+  
+  // 扣积分
+  await sb.from('user_points').update({ points: data.points - price }).eq('user_id', APP.user.id);
+  await sb.from('points_log').insert({ user_id: APP.user.id, amount: -price, reason: `兑换:${itemId}` });
+  
+  // 发放权益
+  if (itemId === 'pin') await savePendingReward(APP.user.id, 'pin', '帖子置顶权');
+  else if (itemId === 'naming') await savePendingReward(APP.user.id, 'naming', '配装命名权');
+  else if (itemId === 'frame_gold') {
+    // 头像框存储到 profiles 的 frame 字段
+    await sb.from('profiles').update({ frame: 'gold' }).eq('id', APP.user.id);
+    if (APP.profile) APP.profile.frame = 'gold';
+  } else if (itemId === 'badge_shop_king') {
+    const newBadge = { id: 'badge_shop_king', name: '钞能力王者', icon: '👑', rarity: 'legend', grantedAt: new Date().toISOString() };
+    const { data: prof } = await sb.from('profiles').select('badges').eq('id', APP.user.id).single();
+    let badges = prof?.badges || [];
+    if (!Array.isArray(badges)) badges = [];
+    if (!badges.some(b => b.id === 'badge_shop_king')) {
+      badges.push(newBadge);
+      await sb.from('profiles').update({ badges }).eq('id', APP.user.id);
+      if (APP.profile) APP.profile.badges = badges;
+    }
+  }
+  
+  showToast('兑换成功！', 'success');
+  closeModal('pointsShopModal');
+  updateUserPointsUI();
+}
+
+// 更新全局积分显示
+async function updateUserPointsUI() {
+  if (!APP.user) return;
+  const { data } = await sb.from('user_points').select('points').eq('user_id', APP.user.id).maybeSingle();
+  const pts = data?.points || 0;
+  const display = document.getElementById('userPointsDisplay');
+  if (display) display.textContent = pts;
+  const shopDisplay = document.getElementById('shopCurrentPoints');
+  if (shopDisplay) shopDisplay.textContent = pts;
+}
+
+
+
+// ==================== 新人7日任务 ====================
+async function updateNewbieTask(userId, taskType) {
+  if (!userId) return;
+  
+  const { data } = await sb.from('newbie_tasks').select('*').eq('user_id', userId).single();
+  if (!data) return;
+  if (data.completed_at) return; // 已完成所有任务
+  
+  let updateFields = {};
+  if (taskType === 'post') updateFields.has_posted = true;
+  else if (taskType === 'comment') updateFields.has_commented = true;
+  else if (taskType === 'invite') updateFields.has_invited = true;
+  
+  await sb.from('newbie_tasks').update(updateFields).eq('user_id', userId);
+  
+  // 检查是否全部完成
+  const { data: updated } = await sb.from('newbie_tasks').select('*').eq('user_id', userId).single();
+  if (updated.has_posted && updated.has_commented && updated.has_invited) {
+    await sb.from('newbie_tasks').update({ completed_at: new Date().toISOString() }).eq('user_id', userId);
+    // 发放奖励：50积分 + 限定勋章
+    await addUserPoints(50);
+    await grantBadgeToUser(userId, 'badge_newbie_king');
+    showToast('🎉 恭喜完成新人任务！获得50积分+限定勋章', 'success');
+  }
+}
+
+
+
 // ==================== 战区氛围系统逻辑 ====================
 
 function openThemeDrawer() {
@@ -22726,8 +23157,77 @@ function applyImageWallpaper(imageUrl) {
 }
 
 
+// ==================== 邀请系统 ====================
+function copyInviteCode() {
+  if (!APP.user) { openAuthModal(); return; }
+  const inviteCode = APP.user.id;
+  const inviteLink = `${window.location.origin}${window.location.pathname}?ref=${inviteCode}`;
+  
+  // 显示一个漂亮的弹窗，而不是直接复制
+  showInviteModal(inviteCode, inviteLink);
+}
+
+function showInviteModal(inviteCode, inviteLink) {
+  let modal = document.getElementById('inviteModal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'inviteModal';
+    modal.className = 'modal-overlay';
+    modal.innerHTML = `
+      <div class="modal-content" style="max-width:450px; text-align:center;">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="font-display text-xl"><i class="fas fa-user-plus mr-2" style="color:#3498db;"></i>邀请战友</h2>
+          <button onclick="closeModal('inviteModal')" class="w-8 h-8 rounded-full flex items-center justify-center" style="background:var(--surface)"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="p-4 rounded-xl mb-4" style="background: var(--surface);">
+          <p class="text-sm mb-3">你的专属邀请码</p>
+          <div class="text-3xl font-mono font-bold tracking-wider mb-2" style="color: var(--accent);">${inviteCode.substring(0, 8)}</div>
+          <p class="text-xs" style="color: var(--muted);">让朋友注册时填写此码，或直接分享链接</p>
+        </div>
+        <div class="flex gap-2">
+          <button class="btn-warm flex-1 py-3" onclick="copyTextAndClose('${inviteLink}', 'inviteModal')">
+            <i class="fas fa-link mr-2"></i>复制邀请链接
+          </button>
+          <button class="btn-ghost flex-1 py-3" onclick="copyTextAndClose('${inviteCode}', 'inviteModal')">
+            <i class="fas fa-copy mr-2"></i>复制邀请码
+          </button>
+        </div>
+        <p class="text-xs mt-4" style="color: var(--muted);">每邀请1位战友，双方各得5积分！</p>
+      </div>
+    `;
+    document.body.appendChild(modal);
+  }
+  openModal('inviteModal');
+}
+
+function copyTextAndClose(text, modalId) {
+  navigator.clipboard?.writeText(text).then(() => {
+    showToast('✅ 已复制到剪贴板', 'success');
+    closeModal(modalId);
+  }).catch(() => {
+    // 降级
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textarea);
+    showToast('✅ 已复制', 'success');
+    closeModal(modalId);
+  });
+}
 
 
+
+
+
+
+async function loadInviteCount() {
+  if (!APP.user) return;
+  const { count } = await sb.from('invites').select('*', { count: 'exact', head: true }).eq('inviter_id', APP.user.id);
+  const span = document.getElementById('profileInviteCount');
+  if (span) span.textContent = count || 0;
+}
 
 
 </script>
