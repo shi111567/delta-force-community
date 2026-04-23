@@ -4896,6 +4896,14 @@ body {
 
 <!-- 快捷工具坞 -->
 <section class="mb-4" id="toolboxSection">
+
+
+<div class="card-base p-3 mb-4 cursor-pointer" onclick="showWelfareGuide()" style="background: linear-gradient(135deg, #FFD70010, #FF6B3510);">
+  <i class="fas fa-gift mr-2" style="color: #FFD700;"></i> 发帖赚福利：积分/幸运值/免费盲盒
+  <i class="fas fa-chevron-right ml-auto" style="color: var(--accent);"></i>
+</div>
+
+
   <div class="flex items-center justify-between mb-2">
     <h3 class="font-display text-sm flex items-center gap-2"><i class="fas fa-toolbox" style="color: var(--accent);"></i> 干员工具箱</h3>
     <span class="text-xs" style="color: var(--muted);">滑动查看更多 <i class="fas fa-arrow-right ml-1"></i></span>
@@ -5870,6 +5878,23 @@ body {
   <button onclick="$('escortGuideBanner').style.display='none'; localStorage.setItem('escortGuideClosed', 'true');" class="text-xs" style="color: var(--muted);"><i class="fas fa-times"></i></button>
 </div>
 <div id="escortTab" style="display:none">
+
+
+<!-- ========== 护航员专属激励面板（仅护航员可见） ========== -->
+<div id="escortInspirePanel" class="card-base p-4 mb-4" style="display:none; background: linear-gradient(135deg, rgba(255,215,0,0.1) 0%, rgba(255,107,53,0.05) 100%); border: 2px solid #FFD700;">
+  <div class="flex items-center justify-between mb-3">
+    <h3 class="font-display text-base flex items-center gap-2">
+      <i class="fas fa-shield-halved" style="color: #FFD700;"></i> 护航员激励中心
+    </h3>
+    <span class="text-xs px-3 py-1 rounded-full" style="background: #FFD700; color: #3D2B1F;">专属特权</span>
+  </div>
+  
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-center" id="escortPrivileges">
+    <!-- 动态生成内容 -->
+  </div>
+</div>
+
+
   <!-- 顶部统计卡片 -->
   <div class="grid grid-cols-3 gap-3 mb-4">
     <div class="card-base p-4 text-center">
@@ -5888,6 +5913,10 @@ body {
   
   <!-- 分类快速筛选 -->
   <div class="flex gap-2 mb-4 overflow-x-auto pb-2" id="escortFilterBar">
+
+  <button onclick="useBroadcast()" id="broadcastBtn" class="btn-warm text-xs px-3 py-1" style="display:none;"><i class="fas fa-bullhorn mr-1"></i>发送广播</button>
+
+
     <button class="escort-filter-btn active" data-filter="all">全部</button>
     <button class="escort-filter-btn" data-filter="pending">待审核</button>
     <button class="escort-filter-btn" data-filter="passed">已通过</button>
@@ -6049,12 +6078,41 @@ body {
 
 <!-- 幸运值进度条 -->
 <div class="card-base p-4 mb-4" id="profileLuckyCard">
+
+<p class="text-[10px] mt-2" style="color: var(--muted);">发帖、被回复、被点赞均可增加幸运值；每升5级送普通盲盒，10级送超级盲盒</p>
+
+
+
   <div class="flex items-center justify-between mb-2">
     <span class="text-sm font-bold"><i class="fas fa-star" style="color: #FFD700;"></i> 幸运值</span>
     <span class="text-sm font-bold" id="profileLuckyText">0/100</span>
   </div>
   <div class="exp-bar h-2"><div class="exp-fill" id="profileLuckyBar" style="width:0%; background: linear-gradient(90deg, #FFD700, #FFA500);"></div></div>
-  <p class="text-[10px] mt-2" style="color: var(--muted);">每开盲盒+10，满100必出稀有奖励</p>
+    <p class="text-[10px] mt-2" style="color: var(--muted);">普通盲盒+3，超级盲盒+10，满100必出金色传说</p>
+</div>
+
+      <!-- 特权状态卡片（护航员/管理员可见） -->
+      <div class="card-base p-4 mb-4" id="profilePrivilegeCard" style="display:none;">
+        <h3 class="font-bold text-sm mb-2 flex items-center gap-2">
+          <i class="fas fa-crown" style="color: #FFD700;"></i> 我的特权
+        </h3>
+        <div id="profilePrivilegeList" class="space-y-2"></div>
+      </div>
+
+
+<!-- 动态背景状态卡片 -->
+<div class="card-base p-4 mb-4" id="profileBgCard" style="display:none;">
+  <div class="flex items-center gap-3 mb-2">
+    <img id="profileBgPreview" src="" class="w-16 h-10 rounded object-cover">
+    <div class="flex-1">
+      <div class="text-sm font-bold">动态背景</div>
+      <div class="text-xs" id="profileBgStatus" style="color: var(--muted);"></div>
+    </div>
+  </div>
+  <div class="flex gap-2">
+    <button class="btn-ghost text-xs flex-1 py-1" onclick="activateDynamicBg()">更换背景</button>
+    <button class="btn-ghost text-xs flex-1 py-1" onclick="deactivateDynamicBg()">关闭</button>
+  </div>
 </div>
 
 
@@ -6300,6 +6358,13 @@ body {
         <input type="file" id="pubMedia" accept="image/*,video/*" multiple class="w-full text-sm">
         <div class="flex gap-2 mt-2 flex-wrap" id="pubMediaPreview"></div>
       </div>
+
+
+<div style="background: linear-gradient(135deg, #FFD70020, #FF6B3520); border: 1px solid #FFD700; border-radius: 12px; padding: 8px 12px; margin-bottom: 10px; font-size: 12px;">
+  <i class="fas fa-gift" style="color: #FFD700;"></i> 
+  发帖奖励：<b>+15积分</b> · 幸运值<b>+5</b> · 长文额外加成 · 升级送<b>免费盲盒</b>
+</div>
+
       <button class="btn-warm w-full py-3 text-lg" onclick="publishPost()">发布</button>
     </div>
   </div>
@@ -6449,6 +6514,35 @@ body {
 
 
 
+<!-- 动态背景选择器弹窗 -->
+<div class="modal-overlay" id="bgPickerModal">
+  <div class="modal-content" style="max-width:600px; max-height:80vh; overflow-y:auto;">
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="font-display text-xl"><i class="fas fa-film mr-2" style="color: #FF6B35;"></i>选择动态背景</h2>
+      <button onclick="closeModal('bgPickerModal')" class="w-8 h-8 rounded-full flex items-center justify-center" style="background:var(--surface);"><i class="fas fa-times"></i></button>
+    </div>
+    <p class="text-xs mb-3" style="color: var(--muted);">有效期30天，到期自动失效。可随时更换。</p>
+
+    <!-- 预设背景网格 -->
+    <div class="grid grid-cols-2 gap-3 mb-4" id="bgPresetGrid">
+      <!-- 动态生成 -->
+    </div>
+
+    <!-- 自定义上传 -->
+    <div class="p-3 rounded-xl mb-3" style="background: var(--surface); border: 1px dashed var(--border);">
+      <label class="text-sm font-bold block mb-2"><i class="fas fa-upload mr-1"></i>上传自定义背景（图片/GIF）</label>
+      <input type="file" id="bgCustomFile" accept="image/*" class="w-full text-sm mb-2">
+      <p class="text-xs" style="color: var(--muted);">推荐尺寸 1920x1080，支持 JPG/PNG/GIF</p>
+    </div>
+
+    <div class="flex gap-2">
+      <button class="btn-ghost flex-1 py-2" onclick="closeModal('bgPickerModal')">取消</button>
+      <button class="btn-warm flex-1 py-2" onclick="applySelectedBg()">✅ 应用背景</button>
+    </div>
+  </div>
+</div>
+
+
 <!-- ==================== 干员互助中心弹窗 ==================== -->
 <div class="modal-overlay" id="mutualAidModal">
   <div class="modal-content" style="max-width: 750px; max-height: 85vh; overflow-y: auto; padding: 20px;">
@@ -6466,7 +6560,21 @@ body {
         <div><span class="text-xs" style="color: var(--muted);">已推荐</span><span class="text-xl font-bold ml-2" style="color: #FFD700;" id="modalReferralCount">0</span></div>
       </div>
             <div class="flex gap-2">
-        <button class="btn-warm text-sm px-4 py-2" onclick="openBlindBox()"><i class="fas fa-gift mr-1"></i>开盲盒</button>
+        <button class="btn-warm text-sm px-4 py-2" style="background: linear-gradient(135deg, #FF6B35, #FF4757);" onclick="openNormalBox()">
+  <i class="fas fa-gift mr-1"></i>普通盲盒 · 10积分
+</button>
+<button class="btn-warm text-sm px-4 py-2" style="background: linear-gradient(135deg, #FFD700, #FFA500); color: #3D2B1F;" onclick="openSuperBox()">
+  <i class="fas fa-crown mr-1"></i>超级盲盒 · 100积分
+</button>
+
+<div style="text-align: center; margin-top: 8px;">
+  <button class="btn-ghost text-xs px-3 py-1" onclick="showBoxRewardList()">
+    <i class="fas fa-list-ul mr-1"></i>查看奖品池
+  </button>
+</div>
+
+
+
         <button class="btn-ghost text-sm px-4 py-2" style="border-color: #FFD700; color: #FFD700;" onclick="closeModal('mutualAidModal'); openPointsShopModal();">
           <i class="fas fa-store mr-1"></i>积分商城
         </button>
@@ -7396,6 +7504,11 @@ body {
  </div>
 </div>
 
+
+
+
+
+
 <script>
 
 
@@ -7589,15 +7702,13 @@ function openMutualAidModal() {
 
 
 async function loadLuckyValue() {
-  if (!APP.user) return;
-  const { data } = await sb.from('profiles').select('lucky_value').eq('id', APP.user.id).single();
-  const lucky = data?.lucky_value || 0;
+  if (!APP.user || !APP.profile) return;          // 未登录或资料未就绪，直接退出
+  const lucky = APP.profile.lucky_value || 0;
   const textEl = document.getElementById('luckyValueText');
   const barEl = document.getElementById('luckyProgressBar');
   if (textEl) textEl.textContent = `${lucky}/100`;
-  if (barEl) barEl.style.width = `${lucky}%`;
+  if (barEl) barEl.style.width = `${Math.min(lucky, 100)}%`;
 }
-
 
 
 function switchMutualAidTab(tab) {
@@ -7763,170 +7874,325 @@ async function grantBadgeToUser(userId, badgeId) {
   }
 }
 
-
-
-// ========== 开盲盒（完整自动触发版） ==========
-async function openBlindBox() {
+async function openNormalBox(skipCharge = false) {
   if (!APP.user) { openAuthModal(); return; }
-  
-  const { data } = await sb.from('user_points')
-    .select('points')
-    .eq('user_id', APP.user.id)
-    .single();
-  
-  if (!data || data.points < 10) {
-    showToast('积分不足10分', 'warning');
-    return;
+// ----- 新增：检查免费盲盒券（升级/任务奖励） -----
+  if (!skipCharge) {
+    const hasFreeTicket = await hasPendingReward('normal_box_free');
+    if (hasFreeTicket) {
+      await consumePendingReward('normal_box_free');
+      skipCharge = true;  // 跳过积分扣除
+    }
   }
-  
-  // 扣除积分
-  await sb.from('user_points')
-    .update({ points: data.points - 10 })
-    .eq('user_id', APP.user.id);
-
-  // ========== 幸运值系统：每次开盲盒+10幸运值，满100触发保底 ==========
-  const { data: profLucky } = await sb.from('profiles').select('lucky_value').eq('id', APP.user.id).single();
-  let lucky = (profLucky?.lucky_value || 0) + 10;
-  let guaranteed = false;
-  if (lucky >= 100) {
-    guaranteed = true;
-    lucky = 0;
-  }
+  // ----- 新增结束 -----
+ 
+  // 幸运值 +3
+  let lucky = APP.profile.lucky_value || 0;
+  lucky = Math.min(lucky + 3, 100);
   await sb.from('profiles').update({ lucky_value: lucky }).eq('id', APP.user.id);
-  // ========== 幸运值更新完成 ==========
-  // 立即刷新幸运值进度条显示
-  loadLuckyValue();
+  APP.profile.lucky_value = lucky;
 
+    const isEscort = APP.profile?.is_escort;
 
-  
-    // 奖励池
-  const rewards = [
-    { type: 'points', name: '20积分', value: 20 },
-    { type: 'badge', name: '实习课代表', badgeId: 'badge_welfare_new' },
-    { type: 'pin', name: '帖子置顶24h' },
-    { type: 'naming', name: '配装命名权' }
+  const normalRewards = [
+    { type: 'hafu_500w', name: '500万哈夫币代肝一次', weight: 0.2 },
+    { type: 'escort_normal', name: '护航体验券（普通一局）', weight: 0.3 },
+    { type: 'points', name: '200积分', value: 200, weight: 0.5 },
+    { type: 'points', name: '100积分', value: 100, weight: 1 },
+    { type: 'points', name: '50积分', value: 50, weight: 3 },
+    { type: 'pin', name: '帖子置顶权（24h）', weight: 10 },
+    { type: 'naming', name: '配装命名权', weight: 10 },
+    { type: 'title', name: '自定义头衔/铭牌', weight: 5 },
+    { type: 'points', name: '10积分', value: 10, weight: 70 }
   ];
-  
-  // ========== 保底判断：如果幸运值满100，强制给金色传说勋章 ==========
-const rand = Math.random() * 100;  // 新增这一行
-  let reward;
 
-   if (guaranteed) {
-    // 保底：必出终极大奖或稀有服务
-    reward = rand < 50 
-      ? { type: 'voucher_escort_1', name: '护航体验资格券', value: 'escort' }
-      : { type: 'voucher_hafu_50w', name: '50万哈夫币券', value: 'hafu50' };
+  const escortRewards = [
+    { type: 'points', name: '500积分', value: 500, weight: 0.5 },
+    { type: 'points', name: '200积分', value: 200, weight: 1.5 },
+    { type: 'profile_featured', name: '首页推荐位（24h）', weight: 5 },
+    { type: 'broadcast', name: '全局广播权限（1次）', weight: 3 },
+    { type: 'pin_7days', name: '帖子置顶权（7天）', weight: 5 },
+    { type: 'points', name: '100积分', value: 100, weight: 3 },
+    { type: 'points', name: '50积分', value: 50, weight: 22 },
+    { type: 'title', name: '自定义铭牌（金色）', weight: 10 },
+    { type: 'points', name: '20积分', value: 20, weight: 50 }
+  ];
+
+  const rewards = isEscort ? escortRewards : normalRewards;
+
+  const totalWeight = rewards.reduce((sum, r) => sum + r.weight, 0);
+  let rand = Math.random() * totalWeight;
+  let selected = rewards[0];
+  for (const r of rewards) {
+    rand -= r.weight;
+    if (rand <= 0) { selected = r; break; }
+  }
+  await processBoxReward(selected);
+  updateUserPointsUI();
+ // ✅ 直接更新互助中心弹窗内的幸运值进度条（实时显示）
+  const newLucky = APP.profile.lucky_value || 0;
+  const popupText = document.getElementById('luckyValueText');
+  const popupBar = document.getElementById('luckyProgressBar');
+  if (popupText) popupText.textContent = `${newLucky}/100`;
+  if (popupBar) popupBar.style.width = `${Math.min(newLucky, 100)}%`;
+
+  // 同时更新个人中心进度条（如果页面存在）
+  const profileText = document.getElementById('profileLuckyText');
+  const profileBar = document.getElementById('profileLuckyBar');
+  if (profileText) profileText.textContent = `${newLucky}/100`;
+  if (profileBar) profileBar.style.width = `${Math.min(newLucky, 100)}%`;
+}
+
+
+
+// ---------- 超级盲盒（100积分/次） ----------
+async function openSuperBox(skipCharge = false) {
+  if (!APP.user) { openAuthModal(); return; }
+  if (!skipCharge) {
+    const hasFreeTicket = await hasPendingReward('super_box_free');
+    if (hasFreeTicket) {
+      await consumePendingReward('super_box_free');
+      skipCharge = true;
+    }
+  }
+  const { data: pointsData } = await sb.from('user_points').select('points').eq('user_id', APP.user.id).single();
+  if (!pointsData || pointsData.points < 100) { showToast('积分不足100分', 'warning'); return; }
+
+  await sb.from('user_points').update({ points: pointsData.points - 100 }).eq('user_id', APP.user.id);
+  await sb.from('points_log').insert({ user_id: APP.user.id, amount: -100, reason: '超级盲盒' });
+
+       const isEscort = APP.profile?.is_escort || APP.isAdmin;
+
+  const normalSuperRewards = [
+    { type: 'escort_800w', name: '护航体验券（保底800万一局）', weight: 0.2 },
+    { type: 'task_any', name: '所有指定任务代打一局', weight: 0.5 },
+    { type: 'hafu_500w', name: '500万哈夫币代肝一次', weight: 0.8 },
+    { type: 'points', name: '500积分', value: 500, weight: 1.5 },
+    { type: 'points', name: '200积分', value: 200, weight: 3 },
+    { type: 'points', name: '100积分', value: 100, weight: 10 },
+    { type: 'admin_series', name: '管理员特权/限定勋章', weight: 8 },
+    { type: 'title', name: '自定义头衔/专属铭牌', weight: 10 },
+    { type: 'points', name: '50积分', value: 50, weight: 66 }
+  ];
+
+  const escortSuperRewards = [
+    { type: 'profile_featured', name: '首页推荐位（7天）', weight: 2 },
+    { type: 'broadcast_7days', name: '全局广播权限（7天）', weight: 2 },
+    { type: 'escort_frame_legend', name: '传说特效头像框（永久）', weight: 1 },
+    { type: 'pin_30days', name: '帖子置顶权（30天）', weight: 3 },
+    { type: 'points', name: '1000积分', value: 1000, weight: 2 },
+    { type: 'points', name: '500积分', value: 500, weight: 10 },
+    { type: 'points', name: '200积分', value: 200, weight: 20 },
+    { type: 'title', name: '自定义铭牌（金色闪光）', weight: 8 },
+    { type: 'points', name: '100积分', value: 100, weight: 30 },
+    { type: 'points', name: '50积分', value: 50, weight: 22 }
+  ];
+
+  const rewards = isEscort ? escortSuperRewards : normalSuperRewards;
+
+
+
+  let lucky = APP.profile.lucky_value || 0;
+  lucky += 10
+  let selected;
+  if (lucky >= 100) {
+    const topTypes = ['escort_800w', 'task_any', 'hafu_500w', 'points_500', 'points_200', 'points_100'];
+    const topRewards = rewards.filter(r => {
+      if (r.type === 'points') return topTypes.includes(`points_${r.value}`);
+      return topTypes.includes(r.type);
+    });
+    const topWeight = topRewards.reduce((s, r) => s + r.weight, 0);
+    let rand = Math.random() * topWeight;
+    selected = topRewards[0];
+    for (const r of topRewards) {
+      rand -= r.weight;
+      if (rand <= 0) { selected = r; break; }
+    }
+    lucky = 0;
   } else {
-    // 正常概率分层
-    if (rand < 40) {
-      // 40% 谢谢参与（1积分）
-      reward = { type: 'points', name: '1 积分', value: 1 };
-    } else if (rand < 70) {
-      // 30% 小额积分
-      reward = { type: 'points', name: '5 积分', value: 5 };
-    } else if (rand < 85) {
-      // 15% 中额积分/虚拟道具
-      reward = { type: 'points', name: '20 积分', value: 20 };
-    } else if (rand < 95) {
-      // 10% 高价值道具（哈夫币3w）
-      reward = { type: 'voucher_hafu_3w', name: '3万哈夫币券', value: 'hafu3' };
-    } else if (rand < 99) {
-      // 4% 稀有服务（哈夫币50w）
-      reward = { type: 'voucher_hafu_50w', name: '50万哈夫币券', value: 'hafu50' };
-    } else {
-      // 1% 终极大奖（护航体验资格）
-      reward = { type: 'voucher_escort_1', name: '护航体验资格券', value: 'escort' };
+    const totalWeight = rewards.reduce((sum, r) => sum + r.weight, 0);
+    let rand = Math.random() * totalWeight;
+    selected = rewards[0];
+    for (const r of rewards) {
+      rand -= r.weight;
+      if (rand <= 0) { selected = r; break; }
     }
   }
 
+  await sb.from('profiles').update({ lucky_value: lucky }).eq('id', APP.user.id);
+  APP.profile.lucky_value = lucky;
+
+  await processBoxReward(selected);
+  updateUserPointsUI();
+  // ✅ 直接更新互助中心弹窗内的幸运值进度条（实时显示）
+  const newLucky = APP.profile.lucky_value || 0;
+  const popupText = document.getElementById('luckyValueText');
+  const popupBar = document.getElementById('luckyProgressBar');
+  if (popupText) popupText.textContent = `${newLucky}/100`;
+  if (popupBar) popupBar.style.width = `${Math.min(newLucky, 100)}%`;
+
+  // 同时更新个人中心进度条（如果页面存在）
+  const profileText = document.getElementById('profileLuckyText');
+  const profileBar = document.getElementById('profileLuckyBar');
+  if (profileText) profileText.textContent = `${newLucky}/100`;
+  if (profileBar) profileBar.style.width = `${Math.min(newLucky, 100)}%`;
+ }
+
+// ---------- 通用奖励发放 ----------
+async function processBoxReward(reward) {
+  if (reward.type === 'points') {
+    await addUserPoints(reward.value);
+    await sb.from('points_log').insert({ user_id: APP.user.id, amount: reward.value, reason: '盲盒中奖' });
+    showToast(`🎉 获得 ${reward.name}`, 'success');
+  } else if (reward.type.startsWith('hafu')) {
+    await savePendingReward(APP.user.id, reward.type, reward.name);
+    showToast(`💸 获得 ${reward.name}，联系群主领取`);
+  } else if (reward.type.startsWith('escort')) {
+    await savePendingReward(APP.user.id, reward.type, reward.name);
+    showToast(`🛡️ 获得 ${reward.name}，联系群主安排`);
+  } else if (reward.type === 'task_any') {
+    await savePendingReward(APP.user.id, 'task_any', '任意任务代打一局');
+    showToast('🎯 获得任务代打资格，联系群主');
+  } else if (reward.type === 'pin') {
+    await savePendingReward(APP.user.id, 'pin', '帖子置顶权');
+    showToast('📌 置顶权已到账');
+  } else if (reward.type === 'naming') {
+    await savePendingReward(APP.user.id, 'naming', '配装命名权');
+    showToast('✏️ 命名权已到账');
+  } else if (reward.type === 'title') {
+    await sb.from('profiles').update({ custom_title: '自定义头衔' }).eq('id', APP.user.id);
+    showToast('🏷️ 自定义头衔已启用');
+
+ }else if (reward.type === 'profile_featured') {
+    const expires = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+    await sb.from('profiles').update({ is_featured_escort: true, featured_expires_at: expires }).eq('id', APP.user.id);
+    showToast('🔥 已获得首页推荐位，请查看护航员列表！', 'success');
+  }
+  else if (reward.type === 'broadcast') {
+    const text = prompt('请输入广播内容（最多30字）：');
+    if (text && text.trim()) {
+      showJackpotBroadcast({ username: APP.profile.username, rewardName: text.trim().substring(0, 30) });
+    }
+    showToast('📢 广播已发送！', 'success');
+  }
+  else if (reward.type === 'broadcast_7days') {
+    await sb.from('profiles').update({ broadcast_until: new Date(Date.now() + 7*86400000).toISOString() }).eq('id', APP.user.id);
+    showToast('📢 获得7天广播权限，可在护航员中心发送广播！', 'success');
+  }
+  else if (reward.type === 'pin_7days') {
+    await savePendingReward(APP.user.id, 'pin_7days', '帖子置顶权（7天）');
+    showToast('📌 7天置顶权已到账', 'success');
+  }
+  else if (reward.type === 'pin_30days') {
+    await savePendingReward(APP.user.id, 'pin_30days', '帖子置顶权（30天）');
+    showToast('📌 30天置顶权已到账', 'success');
+  }
+  else if (reward.type === 'escort_frame_special') {
+    await sb.from('profiles').update({ escort_frame: 'special', escort_frame_expires: new Date(Date.now() + 30*86400000).toISOString() }).eq('id', APP.user.id);
+    showToast('⭐ 特效头像框已激活，有效期30天', 'success');
+  }
+  else if (reward.type === 'escort_frame_legend') {
+    await sb.from('profiles').update({ escort_frame: 'legend', escort_frame_expires: null }).eq('id', APP.user.id);
+    showToast('👑 传说头像框已永久激活！', 'success');
+  }
 
 
+  else if (reward.type === 'admin_series') {
+    const adminRewards = [
+      { type: 'gold_name', name: '金色管理马甲', weight: 0.5 },
+      { type: 'dynamic_badge', name: '动态勋章', weight: 1.5 },
+      { type: 'broadcast', name: '广播权限（3次）', weight: 2 },
+      { type: 'pin_3days', name: '任意帖子置顶3天', weight: 3 },
+      { type: 'dynamic_bg', name: '动态背景（30天）', weight: 5 }
+    ];
+    const total = adminRewards.reduce((s, r) => s + r.weight, 0);
+    let rand = Math.random() * total;
+    let selected = adminRewards[0];
+    for (const r of adminRewards) {
+      rand -= r.weight;
+      if (rand <= 0) { selected = r; break; }
+    }
+    await savePendingReward(APP.user.id, selected.type, selected.name);
+    showToast(`👑 获得 ${selected.name}`);
+  }
 
-
-  // 记录开奖
   await sb.from('blind_box_records').insert({
     user_id: APP.user.id,
     reward_type: reward.type,
     reward_name: reward.name
   });
-  
-  // 根据类型自动触发奖励
-  if (reward.type === 'points') {
-    await addUserPoints(reward.value);
-    showToast(`🎉 恭喜获得：${reward.value}积分！`, 'success');
-  } else if (reward.type === 'badge') {
-    await grantBadgeToUser(APP.user.id, reward.badgeId);
-    showToast(`🎉 恭喜获得勋章：${reward.name}！`, 'success');
-  } else if (reward.type === 'pin') {
-    // 帖子置顶权：存入待使用权益表
-    await savePendingReward(APP.user.id, 'pin', '帖子置顶24h');
-    showToast(`🎉 恭喜获得：帖子置顶24h！请到个人中心选择要置顶的帖子。`, 'success');
-  } else if (reward.type === 'naming') {
-    // 命名权：存入待使用权益表
-    await savePendingReward(APP.user.id, 'naming', '配装命名权');
-    showToast(`🎉 恭喜获得：配装命名权！请到起装方案页面选择要命名的方案。`, 'success');
-  }
-
-
-  // 如果是终极大奖（护航资格或50万哈夫币），发送全站广播
-   // ========== 发送全站广播（终极大奖） ==========
-  if (reward.type === 'voucher_escort_1' || reward.type === 'voucher_hafu_50w') {
-   // 使用全局 realtime 频道发送广播
-if (globalRealtimeChannel) {
-  globalRealtimeChannel.send({
-    type: 'broadcast',
-    event: 'jackpot_announce',
-    payload: {
-      username: APP.profile.username,
-      rewardName: reward.name,
-      timestamp: new Date().toISOString()
-    }
-  }).then(() => console.log('✅ 广播已发送')).catch(e => console.warn('广播发送失败:', e));
-} else {
-  console.warn('⚠️ 全局 Realtime 频道未就绪，广播无法发送');
-}
-  }
- 
-
-
-   // ========== 新增：显示中奖弹窗 ==========
-  showBlindBoxResultModal(reward);
-  loadUserPointsAndReferrals();
 }
 
 
-function showBlindBoxResultModal(reward) {
-  const modal = document.createElement('div');
-  modal.className = 'modal-overlay active';
-  modal.style.zIndex = '100001';
-  
-  let icon = '🎁';
-  let color = '#FFD700';
-  if (reward.type === 'points') {
-    icon = '💰';
-    color = '#f1c40f';
-  } else if (reward.type.startsWith('voucher_')) {
-    icon = '🎫';
-    color = '#3498db';
-  } else if (reward.type === 'badge') {
-    icon = '🏅';
-    color = '#FFD700';
-  }
-  
-  modal.innerHTML = `
-    <div class="modal-content active" style="max-width:360px; text-align:center;">
-      <div class="text-6xl mb-3">${icon}</div>
-      <h3 class="font-display text-2xl mb-2" style="color: ${color};">恭喜获得</h3>
-      <div class="card-base p-4 mb-4">
-        <p class="text-xl font-bold" style="color: ${color};">${reward.name}</p>
-        ${reward.value ? `<p class="text-sm mt-2" style="color: var(--muted);">价值: ${reward.value}${reward.type === 'points' ? ' 积分' : ''}</p>` : ''}
-      </div>
-      <button class="btn-warm w-full py-3" onclick="this.closest('.modal-overlay').remove()">太棒了！</button>
+// ---------- 展示盲盒奖品池 ----------
+function showBoxRewardList() {
+  const isEscort = APP.profile?.is_escort || APP.isAdmin;
+
+  const normalRewards = isEscort ? [
+    { name: '首页推荐位（24h）', weight: '3%' },
+    { name: '全局广播权限（1次）', weight: '5%' },
+    { name: '帖子置顶权（7天）', weight: '5%' },
+    { name: '特效头像框（30天）', weight: '3%' },
+    { name: '500积分', weight: '1%' },
+    { name: '200积分', weight: '5%' },
+    { name: '100积分', weight: '15%' },
+    { name: '自定义铭牌（金色）', weight: '8%' },
+    { name: '50积分', weight: '30%' },
+    { name: '20积分', weight: '25%' }
+  ] : [
+    { name: '500万哈夫币代肝一次', weight: '0.2%' },
+    { name: '护航体验券（普通一局）', weight: '0.3%' },
+    { name: '200积分', weight: '0.5%' },
+    { name: '100积分', weight: '1%' },
+    { name: '50积分', weight: '3%' },
+    { name: '帖子置顶权（24h）', weight: '10%' },
+    { name: '配装命名权', weight: '10%' },
+    { name: '自定义头衔/铭牌', weight: '5%' },
+    { name: '10积分', weight: '70%' }
+  ];
+
+  const superRewards = isEscort ? [
+    { name: '首页推荐位（7天）', weight: '2%' },
+    { name: '全局广播权限（7天）', weight: '2%' },
+    { name: '传说特效头像框（永久）', weight: '1%' },
+    { name: '帖子置顶权（30天）', weight: '3%' },
+    { name: '1000积分', weight: '2%' },
+    { name: '500积分', weight: '10%' },
+    { name: '200积分', weight: '20%' },
+    { name: '自定义铭牌（金色闪光）', weight: '8%' },
+    { name: '100积分', weight: '30%' },
+    { name: '50积分', weight: '22%' }
+  ] : [
+    { name: '护航体验券（保底800万一局）', weight: '0.2%' },
+    { name: '所有指定任务代打一局', weight: '0.5%' },
+    { name: '500万哈夫币代肝一次', weight: '0.8%' },
+    { name: '500积分', weight: '1.5%' },
+    { name: '200积分', weight: '3%' },
+    { name: '100积分', weight: '10%' },
+    { name: '管理员特权/限定勋章', weight: '8%' },
+    { name: '自定义头衔/专属铭牌', weight: '10%' },
+    { name: '50积分', weight: '66%' }
+  ];
+
+
+  const content = `
+    <div style="max-height: 60vh; overflow-y: auto;">
+      <h4 style="color: #FF6B35; margin-bottom: 10px;">🎲 普通盲盒（10积分）</h4>
+      <p style="font-size: 12px; color: var(--muted);">每次抽取幸运值+3，无保底</p>
+      <ul style="list-style: none; padding: 0; margin-bottom: 15px;">
+        ${normalRewards.map(r => `<li style="padding: 4px 0; font-size: 13px; display: flex; justify-content: space-between;"><span>${r.name}</span><span style="color: var(--accent);">${r.weight}</span></li>`).join('')}
+      </ul>
+
+      <h4 style="color: #FFD700; margin-bottom: 10px;">👑 超级盲盒（100积分）</h4>
+      <p style="font-size: 12px; color: var(--muted);">每次抽取幸运值+10，幸运值满100必出顶级奖励</p>
+      <ul style="list-style: none; padding: 0;">
+        ${superRewards.map(r => `<li style="padding: 4px 0; font-size: 13px; display: flex; justify-content: space-between;"><span>${r.name}</span><span style="color: var(--accent);">${r.weight}</span></li>`).join('')}
+      </ul>
     </div>
   `;
-  document.body.appendChild(modal);
-}
 
+  showModal('🎁 盲盒奖品池', content, '知道了');
+}
 
 
 // ========== 保存待使用的权益 ==========
@@ -7955,13 +8221,14 @@ async function savePendingReward(userId, rewardType, rewardName) {
 // ========== 检查用户是否有某种未使用的权益 ==========
 async function hasPendingReward(rewardType) {
   if (!APP.user) return false;
-  const { data: profile } = await sb.from('profiles')
+  const { data: profile, error } = await sb.from('profiles')
     .select('pending_rewards')
     .eq('id', APP.user.id)
     .single();
+  if (error || !profile || !profile.pending_rewards) return false;
   
-  const pending = profile?.pending_rewards || [];
-  return pending.some(r => r.type === rewardType && !r.used);
+  // 检查是否有未使用的该类型权益
+  return profile.pending_rewards.some(r => r.type === rewardType && !r.used);
 }
 
 // ========== 消耗一个指定类型的权益（返回消耗的权益ID） ==========
@@ -9160,6 +9427,16 @@ if (APP.currentTab === 'escort') {
   loadEscortVideos(true);
 }
 
+
+
+// 检查动态背景是否过期
+  if (APP.profile?.active_bg && new Date(APP.profile.bg_expires_at) <= new Date()) {
+    await sb.from('profiles').update({ active_bg: null, bg_expires_at: null }).eq('id', APP.user.id);
+    APP.profile.active_bg = null;
+  }
+
+
+
   // 新人首次登录引导
   const hasSeenGuide = localStorage.getItem('newbie_guide_seen');
   if (!hasSeenGuide) {
@@ -9304,32 +9581,52 @@ async function handleRegister() {
 
     // ========== 处理邀请关系 ==========
     const urlParams = new URLSearchParams(window.location.search);
-    const refCode = urlParams.get('ref');
+        const refCode = urlParams.get('ref');
     if (refCode) {
-      // 记录邀请关系
-      const { error: inviteError } = await sb.from('invites').insert({
-        inviter_id: refCode,
-        invitee_id: data.user.id
-      });
-      if (!inviteError) {
-        // 给邀请人加50分
-        await addUserPointsToUser(refCode, 50);
-        await sb.from('points_log').insert({ user_id: refCode, amount: 5, reason: '邀请新用户' });
-        // 检查邀请人是否达到3人，送盲盒
-        const { count } = await sb.from('invites').select('*', { count: 'exact', head: true }).eq('inviter_id', refCode);
-        if (count >= 3) {
-          // 送盲盒（直接调用开盲盒逻辑，或者发放权益）
-          await savePendingReward(refCode, 'pin', '邀请盲盒奖励-置顶权');
-          // 发送通知
-          await sb.from('notifications').insert({
-            recipient_id: refCode,
-            sender_id: data.user.id,
-            type: 'system',
-            content: '🎉 你已成功邀请3位战友！获得盲盒奖励，请在个人中心查看。'
+      // 验证邀请码有效性
+      const { data: inviterProfile } = await sb.from('profiles').select('id').eq('id', refCode).single();
+      if (!inviterProfile) {
+        showToast('邀请码无效', 'warning');
+      } else {
+          // 检查今日邀请奖励次数
+  const today = new Date().toISOString().split('T')[0];
+  const { count } = await sb.from('points_log')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', ref.id)
+    .eq('reason', '邀请新用户奖励')
+    .gte('created_at', today);
+  if (count < 3) {
+    await addUserPointsToUser(ref.id, 50);
+    await sb.from('points_log').insert({ user_id: ref.id, amount: 50, reason: '邀请新用户奖励' });
+  } else {
+    showToast('推荐人今日邀请奖励已达上限', 'info');
+          // 插入邀请关系
+          const { error: inviteError } = await sb.from('invites').insert({
+            inviter_id: refCode,
+            invitee_id: data.user.id
           });
+          if (!inviteError) {
+            // 邀请人奖励50积分
+            await addUserPointsToUser(refCode, 50);
+            await sb.from('points_log').insert({
+              user_id: refCode,
+              amount: 50,
+              reason: '邀请新用户奖励',
+              created_at: new Date().toISOString()
+            });
+          }
         }
+        // 被邀请人（新用户）奖励10积分
+        await addUserPoints(10);
+        await sb.from('points_log').insert({
+          user_id: data.user.id,
+          amount: 10,
+          reason: '被邀请注册奖励',
+          created_at: new Date().toISOString()
+        });
         // 更新新人任务
-        updateNewbieTask(refCode, 'invite');
+        updateNewbieTask(data.user.id, 'invite');
+        showToast('✅ 注册成功，你和邀请人均已获得积分奖励', 'success');
       }
     }
     // ========== 邀请关系处理结束 ==========
@@ -9631,7 +9928,26 @@ function switchTab(tab) {
   } else if (tab === 'profile') {
     renderProfile();
   } else if (tab === 'escort') {
+
+  // 管理员身份也强制刷新面板
+  setTimeout(() => {
+    if (typeof renderEscortInspirePanel === 'function') {
+      renderEscortInspirePanel();
+    }
+  }, 300);
+
     loadEscortVideos(true);
+    renderEscortInspirePanel();
+
+
+    // 检查广播权限并显示按钮
+    if (APP.profile?.broadcast_until && new Date(APP.profile.broadcast_until) > new Date()) {
+      document.getElementById('broadcastBtn').style.display = 'inline-block';
+    } else {
+      const btn = document.getElementById('broadcastBtn');
+      if (btn) btn.style.display = 'none';
+    }
+
   } else if (tab === 'tactical') {
     initTactical();
   } else if (tab === 'budgetLoadout') {
@@ -9713,7 +10029,16 @@ async function loadOnlineEscorts() {
     const normal = escorts.filter(e => e.escort_level === 'normal');
     const sorted = [...devil, ...star, ...normal];
     
-    bar.innerHTML = profiles.slice(0, 10).map(user => {
+
+  // 将"首页推荐位"护航员排到最前面
+  sorted.sort((a, b) => {
+    const aFeat = a.is_featured_escort && new Date(a.featured_expires_at) > new Date() ? 1 : 0;
+    const bFeat = b.is_featured_escort && new Date(b.featured_expires_at) > new Date() ? 1 : 0;
+    return bFeat - aFeat;
+  });
+
+
+    bar.innerHTML = sorted.slice(0, 10).map(user => {
   const levelConfig = {
     normal: { name: '普通', color: '#4a6fa5', icon: '🛡️' },
     star: { name: '明星', color: '#f1c40f', icon: '⭐' },
@@ -9729,6 +10054,9 @@ async function loadOnlineEscorts() {
         <span class="absolute -bottom-1 -right-1 text-sm" style="filter: drop-shadow(0 0 4px ${lc.color});">${lc.icon}</span>
       </div>
       <span class="text-xs font-medium" style="color: var(--text);">${user.username}</span>
+
+      ${user.is_featured_escort && new Date(user.featured_expires_at) > new Date() ? '<span class="text-[10px] px-2 py-0.5 rounded-full" style="background: #FFD700; color: #3D2B1F;">🔥推荐</span>' : ''}
+
       <span class="text-[10px] px-2 py-0.5 rounded-full" style="background: ${lc.color}; color: white;">${lc.name} · ${user.escort_orders_completed || 0}单</span>
       <!-- 👇 新增预约按钮 👇 -->
       <button class="btn-warm text-[10px] px-3 py-1 mt-1 rounded-full" 
@@ -10853,8 +11181,46 @@ async function publishPost() {
   const btn = event.target;
   if (btn.disabled) return;
   btn.disabled = true;
-  const title = $('pubTitle').value.trim();
+   const title = $('pubTitle').value.trim();
+  const desc = $('pubDesc').value.trim();
+  const pubType = $('pubType').value;
+
+  // 1. 标题检查
   if (!title) { showToast('请输入标题'); btn.disabled = false; return; }
+  if (title.length < 5) { showToast('标题至少5个字'); btn.disabled = false; return; }
+
+  // 2. 内容检查（story 类型除外）
+  if (pubType !== 'story' && (!desc || desc.length < 10)) {
+    showToast('内容至少10个字'); btn.disabled = false; return;
+  }
+
+  // 3. 内容相关性检查（标题+描述必须包含三角洲相关关键词）
+  const deltaKeywords = ['三角洲','行动','战术','枪械','配装','地图','大坝','航天','干员','武器','跑刀','开荒','点位','撤离','哈夫','起装','改枪','弹挂','护甲','头盔','背包','冲锋','狙击','步枪','机枪','霰弹'];
+  const combined = `${title}${desc}`;
+  const hasKeyword = deltaKeywords.some(kw => combined.includes(kw));
+  if (!hasKeyword) {
+    showToast('标题或内容必须包含三角洲游戏相关关键词（如：战术、配装、地图等）', 'error');
+    btn.disabled = false;
+    return;
+  }
+
+  // 4. 频率限制：每小时最多发 3 帖
+  const now = new Date();
+  const hourStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours(), 0, 0).toISOString();
+  const hourEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours(), 59, 59, 999).toISOString();
+  const { count: hourCount, error: countError } = await sb.from('posts')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', APP.user.id)
+    .gte('created_at', hourStart)
+    .lte('created_at', hourEnd);
+  if (!countError && hourCount >= 3) {
+    showToast('本小时已发 3 帖，请稍后再发', 'warning');
+    btn.disabled = false;
+    return;
+  }
+
+  // 以下继续原有的发帖流程...
+  showToast('发布中...');
 
   showToast('发布中...');
   const mediaUrls = [];
@@ -10943,7 +11309,35 @@ if (postType === 'story') {
   await sb.from('points_log').insert({ user_id: APP.user.id, amount: 3, reason: '发布帖子' });
   updateUserPointsUI();
 
-  await addExp(20);  // 发帖获得20经验
+    const descLength = ($('pubDesc').value || '').length;
+  const wordBonus = Math.floor(descLength / 20);  // 每20字+1经验
+  await addExp(20 + wordBonus);
+
+  // ========== 新增：发帖增加幸运值 ==========
+  let luckyBonus = 5;  // 基础+5
+  const descText = $('pubDesc').value.trim();
+  if (descText.length >= 80) luckyBonus = 10;  // 内容越长幸运值越多，鼓励高质量发帖
+  const newLucky = Math.min((APP.profile.lucky_value || 0) + luckyBonus, 200);
+  await sb.from('profiles').update({ lucky_value: newLucky }).eq('id', APP.user.id);
+  APP.profile.lucky_value = newLucky;
+  // 如果用户当前在个人中心页面，直接更新幸运值进度条
+  const luckyBar = document.getElementById('profileLuckyBar');
+  const luckyText = document.getElementById('profileLuckyText');
+  if (luckyBar) luckyBar.style.width = Math.min(newLucky, 100) + '%';
+  if (luckyText) luckyText.textContent = newLucky + '/100';
+  showToast(`📝 发帖成功！幸运值 +${luckyBonus}（当前 ${newLucky}/100）`, 'success');
+  // ========== 新增结束 ==========
+
+  // 护航员发帖专属加成
+  if (APP.profile?.is_escort) {
+    await addUserPoints(15);
+    await sb.from('points_log').insert({ user_id: APP.user.id, amount: 15, reason: '护航员发帖加成' });
+    const escortLucky = Math.min((APP.profile.lucky_value || 0) + 5, 200);
+    await sb.from('profiles').update({ lucky_value: escortLucky }).eq('id', APP.user.id);
+    APP.profile.lucky_value = escortLucky;
+    showToast(`🛡️ 护航员发帖加成：+15积分 +5幸运值`, 'success');
+  }
+
   closeModal('publishModal');
   $('pubTitle').value = ''; $('pubDesc').value = ''; $('pubTags').value = '';
   $('pubMediaPreview').innerHTML = ''; $('pubMedia').value = '';
@@ -10951,6 +11345,11 @@ if (postType === 'story') {
   loadPosts(true);
   btn.disabled = false;
 }
+
+
+
+
+
 // ==================== 点赞/点踩 ====================
 async function loadUserVotes() {
   if (!APP.user) return;
@@ -12215,13 +12614,15 @@ async function renderPendingRewardsInProfile() {
   
   const rewards = await getUserPendingRewards();
   const unused = rewards.filter(r => !r.used);
+  // 按获取时间倒序，最新获得的排前面
+  unused.sort((a, b) => new Date(b.grantedAt) - new Date(a.grantedAt));
   
   if (unused.length === 0) {
     container.innerHTML = '<p class="text-xs text-center py-4" style="color: var(--muted);">暂无待使用权益</p>';
     return;
   }
   
-  const maxVisible = 3; // 默认显示前3条
+  const maxVisible = 5; // 默认显示前3条
   const needCollapse = unused.length > maxVisible;
   
   // 生成每条权益的HTML
@@ -12235,9 +12636,16 @@ async function renderPendingRewardsInProfile() {
     else if (r.type === 'voucher_hafu_3w') { icon = 'fa-coins'; name = '3万哈夫币券'; guide = '联系群主领取'; }
     else if (r.type === 'voucher_weapon_build') { icon = 'fa-gun'; name = '定制配装方案券'; guide = '联系群主安排'; }
     else if (r.type === 'voucher_escort_1') { icon = 'fa-shield-halved'; name = '护航体验资格券'; guide = '联系群主安排'; }
+else if (r.type === 'dynamic_bg') { 
+  icon = 'fa-film'; 
+  name = '动态背景30天'; 
+  guide = '立即激活专属动态背景';
+}
+
+
     else if (r.type === 'voucher_hafu_50w') { icon = 'fa-coins'; name = '50万哈夫币券'; guide = '联系群主领取'; }
     else if (r.type === 'escort_free') { icon = 'fa-shield-halved'; name = '免费护航体验券'; guide = '联系群主安排'; }
-    
+   
     return `
       <div class="pending-reward-item flex items-center justify-between p-3 rounded-lg mb-2" style="background: var(--surface);">
         <div class="flex items-center gap-3">
@@ -12247,10 +12655,10 @@ async function renderPendingRewardsInProfile() {
             <p class="text-[10px]" style="color: var(--muted);">${guide}</p>
           </div>
         </div>
-        <button class="text-xs px-3 py-1 rounded-full" style="background: var(--accent); color: white;" 
-                onclick="useServiceVoucher('${r.type}', '${r.id}')">
-          使用
-        </button>
+      <button class="text-xs px-3 py-1 rounded-full" style="background: var(--accent); color: white;" 
+        onclick="${r.type === 'dynamic_bg' ? `activateDynamicBg('${r.id}')` : `useServiceVoucher('${r.type}', '${r.id}')`}">
+  使用
+</button>
       </div>
     `;
   };
@@ -12295,17 +12703,17 @@ function togglePendingRewards() {
 function renderProfile() {
   if (!APP.profile) return;
   updateUserPointsUI();
-  // 更新基础信息
-  $('profileAvatar').src = APP.profile.avatar_url || dicebearUrl('default');
-
-  // 头像框样式
+    // 头像区域（修复手机端变形，支持点击放大）
   const avatarContainer = document.querySelector('#profileTab .story-ring');
   if (avatarContainer) {
+    const avatarUrl = APP.profile.avatar_url || dicebearUrl('default');
+    avatarContainer.innerHTML = `<img src="${avatarUrl}" style="width:80px;height:80px;object-fit:cover;border-radius:50%;cursor:pointer;" onclick="openLightbox('${avatarUrl}')">`;
     if (APP.profile.frame === 'gold') {
       avatarContainer.style.background = 'linear-gradient(135deg, #FFD700, #FFA500, #FFD700)';
       avatarContainer.style.boxShadow = '0 0 20px #FFD700';
     } else {
-      avatarContainer.style.background = ''; // 恢复默认
+      avatarContainer.style.background = '';
+      avatarContainer.style.boxShadow = '';
     }
   }
 
@@ -12356,9 +12764,12 @@ function renderProfile() {
   loadCheckinStatus();
   loadMyPosts();
   loadMyFavorites();
+  updateDynamicBgStatus();   // 刷新动态背景状态
+  renderProfilePrivilegeCard();   // 刷新特权状态
   setTimeout(() => renderPendingRewardsInProfile(), 200);
+loadProfileLucky();
   loadMyLoadoutFavorites();
-  loadProfileLucky();
+  
 // 更新福利总览数据
   setTimeout(() => updateWelfareOverview(), 300);
 loadNewbieTasks();
@@ -12579,6 +12990,11 @@ async function checkIn() {
   }
   // ---------------------------------
 
+
+
+
+
+
   if (streak >= 7) checkAchievement('7_checkin', true);
   showToast(`签到成功！+${expGain}EXP ${streak >= 7 ? '（7日连签奖励！）' : ''}${levelUp ? ' 升级了！' : ''}`);
   renderProfile();
@@ -12670,6 +13086,16 @@ async function addExp(amount) {
   if (!APP.user || !APP.profile) return;
   
   const oldLevel = APP.profile.level || 1;
+  // 发帖活跃加成：根据今日发帖数增加额外经验
+  const today = new Date().toISOString().split('T')[0];
+  const { count } = await sb.from('posts')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', APP.user.id)
+    .gte('created_at', today);
+  const activeBonus = Math.min(count || 0, 5) * 2;  // 今日已发帖数*2，最多10点额外经验
+  amount += activeBonus;
+
+
   let exp = (APP.profile.exp || 0) + amount;
   let level = oldLevel;
   
@@ -12772,6 +13198,19 @@ async function grantLevelReward(newLevel) {
   } else if (m.reward_type === 'frame_gold') {
     await sb.from('profiles').update({ frame: 'gold' }).eq('id', APP.user.id);
     if (APP.profile) APP.profile.frame = 'gold';
+
+  // 每升5级赠送一次免费普通盲盒（自动到账）
+  if (newLevel % 5 === 0) {
+    await savePendingReward(APP.user.id, 'normal_box_free', `升级Lv.${newLevel} 免费盲盒`);
+    showToast(`🎉 升级奖励：获得一次免费普通盲盒！请在个人中心使用`, 'success');
+  }
+
+  // 每升10级额外赠送一次超级盲盒
+  if (newLevel % 10 === 0) {
+    await savePendingReward(APP.user.id, 'super_box_free', `升级Lv.${newLevel} 免费超级盲盒`);
+    showToast(`👑 里程碑奖励：免费超级盲盒已到账！`, 'success');
+  }
+
   }
   
   showToast(`🎉 Lv.${newLevel} 里程碑达成！获得 ${badgeInfo?.name || m.name} +${m.points}积分`, 'success');
@@ -24019,8 +24458,24 @@ const SHOP_ITEMS = [
   { id: 'pin', name: '📌 帖子置顶权 (24h)', price: 30, icon: 'fa-thumbtack', color: '#FFD700', tier: 'common', reqLevel: 1 },
   { id: 'naming', name: '✏️ 配装命名权', price: 30, icon: 'fa-pen', color: '#C0C0C0', tier: 'common', reqLevel: 1 },
   { id: 'frame_gold', name: '🖼️ 金色头像框', price: 50, icon: 'fa-circle', color: '#FFD700', tier: 'rare', reqLevel: 5 },
-  { id: 'badge_shop_king', name: '👑 钞能力王者', price: 100, icon: 'fa-crown', color: '#FFD700', tier: 'legend', reqLevel: 10 }
+  { id: 'badge_shop_king', name: '👑 钞能力王者', price: 100, icon: 'fa-crown', color: '#FFD700', tier: 'legend', reqLevel: 10 },
+
+
+// ========== 盲盒区 ==========
+ { id: 'pin_3days', name: '📌 帖子置顶权 (3天)', price: 80, icon: 'fa-thumbtack', color: '#FFD700', tier: 'rare', reqLevel: 3 },
+  { id: 'gold_name', name: '🏷️ 金色管理马甲', price: 300, icon: 'fa-crown', color: '#FFD700', tier: 'legend', reqLevel: 10 },
+
+
+  // ========== 超级兑换区 ==========
+  { id: 'double_escort', name: '🛡️ 双护航保底套餐 (3000W)', price: 1500, icon: 'fa-shield-halved', color: '#e74c3c', tier: 'legend', reqLevel: 1, desc: '联系群主，两位护航员保底带出3000万物资' },
+  { id: 'season_pass', name: '🎫 赛季通行证代打', price: 2000, icon: 'fa-ticket', color: '#9b59b6', tier: 'legend', reqLevel: 1, desc: '联系群主，专业团队代打赛季任务' },
+  { id: 'dynamic_bg', name: '🎞️ 动态背景 (30天)', price: 150, icon: 'fa-film', color: '#e74c3c', tier: 'epic', reqLevel: 5, desc: '激活后30天内个人主页显示专属动态背景' }
+
 ];
+
+
+  
+
 
 
 async function openPointsShopModal() {
@@ -24078,26 +24533,47 @@ async function openPointsShopModal() {
 
 async function purchaseShopItem(itemId, price) {
   if (!APP.user) return;
-  
-  const { data } = await sb.from('user_points').select('points').eq('user_id', APP.user.id).single();
-  if (!data || data.points < price) {
+
+  // 获取当前积分
+  const { data: pointsRow, error: pointsError } = await sb
+    .from('user_points')
+    .select('points')
+    .eq('user_id', APP.user.id)
+    .single();
+
+  if (pointsError || !pointsRow) {
+    showToast('获取积分信息失败', 'error');
+    return;
+  }
+
+  if (pointsRow.points < price) {
     showToast('积分不足', 'error');
     return;
   }
-  
-  // 扣积分
-  await sb.from('user_points').update({ points: data.points - price }).eq('user_id', APP.user.id);
-  await sb.from('points_log').insert({ user_id: APP.user.id, amount: -price, reason: `兑换:${itemId}` });
-  
+
+  // 扣除积分
+  await sb.from('user_points').update({ points: pointsRow.points - price }).eq('user_id', APP.user.id);
+  await sb.from('points_log').insert({
+    user_id: APP.user.id,
+    amount: -price,
+    reason: `兑换:${itemId}`
+  });
+
   // 发放权益
   if (itemId === 'pin') await savePendingReward(APP.user.id, 'pin', '帖子置顶权');
   else if (itemId === 'naming') await savePendingReward(APP.user.id, 'naming', '配装命名权');
+  else if (itemId === 'pin_3days') await savePendingReward(APP.user.id, 'pin_3days', '帖子置顶权（3天）');
+  else if (itemId === 'gold_name') await savePendingReward(APP.user.id, 'gold_name', '金色管理马甲');
+  else if (itemId === 'dynamic_bg') {
+    await savePendingReward(APP.user.id, 'dynamic_bg', '动态背景30天');
+    showToast('🎞️ 已获得动态背景30天，请前往个人中心激活', 'success');
+}
   else if (itemId === 'frame_gold') {
-    // 头像框存储到 profiles 的 frame 字段
     await sb.from('profiles').update({ frame: 'gold' }).eq('id', APP.user.id);
-    if (APP.profile) APP.profile.frame = 'gold';
-  } else if (itemId === 'badge_shop_king') {
 
+    if (APP.profile) APP.profile.frame = 'gold';
+  }
+  else if (itemId === 'badge_shop_king') {
     const newBadge = { id: 'badge_shop_king', name: '钞能力王者', icon: '👑', rarity: 'legend', grantedAt: new Date().toISOString() };
     const { data: prof } = await sb.from('profiles').select('badges').eq('id', APP.user.id).single();
     let badges = prof?.badges || [];
@@ -24108,45 +24584,30 @@ async function purchaseShopItem(itemId, price) {
       if (APP.profile) APP.profile.badges = badges;
     }
   }
-  
-  else if (itemId === 'voucher_hafu_3w') {
-    await savePendingReward(APP.user.id, 'voucher_hafu_3w', '3万哈夫币券');
-  }
-  else if (itemId === 'voucher_weapon_build') {
-    await savePendingReward(APP.user.id, 'voucher_weapon_build', '定制配装方案券');
-  }
-  else if (itemId === 'voucher_escort_1') {
-    await savePendingReward(APP.user.id, 'voucher_escort_1', '护航体验资格券');
-  }
-  else if (itemId === 'voucher_hafu_50w') {
-    await savePendingReward(APP.user.id, 'voucher_hafu_50w', '50万哈夫币券');
-  }
 
-
-
-
-  // ========== 兑换成功后的引导 ==========
+  // 如果是服务凭证类（voucher_开头的）
   if (itemId.startsWith('voucher_')) {
-    // 获取商品名称
     const item = SHOP_ITEMS.find(i => i.id === itemId);
     const voucherName = item ? item.name : '服务凭证';
-    // 弹出可截图的凭证窗口
     showVoucherModal(itemId, voucherName);
   } else {
     showToast('✅ 兑换成功！可在个人中心查看', 'success');
   }
 
-
-  
-  // 刷新福利总览
-  updateWelfareOverview();
-  
-  closeModal('pointsShopModal');
+  // 刷新积分与福利
   updateUserPointsUI();
 
+  // ✅ 新增：线下服务类商品生成核销凭证
+  if (itemId.startsWith('voucher_') || itemId === 'double_escort' || itemId === 'season_pass') {
+    const item = SHOP_ITEMS.find(i => i.id === itemId);
+    const voucherName = item ? item.name : '服务凭证';
+    showVoucherModal(itemId, voucherName);
+    return;  // 已弹出核销窗口，无需再执行 closeModal
+  }
 
+  updateWelfareOverview();
+  closeModal('pointsShopModal');
 }
-
 // 更新全局积分显示
 // ==================== 刷新顶部积分显示 ====================
 async function updateUserPointsUI() {
@@ -24395,6 +24856,12 @@ async function fetchImageWallpaper(category) {
 
 async function applyThemeByIndex(index, isRefresh = false) {
   const theme = BATTLEFIELD_THEMES[index];
+
+if (APP.profile?.active_bg === 'dynamic_30d' && new Date(APP.profile.bg_expires_at) > new Date()) {
+  document.body.style.background = "url('https://你的动态背景.gif') center/cover fixed";
+  // 或者启动粒子特效
+  return;
+}
   
   // 1. 切换 UI 主题色 (联动所有UI元素)
   document.documentElement.style.setProperty('--accent', theme.uiColor);
@@ -24777,6 +25244,93 @@ function copyVerifyCode(code) {
 
 
 
+function activateDynamicBg(rewardId) {
+  if (!APP.user) return;
+  window._bgRewardId = rewardId;  // 记住要消耗的权益ID
+  renderBgPresets();              // 渲染预设背景网格
+  openModal('bgPickerModal');
+}
+
+
+
+async function deactivateDynamicBg() {
+  if (!APP.user) return;
+  await sb.from('profiles').update({ active_bg: null, bg_expires_at: null }).eq('id', APP.user.id);
+  APP.profile.active_bg = null;
+  APP.profile.bg_expires_at = null;
+  document.body.style.background = ''; // 恢复默认
+  updateDynamicBgStatus();
+  showToast('动态背景已关闭', 'info');
+}
+
+let selectedBgUrl = '';
+
+function renderBgPresets() {
+  const presets = [
+    { name: '星空粒子', url: 'https://raw.githubusercontent.com/shi111567/images/main/bg_stars.gif', thumb: 'https://raw.githubusercontent.com/shi111567/images/main/thumb_stars.png' },
+    { name: '烈焰战场', url: 'https://raw.githubusercontent.com/shi111567/images/main/bg_fire.gif', thumb: 'https://raw.githubusercontent.com/shi111567/images/main/thumb_fire.png' },
+    { name: '深海波纹', url: 'https://raw.githubusercontent.com/shi111567/images/main/bg_ocean.gif', thumb: 'https://raw.githubusercontent.com/shi111567/images/main/thumb_ocean.png' },
+    { name: '赛博朋克', url: 'https://raw.githubusercontent.com/shi111567/images/main/bg_cyber.gif', thumb: 'https://raw.githubusercontent.com/shi111567/images/main/thumb_cyber.png' },
+  ];
+
+  const grid = document.getElementById('bgPresetGrid');
+  grid.innerHTML = presets.map(p => `
+    <div class="p-2 rounded-xl cursor-pointer transition-all border-2" style="border-color: var(--border);" onclick="selectBgPreset('${p.url}', this)">
+      <img src="${p.thumb}" class="w-full h-24 object-cover rounded-lg mb-2" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22200%22 height=%22100%22><rect fill=%22%23333%22 width=%22200%22 height=%22100%22/><text x=%2250%25%22 y=%2250%25%22 fill=%22white%22 text-anchor=%22middle%22>${p.name}</text></svg>'">
+      <p class="text-xs text-center font-medium">${p.name}</p>
+    </div>
+  `).join('');
+}
+
+
+
+async function applySelectedBg() {
+  // 检查是否有自定义上传
+  const file = document.getElementById('bgCustomFile').files[0];
+  if (file) {
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      selectedBgUrl = e.target.result;
+      await doApplyBg();
+    };
+    reader.readAsDataURL(file);
+  } else if (selectedBgUrl) {
+    await doApplyBg();
+  } else {
+    showToast('请先选择一个背景', 'warning');
+  }
+}
+
+async function doApplyBg() {
+  if (!APP.user || !selectedBgUrl) return;
+  const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+  await sb.from('profiles').update({ active_bg: selectedBgUrl, bg_expires_at: expiresAt }).eq('id', APP.user.id);
+  APP.profile.active_bg = selectedBgUrl;
+  APP.profile.bg_expires_at = expiresAt;
+
+  // 消耗权益
+  if (window._bgRewardId) {
+    await consumePendingReward('dynamic_bg');
+    window._bgRewardId = null;
+  }
+
+  // 立即应用
+  document.body.style.transition = 'background 0.5s';
+  document.body.style.background = `url('${selectedBgUrl}') center/cover fixed`;
+
+  closeModal('bgPickerModal');
+  updateDynamicBgStatus();
+  showToast('✅ 动态背景已应用，有效期30天', 'success');
+}
+
+
+function selectBgPreset(url, el) {
+  selectedBgUrl = url;
+  document.querySelectorAll('#bgPresetGrid > div').forEach(d => d.classList.remove('border-accent'));
+  el.classList.add('border-accent');
+  el.style.borderColor = 'var(--accent)';
+}
+
 
 
 function showPointsRuleModal() {
@@ -24972,14 +25526,21 @@ function copyVerifyCode(code) {
 // ==================== 个人主页幸运值加载 ====================
 async function loadProfileLucky() {
   if (!APP.user) return;
-  const { data } = await sb.from('profiles').select('lucky_value').eq('id', APP.user.id).single();
+  // 从数据库强制获取最新幸运值
+  const { data, error } = await sb.from('profiles')
+    .select('lucky_value')
+    .eq('id', APP.user.id)
+    .single();
+  if (error) return;
   const lucky = data?.lucky_value || 0;
+  // 更新本地缓存
+  if (APP.profile) APP.profile.lucky_value = lucky;
+  // 更新进度条 DOM
   const textEl = document.getElementById('profileLuckyText');
   const barEl = document.getElementById('profileLuckyBar');
   if (textEl) textEl.textContent = `${lucky}/100`;
-  if (barEl) barEl.style.width = `${lucky}%`;
+  if (barEl) barEl.style.width = `${Math.min(lucky, 100)}%`;
 }
-
 
 // ==================== 管理员核销查询 ====================
 async function openVerifyModal() {
@@ -25096,7 +25657,7 @@ function showJackpotBroadcast(payload) {
     font-size: clamp(14px, 4vw, 18px) !important;
     z-index: 999999 !important;
     box-shadow: 0 8px 30px rgba(255,215,0,0.6) !important;
-    animation: jackpotSlide 3.5s ease forwards !important;
+    animation: jackpotSlide 8s ease forwards !important;
     white-space: nowrap !important;
     border: 3px solid #FFF !important;
     pointer-events: none !important;
@@ -25116,24 +25677,362 @@ function showJackpotBroadcast(payload) {
     const style = document.createElement('style');
     style.id = 'jackpot-style';
     style.textContent = `
-      @keyframes jackpotSlide {
-        0% { opacity: 0; transform: translateX(-50%) translateY(-30px); }
-        10% { opacity: 1; transform: translateX(-50%) translateY(0); }
-        85% { opacity: 1; transform: translateX(-50%) translateY(0); }
-        100% { opacity: 0; transform: translateX(-50%) translateY(-30px); }
-      }
+     @keyframes jackpotSlide {
+  0% { opacity: 0; transform: translateX(-50%) translateY(-30px); }
+  8% { opacity: 1; transform: translateX(-50%) translateY(0); }
+  88% { opacity: 1; transform: translateX(-50%) translateY(0); }
+  100% { opacity: 0; transform: translateX(-50%) translateY(-30px); }
+}
     `;
     document.head.appendChild(style);
   }
   
   setTimeout(() => {
     if (banner.parentNode) banner.remove();
-  }, 3500);
+  }, 8000);
+}
+
+function updateDynamicBgStatus() {
+  const card = document.getElementById('profileBgCard');
+  const statusEl = document.getElementById('profileBgStatus');
+  const preview = document.getElementById('profileBgPreview');
+  if (!card || !statusEl) return;
+
+  const active = APP.profile.active_bg;
+  const expires = APP.profile.bg_expires_at;
+  const now = new Date();
+
+  if (active && expires && new Date(expires) > now) {
+    const daysLeft = Math.ceil((new Date(expires) - now) / (1000 * 60 * 60 * 24));
+    card.style.display = 'block';
+    statusEl.textContent = `剩余 ${daysLeft} 天`;
+    if (preview) preview.src = active;
+  } else {
+    card.style.display = 'none';
+  }
+}
+
+function renderProfilePrivilegeCard() {
+  const card = document.getElementById('profilePrivilegeCard');
+  const list = document.getElementById('profilePrivilegeList');
+  if (!card || !list) return;
+
+  const profile = APP.profile;
+  if (!profile) return;
+
+  const now = new Date();
+  const items = [];
+
+  // 首页推荐位
+  if (profile.is_featured_escort && profile.featured_expires_at && new Date(profile.featured_expires_at) > now) {
+    const hoursLeft = Math.ceil((new Date(profile.featured_expires_at) - now) / (1000 * 60 * 60));
+    items.push(`
+      <div class="flex items-center justify-between p-2 rounded-lg" style="background: var(--surface);">
+        <div class="flex items-center gap-2">
+          <i class="fas fa-fire text-lg" style="color: #FF6B35;"></i>
+          <span class="text-sm font-medium">首页推荐位</span>
+        </div>
+        <span class="text-xs font-bold" style="color: #FF6B35;">${hoursLeft > 24 ? Math.ceil(hoursLeft/24) + '天' : hoursLeft + '小时'}</span>
+      </div>`);
+  }
+
+  // 广播权限（带使用按钮）
+  if (profile.broadcast_until && new Date(profile.broadcast_until) > now) {
+    const daysLeft = Math.ceil((new Date(profile.broadcast_until) - now) / (1000 * 60 * 60 * 24));
+    items.push(`
+      <div class="flex items-center justify-between p-2 rounded-lg" style="background: var(--surface);">
+        <div class="flex items-center gap-2">
+          <i class="fas fa-bullhorn text-lg" style="color: #FFD700;"></i>
+          <span class="text-sm font-medium">广播权限 (${daysLeft}天)</span>
+        </div>
+        <button class="btn-warm text-xs px-3 py-1 rounded-full" onclick="useBroadcast()">📢 发送广播</button>
+      </div>`);
+  }
+
+  // 特效头像框
+  if (profile.escort_frame) {
+    let frameText = '';
+    let frameColor = '#FFD700';
+    if (profile.escort_frame === 'legend') {
+      frameText = '传说头像框 · 永久';
+      frameColor = '#FFD700';
+    } else if (profile.escort_frame === 'special') {
+      const expires = profile.escort_frame_expires;
+      const daysLeft = expires ? Math.ceil((new Date(expires) - now) / (1000 * 60 * 60 * 24)) : 30;
+      frameText = `特效头像框 · ${daysLeft}天`;
+      frameColor = '#e67e22';
+    }
+    items.push(`
+      <div class="flex items-center justify-between p-2 rounded-lg" style="background: var(--surface);">
+        <div class="flex items-center gap-2">
+          <i class="fas fa-crown text-lg" style="color: ${frameColor};"></i>
+          <span class="text-sm font-medium">${frameText}</span>
+        </div>
+      </div>`);
+  }
+
+  if (items.length > 0) {
+    list.innerHTML = items.join('');
+    card.style.display = 'block';
+  } else {
+    card.style.display = 'none';
+  }
+}
+
+
+
+async function renderEscortInspirePanel() {
+  const panel = document.getElementById('escortInspirePanel');
+  const container = document.getElementById('escortPrivileges');
+  if (!panel || !container) return;
+
+  const canSee = APP.profile?.is_escort || APP.isAdmin;
+  if (!canSee) { panel.style.display = 'none'; return; }
+  panel.style.display = 'block';
+
+  const now = new Date();
+  const profile = APP.profile;
+  const ptsData = await sb.from('user_points').select('points').eq('user_id', APP.user.id).maybeSingle();
+  const points = ptsData?.data?.points || 0;
+  const luckyVal = profile.lucky_value || 0;
+  const rewards = await getUserPendingRewards();
+const pendingCount = rewards.filter(r => !r.used).length;
+
+  // 广播卡片
+  let broadcastHtml = '';
+  if (profile.broadcast_until && new Date(profile.broadcast_until) > now) {
+    const daysLeft = Math.ceil((new Date(profile.broadcast_until) - now) / (1000 * 60 * 60 * 24));
+    broadcastHtml = `<div class="p-2 rounded-xl" style="background: rgba(255,215,0,0.15);">
+      <i class="fas fa-bullhorn text-xl" style="color: #FFD700;"></i>
+      <p class="text-xs font-bold mt-1">广播权限</p>
+      <p class="text-xs" style="color: var(--muted);">剩余 ${daysLeft} 天</p>
+      <button class="btn-warm text-xs w-full mt-1 py-1" onclick="useBroadcast()">📢 发送广播</button>
+    </div>`;
+  } else {
+    broadcastHtml = `<div class="p-2 rounded-xl" style="background: rgba(100,100,100,0.1);">
+      <i class="fas fa-bullhorn text-xl" style="color: var(--muted);"></i>
+      <p class="text-xs font-bold mt-1">广播权限</p>
+      <p class="text-xs" style="color: var(--muted);">暂无</p>
+    </div>`;
+  }
+
+  // 推荐位卡片
+  let featuredHtml = '';
+  if (profile.is_featured_escort && profile.featured_expires_at && new Date(profile.featured_expires_at) > now) {
+    const hoursLeft = Math.ceil((new Date(profile.featured_expires_at) - now) / (1000 * 60 * 60));
+    featuredHtml = `<div class="p-2 rounded-xl" style="background: rgba(255,107,53,0.15);">
+      <i class="fas fa-fire text-xl" style="color: #FF6B35;"></i>
+      <p class="text-xs font-bold mt-1">首页推荐中</p>
+      <p class="text-xs" style="color: var(--muted);">${hoursLeft > 24 ? Math.ceil(hoursLeft/24) + '天' : hoursLeft + '小时'}后结束</p>
+    </div>`;
+  } else {
+    featuredHtml = `<div class="p-2 rounded-xl" style="background: rgba(100,100,100,0.1);">
+      <i class="fas fa-fire text-xl" style="color: var(--muted);"></i>
+      <p class="text-xs font-bold mt-1">推荐位</p>
+      <p class="text-xs" style="color: var(--muted);">暂未推荐</p>
+    </div>`;
+  }
+
+  // 待使用券
+  const pendingHtml = pendingCount > 0 ?
+    `<div class="p-2 rounded-xl cursor-pointer" style="background: rgba(46,204,113,0.1);" onclick="switchTab('profile')">
+      <i class="fas fa-gift text-xl" style="color: #2ecc71;"></i>
+      <p class="text-xs font-bold mt-1">待使用权益</p>
+      <p class="text-xs" style="color: var(--muted);">${pendingCount} 张</p>
+    </div>` :
+    `<div class="p-2 rounded-xl" style="background: rgba(100,100,100,0.1);">
+      <i class="fas fa-gift text-xl" style="color: var(--muted);"></i>
+      <p class="text-xs font-bold mt-1">待使用</p>
+      <p class="text-xs" style="color: var(--muted);">无</p>
+    </div>`;
+
+  // 积分/幸运值
+  const pointsHtml = `<div class="p-2 rounded-xl" style="background: rgba(46,204,113,0.1);">
+    <i class="fas fa-coins text-xl" style="color: #2ecc71;"></i>
+    <p class="text-xs font-bold mt-1">积分 / 幸运值</p>
+    <p class="text-xs" style="color: var(--muted);">${points}分 / ${luckyVal}</p>
+    <button class="btn-ghost text-xs w-full mt-1 py-1" onclick="openMutualAidModal()">🎲 去抽盲盒</button>
+  </div>`;
+
+  container.innerHTML = featuredHtml + broadcastHtml + pendingHtml + pointsHtml;
 }
 
 
 
 
+// ========== 渲染护航员专属特权面板 ==========
+async function renderEscortInspirePanel() {
+  const panel = document.getElementById('escortInspirePanel');
+  const container = document.getElementById('escortPrivileges');
+  if (!panel || !container) return;
+
+  // 默认先显示，后面若不符合条件再隐藏
+  panel.style.display = 'block';
+
+  // 护航员或管理员可见
+  const canSee = APP.profile?.is_escort || APP.isAdmin;
+  if (!canSee) {
+    panel.style.display = 'none';
+    return;
+  }
+
+  const now = new Date();
+  const profile = APP.profile;
+  const points = (await sb.from('user_points').select('points').eq('user_id', APP.user.id).maybeSingle()).data?.points || 0;
+  const luckyVal = profile.lucky_value || 0;
+  const pendingCount = await getPendingRewardCount();
+
+  // ---------- 广播权限卡片 ----------
+  let broadcastHtml = '';
+  if (profile.broadcast_until && new Date(profile.broadcast_until) > now) {
+    const daysLeft = Math.ceil((new Date(profile.broadcast_until) - now) / (1000 * 60 * 60 * 24));
+    broadcastHtml = `
+      <div class="p-2 rounded-xl" style="background: rgba(255,215,0,0.15);">
+        <i class="fas fa-bullhorn text-xl" style="color: #FFD700;"></i>
+        <p class="text-xs font-bold mt-1">广播权限</p>
+        <p class="text-xs" style="color: var(--muted);">剩余 ${daysLeft} 天</p>
+        <button class="btn-warm text-xs w-full mt-1 py-1" onclick="useBroadcast()">📢 发送广播</button>
+      </div>`;
+  } else {
+    broadcastHtml = `
+      <div class="p-2 rounded-xl" style="background: rgba(100,100,100,0.1);">
+        <i class="fas fa-bullhorn text-xl" style="color: var(--muted);"></i>
+        <p class="text-xs font-bold mt-1">广播权限</p>
+        <p class="text-xs" style="color: var(--muted);">暂无</p>
+      </div>`;
+  }
+
+  // ---------- 推荐位卡片 ----------
+  let featuredHtml = '';
+  if (profile.is_featured_escort && profile.featured_expires_at && new Date(profile.featured_expires_at) > now) {
+    const hoursLeft = Math.ceil((new Date(profile.featured_expires_at) - now) / (1000 * 60 * 60));
+    featuredHtml = `
+      <div class="p-2 rounded-xl" style="background: rgba(255,107,53,0.15);">
+        <i class="fas fa-fire text-xl" style="color: #FF6B35;"></i>
+        <p class="text-xs font-bold mt-1">首页推荐中</p>
+        <p class="text-xs" style="color: var(--muted);">${hoursLeft > 24 ? Math.ceil(hoursLeft/24) + '天' : hoursLeft + '小时'}后结束</p>
+      </div>`;
+  } else {
+    featuredHtml = `
+      <div class="p-2 rounded-xl" style="background: rgba(100,100,100,0.1);">
+        <i class="fas fa-fire text-xl" style="color: var(--muted);"></i>
+        <p class="text-xs font-bold mt-1">推荐位</p>
+        <p class="text-xs" style="color: var(--muted);">暂未推荐</p>
+      </div>`;
+  }
+
+  // ---------- 待使用权益卡片 ----------
+  let pendingHtml = '';
+  if (pendingCount > 0) {
+    pendingHtml = `
+      <div class="p-2 rounded-xl cursor-pointer" style="background: rgba(46,204,113,0.1);" onclick="switchTab('profile')">
+        <i class="fas fa-gift text-xl" style="color: #2ecc71;"></i>
+        <p class="text-xs font-bold mt-1">待使用权益</p>
+        <p class="text-xs" style="color: var(--muted);">${pendingCount} 张</p>
+      </div>`;
+  } else {
+    pendingHtml = `
+      <div class="p-2 rounded-xl" style="background: rgba(100,100,100,0.1);">
+        <i class="fas fa-gift text-xl" style="color: var(--muted);"></i>
+        <p class="text-xs font-bold mt-1">待使用</p>
+        <p class="text-xs" style="color: var(--muted);">无</p>
+      </div>`;
+  }
+
+  // ---------- 积分 / 幸运值卡片 ----------
+  const pointsHtml = `
+    <div class="p-2 rounded-xl" style="background: rgba(46,204,113,0.1);">
+      <i class="fas fa-coins text-xl" style="color: #2ecc71;"></i>
+      <p class="text-xs font-bold mt-1">积分 / 幸运值</p>
+      <p class="text-xs" style="color: var(--muted);">${points}分 / ${luckyVal}</p>
+      <button class="btn-ghost text-xs w-full mt-1 py-1" onclick="openMutualAidModal()">🎲 去抽盲盒</button>
+    </div>
+  `;
+
+  container.innerHTML = featuredHtml + broadcastHtml + pendingHtml + pointsHtml;
+}
+
+function useBroadcast() {
+  if ((!APP.profile?.broadcast_until || new Date(APP.profile.broadcast_until) <= new Date()) && !APP.isAdmin) {
+    showToast('无广播权限', 'warning');
+    return;
+  }
+  const text = prompt('输入广播内容（最多30字）：');
+  if (!text || !text.trim()) return;
+
+  // 移除可能残留的旧广播
+  const oldBanner = document.querySelector('.custom-broadcast-banner');
+  if (oldBanner) oldBanner.remove();
+
+  const banner = document.createElement('div');
+  banner.className = 'custom-broadcast-banner';
+  banner.style.cssText = `
+    position: fixed !important;
+    top: 80px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    background: linear-gradient(135deg, #FFD700, #FF8C00) !important;
+    color: #fff !important;
+    padding: 12px 24px !important;
+    border-radius: 60px !important;
+    font-weight: 800 !important;
+    font-size: clamp(14px, 4vw, 18px) !important;
+    z-index: 999999 !important;
+    box-shadow: 0 8px 30px rgba(255,215,0,0.6) !important;
+    animation: broadcastSlideIn 8s ease forwards !important;
+    white-space: nowrap !important;
+    border: 3px solid #FFF !important;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.2) !important;
+    letter-spacing: 2px !important;
+    font-family: 'Noto Sans SC', 'ZCOOL QingKe HuangYou', sans-serif !important;
+    max-width: 90vw !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    text-align: center !important;
+    pointer-events: none !important;
+  `;
+  banner.textContent = `📢 ${APP.profile.username}：${text.trim().substring(0, 30)}`;
+  document.body.appendChild(banner);
+
+  // 确保动画已定义
+  if (!document.getElementById('broadcast-anim-style')) {
+    const style = document.createElement('style');
+    style.id = 'broadcast-anim-style';
+    style.textContent = `
+      @keyframes broadcastSlideIn {
+        0% { opacity: 0; transform: translateX(-50%) translateY(-30px); }
+        8% { opacity: 1; transform: translateX(-50%) translateY(0); }
+        88% { opacity: 1; transform: translateX(-50%) translateY(0); }
+        100% { opacity: 0; transform: translateX(-50%) translateY(-30px); }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  // 8秒后自动移除
+  setTimeout(() => {
+    if (banner.parentNode) banner.remove();
+  }, 8000);
+
+  showToast('📢 广播已发送！', 'success');
+}
+
+
+// ==================== 发帖福利指南弹窗 ====================
+function showWelfareGuide() {
+  const content = `
+    <div style="line-height: 1.8;">
+      <p>📝 <b>发帖</b>：得15积分 + 幸运值5~10（字数越多幸运值越高）</p>
+      <p>⬆️ <b>升级</b>：每5级送普通盲盒，每10级送超级盲盒</p>
+      <p>🎲 <b>幸运值</b>：满100必出顶级奖励（护航/500积分等）</p>
+      <p>💰 <b>积分</b>：可兑换置顶、命名、护航、哈夫币</p>
+      <p>👥 <b>邀请战友</b>：各得积分，还有额外盲盒</p>
+    </div>
+  `;
+  showModal('🎁 发帖福利指南', content, '知道了');
+}
+
+// 下一个函数...
 
 </script>
 <script>
