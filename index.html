@@ -580,6 +580,53 @@ function enableHorizontalDragScroll(element) {
 .recommend-medal.silver { background: linear-gradient(135deg, #C0C0C0, #A0A0A0); color: #1a1a1a; }
 .recommend-medal.bronze { background: linear-gradient(135deg, #CD7F32, #B87333); color: #fff; }
 
+
+
+
+/* 护航员称号标签 */
+.escort-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  margin-left: 6px;
+  border: 1.5px solid;
+  backdrop-filter: blur(4px);
+  box-shadow: 0 2px 8px var(--shadow);
+}
+.escort-badge-normal {
+  background: linear-gradient(135deg, #4a6fa5 0%, #3a5a8c 100%);
+  color: white;
+  border-color: #6b8fc9;
+}
+.escort-badge-star {
+  background: linear-gradient(135deg, #f1c40f 0%, #e67e22 100%);
+  color: #1a120b;
+  border-color: #ffd700;
+  animation: starGlow 2s infinite;
+}
+.escort-badge-devil {
+  background: linear-gradient(135deg, #e74c3c 0%, #8e44ad 100%);
+  color: white;
+  border-color: #f1c40f;
+  animation: devilPulse 1.5s infinite;
+}
+@keyframes starGlow {
+  0%, 100% { box-shadow: 0 0 8px #f1c40f; }
+  50% { box-shadow: 0 0 16px #ffd700; }
+}
+@keyframes devilPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.02); text-shadow: 0 0 8px #fff; }
+}
+
+
+
+
+
 /* 达标徽章 */
 .combat-badge {
   padding: 4px 12px;
@@ -2829,6 +2876,17 @@ pointer-events: auto !important;
     right: 24px; 
   }
 }
+
+
+/* 移动端触摸优化与点击区域 */
+.modal-content, .overflow-x-auto {
+  -webkit-overflow-scrolling: touch;
+}
+.btn-warm, .btn-ghost, button {
+  min-height: 44px;
+  min-width: 44px;
+}
+
 /* ===== 雷达图终极防模糊：独立合成层 + 禁止父级变换干扰 ===== */
 #topicRadarChartV2 {
   transform: translateZ(0) !important;
@@ -3877,6 +3935,9 @@ body::before {
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
 }
+
+
+
 .following-stories-wrapper::-webkit-scrollbar {
   display: none;
 }
@@ -4675,6 +4736,25 @@ body {
 .ttk-slow { background: #e74c3c20; color: #e74c3c; }
 .ttk-damage-modal { font-size: 11px; color: var(--muted); }
 
+
+
+
+
+/* 签到日历移动端适配 */
+@media (max-width: 480px) {
+  #checkinCalendarModal .modal-content {
+    padding: 16px 10px;
+  }
+  #calendarGrid {
+    font-size: 10px;
+    gap: 2px;
+  }
+  #calendarGrid > div {
+    padding: 4px 2px;
+    min-height: 32px;
+  }
+}
+
 </style>
 <script src="https://cdn.jsdelivr.net/npm/interactjs@1.10.27/dist/interact.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/tus-js-client@4.1.0/dist/tus.min.js"></script>
@@ -4810,6 +4890,10 @@ body {
 </div>
   </div>
 
+
+
+
+
 <!-- 快捷工具坞 -->
 <section class="mb-4" id="toolboxSection">
   <div class="flex items-center justify-between mb-2">
@@ -4823,25 +4907,67 @@ body {
 </section>
   
   
-
-
-<!-- ==================== 干员互助中心入口 ==================== -->
-<div class="card-base p-4 mb-4 flex items-center justify-between cursor-pointer group hover:shadow-xl transition-all"
-     style="background: linear-gradient(135deg, rgba(255,215,0,0.1) 0%, rgba(255,107,53,0.05) 100%); border-left: 6px solid #FFD700;"
-     onclick="openMutualAidModal()">
-  <div class="flex items-center gap-4">
-    <div class="w-12 h-12 rounded-full flex items-center justify-center" style="background: linear-gradient(135deg, #FFD700, #FF6B35);">
-      <i class="fas fa-hand-holding-heart text-white text-xl"></i>
-    </div>
+<!-- 发帖奖励提示条 -->
+<div id="dailyPostRewardBar" class="card-base p-3 mb-4 flex items-center justify-between hidden" style="background: linear-gradient(135deg, var(--accent)10, #FFD70010); border-left: 5px solid #FFD700;">
+  <div class="flex items-center gap-3">
+    <i class="fas fa-gift text-xl" style="color:#FFD700;"></i>
     <div>
-      <h3 class="font-display text-base flex items-center gap-2">
-        干员互助中心
-        <span class="text-xs px-2 py-0.5 rounded-full" style="background: #FFD700; color: #1a1a2e;">Beta</span>
-      </h3>
-      <p class="text-xs" style="color: var(--muted);">福利点评 · 画质门诊 · 赚积分开盲盒</p>
+      <span class="text-sm font-bold" id="dailyRewardText">今日已发0篇，再发3篇可额外获得+10积分</span>
+      <div class="exp-bar mt-1 w-40"><div class="exp-fill" id="dailyRewardProgress" style="width:0%"></div></div>
     </div>
   </div>
-  <i class="fas fa-chevron-right text-lg group-hover:translate-x-1 transition-transform" style="color: var(--accent);"></i>
+  <button class="btn-warm text-sm px-4 py-2" onclick="openModal('publishModal')"><i class="fas fa-pen mr-1"></i>去发帖</button>
+</div>
+
+
+
+<!-- ==================== 干员互助中心入口（融合积分赚取） ==================== -->
+<div class="card-base p-4 mb-4 transition-all hover:shadow-xl" 
+     style="background: linear-gradient(135deg, rgba(255,215,0,0.1) 0%, rgba(255,107,53,0.05) 100%); border-left: 6px solid #FFD700;">
+  
+  <!-- 上半部分：标题 + 入口（可点击进入互助中心） -->
+  <div class="flex items-center justify-between cursor-pointer group" onclick="openMutualAidModal()">
+    <div class="flex items-center gap-4">
+      <div class="w-12 h-12 rounded-full flex items-center justify-center" style="background: linear-gradient(135deg, #FFD700, #FF6B35);">
+        <i class="fas fa-hand-holding-heart text-white text-xl"></i>
+      </div>
+      <div>
+        <h3 class="font-display text-base flex items-center gap-2">
+          干员互助中心
+          <span class="text-xs px-2 py-0.5 rounded-full" style="background: #FFD700; color: #1a1a2e;">Beta</span>
+        </h3>
+        <p class="text-xs" style="color: var(--muted);">福利点评 · 画质门诊 · 赚积分开盲盒</p>
+      </div>
+    </div>
+    <i class="fas fa-chevron-right text-lg group-hover:translate-x-1 transition-transform" style="color: var(--accent);"></i>
+  </div>
+  
+  <!-- 下半部分：积分赚取快捷栏（不干扰主入口点击） -->
+  <div class="flex items-center justify-between mt-3 pt-3 border-t" style="border-color: rgba(255,215,0,0.2);">
+    <div class="flex items-center gap-3 sm:gap-5">
+      <div class="flex items-center gap-1 text-xs cursor-pointer hover:scale-105 transition-transform" onclick="event.stopPropagation(); showToast('每日签到可得2积分', 'info')">
+        <i class="fas fa-calendar-check" style="color: #FFD700;"></i>
+        <span class="font-bold" style="color: #2ecc71;">+2</span>
+      </div>
+      <div class="flex items-center gap-1 text-xs cursor-pointer hover:scale-105 transition-transform" onclick="event.stopPropagation(); showToast('发表一篇帖子可得15积分', 'info')">
+        <i class="fas fa-pen-fancy" style="color: var(--accent);"></i>
+        <span class="font-bold" style="color: #2ecc71;">+15</span>
+      </div>
+      <div class="flex items-center gap-1 text-xs cursor-pointer hover:scale-105 transition-transform" onclick="event.stopPropagation(); showToast('点赞帖子可得5积分', 'info')">
+        <i class="far fa-heart" style="color: #FF4757;"></i>
+        <span class="font-bold" style="color: #2ecc71;">+5</span>
+      </div>
+      <div class="flex items-center gap-1 text-xs cursor-pointer hover:scale-105 transition-transform" onclick="event.stopPropagation(); showToast('邀请战友可得50积分', 'info')">
+        <i class="fas fa-user-plus" style="color: #3498db;"></i>
+        <span class="font-bold" style="color: #2ecc71;">+50</span>
+      </div>
+    </div>
+    <button class="text-xs px-3 py-1.5 rounded-full flex items-center gap-1 transition-all hover:scale-105" 
+            style="background: var(--surface); border: 1px solid var(--border); color: var(--text);"
+            onclick="event.stopPropagation(); showPointsRuleModal()">
+      <i class="fas fa-search"></i> 规则
+    </button>
+  </div>
 </div>
 
 
@@ -5204,6 +5330,8 @@ body {
       <div id="risingRank" class="space-y-1"></div>
     </div>
   </div>
+
+
 
   <!-- 热门话题云（增强版） -->
   <div class="card-base p-5 mb-6">
@@ -5831,7 +5959,38 @@ body {
         <button class="btn-warm" onclick="checkIn()" id="checkinBtn"><i class="fas fa-calendar-check mr-1"></i>每日签到</button>
         <span class="text-sm" style="color:var(--muted)" id="checkinStreak">连续签到 0 天</span>
       </div>
+
+
+<!-- 签到日历弹窗 -->
+<div class="modal-overlay" id="checkinCalendarModal">
+  <div class="modal-content" style="max-width: 400px;">
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="font-display text-xl"><i class="fas fa-calendar-check mr-2" style="color: #FFD700;"></i>签到日历</h2>
+      <button onclick="closeModal('checkinCalendarModal')" class="w-8 h-8 rounded-full flex items-center justify-center" style="background:var(--surface);"><i class="fas fa-times"></i></button>
+    </div>
+    <div id="calendarStats" class="flex justify-around mb-4 p-3 rounded-xl" style="background: var(--surface);">
+      <div><span class="text-2xl font-bold" id="calendarTotalDays">0</span><span class="text-xs block">累计签到</span></div>
+      <div><span class="text-2xl font-bold" id="calendarCurrentStreak">0</span><span class="text-xs block">连续天数</span></div>
+      <div><span class="text-2xl font-bold" id="calendarLongestStreak">0</span><span class="text-xs block">最长连续</span></div>
+    </div>
+    <div id="calendarGrid" class="grid grid-cols-7 gap-1 text-center text-sm">
+      <!-- 动态渲染当月日历 -->
+    </div>
+    <p class="text-xs text-center mt-4" style="color: var(--muted);">每日签到领积分，连续签到额外奖励</p>
+  </div>
+</div>
+
+<!-- 原有签到按钮下方，添加 -->
+<button class="text-xs underline mt-1" style="color: var(--accent);" onclick="openCheckinCalendarModal()">
+  <i class="fas fa-calendar-alt mr-1"></i>签到日历（看积分）
+</button>
+
       <!-- 管理员入口 -->
+
+<div id="adminVerifyEntry" style="display:none;">
+  <button class="btn-ghost text-sm" onclick="openVerifyModal()"><i class="fas fa-qrcode mr-1"></i>核销查询</button>
+</div>
+
       <div id="adminEntry">
         <button class="btn-ghost text-sm" onclick="openModal('adminModal')"><i class="fas fa-shield-halved mr-1"></i>管理后台</button>
       </div>
@@ -5839,9 +5998,87 @@ body {
       <h3 class="font-bold mt-4 mb-2">我的帖子</h3>
       <div id="myPostsGrid" class="masonry"></div>
 
+
+<!-- 新人7日任务 -->
+<div id="newbieTaskCard" class="card-base p-4 mb-4" style="display:none;">
+  <h3 class="font-bold text-sm mb-3 flex items-center gap-2"><i class="fas fa-calendar-check" style="color: #2ecc71;"></i>新人7日任务</h3>
+  <div class="space-y-2" id="newbieTaskList">
+    <div class="flex items-center justify-between text-xs">
+      <span><i class="far fa-circle mr-1" id="taskPostIcon"></i> 发表一篇帖子</span>
+      <span style="color: var(--accent);">+10积分</span>
+    </div>
+    <div class="flex items-center justify-between text-xs">
+      <span><i class="far fa-circle mr-1" id="taskCommentIcon"></i> 发表一条评论</span>
+      <span style="color: var(--accent);">+10积分</span>
+    </div>
+    <div class="flex items-center justify-between text-xs">
+      <span><i class="far fa-circle mr-1" id="taskInviteIcon"></i> 邀请1位战友</span>
+      <span style="color: var(--accent);">+30积分+勋章</span>
+    </div>
+  </div>
+</div>
+
+
+<!-- 我的福利总览 -->
+<div class="card-base p-4 mb-4" style="background: linear-gradient(135deg, rgba(255,215,0,0.08) 0%, rgba(255,107,53,0.04) 100%);">
+  <h3 class="font-bold text-sm mb-3 flex items-center gap-2">
+    <i class="fas fa-gift" style="color: #FFD700;"></i> 我的福利
+  </h3>
+  <div class="grid grid-cols-3 gap-3 text-center">
+    <div class="cursor-pointer" onclick="openPointsShopModal()">
+      <div class="text-xl font-bold" style="color: #FFD700;" id="profileMyPoints">0</div>
+      <div class="text-xs" style="color: var(--muted);">当前积分</div>
+    </div>
+    <div class="cursor-pointer" onclick="scrollToPendingRewards()">
+      <div class="text-xl font-bold" style="color: #3498db;" id="profilePendingCount">0</div>
+      <div class="text-xs" style="color: var(--muted);">待使用券</div>
+    </div>
+    <div class="cursor-pointer" onclick="showPointsLogModal()">
+      <div class="text-xl font-bold" style="color: #2ecc71;" id="profileTotalEarned">0</div>
+      <div class="text-xs" style="color: var(--muted);">累计获得</div>
+    </div>
+  </div>
+</div>
+
+
+
 <!-- 待使用权益 -->
 <h3 class="font-bold mt-4 mb-2"><i class="fas fa-gift mr-1" style="color: #FFD700;"></i>待使用权益</h3>
 <div id="profilePendingRewards" class="mb-4"></div>
+
+
+<!-- 幸运值进度条 -->
+<div class="card-base p-4 mb-4" id="profileLuckyCard">
+  <div class="flex items-center justify-between mb-2">
+    <span class="text-sm font-bold"><i class="fas fa-star" style="color: #FFD700;"></i> 幸运值</span>
+    <span class="text-sm font-bold" id="profileLuckyText">0/100</span>
+  </div>
+  <div class="exp-bar h-2"><div class="exp-fill" id="profileLuckyBar" style="width:0%; background: linear-gradient(90deg, #FFD700, #FFA500);"></div></div>
+  <p class="text-[10px] mt-2" style="color: var(--muted);">每开盲盒+10，满100必出稀有奖励</p>
+</div>
+
+
+
+<!-- 积分明细入口 -->
+<div class="card-base p-4 mb-4 flex items-center justify-between cursor-pointer group hover:shadow-xl transition-all" 
+     style="background: linear-gradient(135deg, rgba(46,204,113,0.1) 0%, rgba(39,174,96,0.05) 100%); border-left: 6px solid #2ecc71;"
+     onclick="showPointsLogModal()">
+  <div class="flex items-center gap-4">
+    <div class="w-12 h-12 rounded-full flex items-center justify-center" style="background: linear-gradient(135deg, #2ecc71, #27ae60);">
+      <i class="fas fa-list-ul text-white text-xl"></i>
+    </div>
+    <div>
+      <h3 class="font-display text-base flex items-center gap-2">
+        积分明细
+        <span class="text-xs px-2 py-0.5 rounded-full" style="background: #2ecc71; color: white;">记录</span>
+      </h3>
+      <p class="text-xs" style="color: var(--muted);">查看积分获取与消费记录</p>
+    </div>
+  </div>
+  <i class="fas fa-chevron-right text-lg group-hover:translate-x-1 transition-transform" style="color: var(--accent);"></i>
+</div>
+
+
 
 <!-- 积分商城入口卡片 -->
 <div class="card-base p-4 mb-4 flex items-center justify-between cursor-pointer group hover:shadow-xl transition-all" 
@@ -5890,6 +6127,14 @@ body {
       <!-- 我的收藏 -->
       <h3 class="font-bold mt-4 mb-2">我的收藏</h3>
       <div id="myFavoritesGrid" class="masonry"></div>
+<button class="btn-ghost w-full py-2 mt-2" onclick="openMyOrdersModal()">
+  <i class="fas fa-clipboard-list mr-2"></i>我的护航订单
+</button>
+
+
+
+
+
 
 <!-- 我的配装仓库 -->
 <h3 class="font-bold mt-4 mb-2 flex items-center gap-2">
@@ -6228,6 +6473,19 @@ body {
       </div>
     </div>
 
+
+    <!-- 幸运值进度条 -->
+    <div class="mt-3 mb-4" id="luckyProgressContainer">
+      <div class="flex items-center justify-between text-xs mb-1">
+        <span><i class="fas fa-star" style="color: #FFD700;"></i> 幸运值</span>
+        <span id="luckyValueText">0/100</span>
+      </div>
+      <div class="exp-bar h-2"><div class="exp-fill" id="luckyProgressBar" style="width:0%; background: linear-gradient(90deg, #FFD700, #FFA500);"></div></div>
+      <p class="text-[10px] mt-1" style="color: var(--muted);">每开盲盒+10，满100必得金色传说</p>
+    </div>
+
+
+
     <!-- Tab 切换 -->
     <div class="flex gap-2 mb-4 border-b" style="border-color: var(--border);">
       <button class="mutual-aid-tab active px-4 py-2 text-sm font-bold" data-tab="welfare" onclick="switchMutualAidTab('welfare')">
@@ -6367,6 +6625,43 @@ body {
     </div>
   </div>
 </div>
+
+<!-- ===== 护航预约弹窗 ===== -->
+<div class="modal-overlay" id="escortBookingModal">
+  <div class="modal-content" style="max-width:450px;">
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="font-display text-xl"><i class="fas fa-shield-halved mr-2" style="color: var(--accent);"></i>预约护航</h2>
+      <button onclick="closeModal('escortBookingModal')" class="w-8 h-8 rounded-full flex items-center justify-center" style="background:var(--surface);"><i class="fas fa-times"></i></button>
+    </div>
+    <div id="bookingEscortInfo" class="mb-4 p-3 rounded-xl" style="background: var(--surface);"></div>
+    <div class="space-y-3">
+      <div><label class="text-sm font-bold block mb-1">选择核销凭证</label>
+        <select id="bookingVoucherSelect" class="w-full p-3 rounded-xl" style="background: var(--surface); border: 1px solid var(--border);"><option value="">-- 请选择未使用的凭证 --</option></select>
+        <p class="text-[10px] mt-1" style="color: var(--muted);">若没有可用凭证，请先去积分商城兑换</p>
+      </div>
+      <div><label class="text-sm font-bold block mb-1">备注（选填）</label>
+        <textarea id="bookingNote" rows="2" class="w-full p-3 rounded-xl" style="background: var(--surface); border: 1px solid var(--border);" placeholder="如：游戏ID、上线时间..."></textarea>
+      </div>
+      <button class="btn-warm w-full py-3" onclick="submitEscortBooking()"><i class="fas fa-handshake mr-2"></i>确认预约</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 我的订单弹窗 ===== -->
+<div class="modal-overlay" id="myOrdersModal">
+  <div class="modal-content" style="max-width:500px; max-height:70vh; overflow-y:auto;">
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="font-display text-xl"><i class="fas fa-clipboard-list mr-2"></i>我的订单</h2>
+      <button onclick="closeModal('myOrdersModal')" class="w-8 h-8 rounded-full flex items-center justify-center" style="background:var(--surface);"><i class="fas fa-times"></i></button>
+    </div>
+    <div id="myOrdersList" class="space-y-3"></div>
+  </div>
+</div>
+
+
+
+
+
 <!-- ===== BGM 播放器（融合式设计） ===== -->
 <div class="bgm-player draggable" id="bgmPlayer">
 
@@ -6516,6 +6811,10 @@ body {
       <!-- 注册表单 -->
       <div id="registerForm" style="display:none" class="space-y-3">
         <input type="email" id="regEmail" placeholder="邮箱" class="w-full">
+
+
+<input type="text" id="regInviteCode" placeholder="邀请码（选填）" class="w-full">
+
         <input type="text" id="regUsername" placeholder="昵称" class="w-full">
         <div class="flex gap-2">
           <input type="tel" id="regPhone" placeholder="手机号" class="flex-1">
@@ -6548,6 +6847,36 @@ body {
       <input type="password" placeholder="输入管理员密码" id="adminPwd" class="w-full">
       <button class="btn-warm w-full py-2" onclick="adminLogin()">验证</button>
     </div>
+
+<!-- 数据仪表盘按钮 -->
+<div class="flex items-center gap-2 mb-4">
+  <button class="btn-ghost text-sm px-3 py-1" onclick="toggleAdminView('dashboard')" id="adminDashboardBtn">📊 数据仪表盘</button>
+  <button class="btn-ghost text-sm px-3 py-1" onclick="toggleAdminView('main')" id="adminMainBtn">⚙ 管理面板</button>
+</div>
+<!-- 仪表盘视图 -->
+<div id="adminDashboardView" style="display:none;" class="space-y-4">
+  <div class="grid grid-cols-3 gap-4">
+    <div class="card-base p-4 text-center">
+      <div class="text-2xl font-bold" style="color:var(--accent)" id="adminStatUsers">0</div>
+      <div class="text-xs" style="color:var(--muted)">总用户</div>
+    </div>
+    <div class="card-base p-4 text-center">
+      <div class="text-2xl font-bold" style="color:#2ecc71" id="adminStatPosts">0</div>
+      <div class="text-xs" style="color:var(--muted)">总帖子</div>
+    </div>
+    <div class="card-base p-4 text-center">
+      <div class="text-2xl font-bold" style="color:#f1c40f" id="adminStatEscorts">0</div>
+      <div class="text-xs" style="color:var(--muted)">护航员</div>
+    </div>
+  </div>
+  <div class="card-base p-4">
+    <h3 class="font-bold mb-2">近7天新增用户</h3>
+    <canvas id="adminChartDaily" height="200"></canvas>
+  </div>
+</div>
+
+
+
     <!-- 管理面板（验证后显示） -->
     <div id="adminPanel" style="display:none" class="space-y-4">
       <div>
@@ -6614,7 +6943,7 @@ body {
           <span class="text-xs" style="color:var(--muted);" id="taskPostProgress">0/1</span>
         </div>
         <div class="exp-bar h-2 mb-2"><div class="exp-fill" id="taskPostBar" style="width:0%"></div></div>
-        <button class="btn-ghost w-full py-2 text-xs task-claim-btn" id="taskPostBtn" onclick="claimTaskReward('post', event)">领取 +20 EXP</button>
+        <button class="btn-ghost w-full py-2 text-xs task-claim-btn" id="taskPostBtn" onclick="claimTaskReward('post', event)">领取 +20 EXP· +3积分</button>
       </div>
       <div class="p-4 rounded-xl" style="background:var(--surface);">
         <div class="flex items-center justify-between mb-2">
@@ -6622,7 +6951,7 @@ body {
           <span class="text-xs" style="color:var(--muted);" id="taskLikeProgress">0/3</span>
         </div>
         <div class="exp-bar h-2 mb-2"><div class="exp-fill" id="taskLikeBar" style="width:0%"></div></div>
-        <button class="btn-ghost w-full py-2 text-xs task-claim-btn" id="taskLikeBtn" onclick="claimTaskReward('like', event)">领取 +30 EXP</button>
+        <button class="btn-ghost w-full py-2 text-xs task-claim-btn" id="taskLikeBtn" onclick="claimTaskReward('like', event)">领取 +30 · +5 积分 EXP</button>
       </div>
       <div class="p-4 rounded-xl" style="background:var(--surface);">
         <div class="flex items-center justify-between mb-2">
@@ -6630,7 +6959,7 @@ body {
           <span class="text-xs" style="color:var(--muted);" id="taskCommentProgress">0/1</span>
         </div>
         <div class="exp-bar h-2 mb-2"><div class="exp-fill" id="taskCommentBar" style="width:0%"></div></div>
-        <button class="btn-ghost w-full py-2 text-xs task-claim-btn" id="taskCommentBtn" onclick="claimTaskReward('comment', event)">领取 +20 EXP</button>
+        <button class="btn-ghost w-full py-2 text-xs task-claim-btn" id="taskCommentBtn" onclick="claimTaskReward('comment', event)">领取 +20 EXP · +3 积分</button>
       </div>
     </div>
   </div>
@@ -7068,12 +7397,32 @@ body {
 </div>
 
 <script>
+
+
+
+
+
 // ==================== 全局配置与初始化 ====================
 const SUPABASE_URL = 'https://opseuwrzcnsdrsizhyel.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_Pz0ndHiDt50G0nSU_ZHjxA_wcYzu1ez';
 
-let sb;
-try { sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY); } catch(e) { console.error('Supabase 初始化失败', e); }
+// ========== 单例 Supabase 客户端（彻底消除多实例警告） ==========
+let sb = null;
+function initSupabase() {
+  if (sb) return sb;
+  sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    realtime: {
+      params: { eventsPerSecond: 2 },
+      heartbeatIntervalMs: 30000
+    }
+  });
+  return sb;
+}
+sb = initSupabase();
+
+
+
+
 
 // 应用状态
 const APP = {
@@ -7234,8 +7583,22 @@ function openMutualAidModal() {
   // 并行加载数据
   Promise.all([loadWelfareActivities(), loadGraphicsPresets()]);
   loadUserPointsAndReferrals();
+  loadLuckyValue();
   switchMutualAidTab('welfare');
 }
+
+
+async function loadLuckyValue() {
+  if (!APP.user) return;
+  const { data } = await sb.from('profiles').select('lucky_value').eq('id', APP.user.id).single();
+  const lucky = data?.lucky_value || 0;
+  const textEl = document.getElementById('luckyValueText');
+  const barEl = document.getElementById('luckyProgressBar');
+  if (textEl) textEl.textContent = `${lucky}/100`;
+  if (barEl) barEl.style.width = `${lucky}%`;
+}
+
+
 
 function switchMutualAidTab(tab) {
   document.querySelectorAll('.mutual-aid-tab').forEach(btn => {
@@ -7276,8 +7639,18 @@ async function addUserPoints(amount) {
     await sb.from('user_points').upsert({ user_id: APP.user.id, points: newPoints, updated_at: new Date().toISOString() });
     const pointsEl = document.getElementById('modalUserPoints');
     if (pointsEl) pointsEl.textContent = newPoints;
+updateUserPointsUI();   // <-- 添加这一行
   } catch(e) {}
 }
+
+// ========== 给指定用户加积分（用于邀请奖励等） ==========
+async function addUserPointsToUser(userId, amount) {
+  const { data } = await sb.from('user_points').select('points').eq('user_id', userId).maybeSingle();
+  const newPoints = (data?.points || 0) + amount;
+  await sb.from('user_points').upsert({ user_id: userId, points: newPoints, updated_at: new Date().toISOString() });
+}
+
+
 
 // ========== 福利点评 ==========
 function openReviewModal(welfareId, welfareTitle) {
@@ -7411,6 +7784,9 @@ async function openBlindBox() {
   }
   await sb.from('profiles').update({ lucky_value: lucky }).eq('id', APP.user.id);
   // ========== 幸运值更新完成 ==========
+  // 立即刷新幸运值进度条显示
+  loadLuckyValue();
+
 
   
     // 奖励池
@@ -7422,13 +7798,39 @@ async function openBlindBox() {
   ];
   
   // ========== 保底判断：如果幸运值满100，强制给金色传说勋章 ==========
+const rand = Math.random() * 100;  // 新增这一行
   let reward;
-  if (guaranteed) {
-    reward = { type: 'badge', name: '✨ 金色传说', badgeId: 'badge_welfare_gold' };
+
+   if (guaranteed) {
+    // 保底：必出终极大奖或稀有服务
+    reward = rand < 50 
+      ? { type: 'voucher_escort_1', name: '护航体验资格券', value: 'escort' }
+      : { type: 'voucher_hafu_50w', name: '50万哈夫币券', value: 'hafu50' };
   } else {
-    reward = rewards[Math.floor(Math.random() * rewards.length)];
+    // 正常概率分层
+    if (rand < 40) {
+      // 40% 谢谢参与（1积分）
+      reward = { type: 'points', name: '1 积分', value: 1 };
+    } else if (rand < 70) {
+      // 30% 小额积分
+      reward = { type: 'points', name: '5 积分', value: 5 };
+    } else if (rand < 85) {
+      // 15% 中额积分/虚拟道具
+      reward = { type: 'points', name: '20 积分', value: 20 };
+    } else if (rand < 95) {
+      // 10% 高价值道具（哈夫币3w）
+      reward = { type: 'voucher_hafu_3w', name: '3万哈夫币券', value: 'hafu3' };
+    } else if (rand < 99) {
+      // 4% 稀有服务（哈夫币50w）
+      reward = { type: 'voucher_hafu_50w', name: '50万哈夫币券', value: 'hafu50' };
+    } else {
+      // 1% 终极大奖（护航体验资格）
+      reward = { type: 'voucher_escort_1', name: '护航体验资格券', value: 'escort' };
+    }
   }
-  // ========== 保底判断结束 ==========
+
+
+
 
 
   // 记录开奖
@@ -7454,11 +7856,69 @@ async function openBlindBox() {
     await savePendingReward(APP.user.id, 'naming', '配装命名权');
     showToast(`🎉 恭喜获得：配装命名权！请到起装方案页面选择要命名的方案。`, 'success');
   }
-  
+
+
+  // 如果是终极大奖（护航资格或50万哈夫币），发送全站广播
+   // ========== 发送全站广播（终极大奖） ==========
+  if (reward.type === 'voucher_escort_1' || reward.type === 'voucher_hafu_50w') {
+   // 使用全局 realtime 频道发送广播
+if (globalRealtimeChannel) {
+  globalRealtimeChannel.send({
+    type: 'broadcast',
+    event: 'jackpot_announce',
+    payload: {
+      username: APP.profile.username,
+      rewardName: reward.name,
+      timestamp: new Date().toISOString()
+    }
+  }).then(() => console.log('✅ 广播已发送')).catch(e => console.warn('广播发送失败:', e));
+} else {
+  console.warn('⚠️ 全局 Realtime 频道未就绪，广播无法发送');
+}
+  }
+ 
+
+
+   // ========== 新增：显示中奖弹窗 ==========
+  showBlindBoxResultModal(reward);
   loadUserPointsAndReferrals();
 }
 
-// ========== 保存待使用的权益 ==========
+
+function showBlindBoxResultModal(reward) {
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay active';
+  modal.style.zIndex = '100001';
+  
+  let icon = '🎁';
+  let color = '#FFD700';
+  if (reward.type === 'points') {
+    icon = '💰';
+    color = '#f1c40f';
+  } else if (reward.type.startsWith('voucher_')) {
+    icon = '🎫';
+    color = '#3498db';
+  } else if (reward.type === 'badge') {
+    icon = '🏅';
+    color = '#FFD700';
+  }
+  
+  modal.innerHTML = `
+    <div class="modal-content active" style="max-width:360px; text-align:center;">
+      <div class="text-6xl mb-3">${icon}</div>
+      <h3 class="font-display text-2xl mb-2" style="color: ${color};">恭喜获得</h3>
+      <div class="card-base p-4 mb-4">
+        <p class="text-xl font-bold" style="color: ${color};">${reward.name}</p>
+        ${reward.value ? `<p class="text-sm mt-2" style="color: var(--muted);">价值: ${reward.value}${reward.type === 'points' ? ' 积分' : ''}</p>` : ''}
+      </div>
+      <button class="btn-warm w-full py-3" onclick="this.closest('.modal-overlay').remove()">太棒了！</button>
+    </div>
+  `;
+  document.body.appendChild(modal);
+}
+
+
+
 // ========== 保存待使用的权益 ==========
 async function savePendingReward(userId, rewardType, rewardName) {
   const { data: profile, error } = await sb.from('profiles')
@@ -7659,6 +8119,9 @@ function $(id) {
 }
 function qs(sel) { return document.querySelector(sel); }
 function qsa(sel) { return document.querySelectorAll(sel); }
+
+
+
 // ==================== 每日任务功能（完整修复补丁） ====================
 
 // 1. 修复 showModal 弹窗回调失效问题（覆盖原函数）
@@ -7866,27 +8329,13 @@ window.claimTaskReward = async function(type, ev) {
 
     window.dailyTasks.claimed[type] = true;
 
-    // 更新用户经验
-    APP.profile.exp = (APP.profile.exp || 0) + reward;
-    const levelUp = APP.profile.exp >= APP.profile.level * 100;
-    if (levelUp) {
-      APP.profile.level++;
-      APP.profile.exp -= (APP.profile.level - 1) * 100;
-    }
-
-    const { error: profileError } = await sb.from('profiles')
-      .update({
-        exp: APP.profile.exp,
-        level: APP.profile.level
-      })
-      .eq('id', APP.user.id);
 
 
-    if (profileError) {
-      console.error('[任务] 更新用户经验失败:', profileError);
-      throw profileError;
-    }
 
+
+
+        // 更新用户经验（自动升级+奖励）
+    await addExp(reward);
 
     // ========== 新增：每日任务额外奖励积分 ==========
     const pointsEarned = type === 'like' ? 5 : 3; // 点赞5分，发帖/评论3分
@@ -7904,9 +8353,9 @@ window.claimTaskReward = async function(type, ev) {
 
     console.log(`[任务] 经验更新成功，当前经验: ${APP.profile.exp}, 等级: ${APP.profile.level}`);
 
-    showModal(
+       showModal(
       '🎉 领取成功！',
-      `你获得了 ${reward} 点经验值！${levelUp ? ' 恭喜你升级了！' : ''}`,
+      `你获得了 ${reward} 点经验值！`,
       '太棒了'
     );
 
@@ -7973,6 +8422,180 @@ submitComment = async function() {
 
 console.log('✅ 每日任务功能补丁已加载');
 
+
+
+
+// ========== 护航预约闭环 ==========
+
+// 打开预约弹窗
+window.openEscortBookingModal = async function(escortId, escortName, escortLevel) {
+  if (!APP.user) { openAuthModal(); return; }
+  
+  const { data: vouchers } = await sb.from('voucher_verify')
+    .select('id, verify_code, voucher_type, voucher_name')
+    .eq('user_id', APP.user.id)
+    .eq('is_used', false)
+    .in('voucher_type', ['voucher_escort_1', 'voucher_hafu_50w', 'escort_free']);
+  
+  const selectEl = document.getElementById('bookingVoucherSelect');
+  if (!vouchers || vouchers.length === 0) {
+    selectEl.innerHTML = '<option value="">无可用凭证</option>';
+  } else {
+    selectEl.innerHTML = vouchers.map(v => 
+      `<option value="${v.verify_code}">${v.voucher_name} (核销码: ${v.verify_code})</option>`
+    ).join('');
+  }
+  
+  document.getElementById('bookingEscortInfo').innerHTML = `
+    <div class="flex items-center gap-3">
+      <i class="fas fa-user-shield text-lg" style="color: var(--accent);"></i>
+      <div>
+        <div class="font-bold">${escortName}</div>
+        <div class="text-xs" style="color: var(--muted);">${escortLevel} · 好评率 98%</div>
+      </div>
+    </div>
+  `;
+  
+  window._bookingEscortId = escortId;
+  window._bookingEscortName = escortName;
+  
+  openModal('escortBookingModal');
+};
+
+// 提交预约
+window.submitEscortBooking = async function() {
+  if (!APP.user) return;
+  
+  const verifyCode = document.getElementById('bookingVoucherSelect').value;
+  if (!verifyCode) { showToast('请选择要使用的凭证', 'warning'); return; }
+  
+  const note = document.getElementById('bookingNote').value.trim();
+  const escortId = window._bookingEscortId;
+  
+  if (!escortId) { showToast('护航员信息错误', 'error'); return; }
+  
+  const { error: voucherError } = await sb.from('voucher_verify')
+    .update({ is_used: true, used_at: new Date().toISOString() })
+    .eq('verify_code', verifyCode);
+  if (voucherError) { showToast('凭证核销失败', 'error'); return; }
+  
+  const { data: order, error: orderError } = await sb.from('escort_orders')
+    .insert({
+      escort_id: escortId,
+      customer_id: APP.user.id,
+      verify_code: verifyCode,
+      service_type: 'escort',
+      status: 'pending'
+    })
+    .select('id')
+    .single();
+  
+  if (orderError) { showToast('订单创建失败', 'error'); return; }
+  
+  await sb.from('notifications').insert({
+    recipient_id: escortId,
+    sender_id: APP.user.id,
+    type: 'system',
+    content: `📢 ${APP.profile.username} 预约了你的护航服务，请及时处理`,
+    link: '/escort-order/' + order.id
+  });
+  
+  showToast('✅ 预约成功！等待护航员接单', 'success');
+  closeModal('escortBookingModal');
+};
+
+// 查看我的订单
+window.openMyOrdersModal = async function() {
+  if (!APP.user) { openAuthModal(); return; }
+  openModal('myOrdersModal');
+  
+  const { data: orders } = await sb.from('escort_orders')
+    .select('id, escort_id, status, rating, created_at, profiles!escort_id(username, avatar_url, escort_level)')
+    .eq('customer_id', APP.user.id)
+    .order('created_at', { ascending: false });
+  
+  const listEl = document.getElementById('myOrdersList');
+  if (!orders || orders.length === 0) {
+    listEl.innerHTML = '<p class="text-center py-8 text-xs" style="color: var(--muted);">暂无订单</p>';
+    return;
+  }
+  
+  const statusMap = {
+    pending: { text: '等待接单', color: '#f1c40f' },
+    accepted: { text: '已接单', color: '#3498db' },
+    completed: { text: '已完成', color: '#2ecc71' },
+    cancelled: { text: '已取消', color: '#95a5a6' }
+  };
+  
+  listEl.innerHTML = orders.map(o => {
+    const escort = o.profiles || {};
+    const s = statusMap[o.status] || statusMap.pending;
+    return `
+      <div class="p-4 rounded-xl mb-3" style="background: var(--surface); border: 1px solid var(--border);">
+        <div class="flex items-center gap-3 mb-2">
+          <img src="${escort.avatar_url || dicebearUrl(escort.username)}" class="w-10 h-10 rounded-full">
+          <div class="flex-1">
+            <div class="font-bold">${escort.username || '护航员'}</div>
+            <div class="text-xs" style="color: var(--muted);">${timeAgo(o.created_at)}</div>
+          </div>
+          <span class="px-3 py-1 rounded-full text-xs font-bold" style="background: ${s.color}; color: white;">${s.text}</span>
+        </div>
+        ${o.status === 'completed' && !o.rating ? `
+          <button class="btn-warm w-full py-2 text-xs mt-2" onclick="openRatingModal('${o.id}', '${escort.username}')">
+            <i class="fas fa-star mr-1"></i>立即评价
+          </button>
+        ` : o.rating ? `
+          <div class="text-xs text-center mt-2" style="color: #FFD700;">已评分 ${'★'.repeat(o.rating)}</div>
+        ` : ''}
+      </div>
+    `;
+  }).join('');
+};
+
+// 评价弹窗
+let currentRatingOrderId = null;
+window.openRatingModal = function(orderId, escortName) {
+  currentRatingOrderId = orderId;
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay active';
+  modal.style.zIndex = '100002';
+  modal.innerHTML = `
+    <div class="modal-content active" style="max-width:400px; text-align:center;">
+      <h3 class="font-bold text-lg mb-2">评价 ${escortName}</h3>
+      <div class="flex justify-center gap-2 mb-4" id="ratingStars">
+        ${[1,2,3,4,5].map(i => `<i class="far fa-star text-2xl cursor-pointer" style="color:#FFD700;" onclick="setRating(${i})"></i>`).join('')}
+      </div>
+      <textarea id="ratingReview" rows="2" class="w-full p-2 rounded-lg mb-3" style="background:var(--surface);" placeholder="说点什么..."></textarea>
+      <button class="btn-warm w-full py-2" onclick="submitRating()">提交评价</button>
+    </div>
+  `;
+  document.body.appendChild(modal);
+};
+
+window.setRating = function(star) {
+  window._ratingValue = star;
+  document.querySelectorAll('#ratingStars i').forEach((el, idx) => {
+    el.className = idx < star ? 'fas fa-star' : 'far fa-star';
+  });
+};
+
+window.submitRating = async function() {
+  const rating = window._ratingValue || 5;
+  const review = document.getElementById('ratingReview').value.trim();
+  
+  await sb.from('escort_orders').update({ 
+    rating, review, status: 'completed', completed_at: new Date().toISOString() 
+  }).eq('id', currentRatingOrderId);
+  
+  showToast('⭐ 感谢评价！', 'success');
+  document.querySelector('.modal-overlay.active').remove();
+  if (typeof openMyOrdersModal === 'function') openMyOrdersModal();
+};
+
+
+
+
+
 // ==================== 全局通用复制函数（移动端完美兼容） ====================
 function universalCopy(text, successCallback) {
     if (navigator.vibrate) navigator.vibrate(10);
@@ -8013,6 +8636,165 @@ function universalCopy(text, successCallback) {
     }
 }
 
+
+// ==================== 签到日历（激励版） ====================
+
+// 签到积分规则
+function getCheckinReward(streak) {
+  const base = 2; // 基础签到2分
+  if (streak >= 30) return { points: base + 10, bonus: '🌟 30天连签！额外+10' };
+  if (streak >= 14) return { points: base + 7, bonus: '🔥 14天连签！额外+7' };
+  if (streak >= 7)  return { points: base + 5, bonus: '💪 7天连签！额外+5' };
+  return { points: base, bonus: null };
+}
+
+
+
+// 渲染日历
+function renderMonthCalendar(checkinSet) {
+  const grid = document.getElementById('calendarGrid');
+  if (!grid) return;
+  
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth();
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const today = now.getDate();
+  const todayStr = `${year}-${String(month+1).padStart(2,'0')}-${String(today).padStart(2,'0')}`;
+  
+  // 计算当前连签天数
+  let streak = calculateStreak(checkinSet);
+  // 如果今天还没签到，显示今天签到的奖励
+  const todayReward = getCheckinReward(streak + 1); // 今天签到后的连签天数
+  
+  let html = '';
+  // 星期标题
+  ['日','一','二','三','四','五','六'].forEach(d => html += `<div class="font-bold py-1 text-xs">${d}</div>`);
+  // 空白填充
+  for (let i = 0; i < firstDay; i++) html += '<div></div>';
+  // 日期格子
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const isChecked = checkinSet.has(dateStr);
+    const isToday = (d === today);
+    const isFutureDate = dateStr > todayStr;
+    
+    // 计算这个日期的奖励（仅对今天显示）
+    let rewardText = '';
+    if (isToday && !isChecked) {
+      rewardText = `<div class="text-[9px] leading-tight" style="color: #2ecc71;">+${todayReward.points}分</div>`;
+      if (todayReward.bonus) {
+        rewardText += `<div class="text-[8px] leading-tight" style="color: #FFD700;">${todayReward.bonus}</div>`;
+      }
+    }
+    
+    html += `
+      <div class="p-1.5 rounded-lg text-center ${isToday ? 'ring-2 ring-offset-1 ring-yellow-400' : ''} ${isFutureDate ? 'opacity-40' : ''}"
+        style="background: ${isChecked ? 'var(--accent)' : (isToday ? 'rgba(255,215,0,0.2)' : 'var(--surface)')}; 
+               color: ${isChecked ? 'white' : 'var(--text)'};
+               cursor: ${isToday && !isChecked ? 'pointer' : 'default'};
+               min-height: 44px;">
+        <div class="text-xs font-bold">${d}</div>
+        ${isChecked ? '<i class="fas fa-check text-[9px]"></i>' : rewardText}
+      </div>`;
+  }
+  
+  grid.innerHTML = html;
+  
+  // 如果今天还没签到，给今天的格子添加点击事件
+  if (!checkinSet.has(todayStr)) {
+    const todayCell = grid.querySelector('.ring-yellow-400');
+    if (todayCell) {
+      todayCell.onclick = () => quickCheckinFromCalendar();
+      todayCell.title = `签到可得 +${todayReward.points} 积分`;
+    }
+  }
+  
+  updateCalendarStats(checkinSet);
+}
+
+// 从日历快速签到
+async function quickCheckinFromCalendar() {
+  if (!APP.user) return;
+  
+  const today = new Date().toISOString().split('T')[0];
+  
+  const { data: existing } = await sb.from('checkins')
+    .select('*').eq('user_id', APP.user.id).eq('checkin_date', today).single();
+  if (existing) { showToast('今日已签到'); return; }
+  
+  const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+  const { data: yd } = await sb.from('checkins')
+    .select('streak').eq('user_id', APP.user.id).eq('checkin_date', yesterday).single();
+  const streak = (yd?.streak || 0) + 1;
+  const reward = getCheckinReward(streak);
+  
+  const { error } = await sb.from('checkins').insert({ 
+    user_id: APP.user.id, checkin_date: today, streak 
+  });
+  if (error) { showToast('签到失败'); return; }
+  
+  let totalPoints = reward.points;
+  await addUserPoints(totalPoints);
+  await sb.from('points_log').insert({ 
+    user_id: APP.user.id, amount: totalPoints, reason: `每日签到(连续${streak}天)` 
+  });
+  
+  await addExp(streak >= 7 ? 50 : 10);
+  
+  showToast(`✅ 签到成功！+${totalPoints}积分`, 'success');
+  updateUserPointsUI();
+  
+  const { data } = await sb.from('checkins').select('checkin_date').eq('user_id', APP.user.id);
+  const checkinSet = new Set(data?.map(d => d.checkin_date) || []);
+  renderMonthCalendar(checkinSet);
+  
+  if (typeof loadCheckinStatus === 'function') loadCheckinStatus();
+}
+
+
+
+// 计算连续签到天数
+function calculateStreak(checkinSet) {
+  const today = new Date();
+  let streak = 0;
+  for (let i = 0; i < 365; i++) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    const dateStr = d.toISOString().split('T')[0];
+    if (checkinSet.has(dateStr)) {
+      streak++;
+    } else if (i > 0) {
+      break;
+    }
+  }
+  return streak;
+}
+
+// 更新统计数字
+async function updateCalendarStats(checkinSet) {
+  document.getElementById('calendarTotalDays').textContent = checkinSet.size;
+  
+  const currentStreak = calculateStreak(checkinSet);
+  document.getElementById('calendarCurrentStreak').textContent = currentStreak;
+  
+  // 从数据库获取最长连续
+  const { data: all } = await sb.from('checkins')
+    .select('streak').eq('user_id', APP.user.id)
+    .order('checkin_date', { ascending: false }).limit(1);
+  const maxStreak = all?.[0]?.streak || currentStreak;
+  document.getElementById('calendarLongestStreak').textContent = Math.max(maxStreak, currentStreak);
+}
+
+// 打开签到日历弹窗
+window.openCheckinCalendarModal = async function() {
+  if (!APP.user) { openAuthModal(); return; }
+  openModal('checkinCalendarModal');
+  const { data } = await sb.from('checkins').select('checkin_date').eq('user_id', APP.user.id);
+  const checkinSet = new Set(data?.map(d => d.checkin_date) || []);
+  renderMonthCalendar(checkinSet);
+};
 
 // Toast 提示
 function showToast(msg, type = 'info') {
@@ -8362,9 +9144,22 @@ async function afterAuthSuccess() {
   updateNavAvatar();
   if (APP.isAdmin) $('adminEntry').style.display = 'block';
   initOnlinePresence();
+// 刷新顶部积分
+  updateUserPointsUI();
 if (APP.currentTab === 'escort') {
   loadEscortVideos(true);
 }
+
+  // 新人首次登录引导
+  const hasSeenGuide = localStorage.getItem('newbie_guide_seen');
+  if (!hasSeenGuide) {
+    setTimeout(() => {
+      showNewbieGuideModal();
+      localStorage.setItem('newbie_guide_seen', 'true');
+    }, 1000);
+  }
+
+
 }  
 async function loadOrCreateProfile() {
   const uid = APP.user.id;
@@ -8540,6 +9335,71 @@ async function handleRegister() {
     }, { onConflict: 'id' });
     if (upsertError) console.warn('保存邮箱失败:', upsertError);
     
+    // ========== 处理邀请码 ==========
+    const inviteCode = $('regInviteCode').value.trim();
+    if (inviteCode) {
+      // 验证邀请码是否为有效用户ID
+      const { data: inviter, error: inviterError } = await sb
+        .from('profiles')
+        .select('id')
+        .eq('id', inviteCode)
+        .single();
+      
+      if (!inviterError && inviter) {
+        // 记录邀请关系（invitee_id 有唯一约束，不会重复记录）
+        const { error: inviteInsertError } = await sb
+          .from('invites')
+          .insert({ inviter_id: inviteCode, invitee_id: data.user.id });
+        
+        if (!inviteInsertError) {
+          // 给邀请人加 5 积分
+          await addUserPointsToUser(inviteCode, 5);
+          await sb.from('points_log').insert({ user_id: inviteCode, amount: 5, reason: '邀请新用户' });
+          
+          // 检查邀请人累计邀请人数
+          const { count } = await sb
+            .from('invites')
+            .select('*', { count: 'exact', head: true })
+            .eq('inviter_id', inviteCode);
+          
+          // 满3人送盲盒（如果还没送过）
+          if (count >= 3) {
+            // 检查是否已发放过3人奖励
+            const { data: existingReward } = await sb
+              .from('pending_rewards_log')
+              .select('id')
+              .eq('user_id', inviteCode)
+              .eq('reward_key', 'invite_3')
+              .maybeSingle();
+            
+            if (!existingReward) {
+              await savePendingReward(inviteCode, 'pin', '邀请3人奖励-置顶权');
+              await sb.from('pending_rewards_log').insert({ user_id: inviteCode, reward_key: 'invite_3' });
+            }
+          }
+          
+          // 满10人送勋章
+          if (count >= 10) {
+            await grantBadgeToUser(inviteCode, 'badge_invite_king');
+          }
+          
+          // 给被邀请人（新用户）加 10 积分
+          await addUserPoints(10);
+          await sb.from('points_log').insert({ user_id: data.user.id, amount: 10, reason: '使用邀请码注册' });
+          
+          // 自动完成新人任务的“邀请”项
+          await updateNewbieTask(data.user.id, 'invite');
+          
+          showToast('✅ 邀请码有效！你和推荐人各得积分奖励', 'success');
+        }
+      } else {
+        showToast('⚠️ 邀请码无效，但注册成功', 'warning');
+      }
+    }
+    // ========== 邀请码处理结束 ==========
+
+
+
     showToast('注册成功，请登录');
 
     // ========== 初始化新人任务 ==========
@@ -8776,13 +9636,43 @@ setTimeout(() => loadUserFavoriteStatus(), 300);
 }
 
 
+
+async function updateDailyPostRewardBar() {
+  const bar = document.getElementById('dailyPostRewardBar');
+  if (!bar || !APP.user) return bar?.classList.add('hidden');
+  
+  const today = new Date().toISOString().split('T')[0];
+  const { count, error } = await sb.from('posts')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', APP.user.id)
+    .gte('created_at', today);
+  const postCount = count || 0;
+  const target = 3;
+  const remain = Math.max(0, target - postCount);
+  const percent = Math.min(100, (postCount / target) * 100);
+  
+  const textEl = document.getElementById('dailyRewardText');
+  const progressEl = document.getElementById('dailyRewardProgress');
+  
+  if (postCount >= target) {
+    textEl.textContent = '✅ 已达成！今日发帖满3篇，额外积分已到账';
+    progressEl.style.width = '100%';
+    bar.style.borderLeftColor = '#2ecc71';
+  } else {
+    textEl.textContent = `今日已发${postCount}篇，再发${remain}篇可额外获得+10积分`;
+    progressEl.style.width = percent + '%';
+    bar.style.borderLeftColor = '#FFD700';
+  }
+  bar.classList.remove('hidden');
+}
+
+
 // 在线护航员横条
 async function loadOnlineEscorts() {
-  const bar = $('onlineEscortBar');
+  const bar = document.getElementById('onlineEscortBar');
   if (!bar) return;
   
-  // 显示骨架屏
-  bar.innerHTML = Array(6).fill(0).map(() => `
+  bar.innerHTML = Array(3).fill(0).map(() => `
     <div class="flex flex-col items-center gap-1 flex-shrink-0">
       <div class="w-14 h-14 rounded-full skeleton-bg"></div>
       <div class="skeleton-line w-10 h-3"></div>
@@ -8790,65 +9680,62 @@ async function loadOnlineEscorts() {
   `).join('');
   
   try {
-    // 第一步：获取状态为 'passed' 的视频，提取 user_id 并去重
-    const { data: videos, error: videoError } = await sb
-      .from('escort_videos')
-      .select('user_id')
-      .eq('status', 'passed')
-      .order('created_at', { ascending: false })
-      .limit(30);
-    
-    if (videoError) {
-      console.error('查询护航视频失败:', videoError);
-      bar.innerHTML = `<div class="text-xs p-4" style="color: var(--muted);">加载失败，请刷新</div>`;
-      return;
-    }
-    
-    if (!videos || videos.length === 0) {
-      bar.innerHTML = `<div class="text-xs p-4" style="color: var(--muted);">暂无在线护航员，快去上传视频成为第一个！</div>`;
-      return;
-    }
-    
-    // 去重用户ID
-    const userIds = [...new Set(videos.map(v => v.user_id))];
-    
-    // 第二步：批量获取用户资料
-    const { data: profiles, error: profileError } = await sb
+    // 从 profiles 表直接获取所有护航员，并按等级排序
+    const { data: escorts, error } = await sb
       .from('profiles')
-      .select('id, username, avatar_url')
-      .in('id', userIds);
+      .select('id, username, avatar_url, escort_level, escort_orders_completed, escort_rating')
+      .eq('is_escort', true)
+      .order('escort_score', { ascending: false })
+      .limit(12);
+      
+    if (error) throw error;
     
-    if (profileError) {
-      console.error('查询用户资料失败:', profileError);
-      bar.innerHTML = `<div class="text-xs p-4" style="color: var(--muted);">加载用户失败</div>`;
+    if (!escorts || escorts.length === 0) {
+      bar.innerHTML = `<div class="text-xs p-4" style="color: var(--muted);">暂无在线护航员，快去申请成为第一个！</div>`;
       return;
     }
     
-    if (!profiles || profiles.length === 0) {
-      bar.innerHTML = `<div class="text-xs p-4" style="color: var(--muted);">暂无在线护航员</div>`;
-      return;
-    }
+    // 按等级分组：魔王 > 明星 > 普通
+    const devil = escorts.filter(e => e.escort_level === 'devil');
+    const star = escorts.filter(e => e.escort_level === 'star');
+    const normal = escorts.filter(e => e.escort_level === 'normal');
+    const sorted = [...devil, ...star, ...normal];
     
-    // 渲染护航员列表（最多显示10个）
-    bar.innerHTML = profiles.slice(0, 10).map(user => `
-  <div class="escort-card flex flex-col items-center gap-1 flex-shrink-0" onclick="viewUserProfile('${user.id}')">
-    <div style="position: relative;">
-      <img src="${user.avatar_url || dicebearUrl(user.username)}" class="escort-avatar w-14 h-14 rounded-full object-cover border-2" style="border-color: var(--accent);">
-      <span class="online-pulse"></span>
+    bar.innerHTML = profiles.slice(0, 10).map(user => {
+  const levelConfig = {
+    normal: { name: '普通', color: '#4a6fa5', icon: '🛡️' },
+    star: { name: '明星', color: '#f1c40f', icon: '⭐' },
+    devil: { name: '魔王', color: '#e74c3c', icon: '👑' }
+  };
+  const lc = levelConfig[user.escort_level] || levelConfig.normal;
+  
+  return `
+    <div class="escort-card flex flex-col items-center gap-1 flex-shrink-0" onclick="viewUserProfile('${user.id}')">
+      <div style="position: relative;">
+        <img src="${user.avatar_url || dicebearUrl(user.username)}" class="escort-avatar w-14 h-14 rounded-full object-cover border-2" style="border-color: ${lc.color};">
+        <span class="online-pulse"></span>
+        <span class="absolute -bottom-1 -right-1 text-sm" style="filter: drop-shadow(0 0 4px ${lc.color});">${lc.icon}</span>
+      </div>
+      <span class="text-xs font-medium" style="color: var(--text);">${user.username}</span>
+      <span class="text-[10px] px-2 py-0.5 rounded-full" style="background: ${lc.color}; color: white;">${lc.name} · ${user.escort_orders_completed || 0}单</span>
+      <!-- 👇 新增预约按钮 👇 -->
+      <button class="btn-warm text-[10px] px-3 py-1 mt-1 rounded-full" 
+        onclick="event.stopPropagation(); openEscortBookingModal('${user.id}', '${user.username.replace(/'/g, "\\'")}', '${lc.name}')">
+        <i class="fas fa-calendar-plus mr-1"></i>预约
+      </button>
     </div>
-    <span class="text-xs font-medium" style="color: var(--text);">${user.username}</span>
-    <span class="text-[10px] px-2 py-0.5 rounded-full" style="background: var(--accent); color: white;">护航中</span>
-  </div>
-`).join('');
+  `;
+}).join('');
     
-    // 为电脑端添加横向拖拽滚动功能
     enableHorizontalDragScroll(bar);
-    
   } catch (err) {
     console.error('加载在线护航员异常:', err);
-    bar.innerHTML = `<div class="text-xs p-4" style="color: var(--muted);">加载失败，请稍后重试</div>`;
+    bar.innerHTML = `<div class="text-xs p-4" style="color: var(--muted);">加载失败</div>`;
   }
 }
+
+
+
 async function loadHotRecommend() {
   const list = $('hotRecommendList');
   if (!list) return;
@@ -9665,6 +10552,23 @@ if (APP.filters.topic && APP.filters.topic !== 'all') {
   }
 }
 
+
+
+function getEscortBadgeHtml(profile) {
+  if (!profile || !profile.is_escort) return '';
+  const level = profile.escort_level;
+  const config = {
+    normal: { icon: '🛡️', name: '普通护航员', class: 'escort-badge-normal' },
+    star: { icon: '⭐', name: '明星护航员', class: 'escort-badge-star' },
+    devil: { icon: '👑', name: '魔王护航员', class: 'escort-badge-devil' }
+  };
+  const c = config[level] || config.normal;
+  return `<span class="escort-badge ${c.class}" title="${c.name}">${c.icon} ${c.name}</span>`;
+}
+
+
+
+
 function createPostCard(post, idx, isTop = false) {
   const div = document.createElement('div');
   div.className = 'masonry-item card-enter';
@@ -9724,7 +10628,9 @@ const opLabel = `<span class="tag-pill" style="background:${opColor}20; color:${
         </div>
         <div class="post-author-info">
           <div class="post-author-name">
-            ${post.profiles?.username || '干员'} ${displayBadgeHtml}
+            ${post.profiles?.username || '干员'} 
+  ${getEscortBadgeHtml(post.profiles)} 
+  ${displayBadgeHtml}
             ${APP.user && APP.user.id !== post.user_id ? `<button class="text-xs px-2 py-0.5 rounded-full" style="border:1px solid var(--accent);color:var(--accent); background: transparent;" onclick="event.stopPropagation(); followUser('${post.user_id}')">${APP.followedIds.includes(post.user_id) ? '已关注' : '+ 关注'}</button>` : ''}
           </div>
           <div class="post-meta">
@@ -10025,10 +10931,11 @@ if (postType === 'story') {
   await sb.from('points_log').insert({ user_id: APP.user.id, amount: 3, reason: '发布帖子' });
   updateUserPointsUI();
 
-
+  await addExp(20);  // 发帖获得20经验
   closeModal('publishModal');
   $('pubTitle').value = ''; $('pubDesc').value = ''; $('pubTags').value = '';
   $('pubMediaPreview').innerHTML = ''; $('pubMedia').value = '';
+
   loadPosts(true);
   btn.disabled = false;
 }
@@ -10330,6 +11237,8 @@ async function submitComment() {
   }
 
   showToast('评论成功');
+// 评论经验奖励
+  await addExp(5);
   // 更新新人任务
   updateNewbieTask(APP.user.id, 'comment');
   $('commentInput').value = ''; 
@@ -11296,19 +12205,75 @@ async function renderPendingRewardsInProfile() {
   const unused = rewards.filter(r => !r.used);
   
   if (unused.length === 0) {
-    container.innerHTML = '<p class="text-xs" style="color: var(--muted);">暂无待使用权益</p>';
+    container.innerHTML = '<p class="text-xs text-center py-4" style="color: var(--muted);">暂无待使用权益</p>';
     return;
   }
   
-  const pinCount = unused.filter(r => r.type === 'pin').length;
-  const namingCount = unused.filter(r => r.type === 'naming').length;
+  const maxVisible = 3; // 默认显示前3条
+  const needCollapse = unused.length > maxVisible;
   
-  container.innerHTML = `
-    <div class="flex gap-3">
-      ${pinCount > 0 ? `<span class="badge badge-gold text-xs"><i class="fas fa-thumbtack mr-1"></i>置顶权 x${pinCount}</span>` : ''}
-      ${namingCount > 0 ? `<span class="badge badge-silver text-xs"><i class="fas fa-pen mr-1"></i>命名权 x${namingCount}</span>` : ''}
-    </div>
-  `;
+  // 生成每条权益的HTML
+  const renderItem = (r) => {
+    let icon = 'fa-ticket';
+    let name = r.name || '权益';
+    let guide = '';
+    
+    if (r.type === 'pin') { icon = 'fa-thumbtack'; name = '帖子置顶权'; guide = '在帖子列表中使用'; }
+    else if (r.type === 'naming') { icon = 'fa-pen'; name = '配装命名权'; guide = '在起装方案中使用'; }
+    else if (r.type === 'voucher_hafu_3w') { icon = 'fa-coins'; name = '3万哈夫币券'; guide = '联系群主领取'; }
+    else if (r.type === 'voucher_weapon_build') { icon = 'fa-gun'; name = '定制配装方案券'; guide = '联系群主安排'; }
+    else if (r.type === 'voucher_escort_1') { icon = 'fa-shield-halved'; name = '护航体验资格券'; guide = '联系群主安排'; }
+    else if (r.type === 'voucher_hafu_50w') { icon = 'fa-coins'; name = '50万哈夫币券'; guide = '联系群主领取'; }
+    else if (r.type === 'escort_free') { icon = 'fa-shield-halved'; name = '免费护航体验券'; guide = '联系群主安排'; }
+    
+    return `
+      <div class="pending-reward-item flex items-center justify-between p-3 rounded-lg mb-2" style="background: var(--surface);">
+        <div class="flex items-center gap-3">
+          <i class="fas ${icon}" style="color: var(--accent);"></i>
+          <div>
+            <span class="text-sm">${name}</span>
+            <p class="text-[10px]" style="color: var(--muted);">${guide}</p>
+          </div>
+        </div>
+        <button class="text-xs px-3 py-1 rounded-full" style="background: var(--accent); color: white;" 
+                onclick="useServiceVoucher('${r.type}', '${r.id}')">
+          使用
+        </button>
+      </div>
+    `;
+  };
+  
+  // 渲染可见部分和折叠部分
+  let html = '';
+  unused.slice(0, maxVisible).forEach(r => { html += renderItem(r); });
+  
+  if (needCollapse) {
+    html += `
+      <div id="pendingRewardsCollapse" style="display:none;">
+        ${unused.slice(maxVisible).map(r => renderItem(r)).join('')}
+      </div>
+      <div class="text-center mt-2">
+        <button id="togglePendingRewardsBtn" class="text-xs px-4 py-1.5 rounded-full" style="background: var(--surface); border: 1px solid var(--border); color: var(--accent);" onclick="togglePendingRewards()">
+          <i class="fas fa-chevron-down mr-1"></i>展开剩余 ${unused.length - maxVisible} 项
+        </button>
+      </div>
+    `;
+  }
+  
+  container.innerHTML = html;
+}
+
+// 切换折叠状态
+function togglePendingRewards() {
+  const collapse = document.getElementById('pendingRewardsCollapse');
+  const btn = document.getElementById('togglePendingRewardsBtn');
+  if (!collapse || !btn) return;
+  
+  const isHidden = collapse.style.display === 'none';
+  collapse.style.display = isHidden ? 'block' : 'none';
+  btn.innerHTML = isHidden 
+    ? '<i class="fas fa-chevron-up mr-1"></i>收起' 
+    : `<i class="fas fa-chevron-down mr-1"></i>展开剩余 ${collapse.children.length} 项`;
 }
 
 
@@ -11317,9 +12282,22 @@ async function renderPendingRewardsInProfile() {
 // ==================== 个人资料 ====================
 function renderProfile() {
   if (!APP.profile) return;
-  
+  updateUserPointsUI();
   // 更新基础信息
   $('profileAvatar').src = APP.profile.avatar_url || dicebearUrl('default');
+
+  // 头像框样式
+  const avatarContainer = document.querySelector('#profileTab .story-ring');
+  if (avatarContainer) {
+    if (APP.profile.frame === 'gold') {
+      avatarContainer.style.background = 'linear-gradient(135deg, #FFD700, #FFA500, #FFD700)';
+      avatarContainer.style.boxShadow = '0 0 20px #FFD700';
+    } else {
+      avatarContainer.style.background = ''; // 恢复默认
+    }
+  }
+
+
   $('profileName').textContent = APP.profile.username;
   $('profileLevel').textContent = 'Lv.' + (APP.profile.level || 1);
   const expNeeded = (APP.profile.level || 1) * 100;
@@ -11368,6 +12346,10 @@ function renderProfile() {
   loadMyFavorites();
   setTimeout(() => renderPendingRewardsInProfile(), 200);
   loadMyLoadoutFavorites();
+  loadProfileLucky();
+// 更新福利总览数据
+  setTimeout(() => updateWelfareOverview(), 300);
+loadNewbieTasks();
   // 加载邀请人数
   loadInviteCount();
 
@@ -11402,6 +12384,24 @@ function renderProfile() {
 }
 
 
+
+async function loadNewbieTasks() {
+  if (!APP.user) return;
+    const { data } = await sb.from('newbie_tasks').select('*').eq('user_id', APP.user.id).maybeSingle();
+  if (!data) return;
+  if (data.completed_at) return; // 已完成全部
+  
+  const card = document.getElementById('newbieTaskCard');
+  if (card) card.style.display = 'block';
+  
+  const postIcon = document.getElementById('taskPostIcon');
+  const commentIcon = document.getElementById('taskCommentIcon');
+  const inviteIcon = document.getElementById('taskInviteIcon');
+  
+  if (data.has_posted) postIcon.className = 'fas fa-check-circle text-green-500 mr-1';
+  if (data.has_commented) commentIcon.className = 'fas fa-check-circle text-green-500 mr-1';
+  if (data.has_invited) inviteIcon.className = 'fas fa-check-circle text-green-500 mr-1';
+}
 
 
 
@@ -11560,6 +12560,18 @@ async function checkIn() {
   renderProfile();
 }
 
+
+async function openCheckinCalendarModal() {
+  openModal('checkinCalendarModal');
+  // 获取用户所有签到记录
+  const { data } = await sb.from('checkins').select('checkin_date').eq('user_id', APP.user.id).order('checkin_date');
+  const checkinSet = new Set(data?.map(d => d.checkin_date) || []);
+  
+  // 计算统计并渲染月份日历（此处省略具体实现，可后续完善）
+  renderMonthCalendar(checkinSet);
+}
+
+
 async function loadCheckinStatus() {
   const { data } = await sb.from('checkins').select('*').eq('user_id', APP.user.id).order('checkin_date', { ascending: false }).limit(1);
   if (data && data.length) {
@@ -11572,6 +12584,197 @@ async function loadCheckinStatus() {
     }
   }
 }
+
+async function loadAdminStats() {
+  // 总用户数
+  const { count: users } = await sb.from('profiles').select('*', { count: 'exact', head: true });
+  document.getElementById('adminStatUsers').textContent = users || 0;
+  
+  // 总帖子数
+  const { count: posts } = await sb.from('posts').select('*', { count: 'exact', head: true });
+  document.getElementById('adminStatPosts').textContent = posts || 0;
+  
+  // 护航员数量
+  const { count: escorts } = await sb.from('profiles').select('*', { count: 'exact', head: true }).eq('is_escort', true);
+  document.getElementById('adminStatEscorts').textContent = escorts || 0;
+  
+  // 近7天新增用户图表
+  const days = [];
+  const counts = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(Date.now() - i * 86400000);
+    const dateStr = d.toISOString().split('T')[0];
+    days.push(`${d.getMonth()+1}/${d.getDate()}`);
+    
+    const { count } = await sb.from('profiles')
+      .select('*', { count: 'exact', head: true })
+      .gte('created_at', dateStr)
+      .lt('created_at', new Date(d.getTime() + 86400000).toISOString());
+    counts.push(count || 0);
+  }
+  
+  const ctx = document.getElementById('adminChartDaily').getContext('2d');
+  if (window.adminChart) window.adminChart.destroy();
+  window.adminChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: days,
+      datasets: [{
+        label: '新增用户',
+        data: counts,
+        borderColor: '#FF6B35',
+        backgroundColor: 'rgba(255,107,53,0.1)',
+        fill: true
+      }]
+    },
+    options: { responsive: true, maintainAspectRatio: true }
+  });
+}
+
+window.refreshAdminStats = loadAdminStats;
+
+
+// ==================== 等级经验与升级奖励系统 ====================
+
+// 升级所需经验公式：每级需要 (level * 100) 经验
+function expForLevel(level) {
+  return level * 100;
+}
+
+// 统一加经验并检测升级（替代各处零散的 exp 更新）
+async function addExp(amount) {
+  if (!APP.user || !APP.profile) return;
+  
+  const oldLevel = APP.profile.level || 1;
+  let exp = (APP.profile.exp || 0) + amount;
+  let level = oldLevel;
+  
+  // 循环检测升级（可能一次加大量经验连升多级）
+  while (exp >= expForLevel(level)) {
+    exp -= expForLevel(level);
+    level++;
+  }
+  
+  // 更新本地状态
+  APP.profile.exp = exp;
+  APP.profile.level = level;
+  
+  // 写入数据库
+  const { error } = await sb.from('profiles')
+    .update({ exp, level })
+    .eq('id', APP.user.id);
+  if (error) { console.error('经验更新失败:', error); return; }
+  
+  // 检测是否升级了
+  if (level > oldLevel) {
+    // 发放升级奖励（每级基础奖励）
+    await grantLevelReward(level);
+    // 弹窗提示
+    showLevelUpModal(oldLevel, level);
+  }
+}
+
+// 发放等级奖励（积分 + 里程碑）
+async function grantLevelReward(newLevel) {
+  // 1. 每级基础积分
+  let basePoints = 5;
+  if (newLevel >= 30) basePoints = 30;
+  else if (newLevel >= 20) basePoints = 25;
+  else if (newLevel >= 15) basePoints = 20;
+  else if (newLevel >= 10) basePoints = 15;
+  else if (newLevel >= 5) basePoints = 10;
+  
+  await addUserPoints(basePoints);
+  await sb.from('points_log').insert({
+    user_id: APP.user.id,
+    amount: basePoints,
+    reason: `升级 Lv.${newLevel} 基础奖励`
+  });
+  
+  // 2. 里程碑奖励（关键等级给大礼包）
+  const milestones = {
+    5:  { badge: 'badge_bronze_officer',  name: '铜牌干员', points: 5  },
+    10: { badge: 'badge_silver_officer',  name: '银牌干员', points: 10, reward_type: 'pin' },
+    20: { badge: 'badge_gold_officer',    name: '金牌干员', points: 20, reward_type: 'naming' },
+    30: { badge: 'badge_diamond_officer', name: '钻石干员', points: 30, reward_type: 'voucher_escort_1' },
+    50: { badge: 'badge_legend_officer',  name: '传奇战神', points: 50, reward_type: 'frame_gold' }
+  };
+  
+  const m = milestones[newLevel];
+  if (!m) return;
+  
+  // 检查是否已领取过（防重复）
+  const { data: exist } = await sb.from('level_rewards')
+    .select('id')
+    .eq('user_id', APP.user.id)
+    .eq('reward_level', newLevel)
+    .single();
+  if (exist) return;
+  
+  // 记录已领取
+  await sb.from('level_rewards').insert({
+    user_id: APP.user.id,
+    reward_level: newLevel
+  });
+  
+  // 发放勋章
+  const badgeDefs = {
+    badge_bronze_officer:  { name: '铜牌干员', icon: '🥉', rarity: 'rare' },
+    badge_silver_officer:  { name: '银牌干员', icon: '🥈', rarity: 'epic' },
+    badge_gold_officer:    { name: '金牌干员', icon: '🥇', rarity: 'legend' },
+    badge_diamond_officer: { name: '钻石干员', icon: '💎', rarity: 'legend' },
+    badge_legend_officer:  { name: '传奇战神', icon: '👑', rarity: 'legend' }
+  };
+  const badgeInfo = badgeDefs[m.badge];
+  if (badgeInfo) {
+    await grantBadgeToUser(APP.user.id, m.badge);
+  }
+  
+  // 发放额外积分
+  await addUserPoints(m.points);
+  await sb.from('points_log').insert({
+    user_id: APP.user.id,
+    amount: m.points,
+    reason: `Lv.${newLevel} 里程碑奖励`
+  });
+  
+  // 发放权益
+  if (m.reward_type === 'pin') {
+    await savePendingReward(APP.user.id, 'pin', 'Lv.10 帖子置顶权');
+  } else if (m.reward_type === 'naming') {
+    await savePendingReward(APP.user.id, 'naming', 'Lv.20 配装命名权');
+  } else if (m.reward_type === 'voucher_escort_1') {
+    await savePendingReward(APP.user.id, 'voucher_escort_1', 'Lv.30 护航体验资格券');
+  } else if (m.reward_type === 'frame_gold') {
+    await sb.from('profiles').update({ frame: 'gold' }).eq('id', APP.user.id);
+    if (APP.profile) APP.profile.frame = 'gold';
+  }
+  
+  showToast(`🎉 Lv.${newLevel} 里程碑达成！获得 ${badgeInfo?.name || m.name} +${m.points}积分`, 'success');
+}
+
+// 升级弹窗
+function showLevelUpModal(oldLevel, newLevel) {
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay active';
+  modal.style.zIndex = '100001';
+  modal.innerHTML = `
+    <div class="modal-content active" style="max-width:380px; text-align:center; animation: modalPop 0.4s cubic-bezier(0.34,1.56,0.64,1);">
+      <div class="text-5xl mb-3">🎉</div>
+      <h3 class="font-display text-2xl mb-2" style="color: var(--accent);">干员晋升！</h3>
+      <div class="text-3xl font-black mb-2">
+        <span style="color: #FFD700;">Lv.${oldLevel}</span>
+        <i class="fas fa-arrow-right mx-2"></i>
+        <span style="color: var(--accent);">Lv.${newLevel}</span>
+      </div>
+      <p class="text-sm mb-3" style="color: var(--muted);">战斗力提升，奖励已发放至个人中心</p>
+      <button class="btn-warm w-full py-3" onclick="this.closest('.modal-overlay').remove()">太棒了！</button>
+      <p class="text-xs mt-2" style="color: var(--muted);" onclick="this.closest('.modal-overlay').remove()">稍后查看</p>
+    </div>
+  `;
+  document.body.appendChild(modal);
+}
+
 
 // ==================== 成就系统 ====================
 async function checkAchievement(achId, condition) {
@@ -12356,6 +13559,64 @@ async function submitReview(videoId) {
     showToast('审核失败: ' + error.message, 'error');
   } else {
     showToast(`审核完成：${status === 'passed' ? '已通过' : '未通过'}，评分 ${score}`, 'success');
+
+
+    // ========== 🌟 新增：自动赋予护航员身份 ==========
+    // 如果状态改为通过
+    if (status === 'passed') {
+      // 获取这个视频的上传者 ID
+      const { data: videoData, error: fetchVideoError } = await sb
+        .from('escort_videos')
+        .select('user_id')
+        .eq('id', videoId)
+        .single();
+      
+      if (!fetchVideoError && videoData) {
+        const uploaderId = videoData.user_id;
+        
+        // 检查这个用户是否已经是护航员
+        const { data: profile, error: profileError } = await sb
+          .from('profiles')
+          .select('is_escort, escort_score')
+          .eq('id', uploaderId)
+          .single();
+        
+        if (!profileError && profile) {
+          // 如果还不是护航员
+          if (!profile.is_escort) {
+            // 首次成为护航员，给予基础积分 50，自动成为普通护航员
+            const { error: updateError } = await sb
+              .from('profiles')
+              .update({ 
+                escort_score: 50,
+                is_escort: true,
+                escort_level: 'normal'
+              })
+              .eq('id', uploaderId);
+            
+            if (!updateError) {
+              // 发送系统通知
+              await sb.from('notifications').insert({
+                recipient_id: uploaderId,
+                sender_id: APP.user.id,  // 审核管理员
+                type: 'system',
+                content: '🎉 恭喜！你的考核视频已通过审核，你已正式成为【普通护航员】！'
+              });
+              console.log('✅ 用户 ' + uploaderId + ' 已自动成为护航员');
+            } else {
+              console.warn('⚠️ 更新护航员状态失败:', updateError);
+            }
+          } else {
+            // 如果已经是护航员，只增加积分（视频通过奖励）
+            const newScore = (profile.escort_score || 0) + 20;
+            await sb.from('profiles')
+              .update({ escort_score: newScore })
+              .eq('id', uploaderId);
+          }
+        }
+      }
+    }
+    // ========== 🌟 新增结束 ==========
     // 刷新护航视频列表
     loadEscortVideos(true);
   }
@@ -12596,6 +13857,10 @@ if (videoFile.size > 50 * 1024 * 1024) {
     showToast('保存失败: ' + insertError.message, 'error');
   } else {
     showToast('视频已提交，等待管理员审核！', 'success');
+// 新增
+setTimeout(() => {
+  showModal('🎖️ 想成为认证护航员？', '视频审核通过后，你将自动获得“护航员”身份，可接单赚积分！', '我知道了');
+}, 500);
     closeModal('escortUploadModal');
     // 清空表单
     $('escortTitle').value = '';
@@ -16548,6 +17813,17 @@ async function adminLogin() {
   }
 }
 
+
+function toggleAdminView(view) {
+  document.getElementById('adminDashboardView').style.display = view === 'dashboard' ? 'block' : 'none';
+  document.querySelectorAll('#adminPanel > div:not(#adminDashboardView)').forEach(el => {
+    if (el.id === 'adminDashboardView') return;
+    el.style.display = view === 'dashboard' ? 'none' : '';
+  });
+  if (view === 'dashboard') loadAdminStats();
+}
+
+
 async function loadAdminData() {
   // 加载宣传图列表
   const { data: banners } = await sb.from('banners').select('*').order('created_at', { ascending: false });
@@ -16753,37 +18029,30 @@ let onlineChannel = null;
 
 async function initOnlinePresence() {
   if (!sb) return;
-  onlineChannel = sb.channel('online-users');
-  onlineChannel
-    .on('presence', { event: 'sync' }, () => {
-      const state = onlineChannel.presenceState();
-      const count = Object.keys(state).length;
-      $('onlineCount').textContent = count;
-      // 刷新护航员在线横条
-      if (APP.currentTab === 'home') {
-        loadOnlineEscorts();
-      }
-      
-      // 更新所有在线用户绿点
-      const onlineUserIds = new Set();
-      Object.values(state).forEach(presences => {
-        presences.forEach(p => onlineUserIds.add(p.user_id));
-      });
-      onlineUserIds.forEach(uid => {
-        const indicator = $(`online-${uid}`);
-        if (indicator) indicator.classList.remove('hidden');
-      });
-    })
-    .subscribe(async (status) => {
-      if (status === 'SUBSCRIBED') {
-        await onlineChannel.track({
-          user_id: APP.user?.id || 'guest',
-          online_at: new Date().toISOString()
-        });
-      }
+  
+  const channel = sb.channel('online-users', {
+    config: { presence: { key: APP.user?.id || 'guest' } }
+  });
+  
+  channel.on('presence', { event: 'sync' }, () => {
+    const state = channel.presenceState();
+    const onlineUsers = new Set();
+    Object.values(state).forEach(presences => {
+      presences.forEach(p => onlineUsers.add(p.user_id));
     });
-}
-window.addEventListener('beforeunload', () => {
+    document.getElementById('onlineCount').textContent = onlineUsers.size || 1;
+  });
+  
+  channel.subscribe(async (status) => {
+    if (status === 'SUBSCRIBED' && APP.user) {
+      await channel.track({
+        user_id: APP.user.id,
+        username: APP.profile?.username || '干员',
+        online_at: new Date().toISOString()
+      });
+    }
+  });
+}window.addEventListener('beforeunload', () => {
   if (onlineChannel) {
     onlineChannel.untrack();
     sb.removeChannel(onlineChannel);
@@ -16791,25 +18060,68 @@ window.addEventListener('beforeunload', () => {
 });
 
 // ==================== 实时通知 ====================
+let globalRealtimeChannel = null;
+
 function subscribeRealtime() {
   if (!sb) return;
-  sb.channel('public:comments')
-    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'comments' }, payload => {
-      if (payload.new.user_id !== APP.user.id) {
+  
+  if (globalRealtimeChannel && globalRealtimeChannel.state === 'joined') {
+    console.log('Realtime 已连接，跳过');
+    return;
+  }
+  
+  if (globalRealtimeChannel) {
+    sb.removeChannel(globalRealtimeChannel);
+    globalRealtimeChannel = null;
+  }
+  
+  // 创建频道，先不订阅
+  globalRealtimeChannel = sb.channel('global-updates', {
+    config: { broadcast: { self: false } }
+  });
+  
+  // 1. 先绑定所有数据库变更监听
+  globalRealtimeChannel
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'comments' }, (payload) => {
+      if (APP.user && payload.new.user_id !== APP.user.id) {
         APP.notifications.push({ type: 'comment', msg: '有人评论了你的帖子', time: new Date() });
-        $('notifDot').style.display = 'block';
-        renderNotifications();
+        document.getElementById('notifDot').style.display = 'block';
+        if (typeof renderNotifications === 'function') renderNotifications();
       }
     })
-    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'votes' }, payload => {
-      if (payload.new.vote_type === 'up') {
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'votes' }, (payload) => {
+      if (APP.user && payload.new.vote_type === 'up') {
         APP.notifications.push({ type: 'like', msg: '你的帖子收到了赞', time: new Date() });
-        $('notifDot').style.display = 'block';
-        renderNotifications();
+        document.getElementById('notifDot').style.display = 'block';
+        if (typeof renderNotifications === 'function') renderNotifications();
       }
+    });
+  
+  // 2. 然后绑定广播事件
+  globalRealtimeChannel
+    .on('broadcast', { event: 'points_update' }, (payload) => {
+      if (typeof updateUserPointsUI === 'function') updateUserPointsUI();
     })
-    .subscribe();
+    .on('broadcast', { event: 'jackpot_announce' }, (payload) => {
+      if (typeof showJackpotBroadcast === 'function') {
+        showJackpotBroadcast(payload.payload);
+      }
+    });
+  
+  // 3. 最后才订阅
+  globalRealtimeChannel.subscribe((status) => {
+    if (status === 'SUBSCRIBED') {
+      console.log('✅ Realtime 订阅成功 (global-updates)');
+    } else if (status === 'CHANNEL_ERROR') {
+      console.error('❌ Realtime 频道错误');
+    }
+  });
 }
+
+
+
+
+
 
 function renderNotifications() {
   const list = $('notifList');
@@ -18857,6 +20169,7 @@ initToolbox();
     if (APP.isAdmin) {
       $('adminLogin').style.display = 'none';
       $('adminPanel').style.display = 'block';
+       $('adminVerifyEntry').style.display = 'block';
       loadAdminData();
     }
     openModal('adminModal');
@@ -19643,6 +20956,7 @@ function openToolModal(title, content) {
     modal = document.createElement('div');
     modal.id = 'toolModal';
     modal.className = 'modal-overlay';
+
     modal.innerHTML = `<div class="modal-content" style="max-width:400px;"></div>`;
     document.body.appendChild(modal);
   }
@@ -19834,50 +21148,33 @@ window.showPuzzleHint = function() {
   const puzzle = generateDailyPuzzle();
   showToast(`💡 提示：${puzzle.hint}`, 'info');
 };
-
-// 检查猜图答案（在战术板的点击事件中调用）
-window.checkPuzzleAnswer = function(clickX, clickY) {
+window.checkPuzzleAnswer = async function(clickX, clickY) {
   if (!window.puzzleGuessMode || !window.currentPuzzle) return false;
   
   const puzzle = window.currentPuzzle;
   const dist = Math.sqrt(Math.pow(clickX - puzzle.answerX, 2) + Math.pow(clickY - puzzle.answerY, 2));
   
   if (dist <= puzzle.tolerance) {
-    // 答对了！
     window.puzzleGuessMode = false;
     
-    // 标记为已答
     const saved = JSON.parse(localStorage.getItem(DAILY_PUZZLE_KEY));
-    saved.answered = true;
-    localStorage.setItem(DAILY_PUZZLE_KEY, JSON.stringify(saved));
+    if (saved) {
+      saved.answered = true;
+      localStorage.setItem(DAILY_PUZZLE_KEY, JSON.stringify(saved));
+    }
     
-    // 移除高亮
     const canvas = document.getElementById('tacticalCanvas');
     if (canvas) canvas.style.outline = '';
     
-    // 奖励经验
     if (APP.user && APP.profile) {
-      APP.profile.exp = (APP.profile.exp || 0) + 50;
-      // 检查升级
-      const levelUp = APP.profile.exp >= APP.profile.level * 100;
-      if (levelUp) {
-        APP.profile.level++;
-        APP.profile.exp -= (APP.profile.level - 1) * 100;
-      }
-      // 更新数据库（如果有）
-      if (sb && APP.user) {
-        sb.from('profiles').update({ exp: APP.profile.exp, level: APP.profile.level }).eq('id', APP.user.id);
-      }
+      try { await addExp(50); } catch(e) { console.error(e); }
     }
-    
+
     showToast('🎉 恭喜你猜对了！经验+50！', 'success');
-    
-    // 刷新猜图卡片
     renderDailyPuzzle();
-    
-    // 在点击位置显示正确标记
-    addPlacedPoint('loot', puzzle.answerX, puzzle.answerY);
-    
+    if (typeof addPlacedPoint === 'function') {
+      addPlacedPoint('loot', puzzle.answerX, puzzle.answerY);
+    }
     return true;
   } else {
     showToast(`❌ 位置偏差较大（距离 ${Math.round(dist)} 像素），再试试`, 'error');
@@ -19886,6 +21183,9 @@ window.checkPuzzleAnswer = function(clickX, clickY) {
 };
 
 
+
+
+// 检查猜图答案（在战术板的点击事件中调用）
 // ==================== 三角洲·万能猜（全局） ====================
 const UNIVERSAL_QUIZ_KEY = 'delta_universal_quiz';
 const QUIZ_CRAWLER_KEY = 'delta_quiz_crawler_pool';
@@ -20090,33 +21390,25 @@ window.handleQuizAnswer = function(selectedIdx) {
   quiz.userAnswers.push({ q: q.q || q.question, selected: selectedIdx, correct: isCorrect });
   if (isCorrect) quiz.score++;
   
-  setTimeout(() => {
-    if (quiz.currentIndex + 1 < quiz.questions.length) {
-      quiz.currentIndex++;
-      localStorage.setItem(UNIVERSAL_QUIZ_KEY, JSON.stringify(quiz));
-      renderUniversalQuiz();
-    } else {
-      quiz.completed = true;
-      localStorage.setItem(UNIVERSAL_QUIZ_KEY, JSON.stringify(quiz));
-      
-      if (APP.user && APP.profile) {
-        const expGain = quiz.score * 10;
-        APP.profile.exp = (APP.profile.exp || 0) + expGain;
-        const levelUp = APP.profile.exp >= APP.profile.level * 100;
-        if (levelUp) {
-          APP.profile.level++;
-          APP.profile.exp -= (APP.profile.level - 1) * 100;
+      setTimeout(async () => {
+      if (quiz.currentIndex + 1 < quiz.questions.length) {
+        quiz.currentIndex++;
+        localStorage.setItem(UNIVERSAL_QUIZ_KEY, JSON.stringify(quiz));
+        renderUniversalQuiz();
+      } else {
+        quiz.completed = true;
+        localStorage.setItem(UNIVERSAL_QUIZ_KEY, JSON.stringify(quiz));
+
+        if (APP.user && APP.profile) {
+          const expGain = quiz.score * 10;
+          await addExp(expGain);
+          showToast(`🎉 挑战完成！得分 ${quiz.score}/${quiz.questions.length}，经验+${expGain}！`, 'success');
         }
-        if (sb && APP.user) {
-          sb.from('profiles').update({ exp: APP.profile.exp, level: APP.profile.level }).eq('id', APP.user.id);
-        }
-        showToast(`🎉 挑战完成！得分 ${quiz.score}/${quiz.questions.length}，经验+${expGain}！`, 'success');
+
+        renderUniversalQuiz();
+        if (typeof updateIntelSummary === 'function') updateIntelSummary();
       }
-      
-      renderUniversalQuiz();
-      if (typeof updateIntelSummary === 'function') updateIntelSummary();
-    }
-  }, 800);
+    }, 800);
 };
 // ==================== 每日战术猜图（全局） ====================
 // ==================== 三角洲万象猜 · 完整题库与逻辑（简化版，直接信任爬虫分类） ====================
@@ -20723,40 +22015,37 @@ window.showPuzzleHint = function() {
 };
 
 // 检查答案
-window.checkPuzzleAnswer = function(clickX, clickY) {
+window.checkPuzzleAnswer = async function(clickX, clickY) {
   if (!window.puzzleGuessMode || !window.currentPuzzle) return false;
   
   const puzzle = window.currentPuzzle;
   const dist = Math.sqrt(Math.pow(clickX - puzzle.answerX, 2) + Math.pow(clickY - puzzle.answerY, 2));
   
   if (dist <= puzzle.tolerance) {
+    // 答对了！
     window.puzzleGuessMode = false;
     
+    // 标记为已答
     const saved = JSON.parse(localStorage.getItem(DAILY_PUZZLE_KEY));
     saved.answered = true;
     localStorage.setItem(DAILY_PUZZLE_KEY, JSON.stringify(saved));
     
+    // 移除高亮
     const canvas = document.getElementById('tacticalCanvas');
     if (canvas) canvas.style.outline = '';
     
+    // 奖励经验（自动升级+发奖）
     if (APP.user && APP.profile) {
-      APP.profile.exp = (APP.profile.exp || 0) + 50;
-      const levelUp = APP.profile.exp >= APP.profile.level * 100;
-      if (levelUp) {
-        APP.profile.level++;
-        APP.profile.exp -= (APP.profile.level - 1) * 100;
-      }
-      if (sb && APP.user) {
-        sb.from('profiles').update({ exp: APP.profile.exp, level: APP.profile.level }).eq('id', APP.user.id);
-      }
+      await addExp(50);
     }
-    
+
     showToast('🎉 恭喜你猜对了！经验+50！', 'success');
+    
+    // 刷新猜图卡片
     renderDailyPuzzle();
     
-    if (typeof addPlacedPoint === 'function') {
-      addPlacedPoint('loot', puzzle.answerX, puzzle.answerY);
-    }
+    // 在点击位置显示正确标记
+    addPlacedPoint('loot', puzzle.answerX, puzzle.answerY);
     
     return true;
   } else {
@@ -22696,11 +23985,19 @@ window.refreshTTKData = function() {
 
 // ==================== 积分商城 ====================
 const SHOP_ITEMS = [
-  { id: 'pin', name: '帖子置顶权 (24h)', price: 30, icon: 'fa-thumbtack', color: '#FFD700' },
-  { id: 'naming', name: '配装命名权', price: 30, icon: 'fa-pen', color: '#C0C0C0' },
-  { id: 'frame_gold', name: '金色头像框', price: 50, icon: 'fa-circle', color: '#FFD700' },
-  { id: 'badge_shop_king', name: '👑 钞能力王者', price: 100, icon: 'fa-crown', color: '#FFD700' }
+  // ========== 服务凭证区（兑换后联系群主领取） ==========
+  { id: 'voucher_hafu_3w', name: '💰 3万哈夫币券', price: 30, icon: 'fa-coins', color: '#f1c40f', tier: 'common', reqLevel: 1, desc: '凭此券联系群主领取3万哈夫币' },
+  { id: 'voucher_weapon_build', name: '🔫 定制配装方案', price: 50, icon: 'fa-gun', color: '#e67e22', tier: 'common', reqLevel: 2, desc: '大神1对1定制配装' },
+  { id: 'voucher_escort_1', name: '🛡️ 护航体验资格', price: 200, icon: 'fa-shield-halved', color: '#3498db', tier: 'rare', reqLevel: 5, desc: '凭此券联系群主安排大神带飞1局' },
+  { id: 'voucher_hafu_50w', name: '💰 50万哈夫币券', price: 400, icon: 'fa-coins', color: '#f1c40f', tier: 'rare', reqLevel: 10, desc: '凭此券联系群主领取50万哈夫币' },
+  
+  // ========== 虚拟荣誉区（自动发放） ==========
+  { id: 'pin', name: '📌 帖子置顶权 (24h)', price: 30, icon: 'fa-thumbtack', color: '#FFD700', tier: 'common', reqLevel: 1 },
+  { id: 'naming', name: '✏️ 配装命名权', price: 30, icon: 'fa-pen', color: '#C0C0C0', tier: 'common', reqLevel: 1 },
+  { id: 'frame_gold', name: '🖼️ 金色头像框', price: 50, icon: 'fa-circle', color: '#FFD700', tier: 'rare', reqLevel: 5 },
+  { id: 'badge_shop_king', name: '👑 钞能力王者', price: 100, icon: 'fa-crown', color: '#FFD700', tier: 'legend', reqLevel: 10 }
 ];
+
 
 async function openPointsShopModal() {
   if (!APP.user) { openAuthModal(); return; }
@@ -22776,6 +24073,7 @@ async function purchaseShopItem(itemId, price) {
     await sb.from('profiles').update({ frame: 'gold' }).eq('id', APP.user.id);
     if (APP.profile) APP.profile.frame = 'gold';
   } else if (itemId === 'badge_shop_king') {
+
     const newBadge = { id: 'badge_shop_king', name: '钞能力王者', icon: '👑', rarity: 'legend', grantedAt: new Date().toISOString() };
     const { data: prof } = await sb.from('profiles').select('badges').eq('id', APP.user.id).single();
     let badges = prof?.badges || [];
@@ -22787,22 +24085,68 @@ async function purchaseShopItem(itemId, price) {
     }
   }
   
-  showToast('兑换成功！', 'success');
+  else if (itemId === 'voucher_hafu_3w') {
+    await savePendingReward(APP.user.id, 'voucher_hafu_3w', '3万哈夫币券');
+  }
+  else if (itemId === 'voucher_weapon_build') {
+    await savePendingReward(APP.user.id, 'voucher_weapon_build', '定制配装方案券');
+  }
+  else if (itemId === 'voucher_escort_1') {
+    await savePendingReward(APP.user.id, 'voucher_escort_1', '护航体验资格券');
+  }
+  else if (itemId === 'voucher_hafu_50w') {
+    await savePendingReward(APP.user.id, 'voucher_hafu_50w', '50万哈夫币券');
+  }
+
+
+
+
+  // ========== 兑换成功后的引导 ==========
+  if (itemId.startsWith('voucher_')) {
+    // 获取商品名称
+    const item = SHOP_ITEMS.find(i => i.id === itemId);
+    const voucherName = item ? item.name : '服务凭证';
+    // 弹出可截图的凭证窗口
+    showVoucherModal(itemId, voucherName);
+  } else {
+    showToast('✅ 兑换成功！可在个人中心查看', 'success');
+  }
+
+
+  
+  // 刷新福利总览
+  updateWelfareOverview();
+  
   closeModal('pointsShopModal');
   updateUserPointsUI();
+
+
 }
 
 // 更新全局积分显示
+// ==================== 刷新顶部积分显示 ====================
 async function updateUserPointsUI() {
   if (!APP.user) return;
-  const { data } = await sb.from('user_points').select('points').eq('user_id', APP.user.id).maybeSingle();
-  const pts = data?.points || 0;
-  const display = document.getElementById('userPointsDisplay');
-  if (display) display.textContent = pts;
-  const shopDisplay = document.getElementById('shopCurrentPoints');
-  if (shopDisplay) shopDisplay.textContent = pts;
+  try {
+    const { data, error } = await sb
+      .from('user_points')
+      .select('points')
+      .eq('user_id', APP.user.id)
+      .maybeSingle();
+    if (error) throw error;
+    const points = data?.points || 0;
+    // 更新顶部导航栏积分
+    const display = document.getElementById('userPointsDisplay');
+    if (display) display.textContent = points;
+    // 同时更新积分商城弹窗内的积分显示
+    const shopDisplay = document.getElementById('shopCurrentPoints');
+    if (shopDisplay) shopDisplay.textContent = points;
+    const modalPoints = document.getElementById('modalUserPoints');
+    if (modalPoints) modalPoints.textContent = points;
+  } catch (e) {
+    console.warn('刷新积分显示失败:', e);
+  }
 }
-
 
 
 // ==================== 新人7日任务 ====================
@@ -23182,6 +24526,591 @@ async function loadInviteCount() {
 }
 
 
+
+// ==================== 积分明细弹窗 ====================
+async function showPointsLogModal() {
+  if (!APP.user) { openAuthModal(); return; }
+  
+  // 获取当前积分
+  const { data: pointsData } = await sb.from('user_points').select('points').eq('user_id', APP.user.id).maybeSingle();
+  const currentPoints = pointsData?.points || 0;
+  
+  // 获取最近20条积分记录
+  const { data: logs, error } = await sb
+    .from('points_log')
+    .select('amount, reason, created_at')
+    .eq('user_id', APP.user.id)
+    .order('created_at', { ascending: false })
+    .limit(20);
+  
+  let modal = document.getElementById('pointsLogModal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'pointsLogModal';
+    modal.className = 'modal-overlay';
+    modal.innerHTML = `
+      <div class="modal-content" style="max-width:450px; max-height:70vh; overflow-y:auto;">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="font-display text-xl"><i class="fas fa-coins mr-2" style="color:#FFD700;"></i>积分明细</h2>
+          <button onclick="closeModal('pointsLogModal')" class="w-8 h-8 rounded-full flex items-center justify-center" style="background:var(--surface)"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="flex items-center justify-between p-3 mb-3 rounded-xl" style="background: var(--surface);">
+          <span class="text-sm">当前积分</span>
+          <span class="text-xl font-bold" style="color: #FFD700;" id="modalCurrentPoints">${currentPoints}</span>
+        </div>
+        <div class="space-y-2" id="pointsLogList">
+          ${renderPointsLogList(logs)}
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+  } else {
+    // 更新弹窗内容
+    modal.querySelector('#modalCurrentPoints').textContent = currentPoints;
+    modal.querySelector('#pointsLogList').innerHTML = renderPointsLogList(logs);
+  }
+  
+  openModal('pointsLogModal');
+}
+
+function renderPointsLogList(logs, filter = 'all') {
+  if (!logs || logs.length === 0) {
+    return '<div class="text-center py-8 text-xs" style="color: var(--muted);">暂无积分记录</div>';
+  }
+  
+  // 筛选：仅显示收入或支出
+  let filtered = logs;
+  if (filter === 'earn') filtered = logs.filter(l => l.amount > 0);
+  if (filter === 'spend') filtered = logs.filter(l => l.amount < 0);
+  
+  if (filtered.length === 0) {
+    return '<div class="text-center py-8 text-xs" style="color: var(--muted);">暂无该类记录</div>';
+  }
+  
+  return filtered.map(log => {
+    const isEarn = log.amount > 0;
+    const icon = isEarn ? 'fa-arrow-up' : 'fa-arrow-down';
+    const color = isEarn ? '#2ecc71' : '#e74c3c';
+    const sign = isEarn ? '+' : '';
+    const reasonMap = {
+      '每日签到': '📅 每日签到',
+      '发布帖子': '📝 发布帖子',
+      '每日任务-post': '✅ 每日任务',
+      '每日任务-like': '👍 点赞奖励',
+      '每日任务-comment': '💬 评论奖励',
+      '邀请新用户': '👥 邀请战友',
+      '兑换:pin': '🛒 兑换置顶权',
+      '兑换:naming': '✏️ 兑换命名权',
+      '兑换:frame_gold': '🖼️ 金色头像框',
+      '兑换:badge_shop_king': '👑 钞能力王者',
+      '开盲盒': '🎁 开盲盒',
+      '点评奖励': '⭐ 点评奖励',
+      '推荐奖励': '🤝 推荐奖励',
+    };
+    const reasonText = reasonMap[log.reason] || log.reason;
+    
+    return `
+      <div class="flex items-center justify-between p-3 rounded-lg mb-2" style="background: var(--surface); border-left: 4px solid ${color};">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-full flex items-center justify-center" style="background: ${color}20;">
+            <i class="fas ${icon}" style="color: ${color}; font-size: 14px;"></i>
+          </div>
+          <div>
+            <div class="text-sm font-medium">${reasonText}</div>
+            <div class="text-[10px]" style="color: var(--muted);">${timeAgo(log.created_at)}</div>
+          </div>
+        </div>
+        <span class="font-bold text-base" style="color: ${color};">${sign}${log.amount}</span>
+      </div>
+    `;
+  }).join('');
+}
+
+
+
+// ==================== 使用服务凭证 ====================
+function useServiceVoucher(type, rewardId) {
+  const nameMap = {
+    'voucher_hafu_3w': '3万哈夫币券',
+    'voucher_weapon_build': '定制配装方案券',
+    'voucher_escort_1': '护航体验资格券',
+    'voucher_hafu_50w': '50万哈夫币券',
+    'escort_free': '免费护航体验券',
+    'pin': '帖子置顶权',
+    'naming': '配装命名权'
+  };
+  const voucherName = nameMap[type] || '服务凭证';
+  
+  if (type.startsWith('voucher_') || type === 'escort_free') {
+    // 弹出可截图的凭证窗口
+    if (typeof showVoucherModal === 'function') {
+      showVoucherModal(type, voucherName);
+    } else {
+      showToast(`📱 请截图此页面，联系群主使用「${voucherName}」`, 'success');
+    }
+  } else if (type === 'pin') {
+    showToast('请在“我的帖子”中选择要置顶的帖子', 'info');
+  } else if (type === 'naming') {
+    showToast('请在“起装方案”中选择要命名的配装', 'info');
+  } else {
+    showToast('请联系群主使用该权益', 'info');
+  }
+}
+
+
+
+// ==================== 服务凭证弹窗（可截图） ====================
+async function showVoucherModal(voucherType, voucherName) {
+  if (!APP.user) return;
+  
+  // 生成唯一核销码（用户ID后6位 + 时间戳后4位）
+  const userId = APP.user.id.substring(0, 8);
+  const timestamp = Date.now().toString().slice(-6);
+  const verifyCode = `${userId}-${timestamp}`.toUpperCase();
+  
+  try {
+    await sb.from('voucher_verify').insert({
+      verify_code: verifyCode,
+      user_id: APP.user.id,
+      voucher_type: voucherType,
+      voucher_name: voucherName,
+      is_used: false
+    });
+  } catch (e) {
+    console.error('保存核销码失败:', e);
+    showToast('凭证生成失败，请重试', 'error');
+    return;
+  }
+  
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay active';
+  modal.style.zIndex = '100001';
+    modal.innerHTML = `
+    <div class="modal-content active" style="max-width:420px; padding:24px 20px; text-align:center; background: linear-gradient(145deg, #FFF8E7 0%, #FFE4B5 100%); border: 3px solid #FF8C00; border-radius: 24px; box-shadow: 0 20px 40px rgba(255,140,0,0.3);">
+      <!-- 水印（半透明暖色） -->
+      <div style="position: relative;">
+        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-25deg); font-size: 60px; font-weight: 900; color: rgba(255,140,0,0.1); white-space: nowrap; pointer-events: none; z-index: 1;">墨辰电竞</div>
+        
+        <!-- 凭证内容 -->
+        <div style="position: relative; z-index: 2;">
+          <div class="text-4xl mb-3">🎁</div>
+          <h3 class="font-display text-2xl mb-1" style="color: #D2691E; text-shadow: 2px 2px 4px rgba(255,215,0,0.3);">福利兑换凭证</h3>
+          <p class="text-xs mb-4" style="color: #8B4513;">请截图此页面，联系群主领取</p>
+          
+          <div class="card-base p-4 mb-4" style="background: rgba(255,248,220,0.8); border: 2px dashed #FF8C00; border-radius: 16px;">
+            <div class="text-sm font-bold mb-2" style="color: #D2691E;">${voucherName}</div>
+            <div class="flex items-center justify-between text-xs mb-3">
+              <span style="color: #8B4513;">兑换人</span>
+              <span class="font-medium" style="color: #2c3e50;">${APP.profile.username}</span>
+            </div>
+            <div class="flex items-center justify-between text-xs mb-3">
+              <span style="color: #8B4513;">兑换时间</span>
+              <span class="font-medium" style="color: #2c3e50;">${new Date().toLocaleString('zh-CN')}</span>
+            </div>
+            <div class="flex items-center justify-between text-xs mb-1">
+              <span style="color: #8B4513;">核销码</span>
+              <span class="font-mono font-bold text-base" style="color: #D2691E; letter-spacing: 2px; background: #FFF8DC; padding: 4px 12px; border-radius: 20px;">${verifyCode}</span>
+            </div>
+          </div>
+          
+          <div class="flex items-center justify-center gap-3 mb-4">
+            <div class="text-center">
+              <div class="text-xs" style="color: #8B4513;">联系微信</div>
+              <div class="font-bold text-sm" style="color: #D2691E;">vx：scz111567</div>
+            </div>
+            <div class="w-px h-8" style="background: #FF8C00;"></div>
+            <div class="text-center">
+              <div class="text-xs" style="color: #8B4513;">QQ群</div>
+              <div class="font-bold text-sm" style="color: #D2691E;">QQ群：873656072</div>
+            </div>
+          </div>
+          
+          <p class="text-[10px] mb-4" style="color: #8B4513;">⭐ 此凭证仅限本人使用，截图有效 ⭐</p>
+          
+          <div class="flex gap-2">
+            <button class="btn-ghost flex-1 py-2 text-sm" style="background: #FFF8DC; border: 1px solid #FF8C00; color: #D2691E;" onclick="this.closest('.modal-overlay').remove()">
+              <i class="fas fa-check mr-1"></i> 已截图
+            </button>
+            <button class="btn-warm flex-1 py-2 text-sm" style="background: linear-gradient(135deg, #FF8C00, #FF6B35); border: none; color: white;" onclick="copyVerifyCode('${verifyCode}'); this.closest('.modal-overlay').remove();">
+              <i class="fas fa-copy mr-1"></i> 复制核销码
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+}
+
+// 复制核销码
+function copyVerifyCode(code) {
+  navigator.clipboard?.writeText(code).then(() => {
+    showToast('✅ 核销码已复制', 'success');
+  }).catch(() => {
+    showManualCopyModal(code);
+  });
+}
+
+
+
+
+
+function showPointsRuleModal() {
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay active';
+  modal.style.zIndex = '100000';
+  modal.innerHTML = `
+    <div class="modal-content active" style="max-width:400px;">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="font-display text-lg">💰 积分获取规则</h3>
+        <button onclick="this.closest('.modal-overlay').remove()" class="w-8 h-8 rounded-full flex items-center justify-center" style="background:var(--surface);"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="space-y-3">
+        <div class="flex items-center justify-between p-3 rounded-lg" style="background: var(--surface);">
+          <div class="flex items-center gap-3">
+            <i class="fas fa-calendar-check text-xl" style="color: #FFD700;"></i>
+            <span class="font-medium">每日签到</span>
+          </div>
+          <span class="font-bold" style="color: #2ecc71;">+2 积分</span>
+        </div>
+        <div class="flex items-center justify-between p-3 rounded-lg" style="background: var(--surface);">
+          <div class="flex items-center gap-3">
+            <i class="fas fa-pen-fancy text-xl" style="color: var(--accent);"></i>
+            <span class="font-medium">发表帖子</span>
+          </div>
+          <span class="font-bold" style="color: #2ecc71;">+15 积分</span>
+        </div>
+        <div class="flex items-center justify-between p-3 rounded-lg" style="background: var(--surface);">
+          <div class="flex items-center gap-3">
+            <i class="far fa-heart text-xl" style="color: #FF4757;"></i>
+            <span class="font-medium">点赞帖子</span>
+          </div>
+          <span class="font-bold" style="color: #2ecc71;">+5 积分</span>
+        </div>
+        <div class="flex items-center justify-between p-3 rounded-lg" style="background: var(--surface);">
+          <div class="flex items-center gap-3">
+            <i class="fas fa-user-plus text-xl" style="color: #3498db;"></i>
+            <span class="font-medium">邀请战友</span>
+          </div>
+          <span class="font-bold" style="color: #2ecc71;">+50 积分</span>
+        </div>
+      </div>
+      <p class="text-xs text-center mt-4" style="color: var(--muted);">积分可兑换护航、哈夫币、配装等福利</p>
+    </div>
+  `;
+  document.body.appendChild(modal);
+}
+
+function showNewbieGuideModal() {
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay active';
+  modal.style.zIndex = '100000';
+  modal.innerHTML = `
+    <div class="modal-content active" style="max-width:400px; text-align:center;">
+      <div class="text-5xl mb-4">🎁</div>
+      <h3 class="font-display text-xl mb-2">欢迎来到墨辰电竞！</h3>
+      <p class="text-sm mb-4" style="color: var(--muted);">你已获得 <span style="color: #FFD700; font-weight: bold;">30积分 + 3万哈夫币券</span></p>
+      <div class="card-base p-4 mb-4 text-left">
+        <p class="text-sm font-bold mb-2">📋 三步开始白嫖：</p>
+        <p class="text-xs mb-1">1️⃣ 每天签到、发帖、点赞赚积分</p>
+        <p class="text-xs mb-1">2️⃣ 积分商城兑换护航/哈夫币凭证</p>
+        <p class="text-xs">3️⃣ 截图找群主微信领取</p>
+      </div>
+      <button class="btn-warm w-full py-3" onclick="this.closest('.modal-overlay').remove(); openPointsShopModal();">
+        🛒 去积分商城看看
+      </button>
+      <p class="text-xs mt-3" style="color: var(--muted);" onclick="this.closest('.modal-overlay').remove()">稍后再说</p>
+    </div>
+  `;
+  document.body.appendChild(modal);
+}
+
+
+
+// 滚动到待使用权益区域
+function scrollToPendingRewards() {
+  const el = document.getElementById('profilePendingRewards');
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  else showToast('暂无待使用权益', 'info');
+}
+
+// 更新福利总览数据（在 loadUserPointsAndReferrals 和 renderPendingRewardsInProfile 中调用）
+async function updateWelfareOverview() {
+  if (!APP.user) return;
+  
+  // 当前积分
+  const { data: pointsData } = await sb.from('user_points').select('points').eq('user_id', APP.user.id).maybeSingle();
+  const myPoints = pointsData?.points || 0;
+  document.getElementById('profileMyPoints').textContent = myPoints;
+  
+  // 待使用券数量
+  const rewards = await getUserPendingRewards();
+  const pendingCount = rewards.filter(r => !r.used).length;
+  document.getElementById('profilePendingCount').textContent = pendingCount;
+  
+  // 累计获得积分
+  const { count } = await sb.from('points_log').select('*', { count: 'exact', head: true }).eq('user_id', APP.user.id).gt('amount', 0);
+  document.getElementById('profileTotalEarned').textContent = count || 0;
+}
+
+// ==================== 服务凭证弹窗（可截图） ====================
+async function showVoucherModal(voucherType, voucherName) {
+  if (!APP.user) return;
+  
+  // 生成唯一核销码（用户ID后6位 + 时间戳后4位）
+  const userId = APP.user.id.substring(0, 8);
+  const timestamp = Date.now().toString().slice(-6);
+  const verifyCode = `${userId}-${timestamp}`.toUpperCase();
+  
+  try {
+    await sb.from('voucher_verify').insert({
+      verify_code: verifyCode,
+      user_id: APP.user.id,
+      voucher_type: voucherType,
+      voucher_name: voucherName,
+      is_used: false
+    });
+  } catch (e) {
+    console.error('保存核销码失败:', e);
+    showToast('凭证生成失败，请重试', 'error');
+    return;
+  }
+  
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay active';
+  modal.style.zIndex = '100001';
+  modal.innerHTML = `
+    <div class="modal-content active" style="max-width:420px; padding:24px 20px; text-align:center; background: linear-gradient(145deg, #1a1a2e 0%, #16213e 100%); border: 2px solid #FFD700;">
+      <!-- 水印（半透明） -->
+      <div style="position: relative;">
+        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-25deg); font-size: 60px; font-weight: 900; color: rgba(255,215,0,0.08); white-space: nowrap; pointer-events: none; z-index: 1;">墨辰电竞</div>
+        
+        <!-- 凭证内容 -->
+        <div style="position: relative; z-index: 2;">
+          <div class="text-4xl mb-3">🎁</div>
+          <h3 class="font-display text-2xl mb-1" style="color: #FFD700;">福利兑换凭证</h3>
+          <p class="text-xs mb-4" style="color: var(--muted);">请截图此页面，联系群主领取</p>
+          
+          <div class="card-base p-4 mb-4" style="background: rgba(255,255,255,0.05); border: 1px dashed #FFD700;">
+            <div class="text-sm font-bold mb-2" style="color: #FFD700;">${voucherName}</div>
+            <div class="flex items-center justify-between text-xs mb-3">
+              <span style="color: var(--muted);">兑换人</span>
+              <span class="font-medium">${APP.profile.username}</span>
+            </div>
+            <div class="flex items-center justify-between text-xs mb-3">
+              <span style="color: var(--muted);">兑换时间</span>
+              <span class="font-medium">${new Date().toLocaleString('zh-CN')}</span>
+            </div>
+            <div class="flex items-center justify-between text-xs mb-1">
+              <span style="color: var(--muted);">核销码</span>
+              <span class="font-mono font-bold text-base" style="color: #FFD700; letter-spacing: 2px;">${verifyCode}</span>
+            </div>
+          </div>
+          
+          <div class="flex items-center justify-center gap-3 mb-4">
+            <div class="text-center">
+              <div class="text-xs" style="color: var(--muted);">联系微信</div>
+              <div class="font-bold text-sm" style="color: #2ecc71;">vx：scz111567</div>
+            </div>
+            <div class="w-px h-8" style="background: var(--border);"></div>
+            <div class="text-center">
+              <div class="text-xs" style="color: var(--muted);">QQ群</div>
+              <div class="font-bold text-sm" style="color: #2ecc71;">QQ群：873656072</div>
+            </div>
+          </div>
+          
+          <p class="text-[10px] mb-4" style="color: var(--muted);">⭐ 此凭证仅限本人使用，截图有效 ⭐</p>
+          
+          <div class="flex gap-2">
+            <button class="btn-ghost flex-1 py-2 text-sm" onclick="this.closest('.modal-overlay').remove()">
+              <i class="fas fa-check mr-1"></i> 已截图
+            </button>
+            <button class="btn-warm flex-1 py-2 text-sm" onclick="copyVerifyCode('${verifyCode}'); this.closest('.modal-overlay').remove();">
+              <i class="fas fa-copy mr-1"></i> 复制核销码
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+}
+
+// 复制核销码
+function copyVerifyCode(code) {
+  navigator.clipboard?.writeText(code).then(() => {
+    showToast('✅ 核销码已复制', 'success');
+  }).catch(() => {
+    showManualCopyModal(code);
+  });
+}
+
+// ==================== 个人主页幸运值加载 ====================
+async function loadProfileLucky() {
+  if (!APP.user) return;
+  const { data } = await sb.from('profiles').select('lucky_value').eq('id', APP.user.id).single();
+  const lucky = data?.lucky_value || 0;
+  const textEl = document.getElementById('profileLuckyText');
+  const barEl = document.getElementById('profileLuckyBar');
+  if (textEl) textEl.textContent = `${lucky}/100`;
+  if (barEl) barEl.style.width = `${lucky}%`;
+}
+
+
+// ==================== 管理员核销查询 ====================
+async function openVerifyModal() {
+  if (!APP.isAdmin) return;
+  
+  let modal = document.getElementById('verifyModal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'verifyModal';
+    modal.className = 'modal-overlay';
+    modal.innerHTML = `
+      <div class="modal-content" style="max-width:500px;">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="font-display text-xl"><i class="fas fa-qrcode mr-2"></i>核销查询</h2>
+          <button onclick="closeModal('verifyModal')" class="w-8 h-8 rounded-full flex items-center justify-center" style="background:var(--surface)"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="flex gap-2 mb-4">
+          <input type="text" id="verifyCodeInput" placeholder="输入核销码" class="flex-1 p-2 rounded-lg" style="background:var(--surface); border:1px solid var(--border);">
+          <button class="btn-warm px-4" onclick="searchVerifyCode()">查询</button>
+        </div>
+        <div id="verifyResult" class="p-3 rounded-lg" style="background:var(--surface);"></div>
+        <p class="text-xs mt-3" style="color:var(--muted);">输入用户提供的核销码，确认后点击“核销”</p>
+      </div>
+    `;
+    document.body.appendChild(modal);
+  }
+  openModal('verifyModal');
+}
+
+async function searchVerifyCode() {
+  const code = document.getElementById('verifyCodeInput').value.trim().toUpperCase();
+  if (!code) { showToast('请输入核销码', 'warning'); return; }
+  
+  const { data, error } = await sb.from('voucher_verify')
+    .select('*, profiles(username)')
+    .eq('verify_code', code)
+    .single();
+  
+  const resultDiv = document.getElementById('verifyResult');
+  
+  if (error || !data) {
+    resultDiv.innerHTML = '<p class="text-center text-red-400">❌ 核销码无效</p>';
+    return;
+  }
+  
+  const status = data.is_used ? '✅ 已核销' : '⏳ 待核销';
+  const statusColor = data.is_used ? '#2ecc71' : '#f1c40f';
+  
+  resultDiv.innerHTML = `
+    <div class="space-y-2">
+      <div class="flex justify-between">
+        <span>券名称：</span>
+        <span class="font-bold">${data.voucher_name}</span>
+      </div>
+      <div class="flex justify-between">
+        <span>兑换人：</span>
+        <span>${data.profiles?.username || '未知'}</span>
+      </div>
+      <div class="flex justify-between">
+        <span>兑换时间：</span>
+        <span>${new Date(data.created_at).toLocaleString('zh-CN')}</span>
+      </div>
+      <div class="flex justify-between">
+        <span>状态：</span>
+        <span style="color: ${statusColor};">${status}</span>
+      </div>
+      ${!data.is_used ? `
+      <button class="btn-warm w-full py-2 mt-3" onclick="markAsUsed('${data.verify_code}')">
+        <i class="fas fa-check mr-1"></i>确认核销
+      </button>
+      ` : ''}
+    </div>
+  `;
+}
+
+async function markAsUsed(code) {
+  if (!confirm('确认核销该凭证吗？')) return;
+  
+  const { error } = await sb.from('voucher_verify')
+    .update({ is_used: true, used_at: new Date().toISOString() })
+    .eq('verify_code', code);
+  
+  if (error) {
+    showToast('核销失败', 'error');
+    return;
+  }
+  
+  showToast('✅ 核销成功', 'success');
+  searchVerifyCode(); // 刷新显示
+}
+
+
+// ==================== 全站广播显示（增强版：确保在最顶层） ====================
+function showJackpotBroadcast(payload) {
+  console.log('📢 广播触发:', payload);
+  
+  // 移除可能残留的旧广播
+  const oldBanner = document.querySelector('.jackpot-broadcast-banner');
+  if (oldBanner) oldBanner.remove();
+  
+  const banner = document.createElement('div');
+  banner.className = 'jackpot-broadcast-banner';
+  // 增强样式：确保最高层级，移动端友好
+  banner.style.cssText = `
+    position: fixed !important;
+    top: 80px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    background: linear-gradient(135deg, #FFD700, #FF8C00) !important;
+    color: #fff !important;
+    padding: 12px 24px !important;
+    border-radius: 60px !important;
+    font-weight: 800 !important;
+    font-size: clamp(14px, 4vw, 18px) !important;
+    z-index: 999999 !important;
+    box-shadow: 0 8px 30px rgba(255,215,0,0.6) !important;
+    animation: jackpotSlide 3.5s ease forwards !important;
+    white-space: nowrap !important;
+    border: 3px solid #FFF !important;
+    pointer-events: none !important;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.2) !important;
+    letter-spacing: 2px !important;
+    font-family: 'Noto Sans SC', 'ZCOOL QingKe HuangYou', sans-serif !important;
+    max-width: 90vw !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    text-align: center !important;
+  `;
+  banner.textContent = `🎉 恭喜 ${payload.username} 抽中 ${payload.rewardName}！ 🎉`;
+  document.body.appendChild(banner);
+  
+  // 确保动画已定义
+  if (!document.getElementById('jackpot-style')) {
+    const style = document.createElement('style');
+    style.id = 'jackpot-style';
+    style.textContent = `
+      @keyframes jackpotSlide {
+        0% { opacity: 0; transform: translateX(-50%) translateY(-30px); }
+        10% { opacity: 1; transform: translateX(-50%) translateY(0); }
+        85% { opacity: 1; transform: translateX(-50%) translateY(0); }
+        100% { opacity: 0; transform: translateX(-50%) translateY(-30px); }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+  
+  setTimeout(() => {
+    if (banner.parentNode) banner.remove();
+  }, 3500);
+}
+
+
+
+
+
 </script>
 <script>
   window.addEventListener('load', function() {
@@ -23190,6 +25119,21 @@ async function loadInviteCount() {
     }
   });
 </script>
+
+
+<!-- 我的订单弹窗（个人中心查看） -->
+<div class="modal-overlay" id="myOrdersModal">
+  <div class="modal-content" style="max-width:500px; max-height:70vh; overflow-y:auto;">
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="font-display text-xl"><i class="fas fa-clipboard-list mr-2"></i>我的订单</h2>
+      <button onclick="closeModal('myOrdersModal')" class="w-8 h-8 rounded-full flex items-center justify-center" style="background:var(--surface);"><i class="fas fa-times"></i></button>
+    </div>
+    <div id="myOrdersList" class="space-y-3"></div>
+  </div>
+</div>
+
+
+
 </body>
 
 </html>
