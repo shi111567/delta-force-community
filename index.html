@@ -7624,24 +7624,21 @@ async function loadUserPointsAndReferrals() {
 
 async function addUserPoints(amount) {
   if (!APP.user) return;
-
-  // ========== 周末双倍积分 ==========
   const now = new Date();
-  const day = now.getDay(); // 0=周日, 6=周六
+  const day = now.getDay();
   if (day === 0 || day === 6) {
     amount = amount * 2;
   }
-  // ========== 双倍结束 ==========
-
   try {
     const { data } = await sb.from('user_points').select('points').eq('user_id', APP.user.id).maybeSingle();
     const newPoints = (data?.points || 0) + amount;
     await sb.from('user_points').upsert({ user_id: APP.user.id, points: newPoints, updated_at: new Date().toISOString() });
     const pointsEl = document.getElementById('modalUserPoints');
     if (pointsEl) pointsEl.textContent = newPoints;
-updateUserPointsUI();   // <-- 添加这一行
+    updateUserPointsUI();
   } catch(e) {}
 }
+
 
 // ========== 给指定用户加积分（用于邀请奖励等） ==========
 async function addUserPointsToUser(userId, amount) {
@@ -7683,19 +7680,32 @@ async function submitReferrer() {
   const { data: ref } = await sb.from('profiles').select('id').eq('username', name).single();
   if (!ref) { showToast('推荐人不存在', 'error'); return; }
   
-  const { data: exist } = await sb.from('welfare_referrals').select('id').eq('referred_id', APP.user.id).maybeSingle();
+  const { data: exist } = await sb.from('welfare_referrals')
+    .select('id').eq('referred_id', APP.user.id).maybeSingle();
   if (exist) { showToast('你已经有推荐人了', 'warning'); return; }
   
-  const { error } = await sb.from('welfare_referrals').insert({ referrer_id: ref.id, referred_id: APP.user.id });
+  const { error } = await sb.from('welfare_referrals').insert({ 
+    referrer_id: ref.id, referred_id: APP.user.id 
+  });
   if (error) { showToast('绑定失败', 'error'); return; }
   
-  await addUserPoints(5);
-  await sb.rpc('add_points_to_user', { user_id: ref.id, amount: 5 });
-  showToast('绑定成功！双方各得5积分', 'success');
+  // 邀请人得 50 积分
+  await addUserPointsToUser(ref.id, 50);
+  await sb.from('points_log').insert({ 
+    user_id: ref.id, amount: 50, reason: '邀请新成员奖励' 
+  });
+  
+  // 被邀请人得 10 积分
+  await addUserPoints(10);
+  await sb.from('points_log').insert({ 
+    user_id: APP.user.id, amount: 10, reason: '被邀请注册奖励' 
+  });
+  
+  updateUserPointsUI();
+  showToast('绑定成功！你获得10积分，推荐人获得50积分', 'success');
   input.value = '';
   loadUserPointsAndReferrals();
 }
-
 
 
 // ========== 授予勋章（自动触发） ==========
@@ -9302,8 +9312,8 @@ async function handleRegister() {
         invitee_id: data.user.id
       });
       if (!inviteError) {
-        // 给邀请人加5积分
-        await addUserPointsToUser(refCode, 5);
+        // 给邀请人加50分
+        await addUserPointsToUser(refCode, 50);
         await sb.from('points_log').insert({ user_id: refCode, amount: 5, reason: '邀请新用户' });
         // 检查邀请人是否达到3人，送盲盒
         const { count } = await sb.from('invites').select('*', { count: 'exact', head: true }).eq('inviter_id', refCode);
@@ -9353,8 +9363,10 @@ async function handleRegister() {
         
         if (!inviteInsertError) {
           // 给邀请人加 5 积分
-          await addUserPointsToUser(inviteCode, 5);
-          await sb.from('points_log').insert({ user_id: inviteCode, amount: 5, reason: '邀请新用户' });
+          await addUserPointsToUser(inviteCode, 50);
+await sb.from('points_log').insert({ 
+    user_id: inviteCode, amount: 50, reason: '邀请新用户奖励' 
+});
           
           // 检查邀请人累计邀请人数
           const { count } = await sb
@@ -12539,7 +12551,6 @@ async function checkIn() {
   const { data: existing } = await sb.from('checkins').select('*').eq('user_id', APP.user.id).eq('checkin_date', today).single();
   if (existing) { showToast('今日已签到'); return; }
 
-  // 获取昨天签到计算连续天数
   const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
   const { data: yd } = await sb.from('checkins').select('streak').eq('user_id', APP.user.id).eq('checkin_date', yesterday).single();
   const streak = (yd?.streak || 0) + 1;
@@ -12554,6 +12565,19 @@ async function checkIn() {
   const newLevel = levelUp ? (APP.profile.level || 1) + 1 : APP.profile.level;
   await sb.from('profiles').update({ exp: newExp, level: newLevel }).eq('id', APP.user.id);
   APP.profile.exp = newExp; APP.profile.level = newLevel;
+
+  // ---------- 新增积分奖励 ----------
+  const reward = getCheckinReward(streak);          // 计算积分
+  if (reward.points) {
+    await addUserPoints(reward.points);             // 更新 user_points 表
+    await sb.from('points_log').insert({ 
+      user_id: APP.user.id, 
+      amount: reward.points, 
+      reason: `每日签到(连续${streak}天)` 
+    });
+    updateUserPointsUI();                           // 刷新顶部积分显示
+  }
+  // ---------------------------------
 
   if (streak >= 7) checkAchievement('7_checkin', true);
   showToast(`签到成功！+${expGain}EXP ${streak >= 7 ? '（7日连签奖励！）' : ''}${levelUp ? ' 升级了！' : ''}`);
@@ -24497,7 +24521,7 @@ function showInviteModal(inviteCode, inviteLink) {
             <i class="fas fa-copy mr-2"></i>复制邀请码
           </button>
         </div>
-        <p class="text-xs mt-4" style="color: var(--muted);">每邀请1位战友，双方各得5积分！</p>
+                <p class="text-xs mt-4" style="color: var(--muted);">每邀请1位战友，邀请人得50积分，好友得10积分！</p>
       </div>
     `;
     document.body.appendChild(modal);
