@@ -13086,19 +13086,21 @@ function renderLoadoutList() {
     </div>
   `).join('');
 }
-function copyLoadoutCode(code) {
-  navigator.clipboard?.writeText(code).then(() => {
-    showToast(`✅ 改枪码已复制，可直接粘贴到游戏中使用`, 'success');
-  }).catch(() => {
-    const textarea = document.createElement('textarea');
-    textarea.value = code;
-    document.body.appendChild(textarea);
-    textarea.select();
-    document.execCommand('copy');
-    document.body.removeChild(textarea);
-    showToast(`✅ 改枪码已复制`, 'success');
+
+
+function copyLoadoutCode(code, btn) {
+  safeCopy(code, () => {
+    if (btn) {
+      btn.innerHTML = '<i class="fas fa-check"></i> 已复制';
+      btn.style.background = '#2ecc71';
+      setTimeout(() => {
+        btn.innerHTML = '<i class="far fa-copy mr-1"></i>复制';
+        btn.style.background = '';
+      }, 1500);
+    }
   });
 }
+
 // 全局弹窗关闭动画函数
 function closeModalWithAnimation(overlay) {
   const content = overlay.querySelector('.modal-content');
@@ -21815,80 +21817,35 @@ function showBudgetDetail(loadoutName) {
   openModal('budgetDetailModal');
 }
 
+
 // 从详情页复制全部改枪码（带状态反馈）
-// 从详情页复制全部改枪码（带状态反馈）
+
+
 function copyAllBudgetCodesFromDetail(loadoutName, btn) {
   const loadout = BUDGET_LOADOUTS.find(l => l.name === loadoutName);
-  if (!loadout) {
-    showToast('方案不存在', 'error');
-    return;
-  }
+  if (!loadout) { showToast('方案不存在', 'error'); return; }
   
   const codes = loadout.weapons.filter(w => w.code).map(w => `${w.name}: ${w.code}`).join('\n');
-  if (!codes) {
-    showToast('该方案暂无改枪码', 'info');
-    return;
-  }
+  if (!codes) { showToast('该方案暂无改枪码', 'info'); return; }
 
-  // 震动反馈
-  if (navigator.vibrate) navigator.vibrate(10);
-
-  // 按钮反馈动画
-  const applySuccessStyle = () => {
-    if (btn && btn.tagName === 'BUTTON') {
-      const originalHTML = btn.innerHTML;
+  safeCopy(codes, () => {
+    if (btn) {
       btn.innerHTML = '<i class="fas fa-check mr-2"></i>已复制';
-      btn.classList.add('copied');
       btn.style.background = '#2ecc71';
       btn.style.color = 'white';
       btn.disabled = true;
       setTimeout(() => {
-        btn.innerHTML = originalHTML;
-        btn.classList.remove('copied');
+        btn.innerHTML = '<i class="fas fa-copy mr-2"></i>复制全部改枪码';
         btn.style.background = '';
         btn.style.color = '';
         btn.disabled = false;
-      }, 2000);
+      }, 1500);
     }
-  };
-
-  // 降级复制方案
-  const fallbackCopy = () => {
-    const textarea = document.createElement('textarea');
-    textarea.value = codes;
-    textarea.style.position = 'fixed';
-    textarea.style.top = '0';
-    textarea.style.left = '0';
-    textarea.style.opacity = '0';
-    textarea.style.pointerEvents = 'none';
-    document.body.appendChild(textarea);
-    textarea.focus();
-    textarea.select();
-    textarea.setSelectionRange(0, 99999);
-    try {
-      const successful = document.execCommand('copy');
-      if (successful) {
-        showToast(`📋 「${loadout.name}」的所有改枪码已复制`, 'success');
-        applySuccessStyle();
-      } else {
-        showToast('❌ 复制失败，请手动复制', 'error');
-      }
-    } catch (err) {
-      showToast('❌ 复制失败，请手动复制', 'error');
-    }
-    document.body.removeChild(textarea);
-  };
-
-  // 优先使用 Clipboard API
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(codes).then(() => {
-      showToast(`📋 「${loadout.name}」的所有改枪码已复制`, 'success');
-      applySuccessStyle();
-    }).catch(fallbackCopy);
-  } else {
-    fallbackCopy();
-  }
+    showToast(`📋 「${loadout.name}」的所有改枪码已复制`, 'success');
+  });
 }
+
+
 
 function generateRecommendations() {
   const container = document.getElementById('recommendCardsContainer');
@@ -21999,76 +21956,32 @@ function generateRecommendations() {
 // 从卡片复制（带状态反馈）
 window.copyAllBudgetCodesFromCard = function(loadoutName, btn) {
   const loadout = BUDGET_LOADOUTS.find(l => l.name === loadoutName);
-  if (!loadout) {
-    showToast('方案不存在', 'error');
-    return;
-  }
+  if (!loadout) { showToast('方案不存在', 'error'); return; }
   
   const codes = loadout.weapons.filter(w => w.code).map(w => `${w.name}: ${w.code}`).join('\n');
-  if (!codes) {
-    showToast('该方案暂无改枪码', 'info');
-    return;
-  }
+  if (!codes) { showToast('该方案暂无改枪码', 'info'); return; }
 
-  // 震动反馈（移动端）
-  if (navigator.vibrate) navigator.vibrate(10);
-
-  // 按钮反馈动画
-  const applySuccessStyle = () => {
-    if (btn && btn.tagName === 'BUTTON') {
-      const originalHTML = btn.innerHTML;
+  // 使用安全复制函数（自动处理移动端降级）
+  safeCopy(codes, () => {
+    if (btn) {
       btn.innerHTML = '<i class="fas fa-check mr-2"></i>已复制';
       btn.classList.add('copied');
       btn.style.background = '#2ecc71';
       btn.style.color = 'white';
       btn.disabled = true;
       setTimeout(() => {
-        btn.innerHTML = originalHTML;
+        btn.innerHTML = '<i class="fas fa-copy mr-2"></i>一键复制全部改枪码';
         btn.classList.remove('copied');
         btn.style.background = '';
         btn.style.color = '';
         btn.disabled = false;
-      }, 2000);
+      }, 1500);
     }
-  };
-
-  // 移动端稳健复制降级方案
-  const fallbackCopy = () => {
-    const textarea = document.createElement('textarea');
-    textarea.value = codes;
-    textarea.style.position = 'fixed';
-    textarea.style.top = '0';
-    textarea.style.left = '0';
-    textarea.style.opacity = '0';
-    textarea.style.pointerEvents = 'none';
-    document.body.appendChild(textarea);
-    textarea.focus();
-    textarea.select();
-    textarea.setSelectionRange(0, 99999);
-    try {
-      const successful = document.execCommand('copy');
-      if (successful) {
-        showToast(`📋 「${loadout.name}」的所有改枪码已复制`, 'success');
-        applySuccessStyle();
-      } else {
-        showToast('❌ 复制失败，请手动复制', 'error');
-      }
-    } catch (err) {
-      showToast('❌ 复制失败，请手动复制', 'error');
-    }
-    document.body.removeChild(textarea);
-  };
-
-  // 优先使用 Clipboard API
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(codes).then(() => {
-      showToast(`📋 「${loadout.name}」的所有改枪码已复制`, 'success');
-      applySuccessStyle();
-    }).catch(fallbackCopy);
-  } else {
-    fallbackCopy();
-  }
+    showToast(`📋 「${loadout.name}」的所有改枪码已复制`, 'success');
+  });
 };
+
+
 // 复制全部改枪码（兼容旧版）
 function copyAllBudgetCodes(loadoutName) {
   const loadout = BUDGET_LOADOUTS.find(l => l.name === loadoutName);
@@ -22919,6 +22832,54 @@ async function updateNewbieTask(userId, taskType) {
 }
 
 
+// ==================== 通用安全复制函数（移动端降级） ====================
+function safeCopy(text, successCallback) {
+  // 震动反馈（如果支持）
+  if (navigator.vibrate) navigator.vibrate(10);
+  
+  // 尝试 Clipboard API
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(() => {
+      showToast('✅ 已复制到剪贴板', 'success');
+      if (successCallback) successCallback();
+    }).catch(() => {
+      showManualCopyModal(text);
+    });
+  } else {
+    showManualCopyModal(text);
+  }
+}
+
+function showManualCopyModal(text) {
+  // 移除已存在的手动复制弹窗
+  const oldModal = document.getElementById('manualCopyModal');
+  if (oldModal) oldModal.remove();
+  
+  const modal = document.createElement('div');
+  modal.id = 'manualCopyModal';
+  modal.className = 'modal-overlay active';
+  modal.style.zIndex = '100000';
+  modal.innerHTML = `
+    <div class="modal-content active" style="max-width:400px;">
+      <div class="flex justify-between items-center mb-3">
+        <h3 class="font-bold text-base">📋 手动复制</h3>
+        <button onclick="this.closest('.modal-overlay').remove()" class="w-7 h-7 rounded-full flex items-center justify-center" style="background:var(--surface);"><i class="fas fa-times"></i></button>
+      </div>
+      <p class="text-xs mb-2" style="color: var(--muted);">点击下方输入框，长按全选后复制</p>
+      <input type="text" class="w-full p-3 rounded-lg text-sm mb-3" style="background: var(--surface); border: 2px solid var(--accent); color: var(--text);" value="${text.replace(/"/g, '&quot;')}" readonly onclick="this.select();">
+      <button class="btn-warm w-full py-2" onclick="this.previousElementSibling.select(); showToast('请长按输入框选择复制', 'info');">
+        <i class="fas fa-copy mr-2"></i>已选中文本，请长按复制
+      </button>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  modal.querySelector('input').select();
+}
+
+
+
+
+
 
 // ==================== 战区氛围系统逻辑 ====================
 
@@ -23200,19 +23161,10 @@ function showInviteModal(inviteCode, inviteLink) {
   openModal('inviteModal');
 }
 
+
+
 function copyTextAndClose(text, modalId) {
-  navigator.clipboard?.writeText(text).then(() => {
-    showToast('✅ 已复制到剪贴板', 'success');
-    closeModal(modalId);
-  }).catch(() => {
-    // 降级
-    const textarea = document.createElement('textarea');
-    textarea.value = text;
-    document.body.appendChild(textarea);
-    textarea.select();
-    document.execCommand('copy');
-    document.body.removeChild(textarea);
-    showToast('✅ 已复制', 'success');
+  safeCopy(text, () => {
     closeModal(modalId);
   });
 }
