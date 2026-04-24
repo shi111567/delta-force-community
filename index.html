@@ -6988,6 +6988,17 @@ body {
     <!-- 管理面板（验证后显示） -->
     <div id="adminPanel" style="display:none" class="space-y-4">
       <div>
+
+
+<div class="flex items-center gap-3 p-3 rounded-xl" style="background:var(--surface); border: 1px solid var(--border);">
+    <span class="text-sm font-bold">🎭 管理员模拟身份：</span>
+    <button id="toggleAdminModeBtn" class="btn-ghost text-sm px-4 py-1" 
+            onclick="window.adminEscortMode = !window.adminEscortMode; 
+                     this.textContent = (window.adminEscortMode ? '🔹 当前：护航员身份' : '🔹 当前：普通用户身份'); 
+                     showToast(window.adminEscortMode ? '已切换为护航员身份（盲盒奖池变化）' : '已切换为普通用户身份', 'info');">
+        🔹 当前：普通用户身份
+    </button>
+</div>
         <h3 class="font-bold mb-2">宣传二维码管理</h3>
         <input type="file" id="adminBannerFile" accept="image/*" class="w-full text-sm mb-2">
         <input type="text" placeholder="链接地址（可选）" id="adminBannerLink" class="w-full mb-2">
@@ -7536,7 +7547,7 @@ sb = initSupabase();
 
 
 
-
+window.adminEscortMode = false;   // 管理员模拟身份开关，默认普通用户
 // 应用状态
 const APP = {
 
@@ -7886,13 +7897,38 @@ async function openNormalBox(skipCharge = false) {
   }
   // ----- 新增结束 -----
  
+
+ // ========== 新增：扣除10积分 ==========
+  if (!skipCharge) {
+      const { data: pointsData, error: pointsError } = await sb.from('user_points')
+          .select('points').eq('user_id', APP.user.id).single();
+      if (pointsError || !pointsData || pointsData.points < 10) {
+          showToast('积分不足（需要10积分）', 'warning');
+          return; // 积分不够，直接退出
+      }
+      // 扣积分
+      await sb.from('user_points')
+          .update({ points: pointsData.points - 10 })
+          .eq('user_id', APP.user.id);
+      // 记录日志
+      await sb.from('points_log').insert({
+          user_id: APP.user.id,
+          amount: -10,
+          reason: '普通盲盒'
+      });
+  }
+
+
   // 幸运值 +3
   let lucky = APP.profile.lucky_value || 0;
   lucky = Math.min(lucky + 3, 100);
   await sb.from('profiles').update({ lucky_value: lucky }).eq('id', APP.user.id);
   APP.profile.lucky_value = lucky;
 
-    const isEscort = APP.profile?.is_escort;
+    let useEscortRewards = APP.profile?.is_escort || false;
+if (APP.isAdmin) {
+    useEscortRewards = (window.adminEscortMode === true);
+}
 
   const normalRewards = [
     { type: 'hafu_500w', name: '500万哈夫币代肝一次', weight: 0.2 },
@@ -7918,7 +7954,7 @@ async function openNormalBox(skipCharge = false) {
     { type: 'points', name: '20积分', value: 20, weight: 50 }
   ];
 
-  const rewards = isEscort ? escortRewards : normalRewards;
+  const rewards = useEscortRewards ? escortRewards : normalRewards;
 
   const totalWeight = rewards.reduce((sum, r) => sum + r.weight, 0);
   let rand = Math.random() * totalWeight;
@@ -7961,8 +7997,10 @@ async function openSuperBox(skipCharge = false) {
   await sb.from('user_points').update({ points: pointsData.points - 100 }).eq('user_id', APP.user.id);
   await sb.from('points_log').insert({ user_id: APP.user.id, amount: -100, reason: '超级盲盒' });
 
-       const isEscort = APP.profile?.is_escort || APP.isAdmin;
-
+       let useEscortRewards = APP.profile?.is_escort || false;
+if (APP.isAdmin) {
+    useEscortRewards = (window.adminEscortMode === true);
+}
   const normalSuperRewards = [
     { type: 'escort_800w', name: '护航体验券（保底800万一局）', weight: 0.2 },
     { type: 'task_any', name: '所有指定任务代打一局', weight: 0.5 },
@@ -7988,7 +8026,7 @@ async function openSuperBox(skipCharge = false) {
     { type: 'points', name: '50积分', value: 50, weight: 22 }
   ];
 
-  const rewards = isEscort ? escortSuperRewards : normalSuperRewards;
+  const rewards = useEscortRewards ? escortSuperRewards : normalSuperRewards;
 
 
 
@@ -8126,9 +8164,13 @@ async function processBoxReward(reward) {
 
 // ---------- 展示盲盒奖品池 ----------
 function showBoxRewardList() {
-  const isEscort = APP.profile?.is_escort || APP.isAdmin;
+    // 使用统一的身份模拟逻辑（与盲盒抽奖保持一致）
+  let useEscortRewards = APP.profile?.is_escort || false;
+  if (APP.isAdmin) {
+      useEscortRewards = (window.adminEscortMode === true);
+  }
 
-  const normalRewards = isEscort ? [
+  const normalRewards = useEscortRewards ? [
     { name: '首页推荐位（24h）', weight: '3%' },
     { name: '全局广播权限（1次）', weight: '5%' },
     { name: '帖子置顶权（7天）', weight: '5%' },
@@ -8151,7 +8193,7 @@ function showBoxRewardList() {
     { name: '10积分', weight: '70%' }
   ];
 
-  const superRewards = isEscort ? [
+  const superRewards = useEscortRewards ? [
     { name: '首页推荐位（7天）', weight: '2%' },
     { name: '全局广播权限（7天）', weight: '2%' },
     { name: '传说特效头像框（永久）', weight: '1%' },
@@ -10880,8 +10922,11 @@ if (APP.filters.topic && APP.filters.topic !== 'all') {
   APP.loading = false;
 }async function loadTopPost() {
   const yesterday = new Date(Date.now() - 86400000).toISOString();
-    const { data } = await sb.from('posts').select('*, profiles(username, avatar_url, level, display_badge, badges)')
-    .eq('is_top_today', true).gt('created_at', yesterday).limit(1);
+   const { data } = await sb.from('posts')
+  .select('*, profiles(username, avatar_url, level, display_badge, badges)')
+  .eq('is_top_today', true)
+  .gt('pin_expires_at', new Date().toISOString())  // 只显示未过期的置顶
+  .limit(1);
   const area = $('topPostArea');
   if (data && data.length) {
     area.innerHTML = '';
@@ -12549,12 +12594,19 @@ async function usePinReward(postId, postTitle) {
   if (!confirm(`确定要将帖子「${postTitle}」置顶24小时吗？将消耗一次置顶权。`)) return;
   
   const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
-  const { error } = await sb.from('posts')
-    .update({ 
-      is_top_today: true,
-      pin_expires_at: expiresAt
-    })
-    .eq('id', postId);
+
+// 先取消所有已置顶的帖子（避免多个置顶共存）
+await sb.from('posts')
+  .update({ is_top_today: false, pin_expires_at: null })
+  .eq('is_top_today', true);
+
+// 再设置当前帖子为置顶
+const { error } = await sb.from('posts')
+  .update({ 
+    is_top_today: true,
+    pin_expires_at: expiresAt
+  })
+  .eq('id', postId);
   
   if (error) {
     showToast('置顶失败: ' + error.message, 'error');
@@ -20444,7 +20496,11 @@ await sb.from('posts')
   .eq('is_top_today', true)
   .lt('top_expires_at', oneDayAgo);
   const yesterday = new Date(Date.now() - 86400000).toISOString();
-  await sb.from('posts').update({ is_top_today: false }).eq('is_top_today', true);
+  const now = new Date().toISOString();
+await sb.from('posts')
+  .update({ is_top_today: false })
+  .eq('is_top_today', true)
+  .or(`pin_expires_at.lt.${now},pin_expires_at.is.null`);   // 只清除已过期的 pin
   const { data } = await sb.from('posts').select('id, upvotes, comments_count, downloads').gte('created_at', yesterday).neq('post_type', 'story');
   if (!data || !data.length) return;
   let topPost = null, topScore = -1;
