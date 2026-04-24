@@ -8784,20 +8784,21 @@ window.openEscortBookingModal = async function(escortId, escortName, escortLevel
 // 提交预约
 window.submitEscortBooking = async function() {
   if (!APP.user) return;
-  
-  const verifyCode = document.getElementById('bookingVoucherSelect').value;
+
+  const verifyCode = document.getElementById('bookingVoucherSelect')?.value;
   if (!verifyCode) { showToast('请选择要使用的凭证', 'warning'); return; }
-  
-  const note = document.getElementById('bookingNote').value.trim();
+
+  const note = document.getElementById('bookingNote')?.value || '';
   const escortId = window._bookingEscortId;
-  
   if (!escortId) { showToast('护航员信息错误', 'error'); return; }
-  
+
+  // 1. 标记凭证已使用
   const { error: voucherError } = await sb.from('voucher_verify')
     .update({ is_used: true, used_at: new Date().toISOString() })
     .eq('verify_code', verifyCode);
   if (voucherError) { showToast('凭证核销失败', 'error'); return; }
-  
+
+  // 2. 插入订单（不使用 .select('id')，直接插入并获取所有字段）
   const { data: order, error: orderError } = await sb.from('escort_orders')
     .insert({
       escort_id: escortId,
@@ -8806,22 +8807,32 @@ window.submitEscortBooking = async function() {
       service_type: 'escort',
       status: 'pending'
     })
-    .select('id')
-    .single();
-  
-  if (orderError) { showToast('订单创建失败', 'error'); return; }
-  
+    .select();   // 不再指定 .select('id')，默认返回所有列
+
+  if (orderError) {
+    console.error('订单插入失败:', orderError);
+    showToast('订单创建失败: ' + orderError.message, 'error');
+    return;
+  }
+
+  const newOrder = Array.isArray(order) ? order[0] : order;  // 取第一条
+  const orderId = newOrder?.id;
+  if (!orderId) { showToast('订单创建成功但未获取到ID', 'warning'); }
+
+  // 3. 发送通知给护航员
   await sb.from('notifications').insert({
     recipient_id: escortId,
     sender_id: APP.user.id,
     type: 'system',
     content: `📢 ${APP.profile.username} 预约了你的护航服务，请及时处理`,
-    link: '/escort-order/' + order.id
+    link: '/escort-order/' + orderId
   });
-  
+
   showToast('✅ 预约成功！等待护航员接单', 'success');
   closeModal('escortBookingModal');
 };
+
+
 
 // 查看我的订单
 window.openMyOrdersModal = async function() {
@@ -9932,20 +9943,25 @@ function switchTab(tab) {
   if (mobileBtn) mobileBtn.classList.add('active');
 
   // 7. 根据 Tab 加载对应数据
-  if (tab === 'home') {
+   if (tab === 'home') {
     bindSquadModalEvents();
     initSquadRealtime();
     APP.filters = { type: 'all', op: 'all', sort: 'latest', time: 'all', topic: 'all', keyword: '' };
     const homeSearch = document.getElementById('homeSearchInput');
     if (homeSearch) homeSearch.value = '';
     document.querySelectorAll('.filter-menu').forEach(m => m.classList.add('hidden'));
-    loadHomeBanners();
+
+    // ===== 修复：延迟确保DOM渲染完毕后再加载轮播和护航员 =====
+    setTimeout(() => {
+      loadHomeBanners();
+      loadOnlineEscorts();   // ← 之前这里可能没调用
+    }, 100);
+
     renderToolbox();
     renderTopicCards();
-    loadOnlineEscorts();
-    setTimeout(() => loadHomeBanners(), 50);
-    setTimeout(() => loadSquads(), 50);
+    
     loadPosts(true);
+ 
   // ===== 新增：确保雷达图在情报中心展开时正常显示 =====
   setTimeout(() => {
     const body = document.getElementById('intelConsoleBody');
@@ -12557,29 +12573,6 @@ async function savePendingReward(userId, rewardType, rewardName) {
     .eq('id', userId);
 }
 
-// 渲染个人主页的待使用权益区域
-async function renderPendingRewardsInProfile() {
-  const container = document.getElementById('profilePendingRewards');
-  if (!container) return;
-  
-  const rewards = await getUserPendingRewards();
-  const unused = rewards.filter(r => !r.used);
-  
-  if (unused.length === 0) {
-    container.innerHTML = '<p class="text-xs" style="color: var(--muted);">暂无待使用权益</p>';
-    return;
-  }
-  
-  const pinCount = unused.filter(r => r.type === 'pin').length;
-  const namingCount = unused.filter(r => r.type === 'naming').length;
-  
-  container.innerHTML = `
-    <div class="flex gap-3">
-      ${pinCount > 0 ? `<span class="badge badge-gold text-xs"><i class="fas fa-thumbtack mr-1"></i>置顶权 x${pinCount}</span>` : ''}
-      ${namingCount > 0 ? `<span class="badge badge-silver text-xs"><i class="fas fa-pen mr-1"></i>命名权 x${namingCount}</span>` : ''}
-    </div>
-  `;
-}
 
 // 使用帖子置顶权
 async function usePinReward(postId, postTitle) {
@@ -12663,92 +12656,74 @@ async function useNamingReward(loadoutName, originalCode) {
 async function renderPendingRewardsInProfile() {
   const container = document.getElementById('profilePendingRewards');
   if (!container) return;
-  
   const rewards = await getUserPendingRewards();
   const unused = rewards.filter(r => !r.used);
-  // 按获取时间倒序，最新获得的排前面
-  unused.sort((a, b) => new Date(b.grantedAt) - new Date(a.grantedAt));
-  
+
   if (unused.length === 0) {
     container.innerHTML = '<p class="text-xs text-center py-4" style="color: var(--muted);">暂无待使用权益</p>';
     return;
   }
-  
-  const maxVisible = 5; // 默认显示前3条
-  const needCollapse = unused.length > maxVisible;
-  
-  // 生成每条权益的HTML
-  const renderItem = (r) => {
-    let icon = 'fa-ticket';
-    let name = r.name || '权益';
-    let guide = '';
-    
-    if (r.type === 'pin') { icon = 'fa-thumbtack'; name = '帖子置顶权'; guide = '在帖子列表中使用'; }
-    else if (r.type === 'naming') { icon = 'fa-pen'; name = '配装命名权'; guide = '在起装方案中使用'; }
-    else if (r.type === 'voucher_hafu_3w') { icon = 'fa-coins'; name = '3万哈夫币券'; guide = '联系群主领取'; }
-    else if (r.type === 'voucher_weapon_build') { icon = 'fa-gun'; name = '定制配装方案券'; guide = '联系群主安排'; }
-    else if (r.type === 'voucher_escort_1') { icon = 'fa-shield-halved'; name = '护航体验资格券'; guide = '联系群主安排'; }
-else if (r.type === 'dynamic_bg') { 
-  icon = 'fa-film'; 
-  name = '动态背景30天'; 
-  guide = '立即激活专属动态背景';
-}
 
+  // 按类型分组
+  const groups = {};
+  unused.forEach(r => {
+    const type = r.type;
+    if (!groups[type]) groups[type] = [];
+    groups[type].push(r);
+  });
 
-    else if (r.type === 'voucher_hafu_50w') { icon = 'fa-coins'; name = '50万哈夫币券'; guide = '联系群主领取'; }
-    else if (r.type === 'escort_free') { icon = 'fa-shield-halved'; name = '免费护航体验券'; guide = '联系群主安排'; }
-   
+  // 转为数组方便排序和切片
+  const groupEntries = Object.entries(groups);
+
+  // 默认显示前 4 组，其余折叠
+  const VISIBLE_COUNT = 4;
+  const needCollapse = groupEntries.length > VISIBLE_COUNT;
+
+  const renderGroup = ([type, items]) => {
+    const count = items.length;
+    let icon = 'fa-ticket', name = items[0].name || '权益';
+    if (type === 'pin') { icon = 'fa-thumbtack'; name = '帖子置顶权'; }
+    else if (type === 'naming') { icon = 'fa-pen'; name = '配装命名权'; }
+    else if (type === 'normal_box_free') { icon = 'fa-gift'; name = '免费普通盲盒'; }
+    else if (type === 'super_box_free') { icon = 'fa-gift'; name = '免费超级盲盒'; }
+    else if (type === 'escort_free') { icon = 'fa-shield-halved'; name = '护航体验券'; }
+    else if (type === 'dynamic_bg') { icon = 'fa-film'; name = '动态背景(30天)'; }
+
     return `
-      <div class="pending-reward-item flex items-center justify-between p-3 rounded-lg mb-2" style="background: var(--surface);">
+      <div class="flex items-center justify-between p-3 rounded-lg mb-2" style="background: var(--surface);">
         <div class="flex items-center gap-3">
           <i class="fas ${icon}" style="color: var(--accent);"></i>
           <div>
-            <span class="text-sm">${name}</span>
-            <p class="text-[10px]" style="color: var(--muted);">${guide}</p>
+            <span class="text-sm font-medium">${name} <span style="color: var(--accent);">×${count}</span></span>
           </div>
         </div>
-      <button class="text-xs px-3 py-1 rounded-full" style="background: var(--accent); color: white;" 
-        onclick="${r.type === 'dynamic_bg' ? `activateDynamicBg('${r.id}')` : `useServiceVoucher('${r.type}', '${r.id}')`}">
-  使用
-</button>
+        <button class="text-xs px-3 py-1 rounded-full" style="background: var(--accent); color: white;" 
+          onclick="window.useGroupReward('${type}', '${items[0].id}')">
+          使用
+        </button>
       </div>
     `;
   };
-  
-  // 渲染可见部分和折叠部分
+
   let html = '';
-  unused.slice(0, maxVisible).forEach(r => { html += renderItem(r); });
-  
+  groupEntries.slice(0, VISIBLE_COUNT).forEach(entry => html += renderGroup(entry));
+
   if (needCollapse) {
     html += `
       <div id="pendingRewardsCollapse" style="display:none;">
-        ${unused.slice(maxVisible).map(r => renderItem(r)).join('')}
+        ${groupEntries.slice(VISIBLE_COUNT).map(entry => renderGroup(entry)).join('')}
       </div>
       <div class="text-center mt-2">
-        <button id="togglePendingRewardsBtn" class="text-xs px-4 py-1.5 rounded-full" style="background: var(--surface); border: 1px solid var(--border); color: var(--accent);" onclick="togglePendingRewards()">
-          <i class="fas fa-chevron-down mr-1"></i>展开剩余 ${unused.length - maxVisible} 项
+        <button id="togglePendingRewardsBtn" class="text-xs px-4 py-1.5 rounded-full" style="background: var(--surface); border: 1px solid var(--border); color: var(--accent);"
+          onclick="togglePendingRewards()">
+          <i class="fas fa-chevron-down mr-1"></i>展开更多
         </button>
       </div>
     `;
   }
-  
+
   container.innerHTML = html;
 }
-
-// 切换折叠状态
-function togglePendingRewards() {
-  const collapse = document.getElementById('pendingRewardsCollapse');
-  const btn = document.getElementById('togglePendingRewardsBtn');
-  if (!collapse || !btn) return;
-  
-  const isHidden = collapse.style.display === 'none';
-  collapse.style.display = isHidden ? 'block' : 'none';
-  btn.innerHTML = isHidden 
-    ? '<i class="fas fa-chevron-up mr-1"></i>收起' 
-    : `<i class="fas fa-chevron-down mr-1"></i>展开剩余 ${collapse.children.length} 项`;
-}
-
-
 
 
 // ==================== 个人资料 ====================
@@ -26112,7 +26087,363 @@ function showWelfareGuide() {
 </div>
 
 
+<!-- ==================== 战区物资箱（终极版） ==================== -->
+<style>
+  /* 入口呼吸光效 */
+  #supplyTeaser .card-base {
+    animation: breathBorder 2s infinite;
+  }
+  @keyframes breathBorder {
+    0%,100% { border-left-color: #FFD700; box-shadow: 0 0 12px rgba(255,215,0,0.4); }
+    50% { border-left-color: #ff9900; box-shadow: 0 0 24px rgba(255,153,0,0.7); }
+  }
 
+  /* 开箱网格 */
+  #safeGrid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 8px;
+    padding: 12px;
+    background: #0b0404;
+    border: 4px solid #5a4020;
+    border-radius: 20px;
+    box-shadow: inset 0 0 60px rgba(0,0,0,0.9);
+    min-height: 340px;
+  }
+  .loot-cell {
+    background: #1a0f0a;
+    border: 2px solid #4a3520;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 26px;
+    color: #5a4a3a;
+    transition: 0.3s;
+  }
+
+  .loot-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border-radius: 14px;
+    padding: 6px;
+    animation: lootReveal 0.8s cubic-bezier(0.34,1.56,0.64,1) forwards;
+  }
+  .loot-card.common { background: #1a1a1a; border: 2px solid #7f8c8d; }
+  .loot-card.rare   { background: #0e1a2b; border: 2px solid #3498db; box-shadow: 0 0 14px rgba(52,152,219,0.5); }
+  .loot-card.epic   { background: #1a0e2b; border: 2px solid #9b59b6; box-shadow: 0 0 22px rgba(155,89,182,0.7); }
+  .loot-card.legend { background: #1a1a00; border: 2px solid #f1c40f; box-shadow: 0 0 35px rgba(241,196,15,0.9); animation: lootReveal 1.2s ease, legendPulse 2.5s infinite; }
+
+  @keyframes lootReveal {
+    0% { opacity: 0; transform: scale(0.1) rotateY(180deg); filter: blur(12px); }
+    60% { opacity: 0.9; transform: scale(1.08) rotateY(0); filter: blur(1px); }
+    100% { opacity: 1; transform: scale(1) rotateY(0); filter: blur(0); }
+  }
+  @keyframes legendPulse {
+    0%,100% { box-shadow: 0 0 25px gold; }
+    50% { box-shadow: 0 0 45px orange, 0 0 20px gold; }
+  }
+  .item-icon { font-size: 38px; }
+  .item-name { font-size: 13px; font-weight: bold; color: #fff; text-align: center; margin-top: 5px; }
+</style>
+
+<div class="modal-overlay" id="supplyBoxModal">
+  <div class="modal-content" style="max-width: 700px; background: #0a0303; border: 4px solid #FFD700; box-shadow: 0 0 100px rgba(255,215,0,0.7); padding: 24px 20px; text-align: center;">
+    <button onclick="closeModal('supplyBoxModal')" style="position: absolute; top: 14px; right: 14px; z-index: 20; background: rgba(0,0,0,0.8); color: #FFD700; border: 2px solid #FFD700; width: 36px; height: 36px; border-radius: 50%; font-size: 18px;">✕</button>
+    <h2 style="font-size: 28px; font-weight: 900; color: #FFD700; text-shadow: 0 0 20px #ff6600;">📦 战区物资箱</h2>
+    <p style="color: #bbaa; margin-bottom: 16px;">消耗 <b style="color: #ff8c00;">20 积分</b> 开启</p>
+
+    <!-- 箱子 -->
+    <div id="supplyChest" style="display: inline-block; transition: 0.2s;">
+      <i class="fas fa-box" style="font-size: 70px; color: #8B5A2B; text-shadow: 0 0 25px black;"></i>
+    </div>
+
+    <!-- 网格 -->
+    <div id="safeGrid" style="margin-top: 16px;"></div>
+
+    <button id="supplyOpenBtn" class="btn-warm" style="width: 100%; padding: 16px; margin-top: 18px; font-size: 18px; font-weight: bold; background: linear-gradient(135deg, #ff6600, #ffaa00); color: #1a0a00;" onclick="window.openSupplyBox()">
+      <i class="fas fa-lock-open mr-2"></i>撬锁开箱
+    </button>
+    <p style="font-size: 13px; margin-top: 10px; color: #999;">当前积分：<span id="supplyMyPoints">0</span></p>
+
+    <!-- 开箱记录 -->
+    <div id="supplyHistory" style="text-align: left; margin-top: 16px; max-height: 120px; overflow-y: auto; font-size: 12px; color: #aaa; background: rgba(0,0,0,0.3); border-radius: 10px; padding: 8px;"></div>
+  </div>
+</div>
+
+<script>
+(async function() {
+  if (typeof APP === 'undefined' || typeof sb === 'undefined') return setTimeout(arguments.callee, 200);
+
+  // 全局缓存
+  window.supplyItemsCache = null;
+
+  // 打开弹窗
+  window.openSupplyBoxModal = async function() {
+    if (!APP.user) { openAuthModal(); return; }
+    openModal('supplyBoxModal');
+    // 更新积分
+    const { data: pts } = await sb.from('user_points').select('points').eq('user_id', APP.user.id).maybeSingle();
+    document.getElementById('supplyMyPoints').textContent = pts?.points || 0;
+    loadSupplyHistory();
+    resetSafeGrid();
+  };
+
+  // 重置网格
+  function resetSafeGrid() {
+    const grid = document.getElementById('safeGrid');
+    if (!grid) return;
+    grid.innerHTML = '';
+    for (let i = 0; i < 24; i++) {
+      const cell = document.createElement('div');
+      cell.className = 'loot-cell';
+      cell.innerHTML = '<i class="fas fa-lock"></i>';
+      grid.appendChild(cell);
+    }
+  }
+
+  // 加载记录
+  function loadSupplyHistory() {
+    sb.from('supply_records').select('*').eq('user_id', APP.user.id).order('created_at', {ascending: false}).limit(10).then(({data}) => {
+      const c = document.getElementById('supplyHistory');
+      if (!data || !data.length) { c.innerHTML = '<div style="text-align:center;">暂无开箱记录</div>'; return; }
+      c.innerHTML = data.map(r => `<div style="display:flex;justify-content:space-between;padding:3px 0;">${r.item_name} <span style="opacity:0.5;">${timeAgo(r.created_at)}</span></div>`).join('');
+    });
+  }
+
+  // 核心开箱
+  window.openSupplyBox = async function() {
+    const btn = document.getElementById('supplyOpenBtn');
+    if (!APP.user || !btn || btn.disabled) return;
+
+    // ① 检查并扣除20积分
+    const { data: pts } = await sb.from('user_points').select('points').eq('user_id', APP.user.id).single();
+    if (!pts || pts.points < 20) { showToast('积分不足，需要20积分', 'warning'); return; }
+    await sb.from('user_points').update({ points: pts.points - 20 }).eq('user_id', APP.user.id);
+    await sb.from('points_log').insert({ user_id: APP.user.id, amount: -20, reason: '开启战区物资箱' });
+    document.getElementById('supplyMyPoints').textContent = pts.points - 20;
+    btn.disabled = true;
+
+    // ② 箱子震动 + 开盖动画
+    const chest = document.getElementById('supplyChest');
+    chest.style.transform = 'rotate(-6deg)';
+    setTimeout(() => chest.style.transform = 'rotate(6deg)', 100);
+    setTimeout(() => chest.style.transform = 'rotate(0deg)', 200);
+    setTimeout(() => { chest.innerHTML = '<i class="fas fa-box-open" style="font-size: 70px; color: #FFD700; text-shadow: 0 0 30px gold;"></i>'; }, 400);
+
+    // ③ 加载奖品池
+    if (!window.supplyItemsCache) {
+      const { data } = await sb.from('supply_items').select('*').eq('is_active', true);
+      window.supplyItemsCache = data || [];
+    }
+    const items = window.supplyItemsCache;
+    if (!items.length) { showToast('奖品池为空', 'error'); btn.disabled = false; return; }
+
+    resetSafeGrid();
+
+    // ④ 随机抽取 4~7 个物品
+    const pool = [...items];
+    const drawn = [];
+    const drawCount = Math.min(7, Math.floor(Math.random() * 4) + 4);
+    for (let i = 0; i < drawCount && pool.length > 0; i++) {
+      const totalW = pool.reduce((s, p) => s + p.weight, 0);
+      let rand = Math.random() * totalW, idx = 0;
+      while (rand > 0 && idx < pool.length) { rand -= pool[idx].weight; idx++; }
+      idx = Math.max(0, idx - 1);
+      drawn.push(pool[idx]);
+      pool.splice(idx, 1);
+    }
+
+    // ⑤ 放置物品（大件优先）
+    const grid = document.getElementById('safeGrid');
+    const cells = [...grid.children];
+    const occupied = new Set();
+    const canPlace = (r, c, sx, sy) => {
+      if (c + sx > 6 || r + sy > 4) return false;
+      for (let y = 0; y < sy; y++) for (let x = 0; x < sx; x++) if (occupied.has((r + y) * 6 + (c + x))) return false;
+      return true;
+    };
+    const occupy = (r, c, sx, sy) => {
+      for (let y = 0; y < sy; y++) for (let x = 0; x < sx; x++) occupied.add((r + y) * 6 + (c + x));
+    };
+
+    drawn.sort((a, b) => (b.size_x + b.size_y) - (a.size_x + a.size_y));
+    const placements = [];
+    drawn.forEach(item => {
+      const sx = item.size_x || 1, sy = item.size_y || 1;
+      outer: for (let r = 0; r < 4; r++) {
+        for (let c = 0; c < 6; c++) {
+          if (canPlace(r, c, sx, sy)) { placements.push({ item, row: r, col: c, sx, sy }); occupy(r, c, sx, sy); return; }
+        }
+      }
+      // 缩小尝试
+      const nsx = Math.min(sx, 2), nsy = Math.min(sy, 1);
+      for (let r = 0; r < 4; r++) {
+        for (let c = 0; c < 6; c++) {
+          if (canPlace(r, c, nsx, nsy)) { placements.push({ item, row: r, col: c, sx: nsx, sy: nsy }); occupy(r, c, nsx, nsy); return; }
+        }
+      }
+    });
+
+    // ⑥ 逐个爆出物品（延迟差异）
+    const delays = { common: 400, rare: 800, epic: 1600, legend: 2800 };
+    let cumulative = 0;
+    placements.forEach(p => {
+      cumulative += delays[p.item.quality] || 500;
+      const idx = p.row * 6 + p.col;
+      const cell = cells[idx];
+      if (!cell) return;
+      setTimeout(() => {
+        cell.className = `loot-card ${p.item.quality}`;
+        cell.style.gridColumn = `span ${p.sx}`;
+        cell.style.gridRow = `span ${p.sy}`;
+        cell.innerHTML = `<div class="item-icon">${p.item.icon}</div><div class="item-name">${p.item.name}</div>`;
+      }, cumulative);
+    });
+
+    // ⑦ 奖励发放（整合所有类型）
+    setTimeout(() => {
+      const uid = APP.user.id;
+      drawn.forEach(item => {
+        switch (item.prize_type) {
+          case 'points':
+            addUserPoints(item.value);
+            sb.from('points_log').insert({ user_id: uid, amount: item.value, reason: `物资箱获得：${item.name}` }).then();
+            break;
+          case 'pin':
+            savePendingReward(uid, 'pin', '帖子置顶权(物资箱)');
+            break;
+          case 'naming':
+            savePendingReward(uid, 'naming', '配装命名权(物资箱)');
+            break;
+          case 'escort':
+            savePendingReward(uid, 'escort_free', '护航体验(物资箱)');
+            break;
+          case 'normal_box':
+            savePendingReward(uid, 'normal_box_free', '免费普通盲盒(物资箱)');
+            break;
+          case 'super_box':
+            savePendingReward(uid, 'super_box_free', '免费超级盲盒(物资箱)');
+            break;
+          case 'frame':
+          case 'badge':
+            grantBadgeToUser(uid, 'badge_supply_lucky');
+            break;
+          case 'bg':
+            savePendingReward(uid, 'dynamic_bg', '动态背景30天');
+            break;
+          default:
+            savePendingReward(uid, item.prize_type, item.name);
+        }
+        // 记录开箱
+        sb.from('supply_records').insert({ user_id: uid, item_name: item.name, quality: item.quality, prize_type: item.prize_type, value: item.value }).then();
+      });
+      updateUserPointsUI();
+      showToast('🎉 物资箱已开启，奖励已发放！', 'success');
+      btn.disabled = false;
+      loadSupplyHistory();
+      setTimeout(() => {
+        chest.innerHTML = '<i class="fas fa-box" style="font-size:70px;color:#8B5A2B;text-shadow:0 0 25px black;"></i>';
+      }, 2500);
+    }, cumulative + 1000);
+  };
+
+  // 入口自动插入（工具箱下方）
+  (function addEntrance() {
+    if (document.getElementById('supplyTeaser')) return;
+    const toolbox = document.getElementById('toolboxSection');
+    if (!toolbox) return setTimeout(addEntrance, 200);
+    const teaser = document.createElement('section');
+    teaser.id = 'supplyTeaser';
+    teaser.innerHTML = `
+      <div class="card-base p-4 mb-4 flex items-center gap-3 cursor-pointer" style="border-left: 6px solid #FFD700; background: linear-gradient(135deg, rgba(255,215,0,0.12), rgba(255,107,53,0.05));" onclick="window.openSupplyBoxModal()">
+        <div class="w-12 h-12 rounded-full flex items-center justify-center" style="background: linear-gradient(135deg, #FFD700, #FF6B35);">
+          <i class="fas fa-box-open text-white text-xl"></i>
+        </div>
+        <div>
+          <h3 class="font-display text-base">战区物资箱</h3>
+          <p class="text-xs" style="color: var(--muted);">20积分开一次，100+稀有物资</p>
+        </div>
+      </div>
+    `;
+    toolbox.after(teaser);
+  })();
+})();
+</script>
+
+<script>
+
+</script>
+
+<script>
+// ========== 权益使用 + 折叠展开 ==========
+window.useGroupReward = async function(type, sampleId) {
+  const rewards = await getUserPendingRewards();
+  const target = rewards.find(r => r.type === type && !r.used);
+  if (!target) { showToast('该权益已用完', 'info'); return; }
+
+  // 需要进一步操作的线上权益（不提前消耗，只引导）
+  if (type === 'pin') {
+    showToast('请在“我的帖子”中选择要置顶的帖子，点击“使用置顶权”按钮', 'info');
+    // 可以自动跳转到个人中心（我的帖子区域）
+    switchTab('profile');
+    // 滚动到我的帖子区域
+    setTimeout(() => {
+      const myPosts = document.getElementById('myPostsGrid');
+      if (myPosts) myPosts.scrollIntoView({ behavior: 'smooth' });
+    }, 300);
+    return; // 不消耗权益
+  }
+
+  if (type === 'naming') {
+    showToast('请在“起装方案”中选择配装，点击“命名”按钮使用', 'info');
+    switchTab('budgetLoadout');
+    return; // 不消耗权益
+  }
+
+  // 对于其他权益，立即标记为已使用并更新数据库
+  target.used = true;
+  target.usedAt = new Date().toISOString();
+  const idx = rewards.findIndex(r => r.id === target.id);
+  if (idx !== -1) rewards[idx] = target;
+
+  const { error } = await sb.from('profiles').update({ pending_rewards: rewards }).eq('id', APP.user.id);
+  if (error) { showToast('使用失败', 'error'); return; }
+
+  // 执行具体的发放逻辑
+  if (type === 'normal_box_free') {
+    await openNormalBox(true);
+  } else if (type === 'super_box_free') {
+    await openSuperBox(true);
+  } else if (type === 'dynamic_bg') {
+    await activateDynamicBg(target.id);
+  } else if (type === 'escort_free' || type.startsWith('voucher_') || type.startsWith('hafu')) {
+    const voucherName = target.name || '服务凭证';
+    await showVoucherModal(type, voucherName);
+  } else {
+    await useServiceVoucher(type, target.id);
+  }
+
+  // 刷新权益列表
+  renderPendingRewardsInProfile();
+};
+
+
+
+
+window.togglePendingRewards = function() {
+  var collapse = document.getElementById('pendingRewardsCollapse');
+  var btn = document.getElementById('togglePendingRewardsBtn');
+  if (!collapse || !btn) return;
+  var isHidden = collapse.style.display === 'none';
+  collapse.style.display = isHidden ? 'block' : 'none';
+  btn.innerHTML = isHidden
+    ? '<i class="fas fa-chevron-up mr-1"></i>收起'
+    : '<i class="fas fa-chevron-down mr-1"></i>展开更多';
+};
+</script>
 </body>
 
 </html>
