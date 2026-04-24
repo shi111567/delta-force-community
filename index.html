@@ -7911,7 +7911,7 @@ async function grantBadgeToUser(userId, badgeId, badgeInfo) {
 async function openNormalBox(skipCharge = false) {
   if (!APP.user) { openAuthModal(); return; }
 
-  // 检查免费券
+  // 检查免费券（仅当 skipCharge 为 false 时）
   if (!skipCharge) {
     const hasFreeTicket = await hasPendingReward('normal_box_free');
     if (hasFreeTicket) {
@@ -7920,25 +7920,34 @@ async function openNormalBox(skipCharge = false) {
     }
   }
 
-  // 扣除积分
+  // -------- 扣除积分（只执行一次）--------
+  console.log('🔴 skipCharge =', skipCharge, '使用的免费券 =', skipCharge ? '是' : '否');
   if (!skipCharge) {
     const { data: pointsData } = await sb.from('user_points').select('points').eq('user_id', APP.user.id).single();
-    if (!pointsData || pointsData.points < 10) {
+        if (!pointsData || pointsData.points < 10) {
       showToast('积分不足（需要10积分）', 'warning');
       return;
     }
+    console.log('🔴 扣分前积分:', pointsData.points);
+    // 减去10积分
     await sb.from('user_points').update({ points: pointsData.points - 10 }).eq('user_id', APP.user.id);
+    console.log('🟢 扣分已执行，应剩余:', pointsData.points - 10);
+
+ const { data: verify } = await sb.from('user_points').select('points').eq('user_id', APP.user.id).single();
+    console.log('🟣 数据库真实剩余积分:', verify?.points);
+
+
     await sb.from('points_log').insert({ user_id: APP.user.id, amount: -10, reason: '普通盲盒' });
   }
 
   // 幸运值 +3
   let lucky = APP.profile.lucky_value || 0;
-  lucky = Math.min(lucky + 3, 100);
+  lucky = Math.min(lucky + 3, 200);
   await sb.from('profiles').update({ lucky_value: lucky }).eq('id', APP.user.id);
   APP.profile.lucky_value = lucky;
 
   let useEscortRewards = APP.profile?.is_escort || false;
-  if (APP.isAdmin) { useEscortRewards = (window.adminEscortMode === true); }
+  if (APP.isAdmin) useEscortRewards = (window.adminEscortMode === true);
 
   const normalRewards = [
     { type: 'hafu_500w', name: '500万哈夫币代肝一次', weight: 0.2 },
@@ -7953,7 +7962,6 @@ async function openNormalBox(skipCharge = false) {
     { type: 'points', name: '5积分', value: 5, weight: 30 },
     { type: 'points', name: '15积分', value: 15, weight: 5 }
   ];
-
   const escortRewards = [
     { type: 'points', name: '500积分', value: 500, weight: 0.5 },
     { type: 'points', name: '200积分', value: 200, weight: 1.5 },
@@ -7965,10 +7973,9 @@ async function openNormalBox(skipCharge = false) {
     { type: 'title', name: '自定义铭牌（金色）', weight: 10 },
     { type: 'points', name: '20积分', value: 20, weight: 50 }
   ];
-
   const rewards = useEscortRewards ? escortRewards : normalRewards;
 
-  // 抽奖（幸运值满100触发保底）
+  // 抽奖 + 保底
   let selected;
   if (lucky >= 100) {
     const topRewards = rewards.filter(r => r.weight <= 1.5);
@@ -7992,9 +7999,12 @@ async function openNormalBox(skipCharge = false) {
     }
   }
 
+  // 发放奖励（如果是积分，直接加）
   await processBoxReward(selected);
+  // 刷新积分显示
   updateUserPointsUI();
 
+ 
   // 更新UI显示
   const newLucky = APP.profile.lucky_value || 0;
   const popupText = document.getElementById('luckyValueText');
@@ -8113,7 +8123,17 @@ async function processBoxReward(reward) {
   if (reward.type === 'points') {
     await addUserPoints(reward.value);
     await sb.from('points_log').insert({ user_id: APP.user.id, amount: reward.value, reason: '盲盒中奖' });
-    showToast(`🎉 获得 ${reward.name}`, 'success');
+    // ---- 从这里开始复制 ----
+        // 周末双倍提示
+        let amountTip = `🎉 获得 ${reward.name}`;
+        const now = new Date();
+        const day = now.getDay();
+        if ((day === 0 || day === 6) && reward.type === 'points') {
+            // 实际得到的是双倍，但reward.name里还是原始值，我们动态计算一下双倍值
+            amountTip = `🎉 获得 ${reward.name}（周末双倍：+${reward.value * 2}积分）`;
+        }
+        showToast(amountTip, 'success');
+// ---- 到这里结束，完整复制 ----
   } else if (reward.type.startsWith('hafu')) {
     await savePendingReward(APP.user.id, reward.type, reward.name);
     showToast(`💸 获得 ${reward.name}，联系群主领取`);
@@ -8137,7 +8157,7 @@ async function processBoxReward(reward) {
     const expires = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
     await sb.from('profiles').update({ is_featured_escort: true, featured_expires_at: expires }).eq('id', APP.user.id);
     showToast('🔥 已获得首页推荐位，请查看护航员列表！', 'success');
-   } else if (type === 'broadcast' || type.startsWith('broadcast_')) {
+      } else if (reward.type === 'broadcast' || reward.type.startsWith('broadcast_')) {
     const text = prompt('请输入广播内容（最多30字）：');
     if (text && text.trim()) {
       showUserBroadcast(APP.profile.username, text.trim().substring(0, 30));
@@ -24699,27 +24719,29 @@ async function purchaseShopItem(itemId, price) {
 // ==================== 刷新顶部积分显示 ====================
 async function updateUserPointsUI() {
   if (!APP.user) return;
-  try {
-    const { data, error } = await sb
-      .from('user_points')
-      .select('points')
-      .eq('user_id', APP.user.id)
-      .maybeSingle();
-    if (error) throw error;
-    const points = data?.points || 0;
-    // 更新顶部导航栏积分
-    const display = document.getElementById('userPointsDisplay');
-    if (display) display.textContent = points;
-    // 同时更新积分商城弹窗内的积分显示
-    const shopDisplay = document.getElementById('shopCurrentPoints');
-    if (shopDisplay) shopDisplay.textContent = points;
-    const modalPoints = document.getElementById('modalUserPoints');
-    if (modalPoints) modalPoints.textContent = points;
-  } catch (e) {
-    console.warn('刷新积分显示失败:', e);
-  }
+  const { data, error } = await sb
+    .from('user_points')
+    .select('points')
+    .eq('user_id', APP.user.id)
+    .maybeSingle();
+  if (error) return;
+  const points = data?.points ?? 0;
+  // 更新顶部导航栏
+  const display = document.getElementById('userPointsDisplay');
+  if (display) display.textContent = points;
+  // 更新积分商城弹窗
+  const shopDisplay = document.getElementById('shopCurrentPoints');
+  if (shopDisplay) shopDisplay.textContent = points;
+  // 更新互助中心弹窗
+  const modalPoints = document.getElementById('modalUserPoints');
+  if (modalPoints) modalPoints.textContent = points;
+  // 更新物资箱弹窗
+  const supply = document.getElementById('supplyMyPoints');
+  if (supply) supply.textContent = points;
+  // 更新个人中心
+  const profile = document.getElementById('profileMyPoints');
+  if (profile) profile.textContent = points;
 }
-
 
 // ==================== 新人7日任务 ====================
 async function updateNewbieTask(userId, taskType) {
@@ -26233,17 +26255,25 @@ function showWelfareGuide() {
 
 
   /* 开箱网格 */
-  #safeGrid {
+ #safeGrid {
     display: grid;
     grid-template-columns: repeat(6, 1fr);
+    grid-auto-rows: 1fr;           /* 新增：让每行自动平分高度，大卡片也能被容纳 */
     gap: 8px;
     padding: 12px;
     background: #0b0404;
     border: 4px solid #5a4020;
     border-radius: 20px;
     box-shadow: inset 0 0 60px rgba(0,0,0,0.9);
-    min-height: 340px;
-  }
+    min-height: 400px;             /* 稍微加大高度，确保4行有足够空间 */
+    background: repeating-linear-gradient(0deg, rgba(0,255,0,0.05) 0px, rgba(0,255,0,0.05) 2px, transparent 2px, transparent 4px);
+    position: relative;
+    overflow: hidden;              /* 新增：万一有溢出直接裁剪掉 */
+}
+
+
+
+
   .loot-cell {
     background: #1a0f0a;
     border: 2px solid #4a3520;
@@ -26254,21 +26284,24 @@ function showWelfareGuide() {
     font-size: 26px;
     color: #5a4a3a;
     transition: 0.3s;
-  }
+    overflow: hidden;              /* 新增：防止内部卡片内容跑出格子 */
+}
 
   .loot-card {
- 
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 100%;
-  border-radius: 14px;
-  padding: 6px;
-  box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    border-radius: 14px;
+    padding: 4px;                  /* 减小内边距，避免内容挤压 */
+    box-sizing: border-box;
+    overflow: hidden;              /* 新增：防止文字或图标溢出 */
     animation: lootReveal 0.8s cubic-bezier(0.34,1.56,0.64,1) forwards;
-  }
+}
+
+
   .loot-card.common { background: #1a1a1a; border: 2px solid #7f8c8d; }
   .loot-card.rare   { background: #0e1a2b; border: 2px solid #3498db; box-shadow: 0 0 14px rgba(52,152,219,0.5); }
   .loot-card.epic   { background: #1a0e2b; border: 2px solid #9b59b6; box-shadow: 0 0 22px rgba(155,89,182,0.7); }
@@ -26362,7 +26395,6 @@ function showWelfareGuide() {
 }
 
 
-
 </style>
 
 <div class="modal-overlay" id="supplyBoxModal">
@@ -26372,9 +26404,20 @@ function showWelfareGuide() {
     <p style="color: #bbaa; margin-bottom: 16px;">消耗 <b style="color: #ff8c00;">20 积分</b> 开启</p>
 
     <!-- 箱子 -->
-    <div id="supplyChest" style="display: inline-block; transition: 0.2s;">
-      <i class="fas fa-box" style="font-size: 70px; color: #8B5A2B; text-shadow: 0 0 25px black;"></i>
+   <div id="supplyChest" style="display: inline-block; transition: 0.2s; position: relative;">
+  <!-- 军用保险箱主体 -->
+  <div style="width: 120px; height: 120px; background: linear-gradient(145deg, #4a4a4a 0%, #2c2c2c 100%); border: 4px solid #6b5b3a; border-radius: 20px; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 30px rgba(0,0,0,0.8), inset 0 0 20px rgba(0,0,0,0.5); position: relative;">
+    <!-- 锁芯 -->
+    <div id="supplyLock" style="width: 40px; height: 40px; background: #1a1a1a; border: 3px solid #d4af37; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: all 0.3s;">
+      <i class="fas fa-lock" style="color: #d4af37; font-size: 20px;"></i>
     </div>
+    <!-- 铆钉装饰 -->
+    <div style="position: absolute; top: 10px; left: 15px; width: 8px; height: 8px; background: #aaa; border-radius: 50%; box-shadow: 0 0 5px rgba(0,0,0,0.8);"></div>
+    <div style="position: absolute; top: 10px; right: 15px; width: 8px; height: 8px; background: #aaa; border-radius: 50%; box-shadow: 0 0 5px rgba(0,0,0,0.8);"></div>
+    <div style="position: absolute; bottom: 10px; left: 15px; width: 8px; height: 8px; background: #aaa; border-radius: 50%; box-shadow: 0 0 5px rgba(0,0,0,0.8);"></div>
+    <div style="position: absolute; bottom: 10px; right: 15px; width: 8px; height: 8px; background: #aaa; border-radius: 50%; box-shadow: 0 0 5px rgba(0,0,0,0.8);"></div>
+  </div>
+</div>
 
     <!-- 网格 -->
     <div id="safeGrid" style="margin-top: 16px;"></div>
@@ -26529,18 +26572,17 @@ const SUPPLY_SOUNDS = {};
 
 
 window.BOX_SOUNDS = {
-  open: new Audio('https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3'),
-  white: new Audio('https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3'),
-  green: new Audio('https://assets.mixkit.co/active_storage/sfx/2570/2570-preview.mp3'),
-  blue: new Audio('https://assets.mixkit.co/active_storage/sfx/2569/2569-preview.mp3'),
+  open: new Audio('https://assets.mixkit.co/active_storage/sfx/2018/2018-preview.mp3'), // 机械解锁声
+  white: new Audio('https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3'), // 轻武器上膛
+  green: new Audio('https://assets.mixkit.co/active_storage/sfx/2570/2570-preview.mp3'), // 拾取物品
+  blue: new Audio('https://assets.mixkit.co/active_storage/sfx/2569/2569-preview.mp3'), // 电子确认
   purple: new Audio('https://assets.mixkit.co/active_storage/sfx/2018/2018-preview.mp3'),
   yellow: new Audio('https://assets.mixkit.co/active_storage/sfx/2017/2017-preview.mp3'),
   orange: new Audio('https://assets.mixkit.co/active_storage/sfx/2019/2019-preview.mp3'),
   red_small: new Audio('https://assets.mixkit.co/active_storage/sfx/2020/2020-preview.mp3'),
   red_big: new Audio('https://assets.mixkit.co/active_storage/sfx/2021/2021-preview.mp3')
 };
-Object.values(window.BOX_SOUNDS).forEach(a => { a.volume = 0.4; a.load(); });
-
+Object.values(window.BOX_SOUNDS).forEach(a => { a.volume = 0.5; a.load(); });
 
 // 重置网格：生成24个带锁的空格子
 window.resetSafeGrid = function() {
@@ -26642,7 +26684,11 @@ window.openSupplyBox = async function() {
   const chest = document.getElementById('supplyChest');
   if (chest) {
     chest.classList.add('chest-opening');
-    chest.innerHTML = '<i class="fas fa-box-open" style="font-size:70px;color:#FFD700;text-shadow:0 0 30px gold;"></i>';
+          const lockEl = document.getElementById('supplyLock');
+      if (lockEl) {
+        lockEl.style.transform = 'rotate(90deg)';
+        lockEl.innerHTML = '<i class="fas fa-unlock-alt" style="color:#FFD700; font-size:20px;"></i>';
+      }
   }
   if (window.BOX_SOUNDS?.open) {
     window.BOX_SOUNDS.open.currentTime = 0;
@@ -26654,7 +26700,14 @@ window.openSupplyBox = async function() {
   if (!allItems || allItems.length === 0) {
     showToast('奖池为空，请稍后', 'error');
     btn.disabled = false; btn.innerHTML = '撬锁开箱';
-    if (chest) { chest.innerHTML = '<i class="fas fa-box" style="font-size:70px;color:#8B5A2B;"></i>'; chest.classList.remove('chest-opening'); }
+      if (chest) {
+    const lockEl = document.getElementById('supplyLock');
+    if (lockEl) {
+      lockEl.style.transform = 'rotate(0deg)';
+      lockEl.innerHTML = '<i class="fas fa-lock" style="color:#d4af37; font-size:20px;"></i>';
+    }
+    chest.classList.remove('chest-opening');
+  }
     return;
   }
 
@@ -26784,6 +26837,7 @@ window.openSupplyBox = async function() {
   // 逐个展示
   for (let i = 0; i < placements.length; i++) {
     await revealItem(placements[i], i);
+
   }
 
   // 所有物品展示完毕后结算积分
@@ -26832,6 +26886,7 @@ window.openSupplyBox = async function() {
     else if (q === 'red_big') earnedLucky += 50;
   }
   luckyValue += earnedLucky;
+luckyValue = Math.min(luckyValue, 200);  // 最高200
   localStorage.setItem(luckyKey, luckyValue);
   document.getElementById('supplyLuckyBonus').textContent = luckyValue;
 
@@ -26854,6 +26909,23 @@ window.openSupplyBox = async function() {
 
 
   showToast(`🎉 开箱完成！获得 ${drawnItems.length} 件物品`, 'success');
+
+  // 生成战利品清单（仅弹窗显示，不记录）
+  let listHtml = '<div style="background:#1a1a1a;color:#eee;padding:16px;border-radius:12px;max-width:500px;margin:16px auto;font-family:monospace;">';
+  listHtml += '<div style="text-align:center;font-size:20px;font-weight:bold;border-bottom:1px dashed #555;padding-bottom:8px;">📋 战利品提取报告</div>';
+  placements.forEach(p => {
+    listHtml += `<div style="margin:8px 0;display:flex;justify-content:space-between;"><span>${p.item.icon} ${p.item.name}</span><span style="color:var(--accent);">${p.item.value ? '+'+p.item.value : ''}</span></div>`;
+  });
+  listHtml += '</div>';
+  
+  const reportModal = document.createElement('div');
+  reportModal.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:99999;';
+  reportModal.innerHTML = `<div class="modal-content active" style="max-width:500px;">${listHtml}<button class="btn-warm w-full py-3 mt-3" onclick="this.closest('.modal-overlay').remove()">关闭报告</button></div>`;
+  reportModal.className = 'modal-overlay active';
+  document.body.appendChild(reportModal);
+
+
+
 };
 
 
