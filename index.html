@@ -12789,9 +12789,9 @@ async function renderPendingRewardsInProfile() {
     // 转为数组方便排序和切片
   const groupEntries = Object.entries(groups);
 
-  // 网格卡片样式（三端自适应）
+  // 🔥 不再折叠，全部权益用网格卡片一次展示
   let html = '<div class="rewards-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; padding: 4px 0;">';
-  
+
   groupEntries.forEach(([type, items]) => {
     const count = items.length;
     let icon = 'fa-ticket', name = items[0]?.name || '权益';
@@ -12814,7 +12814,7 @@ async function renderPendingRewardsInProfile() {
     else { icon = 'fa-ticket'; name = items[0]?.name || '特殊权益'; }
 
     html += `
-      <div class="reward-grid-card" style="background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 14px 10px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 8px; transition: all 0.2s;">
+      <div class="reward-grid-card" style="background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 14px 10px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 8px;">
         <div style="font-size: 28px; width: 44px; height: 44px; border-radius: 50%; background: var(--accent)15; display: flex; align-items: center; justify-content: center;">
           <i class="fas ${icon}" style="color: var(--accent); font-size: 20px;"></i>
         </div>
@@ -12824,7 +12824,7 @@ async function renderPendingRewardsInProfile() {
           onclick="window.useGroupReward('${type}', '${items[0].id}')">使用</button>
       </div>`;
   });
-  
+
   html += '</div>';
   container.innerHTML = html;
 }
@@ -27180,22 +27180,25 @@ window.useGroupReward = async function(type, sampleId) {
     showToast(`👑 金色马甲已设置为“${newName}”`, 'success');
     return;
   }
-  if (type === 'broadcast' || type === 'broadcast_all') {
-    // 广播：弹出输入框
-    var text = prompt('请输入广播内容（最多30字）：');
+    if (type === 'broadcast' || type === 'broadcast_all') {
+    const text = prompt('请输入广播内容（最多30字）：');
     if (text && text.trim()) {
       if (typeof showUserBroadcast === 'function') {
         showUserBroadcast(APP.profile.username, text.trim().substring(0, 30));
       }
+      target.used = true; target.usedAt = new Date().toISOString();
+      var idx = rewards.findIndex(function(r) { return r.id === target.id; });
+      if (idx !== -1) rewards[idx] = target;
+      await updateRewards(rewards);
+      renderPendingRewardsInProfile();
+      showToast('📢 广播已发送', 'success');
+    } else {
+      showToast('广播已取消', 'info');
     }
-    target.used = true; target.usedAt = new Date().toISOString();
-    var idx = rewards.findIndex(function(r) { return r.id === target.id; });
-    if (idx !== -1) rewards[idx] = target;
-    await updateRewards(rewards);
-    renderPendingRewardsInProfile();
-    showToast('📢 广播已发送', 'success');
     return;
   }
+
+
   if (type === 'escort_free' || type === 'escort' || type.startsWith('voucher_') || type.startsWith('hafu_')) {
     // 护航券/体验卡：弹出核销码
     var voucherName = target.name || '服务凭证';
