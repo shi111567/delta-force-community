@@ -18703,6 +18703,35 @@ function subscribeRealtime() {
       }
     });
   
+
+
+  // 2. 然后绑定广播事件（以及新增的暗拍监听）
+  globalRealtimeChannel
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'dark_auctions' }, (payload) => {
+      const auction = payload.new;
+      if (!APP.user || auction.seller_id === APP.user.id) return;
+      const bid = prompt(`【暗拍】${auction.item_name} 底价${auction.base_price}积分，暴击价${auction.burst_price}积分，请输入你的出价：`);
+      if (bid && !isNaN(bid) && parseInt(bid) >= auction.base_price) {
+        const amount = parseInt(bid);
+        const bids = auction.bids || [];
+        bids.push({ user_id: APP.user.id, username: APP.profile.username, amount });
+        sb.from('dark_auctions').update({ bids }).eq('auction_id', auction.auction_id).then(() => {
+          showToast('✅ 出价成功！等待结束...', 'success');
+        });
+      }
+    })
+    .on('broadcast', { event: 'points_update' }, (payload) => {
+      if (typeof updateUserPointsUI === 'function') updateUserPointsUI();
+    })
+    .on('broadcast', { event: 'jackpot_announce' }, (payload) => {
+      if (typeof showJackpotBroadcast === 'function') {
+        showJackpotBroadcast(payload.payload);
+      }
+    });
+  
+
+
+
   // 2. 然后绑定广播事件
   globalRealtimeChannel
     .on('broadcast', { event: 'points_update' }, (payload) => {
@@ -26440,8 +26469,22 @@ function showWelfareGuide() {
 <div class="modal-overlay" id="supplyBoxModal">
   <div class="modal-content" style="max-width: 700px; background: #0a0303; border: 4px solid #FFD700; box-shadow: 0 0 100px rgba(255,215,0,0.7); padding: 24px 20px; text-align: center;">
     <button onclick="closeModal('supplyBoxModal')" style="position: absolute; top: 14px; right: 14px; z-index: 20; background: rgba(0,0,0,0.8); color: #FFD700; border: 2px solid #FFD700; width: 36px; height: 36px; border-radius: 50%; font-size: 18px;">✕</button>
-    <h2 style="font-size: 28px; font-weight: 900; color: #FFD700; text-shadow: 0 0 20px #ff6600;">📦 战区物资箱</h2>
-    <p style="color: #bbaa; margin-bottom: 16px;">消耗 <b style="color: #ff8c00;">20 积分</b> 开启</p>
+   <h2 style="font-size: 28px; font-weight: 900; color: #FFFFFF; text-shadow: 0 0 30px #FF8C00, 0 0 60px #FF4500;">📦 战区物资箱</h2>
+<p style="color: #bbaa; margin-bottom: 16px;">消耗 <b style="color: #ff8c00;">20 积分</b> 开启</p>
+
+<!-- === 新插入：今日活跃度提示 === -->
+<p style="font-size: 12px; color: #888; margin: 0 0 8px 0; display: flex; align-items: center; justify-content: center; gap: 6px;">
+  <span style="display: flex; align-items: center; gap: 4px;">
+    <i class="fas fa-pen" style="font-size: 10px; color: var(--accent);"></i> 今日发帖 <b style="color: var(--accent);" id="hintTodayPosts">0</b> 篇
+  </span>
+  <span style="opacity: 0.4;">|</span>
+  <span style="display: flex; align-items: center; gap: 4px;">
+    <i class="far fa-thumbs-up" style="font-size: 10px; color: var(--accent);"></i> 今日获赞 <b style="color: var(--accent);" id="hintTodayLikes">0</b> 次
+  </span>
+</p>
+
+
+
 
     <!-- 箱子 -->
    <div id="supplyChest" style="display: inline-block; transition: 0.2s; position: relative;">
@@ -26553,6 +26596,19 @@ async function processNonPointsReward(uid, item) {
 
 
 
+
+window.shareSupplyResult = function(itemName, quality) {
+  const text = `我在三角洲墨辰电竞的战区物资箱里开出了【${itemName}】！快来试试你的手气！`;
+  if (navigator.share) {
+    navigator.share({ title: '战区物资箱', text: text, url: window.location.href });
+  } else {
+    navigator.clipboard?.writeText(text);
+    showToast('📋 分享文案已复制，去群里炫耀吧！', 'success');
+  }
+};
+
+
+
   // 打开弹窗
  window.openSupplyBoxModal = async function() {
   // 激活音频上下文（解决自动播放限制）
@@ -26595,6 +26651,30 @@ async function processNonPointsReward(uid, item) {
   let luckyValue = parseInt(localStorage.getItem(luckyKey) || '0', 10);
   document.getElementById('supplyLuckyBonus').textContent = luckyValue;
 
+
+
+  // === 新插入：根据今日活跃度调整幸运值 ===
+  const today = new Date().toISOString().split('T')[0];
+  const { data: todayPosts } = await sb.from('posts')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', APP.user.id)
+    .gte('created_at', today);
+  const { data: todayLikes } = await sb.from('votes')
+    .select('id', { count: 'exact', head: true })
+    .eq('vote_type', 'up')
+    .gte('created_at', today);
+  
+  // 更新弹窗里的数字
+  const hintPostsEl = document.getElementById('hintTodayPosts');
+  const hintLikesEl = document.getElementById('hintTodayLikes');
+  if (hintPostsEl) hintPostsEl.textContent = todayPosts?.count || 0;
+  if (hintLikesEl) hintLikesEl.textContent = todayLikes?.count || 0;
+  
+  // 发帖越多，幸运值加成越高（每发一帖+5%，上限25%）
+    document.getElementById('supplyLuckyBonus').textContent = luckyValue;
+  // === 插入结束 ===
+
+
   loadSupplyHistory();
   resetSafeGrid();
 };
@@ -26626,12 +26706,99 @@ window.clearSupplyHistory = async function() {
 
 
 
+window.startSilentAuction = function(itemId, itemName, quality) {
+  if (!APP.user) { openAuthModal(); return; }
+  
+  // 设置底价和暴击价格
+  const basePrice = prompt(`设置【${itemName}】的暗拍底价（最低1积分）：`);
+  if (!basePrice || isNaN(basePrice) || basePrice < 1) {
+    showToast('底价至少1积分', 'warning');
+    return;
+  }
+  const burstPrice = prompt('设置“暴击价格”（超过此价发起人将额外支付积分给得主，0=不启用）：');
+  const burst = Math.max(0, parseInt(burstPrice) || 0);
+  
+  const auctionId = 'auc_' + Date.now();
+  
+  // 创建暗拍记录（Supabase 表 dark_auctions）
+  const auctionData = {
+    auction_id: auctionId,
+    seller_id: APP.user.id,
+    item_id: itemId,
+    item_name: itemName,
+    quality: quality,
+    base_price: parseInt(basePrice),
+    burst_price: burst,
+    end_time: new Date(Date.now() + 30000).toISOString(), // 30秒
+    bids: []
+  };
+  
+  sb.from('dark_auctions').insert(auctionData).then(() => {
+    showToast('📢 暗拍已发起，等待其他玩家出价...', 'success');
+    
+    // Realtime 广播
+    const channel = sb.channel('auction-' + auctionId);
+    channel.on('broadcast', { event: 'new_auction' }, () => {
+      // 通知其他玩家（可以用 toast 或者弹窗）
+    });
+    channel.subscribe();
+    
+    // 30秒后自动结束
+    setTimeout(async () => {
+      await endSilentAuction(auctionId);
+    }, 30000);
+  });
+};
+
+async function endSilentAuction(auctionId) {
+  const { data: auction } = await sb.from('dark_auctions').select('*').eq('auction_id', auctionId).single();
+  if (!auction || auction.ended) return;
+  
+  const bids = auction.bids || [];
+  if (bids.length === 0) {
+    showToast('🔔 暗拍结束，无人出价，物品退还发起人。', 'info');
+    await sb.from('dark_auctions').update({ ended: true }).eq('auction_id', auctionId);
+    return;
+  }
+  
+  // 排序出价，最高者得
+  bids.sort((a, b) => b.amount - a.amount);
+  const winnerBid = bids[0];
+  const winnerUserId = winnerBid.user_id;
+  
+  // 转移物品 —— 因为是虚拟物品，这里实际是将物品从卖家待使用权益中删掉，给赢家增加一条权益
+  await removePendingReward(auction.seller_id, auction.item_id);
+  await savePendingReward(winnerUserId, 'item', auction.item_name, { value: 1 });
+  
+  // 积分结算：赢家支付最高出价给卖家
+  await sb.from('user_points').update({ points: sb.raw('points - ' + winnerBid.amount) }).eq('user_id', winnerUserId);
+  await sb.from('user_points').update({ points: sb.raw('points + ' + winnerBid.amount) }).eq('user_id', auction.seller_id);
+  
+  // 暴击价格惩罚：如果有出价超过 burst_price，发起人额外支付给赢家
+  if (auction.burst_price > 0 && winnerBid.amount >= auction.burst_price) {
+    await sb.from('user_points').update({ points: sb.raw('points - ' + auction.burst_price) }).eq('user_id', auction.seller_id);
+    await sb.from('user_points').update({ points: sb.raw('points + ' + auction.burst_price) }).eq('user_id', winnerUserId);
+    showToast(`💣 暴击价格触发！发起人额外支付 ${auction.burst_price} 积分给赢家！`, 'warning');
+  }
+  
+  await sb.from('dark_auctions').update({ ended: true, winner_id: winnerUserId }).eq('auction_id', auctionId);
+  showToast(`🏆 暗拍结束，${winnerUserId} 以 ${winnerBid.amount} 积分拍得【${auction.item_name}】！`, 'success');
+}
+
+
+
+
   // 加载记录
   function loadSupplyHistory() {
     sb.from('supply_records').select('*').eq('user_id', APP.user.id).order('created_at', {ascending: false}).limit(10).then(({data}) => {
       const c = document.getElementById('supplyHistory');
       if (!data || !data.length) { c.innerHTML = '<div style="text-align:center;">暂无开箱记录</div>'; return; }
-      c.innerHTML = data.map(r => `<div style="display:flex;justify-content:space-between;padding:3px 0;">${r.item_name} <span style="opacity:0.5;">${timeAgo(r.created_at)}</span></div>`).join('');
+      c.innerHTML = data.map(r => {
+  const shareBtn = ['purple','yellow','orange','red_small','red_big'].includes(r.quality) 
+    ? `<span style="cursor:pointer;margin-left:6px;font-size:11px;color:var(--accent);" onclick="event.stopPropagation(); shareSupplyResult('${r.item_name.replace(/'/g, "\\'")}', '${r.quality}')"><i class="fas fa-share-alt"></i></span>` 
+    : '';
+  return `<div style="display:flex;justify-content:space-between;padding:3px 0;">${r.item_name} ${shareBtn} <span style="opacity:0.5;">${timeAgo(r.created_at)}</span></div>`;
+}).join('');
     });
   }
 
@@ -26768,13 +26935,55 @@ window.openSupplyBox = async function() {
   document.getElementById('supplyLuckyBonus').textContent = luckyValue;
   if (!APP.user || !btn || btn.disabled) return;
 
-  const { data: pointsData } = await sb.from('user_points').select('points').eq('user_id', APP.user.id).maybeSingle();
+    const { data: pointsData } = await sb.from('user_points').select('points').eq('user_id', APP.user.id).maybeSingle();
   const oldPoints = pointsData?.points || 0;
-  if (oldPoints < 20) { 
-    showToast(`积分不足！当前 ${oldPoints} 分，需要 20 分`, 'warning'); 
+
+  // --- 搜打撤三选一弹窗 ---
+  const difficulty = await new Promise((resolve) => {
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay active';
+    modal.style.zIndex = '99999';
+    modal.style.background = 'rgba(0,0,0,0.8)';
+    modal.innerHTML = `
+      <div class="modal-content active" style="max-width:400px; text-align:center; background:#1a1a1a; color:#eee; border:2px solid #FFD700;">
+        <h3 style="color:#FFD700; margin-bottom:10px;">🗺️ 选择暗区入口</h3>
+        <p style="font-size:13px; color:#aaa; margin-bottom:15px;">不同的入口，风险和回报完全不同</p>
+        <div style="display:flex; flex-direction:column; gap:12px;">
+          <button id="diff-normal" style="padding:12px; background:#2c2c2c; border:1px solid #7f8c8d; border-radius:10px; color:#fff; cursor:pointer;">
+            🌲 地表·普通区 <br><span style="font-size:12px; color:#aaa;">消耗 20 积分 · 保底 1 件 · 无风险</span>
+          </button>
+          <button id="diff-hard" style="padding:12px; background:#2c2c2c; border:1px solid #e67e22; border-radius:10px; color:#fff; cursor:pointer;">
+            ⛏️ 地下·机密区 <br><span style="font-size:12px; color:#aaa;">消耗 40 积分 · 保底 2 件 · 可能遭遇AI</span>
+          </button>
+          <button id="diff-hell" style="padding:12px; background:#2c2c2c; border:1px solid #e74c3c; border-radius:10px; color:#fff; cursor:pointer;">
+            💀 核心·绝密区 <br><span style="font-size:12px; color:#aaa;">消耗 80 积分 · 保底 3 件 · 可能遭遇玩家</span>
+          </button>
+          <button id="diff-cancel" style="padding:10px; background:transparent; border:1px solid #555; border-radius:10px; color:#aaa; cursor:pointer;">取消</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    
+    modal.querySelector('#diff-normal').onclick = () => { modal.remove(); resolve({ cost: 20, minItems: 1, maxItems: 2, luckBonus: 0, encounterRate: 0 }); };
+    modal.querySelector('#diff-hard').onclick = () => { modal.remove(); resolve({ cost: 40, minItems: 2, maxItems: 4, luckBonus: 10, encounterRate: 0.3 }); };
+    modal.querySelector('#diff-hell').onclick = () => { modal.remove(); resolve({ cost: 80, minItems: 3, maxItems: 6, luckBonus: 25, encounterRate: 0.5 }); };
+    modal.querySelector('#diff-cancel').onclick = () => { modal.remove(); resolve(null); };
+    modal.addEventListener('click', (e) => { if (e.target === modal) { modal.remove(); resolve(null); } });
+  });
+  
+  if (!difficulty) {
+    showToast('已取消开箱', 'info');
+    return;
+  }
+  
+  if (oldPoints < difficulty.cost) { 
+    showToast(`积分不足！当前 ${oldPoints} 分，需要 ${difficulty.cost} 分`, 'warning'); 
     return; 
   }
-  await sb.from('user_points').update({ points: oldPoints - 20 }).eq('user_id', APP.user.id);
+  
+  // 扣除积分
+  await sb.from('user_points').update({ points: oldPoints - difficulty.cost }).eq('user_id', APP.user.id);
+  // --- 三选一弹窗结束 ---
 
   btn.disabled = true;
   btn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i> 解锁中...';
@@ -26824,7 +27033,7 @@ window.openSupplyBox = async function() {
   });
 
 
-  const drawCount = Math.floor(Math.random() * 10) + 1;
+    const drawCount = Math.floor(Math.random() * (difficulty.maxItems - difficulty.minItems + 1)) + difficulty.minItems;
     const poolCopy = [...adjustedItems];
   const drawnItems = [];
   for (let i = 0; i < drawCount; i++) {
@@ -26840,6 +27049,66 @@ window.openSupplyBox = async function() {
     poolCopy.splice(idx, 1);
     if (poolCopy.length === 0) break;
   }
+
+
+
+  // === 根据难度调整物品品质 ===
+  if (difficulty.minItems === 1) {
+    // 普通区
+    drawnItems.forEach(item => {
+      const roll = Math.random();
+      if (roll < 0.70) item.quality = 'white';
+      else if (roll < 0.90) item.quality = 'green';
+      else if (roll < 0.98) item.quality = 'blue';
+      else item.quality = 'purple';
+    });
+  } else if (difficulty.minItems === 2) {
+    // 机密区
+    drawnItems.forEach(item => {
+      const roll = Math.random();
+      if (roll < 0.40) item.quality = 'white';
+      else if (roll < 0.70) item.quality = 'green';
+      else if (roll < 0.90) item.quality = 'blue';
+      else if (roll < 0.98) item.quality = 'purple';
+      else item.quality = 'yellow';
+    });
+  } else {
+    // 绝密区
+    drawnItems.forEach(item => {
+      const roll = Math.random();
+      if (roll < 0.20) item.quality = 'white';
+      else if (roll < 0.45) item.quality = 'green';
+      else if (roll < 0.70) item.quality = 'blue';
+      else if (roll < 0.90) item.quality = 'purple';
+      else if (roll < 0.95) item.quality = 'yellow';
+      else if (roll < 0.99) item.quality = 'red_small';
+      else item.quality = 'red_big';
+    });
+  }
+  // === 品质修正结束 ===
+
+
+
+  // === 遭遇战判定 ===
+  let encounterLostItem = null;
+  if (Math.random() < difficulty.encounterRate) {
+    const encounterType = difficulty.minItems === 2 ? 'AI敌人' : '玩家';
+    showToast(`⚠️ 遭遇${encounterType}！正在交火...`, 'warning');
+    
+    // 随机选择一件物品作为战利品被抢走（如果没有物品则扣积分）
+    if (drawnItems.length > 0) {
+      const lostIdx = Math.floor(Math.random() * drawnItems.length);
+      encounterLostItem = drawnItems.splice(lostIdx, 1)[0];
+      showToast(`💔 ${encounterType}抢走了你的【${encounterLostItem.name}】！`, 'error');
+    } else {
+      // 没有物品就扣积分
+      const penalty = Math.floor(Math.random() * 10) + 1;
+      await sb.from('user_points').update({ points: Math.max(0, pointsData.points - penalty) }).eq('user_id', APP.user.id);
+      showToast(`💔 遭遇${encounterType}，你损失了 ${penalty} 积分！`, 'error');
+    }
+  }
+
+
 
 
   // 🔥 随机分配每个物品的尺寸（占格大小）
@@ -26960,7 +27229,7 @@ window.openSupplyBox = async function() {
   updateUserPointsUI();
   renderPendingRewardsInProfile();
   loadSupplyHistory();
-  const finalPoints = oldPoints - 20 + totalEarnedPoints;
+    const finalPoints = oldPoints - difficulty.cost + totalEarnedPoints;
   document.getElementById('supplyMyPoints').textContent = finalPoints < 0 ? 0 : finalPoints;
 
   btn.disabled = false;
@@ -27014,21 +27283,42 @@ luckyValue = Math.min(luckyValue, 200);  // 最高200
   const currentPoints = finalPts?.points ?? 0;
 
   // 2. 计算本次盈亏
-  const cost = 20;
+    const cost = difficulty.cost;
   const netGain = totalEarnedPoints - cost;
 
   // 3. 生成报告 HTML
   let listHtml = '<div style="background:#1a1a1a;color:#eee;padding:16px;border-radius:12px;max-width:500px;margin:0 auto;font-family:monospace;">';
   listHtml += '<div style="text-align:center;font-size:20px;font-weight:bold;border-bottom:1px dashed #555;padding-bottom:8px;">📋 战利品提取报告</div>';
-  placements.forEach(p => {
-    listHtml += `<div style="margin:8px 0;display:flex;justify-content:space-between;"><span>${p.item.icon} ${p.item.name}</span><span style="color:var(--accent);">${p.item.value ? '+' + p.item.value : ''}</span></div>`;
+    placements.forEach(p => {
+    const isHighQuality = ['purple','yellow','orange','red_small','red_big'].includes(p.item.quality);
+    const auctionBtn = isHighQuality ? 
+      `<button onclick="event.stopPropagation(); startSilentAuction('${p.item.id}', '${p.item.name.replace(/'/g, "\\'")}', '${p.item.quality}')" style="margin-left:8px; padding:2px 8px; background:var(--accent); color:#fff; border:none; border-radius:20px; font-size:10px; cursor:pointer;">⚡暗拍</button>` : '';
+    listHtml += `<div style="margin:8px 0;display:flex;justify-content:space-between;align-items:center;"><span>${p.item.icon} ${p.item.name} ${auctionBtn}</span><span style="color:var(--accent);">${p.item.value ? '+' + p.item.value : ''}</span></div>`;
   });
   listHtml += '<div style="margin-top:12px;padding:10px;background:#222;border-radius:8px;">';
   listHtml += `<div style="display:flex;justify-content:space-between;"><span>💰 当前积分</span><span>${currentPoints}</span></div>`;
+
+listHtml += `<div style="display:flex;justify-content:space-between;"><span>🗺️ 暗区入口</span><span style="color:var(--accent);">${difficulty.minItems===1?'地表·普通区':(difficulty.minItems===2?'地下·机密区':'核心·绝密区')}</span></div>`;
+
+
   listHtml += `<div style="display:flex;justify-content:space-between;"><span>📉 开箱消耗</span><span>-${cost}</span></div>`;
   listHtml += `<div style="display:flex;justify-content:space-between;font-weight:bold;color:${netGain>=0?'#2ecc71':'#e74c3c'}"><span>📊 本次净收益</span><span>${netGain>=0?'+':''}${netGain} 积分</span></div>`;
+
   listHtml += '</div>';
+
+
+ // === 精确插入在这里 ===
+  listHtml += `<div style="margin-top:12px; padding:10px; background:rgba(255,215,0,0.08); border-radius:10px; text-align:center; font-size:12px; color:#aaa;">
+    <i class="fas fa-lightbulb" style="color:#FFD700;"></i> 听说多发帖、多点赞，下次开箱更容易出奇迹...
+  </div>`;
+  // === 插入结束 ===
+
+
   listHtml += '</div>';
+
+
+
+
 
   const reportModal = document.createElement('div');
   reportModal.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:99999;';
