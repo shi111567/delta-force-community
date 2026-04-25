@@ -12786,69 +12786,46 @@ async function renderPendingRewardsInProfile() {
     groups[type].push(r);
   });
 
-  // 转为数组方便排序和切片
+    // 转为数组方便排序和切片
   const groupEntries = Object.entries(groups);
 
-  // 默认显示前 4 组，其余折叠
-  const VISIBLE_COUNT = 2;
-    const needCollapse = groupEntries.length > 2;  // 超过2种就折叠
-
-  const renderGroup = ([type, items]) => {
+  // 网格卡片样式（三端自适应）
+  let html = '<div class="rewards-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; padding: 4px 0;">';
+  
+  groupEntries.forEach(([type, items]) => {
     const count = items.length;
-                  let icon = 'fa-ticket', name = items[0]?.name || '权益';
-    if (type === 'pin') { icon = 'fa-thumbtack'; name = `帖子置顶权 (${items[0]?.days || items[0]?.hours || 1}天)`; }
-    else if (type === 'naming') { icon = 'fa-pen'; name = items[0]?.name || '配装命名权'; }
-    else if (type === 'broadcast') { icon = 'fa-bullhorn'; name = `广播权限 (${items[0]?.count || 1}次)`; }
-    else if (type === 'frame') { icon = 'fa-crown'; name = `动态头像框 (${items[0]?.days ? items[0].days + '天' : '永久'})`; }
-    else if (type === 'dynamic_bg') { icon = 'fa-film'; name = `动态背景 (${items[0]?.days ? items[0].days + '天' : '永久'})`; }
-    else if (type === 'dynamic_badge') { icon = 'fa-certificate'; name = `动态勋章：${items[0]?.badgeName || '未知'}`; }
-    else if (type === 'normal_box_free') { icon = 'fa-gift'; name = '免费普通盲盒'; }
-    else if (type === 'super_box_free') { icon = 'fa-gift'; name = '免费超级盲盒'; }
-    else if (type === 'escort_free') { icon = 'fa-shield-halved'; name = '护航体验券'; }
-    else if (type === 'escort_frame_special') { icon = 'fa-image'; name = `特效头像框 (${items[0]?.days || 30}天)`; }
+    let icon = 'fa-ticket', name = items[0]?.name || '权益';
+    if (type === 'pin') { icon = 'fa-thumbtack'; name = items[0]?.name || '帖子置顶权'; }
+    else if (type === 'naming') { icon = 'fa-pen'; name = items[0]?.name || '改名卡'; }
+    else if (type === 'broadcast' || type === 'broadcast_all') { icon = 'fa-bullhorn'; name = items[0]?.name || '广播'; }
+    else if (type === 'frame') { icon = 'fa-crown'; name = items[0]?.name || '头像框'; }
+    else if (type === 'dynamic_bg') { icon = 'fa-film'; name = items[0]?.name || '动态背景'; }
+    else if (type === 'dynamic_badge') { icon = 'fa-certificate'; name = '动态勋章'; }
+    else if (type === 'badge') { icon = 'fa-medal'; name = items[0]?.name || '限定勋章'; }
+    else if (type === 'normal_box_free') { icon = 'fa-gift'; name = '普通盲盒券'; }
+    else if (type === 'super_box_free') { icon = 'fa-gift'; name = '超级盲盒券'; }
+    else if (type === 'escort_free' || type === 'escort') { icon = 'fa-shield-halved'; name = items[0]?.name || '护航券'; }
+    else if (type === 'escort_frame_special') { icon = 'fa-image'; name = '特效头像框'; }
     else if (type === 'escort_frame_legend') { icon = 'fa-crown'; name = '传说头像框 (永久)'; }
     else if (type === 'gold_name') { icon = 'fa-font'; name = '金色管理马甲'; }
     else if (type === 'points') { icon = 'fa-coins'; name = `${items[0]?.amount || 0}积分`; }
-    else if (type === 'admin_temp') { icon = 'fa-user-shield'; name = `管理员权限卡 (${items[0]?.hours || 24}小时)`; }
-    else if (type === 'combo') { icon = 'fa-box'; name = items[0]?.name || '组合礼包'; }
+    else if (type === 'admin_temp') { icon = 'fa-user-shield'; name = '管理员权限卡'; }
+    else if (type === 'combo' || type === 'big_combo') { icon = 'fa-box-open'; name = items[0]?.name || '组合礼包'; }
     else { icon = 'fa-ticket'; name = items[0]?.name || '特殊权益'; }
 
-
-
-
-    return `
-      <div class="flex items-center justify-between p-3 rounded-lg mb-2" style="background: var(--surface);">
-        <div class="flex items-center gap-3">
-          <i class="fas ${icon}" style="color: var(--accent);"></i>
-          <div>
-            <span class="text-sm font-medium">${name} <span style="color: var(--accent);">×${count}</span></span>
-          </div>
-        </div>
-        <button class="text-xs px-3 py-1 rounded-full" style="background: var(--accent); color: white;" 
-          onclick="window.useGroupReward('${type}', '${items[0].id}')">
-          使用
-        </button>
-      </div>
-    `;
-  };
-
-  let html = '';
-  groupEntries.slice(0, VISIBLE_COUNT).forEach(entry => html += renderGroup(entry));
-
-  if (needCollapse) {
     html += `
-      <div id="pendingRewardsCollapse" style="display:none;">
-        ${groupEntries.slice(VISIBLE_COUNT).map(entry => renderGroup(entry)).join('')}
-      </div>
-      <div class="text-center mt-2">
-        <button id="togglePendingRewardsBtn" class="text-xs px-4 py-1.5 rounded-full" style="background: var(--surface); border: 1px solid var(--border); color: var(--accent);"
-          onclick="togglePendingRewards()">
-          <i class="fas fa-chevron-down mr-1"></i>展开更多
-        </button>
-      </div>
-    `;
-  }
-
+      <div class="reward-grid-card" style="background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 14px 10px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 8px; transition: all 0.2s;">
+        <div style="font-size: 28px; width: 44px; height: 44px; border-radius: 50%; background: var(--accent)15; display: flex; align-items: center; justify-content: center;">
+          <i class="fas ${icon}" style="color: var(--accent); font-size: 20px;"></i>
+        </div>
+        <div style="font-weight: 600; font-size: 13px; line-height: 1.3; word-break: break-word; color: var(--text);">${name}</div>
+        <div style="background: var(--accent); color: white; padding: 2px 12px; border-radius: 20px; font-size: 12px; font-weight: 700;">×${count}</div>
+        <button style="margin-top: 4px; padding: 8px 18px; background: var(--accent); color: white; border: none; border-radius: 30px; font-size: 13px; font-weight: 600; cursor: pointer; width: 100%;" 
+          onclick="window.useGroupReward('${type}', '${items[0].id}')">使用</button>
+      </div>`;
+  });
+  
+  html += '</div>';
   container.innerHTML = html;
 }
 
@@ -26498,6 +26475,15 @@ function showWelfareGuide() {
 
     <!-- 开箱记录 -->
     <div id="supplyHistory" style="text-align: left; margin-top: 16px; max-height: 120px; overflow-y: auto; font-size: 12px; color: #aaa; background: rgba(0,0,0,0.3); border-radius: 10px; padding: 8px;"></div>
+
+
+<div style="text-align:right; margin-top:6px;" id="supplyClearBtnArea">
+  <button style="background:none; border:1px solid #555; color:#aaa; padding:4px 14px; border-radius:20px; font-size:12px; cursor:pointer;" 
+          onclick="clearSupplyHistory()">
+    <i class="fas fa-eraser mr-1"></i>清除记录
+  </button>
+</div>
+
   </div>
 </div>
 
@@ -26512,19 +26498,58 @@ function showWelfareGuide() {
 
 async function processNonPointsReward(uid, item) {
   switch (item.prize_type) {
-    case 'pin': await savePendingReward(uid, 'pin', item.name, { hours: item.value || 24 }); break;
-    case 'naming': await savePendingReward(uid, 'naming', item.name); break;
-    case 'broadcast': await savePendingReward(uid, 'broadcast', item.name, { count: item.value || 1 }); break;
-    case 'frame': await savePendingReward(uid, 'frame', item.name, { days: item.value || 7 }); break;
-    case 'badge': await grantBadgeToUser(uid, 'badge_' + item.name, { name: item.name, icon: item.icon }); break;
-    case 'escort': await savePendingReward(uid, 'escort_free', item.name); break;
-    case 'combo': await savePendingReward(uid, 'naming', '改名卡(宝箱)'); await savePendingReward(uid, 'pin', '置顶卡(宝箱)', { hours: 24 }); break;
-    case 'big_combo': await grantBadgeToUser(uid, 'badge_treasure_king', { name: '宝藏之王', icon: '👑' }); 
-                     await sb.from('profiles').update({ active_bg: 'https://raw.githubusercontent.com/shi111567/images/main/bg_cyber.gif', bg_expires_at: null }).eq('id', uid); break;
+    case 'pin':
+      await savePendingReward(uid, 'pin', item.name, { hours: item.value || 24 });
+      break;
+    case 'naming':
+      await savePendingReward(uid, 'naming', item.name, { days: item.value || 1 });
+      break;
+    case 'broadcast':
+      await savePendingReward(uid, 'broadcast', item.name, { count: item.value || 1 });
+      break;
+    case 'frame':
+      var isPerm = item.value >= 999;
+      await savePendingReward(uid, 'frame', item.name, {
+        days: isPerm ? null : item.value,
+        permanent: isPerm
+      });
+      break;
+    case 'badge':
+      await grantBadgeToUser(uid, 'badge_' + item.name, { name: item.name, icon: item.icon || '🏅', rarity: 'epic' });
+      break;
+    case 'escort':
+      await savePendingReward(uid, 'escort_free', item.name, { discount: item.value });
+      break;
+    case 'normal_box':
+      var nCount = item.value || 1;
+      for (var i = 0; i < nCount; i++) {
+        await savePendingReward(uid, 'normal_box_free', item.name);
+      }
+      break;
+    case 'super_box':
+      var sCount = item.value || 1;
+      for (var i = 0; i < sCount; i++) {
+        await savePendingReward(uid, 'super_box_free', item.name);
+      }
+      break;
+    case 'combo':
+      // 按物品ID硬编码处理组合包（ID 184: 改名卡+置顶卡）
+      if (item.id === 184) {
+        await processNonPointsReward(uid, { prize_type: 'naming', name: '永久改名卡', value: 999 });
+        await processNonPointsReward(uid, { prize_type: 'pin', name: '置顶卡(7天)', value: 168 });
+      }
+      break;
+    case 'big_combo':
+      // ID 200: 传说勋章 + 永久动态背景
+      if (item.id === 200) {
+        await grantBadgeToUser(uid, 'badge_treasure_king', { name: '宝藏之王', icon: '👑', rarity: 'legend' });
+        await savePendingReward(uid, 'dynamic_bg', '永久动态背景', { days: null });
+      }
+      break;
+    default:
+      break;
   }
 }
-
-
 
 
 
@@ -26589,6 +26614,17 @@ async function processNonPointsReward(uid, item) {
       grid.appendChild(cell);
     }
   }
+
+
+window.clearSupplyHistory = async function() {
+  if (!APP.user) return;
+  if (!confirm('确定要清空所有开箱记录吗？此操作不可恢复。')) return;
+  await sb.from('supply_records').delete().eq('user_id', APP.user.id);
+  document.getElementById('supplyHistory').innerHTML = '<div style="text-align:center;">暂无开箱记录</div>';
+  showToast('🧹 开箱记录已清空', 'success');
+};
+
+
 
   // 加载记录
   function loadSupplyHistory() {
@@ -27034,6 +27070,7 @@ luckyValue = Math.min(luckyValue, 200);  // 最高200
 <script>
 // ========== 权益使用 ==========
 window.useGroupReward = async function(type, sampleId) {
+  // 统一更新权益数组
   const updateRewards = async (rewardsArr) => {
     await sb.from('profiles').update({ pending_rewards: rewardsArr }).eq('id', APP.user.id);
     if (APP.profile) APP.profile.pending_rewards = rewardsArr;
@@ -27043,15 +27080,17 @@ window.useGroupReward = async function(type, sampleId) {
   var target = rewards.find(function(r) { return r.type === type && !r.used; });
   if (!target) { showToast('该权益已用完', 'info'); return; }
 
-  if (type === 'normal_box_free') {
-    target.used = true; target.usedAt = new Date().toISOString();
-    var idx = rewards.findIndex(function(r) { return r.id === target.id; });
-    if (idx !== -1) rewards[idx] = target;
-    await updateRewards(rewards);
-    await openNormalBox(true);
-    renderPendingRewardsInProfile();
+ if (type === 'pin') {
+    // 不在这里标记已用，等用户在帖子上真的点了“使用置顶权”才扣
+    showToast('请在“我的帖子”中选择要置顶的帖子', 'info');
+    var el = document.getElementById('myPostsGrid');
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    // 注意：没有 renderPendingRewardsInProfile() 和 updateRewards
     return;
-  }
+}
+
+
+
   if (type === 'super_box_free') {
     target.used = true; target.usedAt = new Date().toISOString();
     var idx = rewards.findIndex(function(r) { return r.id === target.id; });
@@ -27073,76 +27112,51 @@ window.useGroupReward = async function(type, sampleId) {
     return;
   }
   if (type === 'naming') {
+    // 改名卡：弹出输入框直接改名
+    var newName = prompt('请输入新昵称（永久改名）：');
+    if (!newName || !newName.trim()) return;
+    await sb.from('profiles').update({ username: newName.trim() }).eq('id', APP.user.id);
+    if (APP.profile) APP.profile.username = newName.trim();
     target.used = true; target.usedAt = new Date().toISOString();
     var idx = rewards.findIndex(function(r) { return r.id === target.id; });
     if (idx !== -1) rewards[idx] = target;
     await updateRewards(rewards);
-    showToast('请在“起装方案”中使用命名权', 'info');
-    switchTab('budgetLoadout');
     renderPendingRewardsInProfile();
+    showToast(`✅ 昵称已改为“${newName.trim()}”`, 'success');
     return;
   }
   if (type === 'frame') {
-    const days = target.days || 7;
-    await sb.from('profiles').update({
-      escort_frame: 'special',
-      escort_frame_expires: new Date(Date.now() + days * 86400000).toISOString()
-    }).eq('id', APP.user.id);
+    // 头像框：根据参数设置时效
+    var days = target.days;
+    var permanent = target.permanent || false;
+    var updateObj = { escort_frame: permanent ? 'legend' : 'special' };
+    if (!permanent && days) {
+      updateObj.escort_frame_expires = new Date(Date.now() + days * 86400000).toISOString();
+    } else {
+      updateObj.escort_frame_expires = null;
+    }
+    await sb.from('profiles').update(updateObj).eq('id', APP.user.id);
     if (APP.profile) {
-      APP.profile.escort_frame = 'special';
-      APP.profile.escort_frame_expires = new Date(Date.now() + days * 86400000).toISOString();
+      APP.profile.escort_frame = updateObj.escort_frame;
+      APP.profile.escort_frame_expires = updateObj.escort_frame_expires || null;
     }
     target.used = true; target.usedAt = new Date().toISOString();
     var idx = rewards.findIndex(function(r) { return r.id === target.id; });
     if (idx !== -1) rewards[idx] = target;
     await updateRewards(rewards);
     renderPendingRewardsInProfile();
-    showToast(`🖼️ 动态头像框已激活 (${days}天)`, 'success');
-    return;
-  }
-  if (type === 'escort_frame_special') {
-    const days = target.days || 30;
-    await sb.from('profiles').update({
-      escort_frame: 'special',
-      escort_frame_expires: new Date(Date.now() + days * 86400000).toISOString()
-    }).eq('id', APP.user.id);
-    if (APP.profile) {
-      APP.profile.escort_frame = 'special';
-      APP.profile.escort_frame_expires = new Date(Date.now() + days * 86400000).toISOString();
-    }
-    target.used = true; target.usedAt = new Date().toISOString();
-    var idx = rewards.findIndex(function(r) { return r.id === target.id; });
-    if (idx !== -1) rewards[idx] = target;
-    await updateRewards(rewards);
-    renderPendingRewardsInProfile();
-    showToast(`🖼️ 特效头像框已激活 (${days}天)`, 'success');
-    return;
-  }
-  if (type === 'escort_frame_legend') {
-    await sb.from('profiles').update({
-      escort_frame: 'legend',
-      escort_frame_expires: null   // 永久
-    }).eq('id', APP.user.id);
-    if (APP.profile) {
-      APP.profile.escort_frame = 'legend';
-      APP.profile.escort_frame_expires = null;
-    }
-    target.used = true; target.usedAt = new Date().toISOString();
-    var idx = rewards.findIndex(function(r) { return r.id === target.id; });
-    if (idx !== -1) rewards[idx] = target;
-    await updateRewards(rewards);
-    renderPendingRewardsInProfile();
-    showToast('👑 传说头像框已永久激活！', 'success');
+    showToast('🖼️ 头像框已激活', 'success');
     return;
   }
   if (type === 'dynamic_bg') {
-    // activateDynamicBg 内部会消耗权益并打开选择器，这里直接调用即可
+    // 动态背景：打开选择器
     await activateDynamicBg(target.id);
-    return; // activateDynamicBg 内部已处理UI刷新
+    return;
   }
   if (type === 'dynamic_badge') {
-    const badgeName = target.badgeName || '动态勋章';
-    const badgeId = 'badge_dynamic_' + Date.now();
+    // 动态勋章：直接授予
+    var badgeName = target.badgeName || '动态勋章';
+    var badgeId = 'badge_dynamic_' + Date.now();
     await grantBadgeToUser(APP.user.id, badgeId, { name: badgeName, icon: '✨', rarity: 'epic' });
     target.used = true; target.usedAt = new Date().toISOString();
     var idx = rewards.findIndex(function(r) { return r.id === target.id; });
@@ -27153,7 +27167,8 @@ window.useGroupReward = async function(type, sampleId) {
     return;
   }
   if (type === 'gold_name') {
-    const newName = prompt('请输入你的金色马甲昵称（最多8个字）：');
+    // 金色马甲：弹出输入框
+    var newName = prompt('请输入你的金色马甲昵称（最多8个字）：');
     if (!newName) return;
     await sb.from('profiles').update({ gold_name: newName.substring(0, 8) }).eq('id', APP.user.id);
     if (APP.profile) APP.profile.gold_name = newName.substring(0, 8);
@@ -27165,8 +27180,9 @@ window.useGroupReward = async function(type, sampleId) {
     showToast(`👑 金色马甲已设置为“${newName}”`, 'success');
     return;
   }
-  if (type === 'broadcast' || type.startsWith('broadcast_')) {
-    const text = prompt('请输入广播内容（最多30字）：');
+  if (type === 'broadcast' || type === 'broadcast_all') {
+    // 广播：弹出输入框
+    var text = prompt('请输入广播内容（最多30字）：');
     if (text && text.trim()) {
       if (typeof showUserBroadcast === 'function') {
         showUserBroadcast(APP.profile.username, text.trim().substring(0, 30));
@@ -27180,10 +27196,10 @@ window.useGroupReward = async function(type, sampleId) {
     showToast('📢 广播已发送', 'success');
     return;
   }
-  if (type === 'escort_free' || type.startsWith('voucher_') || type.startsWith('hafu_')) {
-    const voucherName = target.name || '服务凭证';
+  if (type === 'escort_free' || type === 'escort' || type.startsWith('voucher_') || type.startsWith('hafu_')) {
+    // 护航券/体验卡：弹出核销码
+    var voucherName = target.name || '服务凭证';
     await showVoucherModal(type, voucherName);
-    // 凭证类使用后也应该标记为已用
     target.used = true; target.usedAt = new Date().toISOString();
     var idx = rewards.findIndex(function(r) { return r.id === target.id; });
     if (idx !== -1) rewards[idx] = target;
@@ -27191,17 +27207,12 @@ window.useGroupReward = async function(type, sampleId) {
     renderPendingRewardsInProfile();
     return;
   }
-
-
-
-  // …… 前面是已有的 if (type === 'xxx') 链 ……
-
   if (type === 'admin_temp') {
-    // 激活临时管理员
-    const hours = target.hours || 24;
-    await sb.from('profiles').update({ 
-      is_admin: true, 
-      admin_expires_at: new Date(Date.now() + hours * 3600000).toISOString() 
+    // 临时管理员权限
+    var hours = target.hours || 24;
+    await sb.from('profiles').update({
+      is_admin: true,
+      admin_expires_at: new Date(Date.now() + hours * 3600000).toISOString()
     }).eq('id', APP.user.id);
     if (APP.profile) {
       APP.profile.is_admin = true;
@@ -27215,29 +27226,7 @@ window.useGroupReward = async function(type, sampleId) {
     showToast(`🔑 管理员权限已激活，有效期${hours}小时`, 'success');
     return;
   }
-
-  if (type === 'combo') {
-    // 组合包：逐个发放子奖励
-    if (target.items && Array.isArray(target.items)) {
-      for (const subReward of target.items) {
-        await processBoxReward(subReward);
-      }
-    }
-    target.used = true; target.usedAt = new Date().toISOString();
-    var idx = rewards.findIndex(function(r) { return r.id === target.id; });
-    if (idx !== -1) rewards[idx] = target;
-    await updateRewards(rewards);
-    renderPendingRewardsInProfile();
-    showToast('🎁 组合礼包已使用！', 'success');
-    return;
-  }
-  
-  // …… 后面是兜底的 // 其他类型兜底 代码
-
-
-
-
-  // 其他未匹配的类型，直接标记已用
+  // 其他未知类型，直接标记已用
   target.used = true; target.usedAt = new Date().toISOString();
   var idx = rewards.findIndex(function(r) { return r.id === target.id; });
   if (idx !== -1) rewards[idx] = target;
@@ -27245,6 +27234,7 @@ window.useGroupReward = async function(type, sampleId) {
   renderPendingRewardsInProfile();
   showToast(`✅ 权益已使用`, 'success');
 };
+
 
 
 // ========== 折叠展开 ==========
@@ -27259,32 +27249,25 @@ window.togglePendingRewards = function() {
     : '<i class="fas fa-chevron-down mr-1"></i>展开更多';
 };
 
-
-async function activateDynamicBg(rewardId) {
+// ========== 动态背景激活 ==========
+window.activateDynamicBg = async function(rewardId) {
   if (!APP.user) return;
-  // 如果传入了 rewardId，说明是从权益中心点击的，我们需要消耗它
   if (rewardId) {
-    const rewards = await getUserPendingRewards();
-    const target = rewards.find(r => r.id === rewardId && !r.used);
+    var rewards = await getUserPendingRewards();
+    var target = rewards.find(function(r) { return r.id === rewardId && !r.used; });
     if (!target) { showToast('该权益不存在或已使用', 'warning'); return; }
     target.used = true; target.usedAt = new Date().toISOString();
     await sb.from('profiles').update({ pending_rewards: rewards }).eq('id', APP.user.id);
     if (APP.profile) APP.profile.pending_rewards = rewards;
-// 消耗完成后刷新权益列表
     renderPendingRewardsInProfile();
-
   }
-
-  // 弹出背景选择器
-  renderBgPresets();   // 渲染预设背景
+  renderBgPresets();
   window._bgRewardId = rewardId || null;
   openModal('bgPickerModal');
-}
-
-
-
-
+};
 </script>
+
+
 </body>
 
 </html>
