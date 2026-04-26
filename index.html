@@ -9586,6 +9586,11 @@ async function afterAuthSuccess() {
   updateUserPointsUI();
 if (APP.currentTab === 'escort') {
   loadEscortVideos(true);
+
+  // 清理可能残留的匹配队列记录
+  sb.from('duel_queue').delete().eq('user_id', APP.user.id).then(() => {});
+
+
 }
 
 
@@ -26444,12 +26449,96 @@ function showWelfareGuide() {
   background: rgba(255,255,255,0.2);
 }
 
+@keyframes pulse {
+  0%,100% { transform:scale(1); opacity:1; }
+  50% { transform:scale(1.1); opacity:0.8; }
+}
+.duel-cmd-btn:hover { transform:translateY(-2px); filter:brightness(1.1); }
+.duel-cmd-btn:active { transform:scale(0.95); }
+.duel-item-card:hover { transform:scale(1.05); box-shadow:0 0 15px rgba(255,215,0,0.3); }
+.duel-loot-grid { min-height: 100px; }
+
 
 </style>
 
 <div class="modal-overlay" id="supplyBoxModal">
   <div class="modal-content" style="max-width: 700px; background: #0a0303; border: 4px solid #FFD700; box-shadow: 0 0 100px rgba(255,215,0,0.7); padding: 24px 20px; text-align: center;">
     <button onclick="closeModal('supplyBoxModal')" style="position: absolute; top: 14px; right: 14px; z-index: 20; background: rgba(0,0,0,0.8); color: #FFD700; border: 2px solid #FFD700; width: 36px; height: 36px; border-radius: 50%; font-size: 18px;">✕</button>
+
+
+<!-- ==================== 暗区集装箱博弈弹窗 ==================== -->
+<div class="modal-overlay" id="containerGameModal">
+  <div class="modal-content" style="max-width: 750px; width: 95%; max-height: 90vh; overflow-y: auto; background: #0e1117; color: #ddd; border: 2px solid #5a6b7a; border-radius: 20px; padding: 20px; font-family: 'Noto Sans SC', sans-serif; position: relative;">
+    
+    <!-- 关闭按钮 -->
+    <button onclick="closeModal('containerGameModal')" style="position: absolute; top: 15px; right: 15px; background: rgba(255,255,255,0.1); color: #aaa; border: none; width: 32px; height: 32px; border-radius: 50%; font-size: 18px; cursor: pointer;">✕</button>
+
+    <!-- 头部标题 -->
+    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px; border-bottom: 1px solid #333; padding-bottom: 15px;">
+      <i class="fas fa-boxes" style="font-size: 28px; color: #7f8c8d;"></i>
+      <div>
+        <h2 style="margin: 0; font-weight: 900; color: #ecf0f1; font-size: 22px;">暗区集装箱</h2>
+        <p style="margin: 0; font-size: 12px; color: #7f8c8d;">盲拍博弈 · 信息侦查 · 战术对抗</p>
+      </div>
+      <div style="margin-left: auto; background: #1e2a36; padding: 6px 14px; border-radius: 20px; font-size: 12px; color: #bdc3c7;">
+        <i class="fas fa-clock mr-1"></i> 下一轮刷新：<span id="nextRoundTimer">--</span>
+      </div>
+    </div>
+
+    <!-- 游戏主界面：左右双栏 -->
+    <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+      
+      <!-- 左侧：集装箱区域 (3x3 网格) -->
+      <div style="flex: 2; min-width: 280px;">
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;" id="containerGrid">
+          <!-- 动态生成9个集装箱卡片 -->
+        </div>
+      </div>
+
+      <!-- 右侧：信息与操作面板 -->
+      <div style="flex: 1.2; min-width: 240px;">
+        <!-- 所选物品预览 -->
+        <div id="selectedItemPanel" style="background: #1a1f2b; border-radius: 16px; padding: 15px; margin-bottom: 15px; min-height: 120px; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #7f8c8d;">
+          <i class="fas fa-hand-pointer" style="font-size: 30px; margin-bottom: 10px;"></i>
+          <p style="font-size: 13px;">点击集装箱选择物品</p>
+        </div>
+
+        <!-- 出价区域 -->
+        <div id="bidArea" style="background: #1a1f2b; border-radius: 16px; padding: 15px; margin-bottom: 15px;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+            <span style="font-size: 13px; font-weight: 600;">你的出价</span>
+            <span style="font-size: 13px; color: #f1c40f;">当前最高：<b id="currentHighestBid">0</b></span>
+          </div>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <input type="number" id="bidInput" placeholder="输入积分" min="1" style="flex: 1; background: #0e1117; border: 1px solid #444; color: #fff; padding: 10px; border-radius: 10px; font-size: 16px;">
+            <button id="placeBidBtn" class="btn-warm" style="padding: 10px 18px; background: #5a6b7a; border: none; border-radius: 10px;" onclick="window.placeContainerBid()">出价</button>
+          </div>
+          <button id="skipBidBtn" style="width: 100%; margin-top: 8px; background: transparent; border: 1px solid #444; color: #aaa; padding: 8px; border-radius: 10px; font-size: 13px; cursor: pointer;" onclick="window.skipContainerBid()">跳过此轮</button>
+        </div>
+
+        <!-- 干员技能区 -->
+        <div style="background: #1a1f2b; border-radius: 16px; padding: 15px; margin-bottom: 15px;">
+          <h4 style="margin: 0 0 10px 0; font-size: 14px; color: #ecf0f1;"><i class="fas fa-user-secret mr-2"></i>战术支援</h4>
+          <div id="operatorSkills" style="display: flex; gap: 8px;">
+            <!-- 动态生成干员技能按钮 -->
+          </div>
+        </div>
+
+        <!-- 我的积分 -->
+        <div style="text-align: center; font-size: 14px; color: #aaa;">
+          当前积分：<b style="color: #f1c40f;" id="containerMyPoints">0</b>
+        </div>
+      </div>
+    </div>
+
+    <!-- 聊天/状态栏 -->
+    <div id="containerChat" style="margin-top: 15px; background: #141922; border-radius: 12px; padding: 10px; min-height: 40px; font-size: 12px; color: #7f8c8d; text-align: center;">
+      等待玩家加入...
+    </div>
+  </div>
+</div>
+
+
    <h2 style="font-size: 28px; font-weight: 900; color: #FFFFFF; text-shadow: 0 0 30px #FF8C00, 0 0 60px #FF4500;">📦 战区物资箱</h2>
 <p style="color: #bbaa; margin-bottom: 16px;">消耗 <b style="color: #ff8c00;">20 积分</b> 开启</p>
 
@@ -26487,33 +26576,94 @@ function showWelfareGuide() {
     <div id="safeGrid" style="margin-top: 16px;"></div>
 
 
-<button id="duelFindBtn" class="btn-warm" style="width:100%; padding:14px; margin-bottom:12px; font-size:16px; background:linear-gradient(135deg, #9b59b6, #e74c3c);" onclick="window.findOpponent()">
-  <i class="fas fa-crosshairs mr-2"></i>寻找真人对手
-</button>
 
 
 
-<!-- 对决规则说明 -->
-<div style="background: #1a1a2e; border: 1px solid #9b59b6; border-radius: 12px; padding: 12px; margin-bottom: 12px; font-size: 12px; color: #ccc; text-align: left;">
-  <div style="color: #9b59b6; font-weight: 700; margin-bottom: 6px;">
-    <i class="fas fa-crosshairs mr-1"></i>⚔️ 双人暗区竞速规则
+
+<!-- 双入口卡片布局 -->
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+  
+  <!-- 左卡片：寻找真人对手 -->
+  <div onclick="window.findOpponent()" style="background: linear-gradient(135deg, #2c1810, #1a0f0a); border: 2px solid #e74c3c; border-radius: 16px; padding: 14px 10px; cursor: pointer; transition: all 0.25s; text-align: center; position: relative; overflow: hidden;">
+    <div style="position: absolute; top: -15px; right: -15px; width: 60px; height: 60px; background: rgba(231,76,60,0.15); border-radius: 50%;"></div>
+    <div style="font-size: 32px; margin-bottom: 6px;">⚔️</div>
+    <div style="font-weight: 700; font-size: 14px; color: #fff; margin-bottom: 2px;">寻找真人对手</div>
+    <div style="font-size: 10px; color: #999;">实时匹配 · AI兜底</div>
+    <div id="duelFindBtn" style="margin-top: 8px; padding: 8px 16px; background: linear-gradient(135deg, #e74c3c, #c0392b); border: none; border-radius: 20px; color: #fff; font-size: 12px; font-weight: 600; width: 100%;">开始匹配</div>
   </div>
-  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px;">
-    <div><span style="color: #FFD700;">🔍 搜刮</span>：随机获得物资</div>
-    <div><span style="color: #e74c3c;">⚔️ 攻击</span>：抢夺对手最新战利品</div>
-    <div><span style="color: #2ecc71;">🏃 撤离</span>：提前结束对决</div>
-    <div><span style="color: #f1c40f;">⏱️ 5回合</span>：回合结束后比较战利品总数</div>
+
+  <!-- 右卡片：暗区集装箱 -->
+  <div onclick="window.openContainerGame()" style="background: linear-gradient(135deg, #1a1c2e, #0f111a); border: 2px solid #5a6b7a; border-radius: 16px; padding: 14px 10px; cursor: pointer; transition: all 0.25s; text-align: center; position: relative; overflow: hidden;">
+    <div style="position: absolute; top: -15px; right: -15px; width: 60px; height: 60px; background: rgba(90,107,122,0.15); border-radius: 50%;"></div>
+    <div style="font-size: 32px; margin-bottom: 6px;">📦</div>
+    <div style="font-weight: 700; font-size: 14px; color: #fff; margin-bottom: 2px;">暗区集装箱</div>
+    <div style="font-size: 10px; color: #999;">盲拍博弈 · 侦查对抗</div>
+    <div id="containerGameBtn" style="margin-top: 8px; padding: 8px 16px; background: linear-gradient(135deg, #5a6b7a, #3d4f5f); border: none; border-radius: 20px; color: #fff; font-size: 12px; font-weight: 600; width: 100%;">进入暗区</div>
   </div>
-  <div style="margin-top: 6px; font-size: 11px; color: #888;">
-    💡 30秒内匹配真人对手，超时将自动安排AI对战，奖励完全一致。
+
+</div>
+
+<!-- 匹配状态栏（默认隐藏） -->
+<div id="duelMatchStatus" style="display: none; background: rgba(155, 89, 182, 0.1); border: 1px solid #9b59b6; border-radius: 12px; padding: 10px; margin-bottom: 12px; text-align: center;">
+  <div style="font-size: 14px; color: #ccc; margin-bottom: 6px;">
+    <i class="fas fa-spinner fa-pulse mr-2" style="color: #9b59b6;"></i>正在寻找对手...
+  </div>
+  <div style="font-size: 24px; font-weight: 900; color: #FFD700;" id="duelCountdown">30</div>
+  <div style="font-size: 12px; color: #aaa;">秒后自动匹配AI</div>
+  <div style="background: rgba(255,255,255,0.1); border-radius: 20px; height: 6px; margin-top: 8px; overflow: hidden;">
+    <div id="duelProgressBar" style="background: linear-gradient(90deg, #9b59b6, #e74c3c); height: 100%; width: 100%; transition: width 1s linear;"></div>
   </div>
 </div>
 
+<!-- 取消匹配按钮（默认隐藏） -->
+<button id="duelCancelBtn" class="btn-ghost" style="display: none; width: 100%; padding: 10px; margin-bottom: 12px; border: 1px solid #e74c3c; color: #e74c3c; border-radius: 12px; font-size: 14px;" onclick="window.cancelFindOpponent()">
+  <i class="fas fa-times mr-1"></i>取消匹配
+</button>
+
+<!-- 对决规则说明（默认隐藏，匹配成功后自动展开） -->
+<div id="duelRulesPanel" style="display: none; background: #1a1a2e; border: 1px solid #9b59b6; border-radius: 12px; padding: 14px; margin-bottom: 12px; font-size: 12px; color: #ccc; text-align: left;">
+  <div style="color: #FFD700; font-weight: 700; margin-bottom: 8px; font-size: 14px;">
+    ⚔️ 暗区突围·物资争夺战
+  </div>
+  
+  <div style="background: rgba(255,215,0,0.1); border-radius: 8px; padding: 8px; margin-bottom: 8px;">
+    <span style="color: #FFD700;">🎯 目标：</span>在行动力耗尽前搜刮物资，总价值高者获胜。胜者夺得对方全部战利品！
+  </div>
+
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px;">
+    <div style="background: rgba(46,204,113,0.1); padding: 6px 8px; border-radius: 6px;">
+      <span style="color: #2ecc71;">🔍 搜刮</span><br>
+      <span style="font-size: 11px; color: #aaa;">消耗1行动力，随机获得物资</span>
+    </div>
+    <div style="background: rgba(231,76,60,0.1); padding: 6px 8px; border-radius: 6px;">
+      <span style="color: #e74c3c;">⚔️ 袭击</span><br>
+      <span style="font-size: 11px; color: #aaa;">消耗1行动力，抢夺对方物资</span>
+    </div>
+    <div style="background: rgba(52,152,219,0.1); padding: 6px 8px; border-radius: 6px;">
+      <span style="color: #3498db;">🛡️ 加固</span><br>
+      <span style="font-size: 11px; color: #aaa;">消耗1行动力，免疫一次袭击</span>
+    </div>
+    <div style="background: rgba(241,196,15,0.1); padding: 6px 8px; border-radius: 6px;">
+      <span style="color: #f1c40f;">🏃 撤离</span><br>
+      <span style="font-size: 11px; color: #aaa;">提前结束对决进行结算</span>
+    </div>
+  </div>
+
+  <div style="background: rgba(255,255,255,0.05); border-radius: 8px; padding: 8px; margin-bottom: 6px;">
+    <span style="color: #FFD700;">⚡ 行动力：</span>每人初始3点，行动力归零自动结算。
+  </div>
+
+  <div style="font-size: 11px; color: #888;">
+    💡 30秒内匹配真人，超时自动安排AI，奖励完全一致。
+  </div>
+</div>
+
+<!-- 撬锁开箱按钮 -->
+<button id="supplyOpenBtn" class="btn-warm" style="width: 100%; padding: 16px; margin-top: 8px; font-size: 18px; font-weight: bold; background: linear-gradient(135deg, #ff6600, #ffaa00); color: #1a0a00;" onclick="window.openSupplyBox()">
+  <i class="fas fa-lock-open mr-2"></i>撬锁开箱
+</button>
 
 
-    <button id="supplyOpenBtn" class="btn-warm" style="width: 100%; padding: 16px; margin-top: 18px; font-size: 18px; font-weight: bold; background: linear-gradient(135deg, #ff6600, #ffaa00); color: #1a0a00;" onclick="window.openSupplyBox()">
-      <i class="fas fa-lock-open mr-2"></i>撬锁开箱
-    </button>
     <p style="font-size: 13px; margin-top: 10px; color: #999;">当前积分：<span id="supplyMyPoints">0</span></p>
 
 <p style="font-size: 12px; color: #ffaa00; margin: 0 0 8px 0;">
@@ -26648,6 +26798,20 @@ window.shareSupplyResult = function(itemName, quality) {
   }
 
   openModal('supplyBoxModal');
+  // 清理可能残留的匹配队列记录
+  sb.from('duel_queue').delete().eq('user_id', APP.user.id).then(() => {});
+
+
+  // 重置匹配按钮状态
+    const duelBtn = document.getElementById('duelFindBtn');
+  if (duelBtn) {
+    duelBtn.disabled = false;
+    duelBtn.textContent = '寻找真人对手';
+    if (window._duelCountdown) clearInterval(window._duelCountdown);
+    if (window._duelTimer) clearTimeout(window._duelTimer);
+  }
+  sb.from('duel_queue').delete().eq('user_id', APP.user.id).then(() => {});
+
   // 更新积分
   const { data: pts } = await sb.from('user_points').select('points').eq('user_id', APP.user.id).maybeSingle();
   document.getElementById('supplyMyPoints').textContent = pts?.points || 0;
@@ -26701,6 +26865,17 @@ window.shareSupplyResult = function(itemName, quality) {
     }
   }
 
+window.shareContainerResult = function(itemName, netGain) {
+  const text = `我在三角洲墨辰电竞的暗区集装箱中${netGain >= 0 ? '赢得了' : '参与了竞拍'}【${itemName}】，净收益 ${netGain} 积分！快来一战！`;
+  if (navigator.share) {
+    navigator.share({ title: '暗区集装箱战绩', text, url: window.location.href });
+  } else {
+    navigator.clipboard?.writeText(text);
+    showToast('📋 分享文案已复制', 'success');
+  }
+};
+
+
 
 window.clearSupplyHistory = async function() {
   if (!APP.user) return;
@@ -26709,6 +26884,27 @@ window.clearSupplyHistory = async function() {
   document.getElementById('supplyHistory').innerHTML = '<div style="text-align:center;">暂无开箱记录</div>';
   showToast('🧹 开箱记录已清空', 'success');
 };
+
+
+
+// 物资实物图标映射（用于对决显示）
+const ITEM_ICON_MAP = {
+  'points': '<i class="fas fa-coins" style="color:#FFD700;"></i>',
+  'normal_box_free': '<i class="fas fa-gift" style="color:#f1c40f;"></i>',
+  'super_box_free': '<i class="fas fa-gift" style="color:#e74c3c;"></i>',
+  'broadcast': '<i class="fas fa-bullhorn" style="color:#3498db;"></i>',
+  'pin': '<i class="fas fa-thumbtack" style="color:#2ecc71;"></i>',
+  'naming': '<i class="fas fa-pen" style="color:#9b59b6;"></i>',
+  'frame': '<i class="fas fa-crown" style="color:#FFD700;"></i>',
+  'dynamic_bg': '<i class="fas fa-film" style="color:#e67e22;"></i>',
+  'escort_free': '<i class="fas fa-shield-halved" style="color:#e74c3c;"></i>',
+  'default': '<i class="fas fa-box" style="color:#aaa;"></i>'
+};
+
+function getItemIcon(type) {
+  return ITEM_ICON_MAP[type] || ITEM_ICON_MAP['default'];
+}
+
 
 
 
@@ -26816,20 +27012,52 @@ async function getCurrentPoints() {
 
 
 
-// ========== 双人暗区竞速对决 ==========
+// ==================== 双人暗区突围·物资争夺战（新版） ====================
 
-// 寻找真人对手（含AI兜底）
+// 物资生成池（对决专用，带图标类型）
+const DUEL_LOOT_POOL = [
+  { name: '1 积分', type: 'points', value: 1, quality: 'white' },
+  { name: '3 积分', type: 'points', value: 3, quality: 'green' },
+  { name: '5 积分', type: 'points', value: 5, quality: 'blue' },
+  { name: '10 积分', type: 'points', value: 10, quality: 'purple' },
+  { name: '普通盲盒券', type: 'normal_box_free', value: 1, quality: 'green' },
+  { name: '广播小喇叭', type: 'broadcast', value: 1, quality: 'blue' },
+  { name: '帖子置顶权', type: 'pin', value: 24, quality: 'purple' },
+  { name: '改名卡', type: 'naming', value: 1, quality: 'purple' },
+  { name: '动态头像框(3天)', type: 'frame', value: 3, quality: 'yellow' },
+  { name: '超级盲盒券', type: 'super_box_free', value: 1, quality: 'yellow' },
+  { name: '动态背景(7天)', type: 'dynamic_bg', value: 7, quality: 'red_small' },
+];
+
+
+function getQualityBg(quality) {
+  const map = { white:'rgba(255,255,255,0.05)', green:'rgba(46,204,113,0.15)', blue:'rgba(52,152,219,0.15)', purple:'rgba(155,89,182,0.2)', yellow:'rgba(241,196,15,0.20)', 'red_small':'rgba(231,76,60,0.25)', 'red_big':'rgba(255,71,87,0.3)' };
+  return map[quality] || map.white;
+}
+function getQualityBorder(quality) {
+  const map = { white:'#888', green:'#2ecc71', blue:'#3498db', purple:'#9b59b6', yellow:'#f1c40f', 'red_small':'#e74c3c', 'red_big':'#ff4757' };
+  return map[quality] || map.white;
+}
+
+
 window.findOpponent = async function() {
   if (!APP.user) { openAuthModal(); return; }
 
+  const findBtn = document.getElementById('duelFindBtn');
+  const cancelBtn = document.getElementById('duelCancelBtn');
+  const statusDiv = document.getElementById('duelMatchStatus');
+  const countdownEl = document.getElementById('duelCountdown');
+  const progressBar = document.getElementById('duelProgressBar');
+
+  // 检查是否已在队列
   const { data: existing } = await sb.from('duel_queue').select('id').eq('user_id', APP.user.id).maybeSingle();
   if (existing) {
     showToast('你已经在匹配队列中了，请等待...', 'info');
     return;
   }
 
+  // 检查等待者
   const { data: waiting } = await sb.from('duel_queue').select('user_id').neq('user_id', APP.user.id).limit(1);
-
   if (waiting && waiting.length > 0) {
     const opponentId = waiting[0].user_id;
     await sb.from('duel_queue').delete().eq('user_id', opponentId);
@@ -26839,42 +27067,369 @@ window.findOpponent = async function() {
       payload: { senderId: APP.user.id, opponentId: opponentId }
     });
     if (window._duelCountdown) clearInterval(window._duelCountdown);
-    document.getElementById('duelFindBtn').textContent = '寻找真人对手';
+    // 恢复按钮状态
+    if (findBtn) findBtn.style.display = 'block';
+    if (cancelBtn) cancelBtn.style.display = 'none';
+    if (statusDiv) statusDiv.style.display = 'none';
     startDuel(opponentId, false);
-  } else {
-    await sb.from('duel_queue').insert({ user_id: APP.user.id });
-    showToast('⏳ 正在寻找真人对手，最多等待30秒...', 'info');
-    document.getElementById('duelFindBtn').disabled = true;
-    
-    let secondsLeft = 30;
-    document.getElementById('duelFindBtn').textContent = `⏳ 匹配中 ${secondsLeft}s`;
-    window._duelCountdown = setInterval(() => {
-      secondsLeft--;
-      if (secondsLeft > 0) {
-        document.getElementById('duelFindBtn').textContent = `⏳ 匹配中 ${secondsLeft}s`;
-      }
-    }, 1000);
+    return;
+  }
 
-    window._duelTimer = setTimeout(async () => {
-      if (window._duelCountdown) clearInterval(window._duelCountdown);
-      document.getElementById('duelFindBtn').textContent = '寻找真人对手';
-      document.getElementById('duelFindBtn').disabled = false;
-      await sb.from('duel_queue').delete().eq('user_id', APP.user.id);
-      const { data: aiProfiles } = await sb.from('profiles').select('id').neq('id', APP.user.id).limit(10);
-      if (aiProfiles && aiProfiles.length > 0) {
-        const randomAI = aiProfiles[Math.floor(Math.random() * aiProfiles.length)];
-        startDuel(randomAI.id, true);
-      } else {
-        showToast('❌ 系统繁忙，请稍后再试', 'error');
+  // 进入等待池
+  await sb.from('duel_queue').insert({ user_id: APP.user.id });
+  showToast('⏳ 正在寻找真人对手，最多等待30秒...', 'info');
+
+  if (findBtn) findBtn.style.display = 'none';
+  if (cancelBtn) cancelBtn.style.display = 'block';
+  if (statusDiv) statusDiv.style.display = 'block';
+
+  let secondsLeft = 30;
+  if (countdownEl) countdownEl.textContent = secondsLeft;
+  if (progressBar) progressBar.style.width = '100%';
+
+  window._duelCountdown = setInterval(() => {
+    secondsLeft--;
+    if (countdownEl) countdownEl.textContent = secondsLeft;
+    if (progressBar) progressBar.style.width = (secondsLeft / 30 * 100) + '%';
+    if (secondsLeft <= 0) {
+      clearInterval(window._duelCountdown);
+    }
+  }, 1000);
+
+  // 30秒后自动AI
+  window._duelTimer = setTimeout(async () => {
+    if (window._duelCountdown) clearInterval(window._duelCountdown);
+    if (findBtn) findBtn.style.display = 'block';
+    if (cancelBtn) cancelBtn.style.display = 'none';
+    if (statusDiv) statusDiv.style.display = 'none';
+    await sb.from('duel_queue').delete().eq('user_id', APP.user.id);
+    const { data: aiProfiles } = await sb.from('profiles').select('id').neq('id', APP.user.id).limit(10);
+    if (aiProfiles && aiProfiles.length > 0) {
+      const randomAI = aiProfiles[Math.floor(Math.random() * aiProfiles.length)];
+      startDuel(randomAI.id, true);
+    } else {
+      showToast('❌ 系统繁忙，请稍后再试', 'error');
+    }
+  }, 30000);
+};
+
+// 取消匹配
+window.cancelFindOpponent = async function() {
+  if (window._duelCountdown) clearInterval(window._duelCountdown);
+  if (window._duelTimer) clearTimeout(window._duelTimer);
+  await sb.from('duel_queue').delete().eq('user_id', APP.user.id);
+  const findBtn = document.getElementById('duelFindBtn');
+  const cancelBtn = document.getElementById('duelCancelBtn');
+  const statusDiv = document.getElementById('duelMatchStatus');
+  if (findBtn) findBtn.style.display = 'block';
+  if (cancelBtn) cancelBtn.style.display = 'none';
+  if (statusDiv) statusDiv.style.display = 'none';
+  showToast('已取消匹配', 'info');
+};
+
+
+
+// ========== 暗区集装箱博弈核心 ==========
+
+// 游戏状态
+window._containerGame = {
+  currentItem: null,      // 当前选中的物品
+  myBid: 0,
+  roundItems: [],         // 本轮9件物品
+  roundEndTime: null,
+  bids: [],               // 所有出价 [{userId, amount}]
+  operatorCooldown: 0,
+  revealedItems: new Set(),
+  timerInterval: null,
+};
+
+// 物品池 (复用 supply_items 表，这里用静态示例，实际可对接数据库)
+const CONTAINER_ITEM_POOL = [
+  { name: '1 积分', type: 'points', value: 1, quality: 'white', icon: '⭐' },
+  { name: '5 积分', type: 'points', value: 5, quality: 'green', icon: '💰' },
+  { name: '10 积分', type: 'points', value: 10, quality: 'blue', icon: '💎' },
+  { name: '普通盲盒券', type: 'normal_box_free', value: 1, quality: 'green', icon: '🎁' },
+  { name: '广播小喇叭', type: 'broadcast', value: 1, quality: 'blue', icon: '📢' },
+  { name: '帖子置顶权(24h)', type: 'pin', value: 24, quality: 'purple', icon: '📌' },
+  { name: '改名卡', type: 'naming', value: 1, quality: 'purple', icon: '✏️' },
+  { name: '超级盲盒券', type: 'super_box_free', value: 1, quality: 'yellow', icon: '🎫' },
+  { name: '动态头像框(3天)', type: 'frame', value: 3, quality: 'yellow', icon: '🖼️' },
+  { name: '动态背景(7天)', type: 'dynamic_bg', value: 7, quality: 'red_small', icon: '🌄' },
+  { name: '500万哈夫币', type: 'voucher_hafu_500w', value: 1, quality: 'red_big', icon: '💸' },
+];
+
+// 打开弹窗
+window.openContainerGame = function() {
+  if (!APP.user) { openAuthModal(); return; }
+  openModal('containerGameModal');
+  initContainerGame();
+};
+
+
+
+// 出价
+window.placeContainerBid = async function() {
+  const state = window._containerGame;
+  if (!state.currentItem) { showToast('请先选择一个物品', 'warning'); return; }
+  const amount = parseInt(document.getElementById('bidInput').value);
+  if (!amount || amount < 1) { showToast('请输入有效出价', 'warning'); return; }
+
+  const { data: pts } = await sb.from('user_points').select('points').eq('user_id', APP.user.id).maybeSingle();
+  if (!pts || pts.points < amount) { showToast('积分不足', 'warning'); return; }
+
+  state.myBid = amount;
+  document.getElementById('placeBidBtn').disabled = true;
+  document.getElementById('skipBidBtn').disabled = true;
+  showToast(`已出价 ${amount} 积分，等待对手...`, 'success');
+
+  // 模拟AI对手出价（或真实对手逻辑）
+  simulateOpponentBid(state.currentItem, amount);
+};
+
+// 跳过
+window.skipContainerBid = function() {
+  showToast('你跳过了本轮竞拍', 'info');
+  // 直接结算，放弃本轮物品
+  endContainerRound(null);
+};
+
+
+
+function simulateOpponentBid(item, playerBid) {
+  const state = window._containerGame;
+  // AI 根据物品价值在一定范围内随机出价
+  const baseBid = item.value * 2;
+  const randomFactor = 0.5 + Math.random() * 1.5;
+  const aiBid = Math.floor(baseBid * randomFactor);
+  
+  document.getElementById('currentHighestBid').textContent = Math.max(playerBid, aiBid);
+  
+  setTimeout(() => {
+    let winner = null;
+    let winnerBid = 0;
+    let message = '';
+    
+    if (playerBid > aiBid) {
+      winner = 'player';
+      winnerBid = playerBid;
+      message = `你以 ${playerBid} 积分赢得了【${item.name}】！`;
+    } else if (aiBid > playerBid) {
+      winner = 'ai';
+      winnerBid = aiBid;
+      message = `AI对手以 ${aiBid} 积分赢得了【${item.name}】。`;
+    } else {
+      winner = 'draw';
+      message = `双方出价相同，物品流拍。`;
+    }
+    
+    showToast(message, winner === 'player' ? 'success' : 'info');
+    endContainerRound(winner === 'player' ? item : null, winnerBid);
+  }, 1500);
+}
+
+
+
+function endContainerRound(wonItem, cost = 0) {
+  const state = window._containerGame;
+  
+  if (wonItem) {
+    // 扣除积分并发放物品
+    sb.from('user_points').select('points').eq('user_id', APP.user.id).maybeSingle().then(async ({ data: pts }) => {
+      if (pts && pts.points >= cost) {
+        await sb.from('user_points').update({ points: pts.points - cost }).eq('user_id', APP.user.id);
+        // 发放奖励
+        if (wonItem.type === 'points') {
+
+// === 全站广播（高价值物品） ===
+  if (wonItem && (wonItem.quality === 'yellow' || wonItem.quality === 'red_small' || wonItem.quality === 'red_big')) {
+    if (typeof showJackpotBroadcast === 'function') {
+      showJackpotBroadcast({ username: APP.profile.username, rewardName: wonItem.name });
+    }
+  }
+  // === 广播结束 ===
+
+
+          await addUserPointsToUser(APP.user.id, wonItem.value);
+        } else {
+          await savePendingReward(APP.user.id, wonItem.type, wonItem.name, { value: wonItem.value || 1 });
+        }
+        updateContainerPoints();
       }
-    }, 30000);
+    });
+  }
+  
+  // 显示结算面板
+  showContainerStatsPanel(wonItem, cost);
+  
+  // 重置状态，准备下一轮
+  setTimeout(() => {
+    state.currentItem = null;
+    state.myBid = 0;
+    document.getElementById('placeBidBtn').disabled = false;
+    document.getElementById('skipBidBtn').disabled = false;
+    document.getElementById('bidInput').value = '';
+    document.getElementById('currentHighestBid').textContent = '0';
+    document.getElementById('selectedItemPanel').innerHTML = '<i class="fas fa-hand-pointer" style="font-size: 30px; margin-bottom: 10px;"></i><p style="font-size: 13px;">点击集装箱选择物品</p>';
+    renderContainerGrid();
+  }, 3000);
+}
+
+function showContainerStatsPanel(wonItem, cost) {
+  const state = window._containerGame;
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay active';
+  modal.style.zIndex = '99999';
+  
+  const netGain = wonItem ? (wonItem.value - cost) : (0 - cost);
+  
+  modal.innerHTML = `
+    <div class="modal-content active" style="max-width:420px; text-align:center; background:#1a1f2b; color:#eee; border:2px solid #5a6b7a; border-radius:16px; padding:20px;">
+      <h3 style="color:#f1c40f;">📊 本轮结算</h3>
+      <div style="display: flex; justify-content: space-around; margin: 15px 0;">
+        <div>
+          <img src="${APP.profile.avatar_url || dicebearUrl(APP.user.id)}" style="width:50px; height:50px; border-radius:50%; border:2px solid var(--accent);">
+          <p>${APP.profile.username}</p>
+          <p style="color:${netGain >= 0 ? '#2ecc71' : '#e74c3c'};">${netGain >= 0 ? '+' : ''}${netGain} 积分</p>
+        </div>
+        <div style="font-size:24px; font-weight:900; color:#aaa;">VS</div>
+        <div>
+          <img src="${dicebearUrl('ai_opponent')}" style="width:50px; height:50px; border-radius:50%; border:2px solid #aaa;">
+          <p>AI 对手</p>
+          <p style="color:#aaa;">--</p>
+        </div>
+      </div>
+      ${wonItem ? `
+      <div style="background:#141922; border-radius:12px; padding:12px; margin:12px 0;">
+        <div style="font-size:30px;">${wonItem.icon}</div>
+        <div style="font-weight:700;">${wonItem.name}</div>
+        <div style="font-size:12px; color:#7f8c8d;">出价 ${cost} 积分</div>
+      </div>
+      ` : '<p style="color:#aaa;">本轮未获得物品</p>'}
+      <button class="btn-warm" onclick="this.closest('.modal-overlay').remove()" style="margin-top:10px;">继续</button>
+
+
+      <button class="btn-warm" onclick="this.closest('.modal-overlay').remove()" style="margin-top:10px;">继续</button>
+      <button class="btn-ghost" onclick="shareContainerResult('${wonItem?.name || '无'}', ${netGain})" style="margin-top:6px; width:100%;">📢 分享战绩</button>
+
+
+    </div>
+  `;
+  document.body.appendChild(modal);
+}
+
+
+// 初始化游戏
+function initContainerGame() {
+  const state = window._containerGame;
+  // 随机生成9件物品
+  state.roundItems = [];
+  for (let i = 0; i < 9; i++) {
+    const randomItem = CONTAINER_ITEM_POOL[Math.floor(Math.random() * CONTAINER_ITEM_POOL.length)];
+    state.roundItems.push({ ...randomItem, id: 'item_' + i });
+  }
+  state.revealedItems.clear();
+  state.currentItem = null;
+  state.myBid = 0;
+  renderContainerGrid();
+  updateContainerPoints();
+  document.getElementById('bidInput').value = '';
+  document.getElementById('currentHighestBid').textContent = '0';
+  document.getElementById('selectedItemPanel').innerHTML = '<i class="fas fa-hand-pointer" style="font-size: 30px; margin-bottom: 10px;"></i><p style="font-size: 13px;">点击集装箱选择物品</p>';
+  updateOperatorSkills();
+}
+
+// 渲染3x3集装箱网格
+function renderContainerGrid() {
+  const grid = document.getElementById('containerGrid');
+  const state = window._containerGame;
+  grid.innerHTML = state.roundItems.map((item, index) => {
+    const isRevealed = state.revealedItems.has(item.id);
+    return `
+      <div class="container-cell" data-index="${index}" onclick="selectContainerItem(${index})" style="
+        background: ${isRevealed ? getQualityBg(item.quality) : '#1a1f2b'};
+        border: 2px solid ${isRevealed ? getQualityBorder(item.quality) : '#444'};
+        border-radius: 12px; padding: 15px 8px; text-align: center; cursor: pointer; transition: all 0.2s; position: relative; min-height: 100px; display: flex; flex-direction: column; align-items: center; justify-content: center;
+      ">
+        ${isRevealed ? `
+          <div style="font-size: 30px; margin-bottom: 6px;">${item.icon}</div>
+          <div style="font-weight: 600; font-size: 13px;">${item.name}</div>
+          <div style="font-size: 11px; color: #FFD700; margin-top: 4px;">价值 ${item.value}</div>
+        ` : `
+          <div style="font-size: 36px; opacity: 0.4;">📦</div>
+          <div style="font-size: 11px; color: #666; margin-top: 6px;">未知物资</div>
+          <button onclick="event.stopPropagation(); window.exploreContainerItem(${index})" style="margin-top: 8px; padding: 4px 12px; background: #5a6b7a; border: none; border-radius: 20px; color: #fff; font-size: 10px; cursor: pointer;">侦查 5分</button>
+        `}
+        ${state.currentItem?.id === item.id ? '<div style="position: absolute; top: -5px; right: -5px; background: #f1c40f; color: #000; border-radius: 50%; width: 20px; height: 20px; font-size: 12px; display: flex; align-items: center; justify-content: center;">✓</div>' : ''}
+      </div>
+    `;
+  }).join('');
+}
+
+// 选择物品
+window.selectContainerItem = function(index) {
+  const state = window._containerGame;
+  state.currentItem = state.roundItems[index];
+  document.getElementById('selectedItemPanel').innerHTML = `
+    <div style="text-align: center;">
+      <div style="font-size: 40px; margin-bottom: 8px;">${state.currentItem.icon}</div>
+      <div style="font-weight: 700; font-size: 16px;">${state.currentItem.name}</div>
+      <div style="font-size: 13px; color: #f1c40f;">预估价值 ${state.currentItem.value} 积分</div>
+      <div style="margin-top: 8px; padding: 4px 12px; background: ${getQualityBg(state.currentItem.quality)}; border: 1px solid ${getQualityBorder(state.currentItem.quality)}; border-radius: 20px; font-size: 11px; display: inline-block;">品质：${state.currentItem.quality}</div>
+    </div>
+  `;
+  document.getElementById('bidInput').focus();
+  renderContainerGrid(); // 刷新选中状态
+};
+
+// 侦查物品
+window.exploreContainerItem = async function(index) {
+  const state = window._containerGame;
+  const item = state.roundItems[index];
+  // 扣除积分
+  const { data: pts } = await sb.from('user_points').select('points').eq('user_id', APP.user.id).maybeSingle();
+  if (!pts || pts.points < 5) { showToast('积分不足，需要5积分侦查', 'warning'); return; }
+  await sb.from('user_points').update({ points: pts.points - 5 }).eq('user_id', APP.user.id);
+  state.revealedItems.add(item.id);
+  updateContainerPoints();
+  renderContainerGrid();
+  showToast(`侦查成功！已揭示 ${item.name}`, 'success');
+};
+
+// 更新积分显示
+async function updateContainerPoints() {
+  const { data: pts } = await sb.from('user_points').select('points').eq('user_id', APP.user.id).maybeSingle();
+  document.getElementById('containerMyPoints').textContent = pts?.points || 0;
+}
+
+// 更新干员技能按钮
+function updateOperatorSkills() {
+  const container = document.getElementById('operatorSkills');
+  container.innerHTML = `
+    <button onclick="window.useContainerSkill('scan')" style="flex:1; padding:10px; background:#34495e; border:none; border-radius:10px; color:#fff; font-size:12px; cursor:pointer;"><i class="fas fa-eye"></i> 扫描</button>
+    <button onclick="window.useContainerSkill('hint')" style="flex:1; padding:10px; background:#34495e; border:none; border-radius:10px; color:#fff; font-size:12px; cursor:pointer;"><i class="fas fa-lightbulb"></i> 情报</button>
+  `;
+}
+
+// 干员技能
+window.useContainerSkill = function(type) {
+  const state = window._containerGame;
+  if (type === 'scan' && state.currentItem) {
+    showToast(`侦查结果：${state.currentItem.name} 价值 ${state.currentItem.value} 积分`, 'info');
+  } else if (type === 'hint') {
+    showToast('情报提示：本轮有 ' + state.roundItems.filter(i => i.quality === 'yellow' || i.quality === 'red_small').length + ' 件高价值物品', 'info');
   }
 };
 
-// 开始对决（核心面板）
+
+    
 window.startDuel = async function(opponentId, isAI) {
   if (window._duelTimer) clearTimeout(window._duelTimer);
-  document.getElementById('duelFindBtn').disabled = false;
+    const btn = document.getElementById('duelFindBtn');
+  if (btn) { btn.style.display = 'block'; btn.disabled = false; }
+  const cancelBtn = document.getElementById('duelCancelBtn');
+  if (cancelBtn) cancelBtn.style.display = 'none';
+  const statusDiv = document.getElementById('duelMatchStatus');
+  if (statusDiv) statusDiv.style.display = 'none';
   showToast('⚡ 对手已就位，对决开始！', 'success');
 
   const { data: opponent } = await sb.from('profiles').select('username, avatar_url').eq('id', opponentId).single();
@@ -26883,205 +27438,296 @@ window.startDuel = async function(opponentId, isAI) {
 
   const duelModal = document.createElement('div');
   duelModal.className = 'modal-overlay active';
-  duelModal.style.zIndex = '99999'; // 面板本身
-  // 同时修改内部 .modal-content 的层级，让它高于其他所有弹窗
-  duelModal.innerHTML = `
-    <div class="modal-content active" style="max-width:420px; text-align:center; background:#1a1a1a; color:#eee; border:2px solid #FFD700; position:relative; z-index:99999;">
+  duelModal.style.zIndex = '99999';
 
 
-      <h3 style="color:#FFD700;">⚔️ 暗区竞速对决</h3>
-      <div style="display:flex; justify-content:space-around; align-items:center; margin:20px 0;">
-        <div>
-          <img src="${APP.profile.avatar_url || dicebearUrl(APP.user.id)}" style="width:50px; height:50px; border-radius:50%;">
-          <p style="color:var(--accent);">${APP.profile.username}</p>
-          <p style="font-size:12px; color:#aaa;">我</p>
-        </div>
-        <p style="font-size:24px; font-weight:900; color:#FFD700;">VS</p>
-        <div>
-          <img src="${oppAvatar}" style="width:50px; height:50px; border-radius:50%;">
-          <p style="color:${isAI ? '#aaa' : 'var(--accent)'};">${oppName}</p>
-          <p style="font-size:12px; color:#aaa;">${isAI ? 'AI' : '真人'}</p>
+
+    duelModal.innerHTML = `
+    <div class="modal-content active duel-main-panel" style="max-width:650px; width:95%; text-align:center; background:radial-gradient(ellipse at center, #1a0f08 0%, #0a0503 100%); color:#eee; border:3px solid #FFD700; border-radius:24px; padding:0; position:relative; z-index:99999; overflow:hidden; font-family:'Noto Sans SC',sans-serif;">
+      
+      <!-- 顶部状态栏 -->
+      <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 16px; background:rgba(0,0,0,0.6); border-bottom:1px solid rgba(255,215,0,0.3); backdrop-filter:blur(10px);">
+        <span style="color:#FFD700; font-weight:900; font-size:16px; letter-spacing:1px;">⚔️ 暗区突围·物资争夺</span>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <span style="background:rgba(255,255,255,0.1); padding:4px 10px; border-radius:20px; font-size:12px;">回合 <b id="duelRoundNum">0</b>/3</span>
+          <span style="color:#f1c40f; font-size:12px;"><i class="fas fa-bolt"></i> 行动力 <b id="duelMyAPDisplay">3</b></span>
         </div>
       </div>
-      <div id="duelLootPanel" style="background:#111; border-radius:12px; padding:12px; margin:12px 0; min-height:60px;">
-        <p style="color:#888;">等待对方行动...</p>
+
+      <!-- 对战核心区 -->
+      <div style="display:flex; padding:16px; gap:12px; align-items:stretch;">
+        
+        <!-- 玩家侧 -->
+        <div class="duel-player-area" style="flex:1; background:rgba(255,107,53,0.05); border:2px solid rgba(255,107,53,0.3); border-radius:20px; padding:12px; position:relative;">
+          <div class="duel-avatar-glow" style="position:relative; display:inline-block;">
+            <img src="${APP.profile.avatar_url || dicebearUrl(APP.user.id)}" style="width:56px; height:56px; border-radius:50%; border:3px solid var(--accent); box-shadow:0 0 20px rgba(255,107,53,0.5);">
+          </div>
+          <p style="font-weight:700; margin:6px 0; color:var(--accent);">${APP.profile.username}</p>
+          <div id="duelMyFortifiedBadge" style="display:none; background:#3498db; color:#fff; padding:2px 8px; border-radius:20px; font-size:10px; margin-bottom:4px;">🛡️ 已加固保护</div>
+          <div id="duelMyLootGrid" class="duel-loot-grid" style="display:grid; grid-template-columns:repeat(3,1fr); gap:6px; min-height:100px; margin-top:8px;"></div>
+        </div>
+
+        <!-- VS 对决区 -->
+        <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; min-width:40px;">
+          <div style="font-size:28px; font-weight:900; color:#FFD700; text-shadow:0 0 20px #FF4500; animation:pulse 1.5s infinite;">VS</div>
+          <div style="background:rgba(255,255,255,0.1); border-radius:20px; padding:6px 10px; font-size:10px; text-align:center;">
+            <div style="color:#aaa;">总价值</div>
+            <div><span id="duelMyScore">0</span> : <span id="duelOppScore">0</span></div>
+          </div>
+        </div>
+
+        <!-- 对手侧 -->
+        <div class="duel-player-area" style="flex:1; background:rgba(255,71,87,0.05); border:2px solid rgba(255,71,87,0.3); border-radius:20px; padding:12px; position:relative;">
+          <div class="duel-avatar-glow" style="position:relative; display:inline-block;">
+            <img src="${oppAvatar}" style="width:56px; height:56px; border-radius:50%; border:3px solid ${isAI ? '#aaa' : '#FF4500'}; box-shadow:0 0 20px rgba(255,71,87,0.5);">
+          </div>
+          <p style="font-weight:700; margin:6px 0;">${oppName}</p>
+          <div id="duelOppFortifiedBadge" style="display:none; background:#3498db; color:#fff; padding:2px 8px; border-radius:20px; font-size:10px; margin-bottom:4px;">🛡️ 已加固保护</div>
+          <div id="duelOppLootGrid" class="duel-loot-grid" style="display:grid; grid-template-columns:repeat(3,1fr); gap:6px; min-height:100px; margin-top:8px;"></div>
+        </div>
       </div>
-      <div style="display:flex; gap:8px; justify-content:center;">
-        <button class="btn-warm" onclick="window.duelAction('search')"><i class="fas fa-search"></i> 搜刮</button>
-        <button class="btn-warm" onclick="window.duelAction('attack')"><i class="fas fa-crosshairs"></i> 攻击</button>
-        <button class="btn-ghost" onclick="window.duelAction('evacuate')"><i class="fas fa-running"></i> 撤离</button>
+
+      <!-- 行动指令区 -->
+      <div style="padding:0 16px 12px;">
+        <div class="duel-commands" style="display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:8px;">
+          <button class="duel-cmd-btn" onclick="window.duelAction('search')" style="padding:14px 8px; background:linear-gradient(135deg,#2ecc71,#27ae60); border:none; border-radius:14px; color:#fff; font-weight:700; font-size:14px; cursor:pointer; transition:all 0.2s; box-shadow:0 4px 12px rgba(46,204,113,0.3);">
+            <i class="fas fa-search" style="display:block; font-size:22px; margin-bottom:4px;"></i>搜刮物资
+          </button>
+          <button class="duel-cmd-btn" onclick="window.duelAction('attack_select')" style="padding:14px 8px; background:linear-gradient(135deg,#e74c3c,#c0392b); border:none; border-radius:14px; color:#fff; font-weight:700; font-size:14px; cursor:pointer; transition:all 0.2s; box-shadow:0 4px 12px rgba(231,76,60,0.3);">
+            <i class="fas fa-crosshairs" style="display:block; font-size:22px; margin-bottom:4px;"></i>精准袭击
+          </button>
+          <button class="duel-cmd-btn" onclick="window.duelAction('fortify_select')" style="padding:14px 8px; background:linear-gradient(135deg,#3498db,#2980b9); border:none; border-radius:14px; color:#fff; font-weight:700; font-size:14px; cursor:pointer; transition:all 0.2s; box-shadow:0 4px 12px rgba(52,152,219,0.3);">
+            <i class="fas fa-shield-alt" style="display:block; font-size:22px; margin-bottom:4px;"></i>战术加固
+          </button>
+        </div>
+        <button class="duel-evacuate-btn" onclick="window.duelAction('evacuate')" style="width:100%; padding:12px; background:transparent; border:2px solid #f1c40f; border-radius:14px; color:#f1c40f; font-weight:700; font-size:14px; cursor:pointer;">
+          <i class="fas fa-running mr-2"></i>紧急撤离（提前结算）
+        </button>
+        <div id="duelTacticalPanel" style="margin-top:8px; min-height:30px;"></div>
       </div>
-      <p class="text-xs mt-3" style="color:#aaa;">搜刮得物资，攻击可抢夺对手最新战利品</p>
+
+      <!-- 快捷提示 -->
+      <div style="padding:0 16px 10px; display:flex; gap:8px; flex-wrap:wrap; justify-content:center; border-top:1px solid rgba(255,255,255,0.1);">
+        <span style="font-size:10px; color:#888;"><span style="color:#2ecc71;">●</span> 搜刮=随机物资</span>
+        <span style="font-size:10px; color:#888;"><span style="color:#e74c3c;">●</span> 袭击=抢夺对方</span>
+        <span style="font-size:10px; color:#888;"><span style="color:#3498db;">●</span> 加固=免疫一次袭击</span>
+        <span style="font-size:10px; color:#888;"><span style="color:#f1c40f;">●</span> 撤离=提前结算</span>
+      </div>
     </div>
   `;
   document.body.appendChild(duelModal);
 
   window._duelState = {
-    opponentId,
-    isAI,
-    myLoot: [],
-    oppLoot: [],
-    round: 0,
-    maxRounds: 5,
-    panel: document.getElementById('duelLootPanel'),
+    opponentId, isAI,
+    myAP: 3, oppAP: 3,
+    myLoot: [], oppLoot: [],
+    myFortifiedIndex: -1, oppFortifiedIndex: -1,
+    round: 0, maxRounds: 3,
     modal: duelModal,
   };
-
-  updateDuelPanel();
-
+  renderDuelLoot();
   if (isAI) {
     window._aiTimer = setInterval(() => {
       if (!window._duelState) return clearInterval(window._aiTimer);
-      const actions = ['search', 'search', 'search', 'attack', 'evacuate'];
-      const randAction = actions[Math.floor(Math.random() * actions.length)];
-      window.duelAction(randAction, true);
-    }, 1500);
+      aiTurn();
+    }, 1200);
   }
 };
 
-
-// 对决行动
-window.duelAction = function(action, isAI = false) {
+function renderDuelLoot() {
   const state = window._duelState;
   if (!state) return;
 
-  // 简单模拟战利品生成
-  const items = [
-    { name: '1积分', type: 'points', value: 1, quality: 'white' },
-    { name: '3积分', type: 'points', value: 3, quality: 'green' },
-    { name: '5积分', type: 'points', value: 5, quality: 'blue' },
-    { name: '普通盲盒券', type: 'normal_box_free', quality: 'green' },
-    { name: '广播小喇叭', type: 'broadcast', value: 1, quality: 'green' },
-    { name: '帖子置顶权', type: 'pin', value: 24, quality: 'purple' },
-  ];
+  document.getElementById('duelMyAPDisplay').textContent = state.myAP;
+  document.getElementById('duelRoundNum').textContent = state.round;
+
+  const renderGrid = (containerId, loot, fortifiedIndex) => {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    container.innerHTML = loot.map((item, idx) => `
+      <div class="duel-item-card" style="background:${getQualityBg(item.quality)}; border:2px solid ${getQualityBorder(item.quality)}; border-radius:12px; padding:8px 4px; text-align:center; position:relative; transition:all 0.2s; cursor:default;">
+        ${fortifiedIndex === idx ? '<span style="position:absolute; top:-6px; right:-6px; background:#3498db; color:#fff; border-radius:50%; width:18px; height:18px; font-size:10px; display:flex; align-items:center; justify-content:center;">🛡️</span>' : ''}
+        <div style="font-size:24px; margin-bottom:4px;">${getItemIcon(item.type)}</div>
+        <div style="font-size:11px; font-weight:600; line-height:1.2;">${item.name}</div>
+        <div style="font-size:10px; color:#FFD700; margin-top:3px;">价值 ${item.value || 1}</div>
+      </div>
+    `).join('') || '<span style="color:#888; font-size:12px;">暂无物资</span>';
+  };
+
+  renderGrid('duelMyLootGrid', state.myLoot, state.myFortifiedIndex);
+  renderGrid('duelOppLootGrid', state.oppLoot, state.oppFortifiedIndex);
+
+  // 更新价值比分
+  const calcScore = (loot) => loot.reduce((sum, item) => sum + (item.value || 1), 0);
+  document.getElementById('duelMyScore').textContent = calcScore(state.myLoot);
+  document.getElementById('duelOppScore').textContent = calcScore(state.oppLoot);
+
+  // 显示/隐藏加固徽章
+  document.getElementById('duelMyFortifiedBadge').style.display = state.myFortifiedIndex >= 0 ? 'inline-block' : 'none';
+  document.getElementById('duelOppFortifiedBadge').style.display = state.oppFortifiedIndex >= 0 ? 'inline-block' : 'none';
+
+  document.getElementById('duelTacticalPanel').innerHTML = '';
+}
+
+
+
+
+window.duelAction = function(action, isAI = false) {
+  const state = window._duelState;
+  if (!state) return;
+  if (state.myAP <= 0 && !isAI) { showToast('没有行动力了', 'warning'); return; }
 
   if (action === 'search') {
-    const newItem = items[Math.floor(Math.random() * items.length)];
+    const newItem = DUEL_LOOT_POOL[Math.floor(Math.random() * DUEL_LOOT_POOL.length)];
     if (isAI) {
       state.oppLoot.push(newItem);
+      state.oppAP--;
     } else {
       state.myLoot.push(newItem);
+      state.myAP--;
     }
-    updateDuelPanel();
-  } else if (action === 'attack') {
+    renderDuelLoot();
+    if (!isAI) showToast('🔍 搜刮到物资！', 'success');
+  }
+
+
+    else if (action === 'attack_select') {
+    if (state.oppLoot.length === 0) { showToast('对方没有物资可袭击', 'warning'); return; }
+    const panel = document.getElementById('duelTacticalPanel');
+    panel.innerHTML = `
+      <div style="background:rgba(231,76,60,0.1); border:1px solid #e74c3c; border-radius:12px; padding:10px; margin-top:8px;">
+        <p style="color:#e74c3c; font-weight:700; margin-bottom:6px;">🎯 选择袭击目标：</p>
+        <div style="display:flex; flex-wrap:wrap; gap:6px;">
+          ${state.oppLoot.map((item, idx) => `
+            <button onclick="window.duelAction('attack_confirm', false, ${idx})" style="padding:8px 12px; background:rgba(231,76,60,0.2); border:1px solid #e74c3c; border-radius:10px; color:#fff; cursor:pointer; font-size:12px;">
+              ${getItemIcon(item.type)} ${item.name} ${state.oppFortifiedIndex === idx ? '🛡️' : ''}
+            </button>
+          `).join('')}
+        </div>
+        <button onclick="document.getElementById('duelTacticalPanel').innerHTML=''" style="margin-top:6px; background:transparent; border:1px solid #555; border-radius:8px; color:#aaa; padding:4px 12px; font-size:11px; cursor:pointer;">取消</button>
+      </div>`;
+    return;
+  }
+
+
+
+  else if (action === 'attack_confirm' && !isAI) {
+    const targetIdx = arguments[2]; // 获取传递的索引
+    if (state.oppFortifiedIndex === targetIdx) { showToast('对方已加固该物资，袭击失败', 'warning'); renderDuelLoot(); return; }
+    if (state.oppLoot.length > targetIdx) {
+      const stolen = state.oppLoot.splice(targetIdx, 1)[0];
+      state.myLoot.push(stolen);
+      state.myAP--;
+      showToast('⚔️ 袭击成功，抢夺了一件物资！', 'success');
+      renderDuelLoot();
+    }
+  }
+  else if (action === 'fortify_select') {
+    if (state.myLoot.length === 0) { showToast('没有物资可加固', 'warning'); return; }
+    document.getElementById('duelSelectPanel').innerHTML = '<p style="margin:8px; color:#3498db;">选择要加固的物资：</p>' +
+      state.myLoot.map((item, idx) => `
+        <button class="btn-ghost" onclick="window.duelAction('fortify_confirm', false, ${idx})" style="margin:4px; padding:6px 12px; background:rgba(52,152,219,0.2); border:1px solid #3498db; border-radius:8px;">
+          ${getItemIcon(item.type)} ${item.name}
+        </button>
+      `).join('');
+    return;
+  }
+  else if (action === 'fortify_confirm' && !isAI) {
+    const targetIdx = arguments[2];
+    if (state.myLoot.length > targetIdx) {
+      state.myFortifiedIndex = targetIdx;
+      state.myAP--;
+      showToast('🛡️ 物资已加固，防御成功', 'success');
+      renderDuelLoot();
+    }
+  }
+  else if (action === 'evacuate') {
     if (isAI) {
-      // AI攻击，抢走我方最后一件
-      if (state.myLoot.length > 0) {
-        const stolen = state.myLoot.pop();
-        state.oppLoot.push(stolen);
-        showToast(`💔 对手抢走了你的【${stolen.name}】！`, 'error');
-      }
+      state.oppAP = 0;
     } else {
-      // 我攻击，抢走对手最后一件
-      if (state.oppLoot.length > 0) {
-        const stolen = state.oppLoot.pop();
-        state.myLoot.push(stolen);
-        showToast(`🎯 你抢走了对手的【${stolen.name}】！`, 'success');
-      }
+      state.myAP = 0;
     }
-    updateDuelPanel();
-  } else if (action === 'evacuate') {
-    // 撤离结算
-    clearInterval(window._aiTimer);
-    showToast(`你选择了撤离！`, 'info');
+    showToast('🏃 开始撤离结算...', 'info');
+    finishDuel();
+    return;
+  }
+
+  // 自动检查行动力归零
+  if (state.myAP <= 0 && state.oppAP <= 0) {
     finishDuel();
   }
 };
 
-function updateDuelPanel() {
+function aiTurn() {
   const state = window._duelState;
-  if (!state || !state.panel) return;
-  state.panel.innerHTML = `
-    <div style="display:flex; justify-content:space-between;">
-      <div style="text-align:left; width:45%;">
-        <p style="color:var(--accent);">我的战利品 (${state.myLoot.length})</p>
-        ${state.myLoot.map(l => `<div style="font-size:12px;">${l.name}</div>`).join('')}
-      </div>
-      <div style="border-left:1px solid #333; height:100%;"></div>
-      <div style="text-align:right; width:45%;">
-        <p style="color:#aaa;">对手战利品 (${state.oppLoot.length})</p>
-        ${state.oppLoot.map(l => `<div style="font-size:12px;">${l.name}</div>`).join('')}
-      </div>
-    </div>
-  `;
+  if (!state || state.oppAP <= 0) { finishDuel(); return; }
+  const rand = Math.random();
+  if (rand < 0.5) {
+    window.duelAction('search', true);
+  } else if (rand < 0.8 && state.myLoot.length > 0 && state.myFortifiedIndex === -1) {
+    // 随机袭击我方未加固的物资
+    const vulnerableIdx = state.myLoot.findIndex((_, i) => i !== state.myFortifiedIndex);
+    if (vulnerableIdx !== -1) {
+      const stolen = state.myLoot.splice(vulnerableIdx, 1)[0];
+      state.oppLoot.push(stolen);
+      state.oppAP--;
+      showToast('😈 对手袭击了你，抢走一件物资！', 'error');
+    }
+  } else {
+    // 加固自己随机一件
+    if (state.oppLoot.length > 0) {
+      state.oppFortifiedIndex = Math.floor(Math.random() * state.oppLoot.length);
+      state.oppAP--;
+    }
+  }
+  renderDuelLoot();
 }
 
 async function finishDuel() {
   const state = window._duelState;
   if (!state) return;
+  if (window._aiTimer) clearInterval(window._aiTimer);
+  window._duelState = null;
 
-  const myCount = state.myLoot.length;
-  const oppCount = state.oppLoot.length;
+  // 计算我方积分总值（简单累加，可按价值加权）
+  const calcScore = (loot) => loot.reduce((sum, item) => sum + (item.value || 1), 0);
+  const myScore = calcScore(state.myLoot);
+  const oppScore = calcScore(state.oppLoot);
+
   let resultText = '';
-
-  // 暴击奖励（活跃度联动）
-  const today = new Date().toISOString().split('T')[0];
-  const { count: todayPosts } = await sb.from('posts')
-    .select('*', { count: 'exact', head: true })
-    .eq('user_id', APP.user.id)
-    .gte('created_at', today);
-  const { count: todayLikes } = await sb.from('votes')
-    .select('*', { count: 'exact', head: true })
-    .eq('vote_type', 'up')
-    .gte('created_at', today);
-  
-  const critRate = Math.min(5 + (todayPosts || 0) * 2 + (todayLikes || 0) * 1, 30);
-  const isCrit = Math.random() * 100 < critRate;
-  
-  if (isCrit) {
-    showToast(`🎯 活跃暴击！今日发帖${todayPosts || 0}篇+获赞${todayLikes || 0}次，触发暴击奖励！`, 'success');
-    await savePendingReward(APP.user.id, 'normal_box_free', '对决暴击·免费盲盒');
-    if (typeof showJackpotBroadcast === 'function') {
-      showJackpotBroadcast({ username: APP.profile.username, rewardName: '对决暴击·免费盲盒' });
-    }
-  }
-
-  let critText = '';
-  if (isCrit) {
-    critText = ' (🔥活跃暴击触发！额外获得免费盲盒)';
-  }
-
-  if (myCount > oppCount) {
-    resultText = '你赢了！奖励已发放。' + critText;
-    awardDuelWinner(APP.user.id, state.opponentId, state.myLoot);
-  } else if (oppCount > myCount) {
-    resultText = '对手赢了。下次加油！';
+  if (myScore > oppScore) {
+    resultText = '🎉 你赢了！你将获得双方全部物资。';
+    // 胜者获得全部
+    state.myLoot.push(...state.oppLoot);
+    await grantDuelLoot(APP.user.id, state.myLoot);
+  } else if (oppScore > myScore) {
+    resultText = '😞 对手赢了，你的物资被夺走。';
+    // 对手获得全部（如果是AI则不需处理，真人则通过后续通知）
   } else {
-    resultText = '平局！双方都获得鼓励奖。';
-    awardDuelWinner(APP.user.id, state.opponentId, state.myLoot);
-    awardDuelWinner(state.opponentId, APP.user.id, state.oppLoot);
+    resultText = '🤝 平局，各自保留物资。';
+    await grantDuelLoot(APP.user.id, state.myLoot);
+    // 如果对手是真人，也需要给他保留，这里简化处理，仅处理自己
   }
 
   if (state.modal) {
     state.modal.querySelector('.modal-content').innerHTML += `
-      <div style="margin-top:20px; padding:10px; background:#222; border-radius:10px;">
+      <div style="margin-top:16px; padding:12px; background:#222; border-radius:10px;">
         <h3 style="color:#FFD700;">${resultText}</h3>
-        <button class="btn-warm" onclick="this.closest('.modal-overlay').remove(); window._duelState = null;">关闭</button>
+        <button class="btn-warm" onclick="this.closest('.modal-overlay').remove();">关闭</button>
       </div>
     `;
   }
-
-  if (window._aiTimer) clearInterval(window._aiTimer);
-  window._duelState = null;
 }
 
-
-async function awardDuelWinner(winnerId, loserId, loot) {
+async function grantDuelLoot(userId, loot) {
   for (const item of loot) {
     if (item.type === 'points') {
-      await addUserPointsToUser(winnerId, item.value);
+      await addUserPointsToUser(userId, item.value);
     } else {
-      await savePendingReward(winnerId, item.type, item.name, { value: item.value || 1 });
+      await savePendingReward(userId, item.type, item.name, { value: item.value || 1 });
     }
   }
-  await sb.from('duel_records').insert({
-    player1_id: winnerId,
-    player2_id: loserId,
-    winner_id: winnerId,
-    is_ai: false
-  });
 }
-
 
 
 
