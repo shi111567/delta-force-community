@@ -26466,77 +26466,71 @@ function showWelfareGuide() {
     <button onclick="closeModal('supplyBoxModal')" style="position: absolute; top: 14px; right: 14px; z-index: 20; background: rgba(0,0,0,0.8); color: #FFD700; border: 2px solid #FFD700; width: 36px; height: 36px; border-radius: 50%; font-size: 18px;">✕</button>
 
 
-<!-- ==================== 暗区集装箱博弈弹窗 ==================== -->
+<!-- ==================== 暗区集装箱博弈弹窗（新版） ==================== -->
 <div class="modal-overlay" id="containerGameModal">
-  <div class="modal-content" style="max-width: 750px; width: 95%; max-height: 90vh; overflow-y: auto; background: #0e1117; color: #ddd; border: 2px solid #5a6b7a; border-radius: 20px; padding: 20px; font-family: 'Noto Sans SC', sans-serif; position: relative;">
+  <div class="modal-content" style="max-width:750px; width:95%; max-height:90vh; overflow-y:auto; background:#0d1117; color:#c9d1d9; border:2px solid #30363d; border-radius:20px; padding:20px; font-family:'Noto Sans SC',sans-serif; position:relative;">
     
     <!-- 关闭按钮 -->
-    <button onclick="closeModal('containerGameModal')" style="position: absolute; top: 15px; right: 15px; background: rgba(255,255,255,0.1); color: #aaa; border: none; width: 32px; height: 32px; border-radius: 50%; font-size: 18px; cursor: pointer;">✕</button>
+    <button onclick="closeModal('containerGameModal')" style="position:absolute; top:15px; right:15px; background:rgba(255,255,255,0.1); color:#aaa; border:none; width:32px; height:32px; border-radius:50%; font-size:18px; cursor:pointer;">✕</button>
 
-    <!-- 头部标题 -->
-    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px; border-bottom: 1px solid #333; padding-bottom: 15px;">
-      <i class="fas fa-boxes" style="font-size: 28px; color: #7f8c8d;"></i>
+    <!-- 头部 -->
+    <div style="display:flex; align-items:center; gap:12px; margin-bottom:16px; border-bottom:1px solid #21262d; padding-bottom:12px;">
+      <i class="fas fa-boxes" style="font-size:26px; color:#7f8c8d;"></i>
       <div>
-        <h2 style="margin: 0; font-weight: 900; color: #ecf0f1; font-size: 22px;">暗区集装箱</h2>
-        <p style="margin: 0; font-size: 12px; color: #7f8c8d;">盲拍博弈 · 信息侦查 · 战术对抗</p>
+        <h2 style="margin:0; font-weight:900; color:#f0f6fc; font-size:20px;">暗区集装箱</h2>
+        <p style="margin:0; font-size:11px; color:#8b949e;">第 <span id="containerRoundNum">1</span> 轮 · 出价博弈</p>
       </div>
-      <div style="margin-left: auto; background: #1e2a36; padding: 6px 14px; border-radius: 20px; font-size: 12px; color: #bdc3c7;">
-        <i class="fas fa-clock mr-1"></i> 下一轮刷新：<span id="nextRoundTimer">--</span>
+      <div style="margin-left:auto; background:#161b22; padding:6px 14px; border-radius:20px; font-size:12px; color:#8b949e;">
+        <i class="fas fa-coins mr-1"></i> <span id="containerMyPoints">0</span> 积分
       </div>
     </div>
 
-    <!-- 游戏主界面：左右双栏 -->
-    <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+    <!-- 主区域：左侧3x3网格 + 右侧操作面板 -->
+    <div style="display:flex; gap:20px; flex-wrap:wrap;">
       
-      <!-- 左侧：集装箱区域 (3x3 网格) -->
-      <div style="flex: 2; min-width: 280px;">
-        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;" id="containerGrid">
-          <!-- 动态生成9个集装箱卡片 -->
-        </div>
+      <!-- 左侧：集装箱网格 -->
+      <div style="flex:2; min-width:280px;">
+        <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:10px;" id="containerGrid"></div>
       </div>
 
-      <!-- 右侧：信息与操作面板 -->
-      <div style="flex: 1.2; min-width: 240px;">
+      <!-- 右侧：操作面板 -->
+      <div style="flex:1.2; min-width:220px; display:flex; flex-direction:column; gap:12px;">
+        
         <!-- 所选物品预览 -->
-        <div id="selectedItemPanel" style="background: #1a1f2b; border-radius: 16px; padding: 15px; margin-bottom: 15px; min-height: 120px; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #7f8c8d;">
-          <i class="fas fa-hand-pointer" style="font-size: 30px; margin-bottom: 10px;"></i>
-          <p style="font-size: 13px;">点击集装箱选择物品</p>
+        <div id="selectedItemPanel" style="background:#161b22; border-radius:12px; padding:12px; min-height:100px; display:flex; flex-direction:column; align-items:center; justify-content:center; color:#8b949e;">
+          <i class="fas fa-hand-pointer" style="font-size:28px; margin-bottom:8px;"></i>
+          <p style="font-size:12px;">点击集装箱选择物品</p>
         </div>
 
-        <!-- 出价区域 -->
-        <div id="bidArea" style="background: #1a1f2b; border-radius: 16px; padding: 15px; margin-bottom: 15px;">
-          <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
-            <span style="font-size: 13px; font-weight: 600;">你的出价</span>
-            <span style="font-size: 13px; color: #f1c40f;">当前最高：<b id="currentHighestBid">0</b></span>
+        <!-- 出价区 -->
+        <div style="background:#161b22; border-radius:12px; padding:12px;">
+          <div style="display:flex; justify-content:space-between; margin-bottom:6px; font-size:12px;">
+            <span>你的出价</span>
+            <span style="color:#d29922;">当前最高：<b id="currentHighestBid">0</b></span>
           </div>
-          <div style="display: flex; gap: 8px; align-items: center;">
-            <input type="number" id="bidInput" placeholder="输入积分" min="1" style="flex: 1; background: #0e1117; border: 1px solid #444; color: #fff; padding: 10px; border-radius: 10px; font-size: 16px;">
-            <button id="placeBidBtn" class="btn-warm" style="padding: 10px 18px; background: #5a6b7a; border: none; border-radius: 10px;" onclick="window.placeContainerBid()">出价</button>
+          <div style="display:flex; gap:6px; align-items:center; margin-bottom:6px;">
+            <input type="number" id="bidInput" placeholder="积分" min="1" style="flex:1; background:#0d1117; border:1px solid #30363d; color:#fff; padding:8px; border-radius:8px; font-size:14px;">
+            <button id="placeBidBtn" class="btn-warm" style="padding:8px 16px; background:#238636; border:none; border-radius:8px; font-size:13px; cursor:pointer;" onclick="window.placeContainerBid()">出价</button>
           </div>
-          <button id="skipBidBtn" style="width: 100%; margin-top: 8px; background: transparent; border: 1px solid #444; color: #aaa; padding: 8px; border-radius: 10px; font-size: 13px; cursor: pointer;" onclick="window.skipContainerBid()">跳过此轮</button>
+          <button id="skipBidBtn" style="width:100%; padding:8px; background:transparent; border:1px solid #30363d; border-radius:8px; color:#8b949e; font-size:12px; cursor:pointer;" onclick="window.skipContainerBid()">跳过此轮</button>
         </div>
 
-        <!-- 干员技能区 -->
-        <div style="background: #1a1f2b; border-radius: 16px; padding: 15px; margin-bottom: 15px;">
-          <h4 style="margin: 0 0 10px 0; font-size: 14px; color: #ecf0f1;"><i class="fas fa-user-secret mr-2"></i>战术支援</h4>
-          <div id="operatorSkills" style="display: flex; gap: 8px;">
-            <!-- 动态生成干员技能按钮 -->
-          </div>
+        <!-- 战术支援 -->
+        <div style="background:#161b22; border-radius:12px; padding:12px;">
+          <h4 style="margin:0 0 8px 0; font-size:13px; color:#f0f6fc;"><i class="fas fa-user-secret mr-2"></i>战术支援</h4>
+          <div id="operatorSkills" style="display:flex; gap:6px;"></div>
         </div>
 
-        <!-- 我的积分 -->
-        <div style="text-align: center; font-size: 14px; color: #aaa;">
-          当前积分：<b style="color: #f1c40f;" id="containerMyPoints">0</b>
-        </div>
       </div>
     </div>
 
-    <!-- 聊天/状态栏 -->
-    <div id="containerChat" style="margin-top: 15px; background: #141922; border-radius: 12px; padding: 10px; min-height: 40px; font-size: 12px; color: #7f8c8d; text-align: center;">
-      等待玩家加入...
+    <!-- 底部状态栏 -->
+    <div id="containerStatusBar" style="margin-top:12px; padding:8px 12px; background:#161b22; border-radius:8px; font-size:11px; color:#8b949e; text-align:center;">
+      📡 等待指令...
     </div>
   </div>
 </div>
+
 
 
    <h2 style="font-size: 28px; font-weight: 900; color: #FFFFFF; text-shadow: 0 0 30px #FF8C00, 0 0 60px #FF4500;">📦 战区物资箱</h2>
@@ -26621,7 +26615,7 @@ function showWelfareGuide() {
 </button>
 
 <!-- 对决规则说明（默认隐藏，匹配成功后自动展开） -->
-<div id="duelRulesPanel" style="display: none; background: #1a1a2e; border: 1px solid #9b59b6; border-radius: 12px; padding: 14px; margin-bottom: 12px; font-size: 12px; color: #ccc; text-align: left;">
+<div id="duelRulesPanel" style="display: block; background: #1a1a2e; border: 1px solid #9b59b6; border-radius: 12px; padding: 14px; margin-bottom: 12px; font-size: 12px; color: #ccc; text-align: left;">
   <div style="color: #FFD700; font-weight: 700; margin-bottom: 8px; font-size: 14px;">
     ⚔️ 暗区突围·物资争夺战
   </div>
@@ -27030,6 +27024,12 @@ const DUEL_LOOT_POOL = [
 ];
 
 
+
+function calcScore(loot) {
+  return loot.reduce((sum, item) => sum + (item.value || 1), 0);
+}
+
+
 function getQualityBg(quality) {
   const map = { white:'rgba(255,255,255,0.05)', green:'rgba(46,204,113,0.15)', blue:'rgba(52,152,219,0.15)', purple:'rgba(155,89,182,0.2)', yellow:'rgba(241,196,15,0.20)', 'red_small':'rgba(231,76,60,0.25)', 'red_big':'rgba(255,71,87,0.3)' };
   return map[quality] || map.white;
@@ -27158,21 +27158,110 @@ const CONTAINER_ITEM_POOL = [
   { name: '500万哈夫币', type: 'voucher_hafu_500w', value: 1, quality: 'red_big', icon: '💸' },
 ];
 
-// 打开弹窗
+
+// ========== 暗区集装箱核心逻辑（新版） ==========
+
 window.openContainerGame = function() {
   if (!APP.user) { openAuthModal(); return; }
   openModal('containerGameModal');
   initContainerGame();
 };
 
+function initContainerGame() {
+  const state = window._containerGame = {
+    myBid: 0,
+    roundItems: [],
+    currentItem: null,
+    bids: [],
+    revealedItems: new Set(),
+    round: 1,
+    totalRounds: 5,
+    operatorCooldown: 0,
+  };
 
+  generateRoundItems();
+  updateContainerPoints();
+  renderContainerGrid();
+  resetBidPanel();
+  document.getElementById('containerRoundNum').textContent = state.round;
+  document.getElementById('containerStatusBar').innerHTML = '📡 请选择集装箱并出价';
+  updateOperatorSkills();
+}
 
-// 出价
+function generateRoundItems() {
+  const pool = CONTAINER_ITEM_POOL; // 使用之前定义的物品池
+  const items = [];
+  for (let i = 0; i < 9; i++) {
+    const randomItem = pool[Math.floor(Math.random() * pool.length)];
+    items.push({ ...randomItem, id: 'c_item_' + i + '_' + Date.now() });
+  }
+  window._containerGame.roundItems = items;
+  window._containerGame.revealedItems.clear();
+  window._containerGame.currentItem = null;
+  window._containerGame.bids = [];
+}
+
+function renderContainerGrid() {
+  const grid = document.getElementById('containerGrid');
+  const state = window._containerGame;
+  if (!grid) return;
+
+  grid.innerHTML = state.roundItems.map((item, index) => {
+    const isRevealed = state.revealedItems.has(item.id);
+    const isSelected = state.currentItem?.id === item.id;
+    return `
+      <div class="container-cell" data-index="${index}" onclick="selectContainerItem(${index})" style="
+        background:${isRevealed ? getQualityBg(item.quality) : '#161b22'};
+        border:2px solid ${isSelected ? '#f0883e' : (isRevealed ? getQualityBorder(item.quality) : '#30363d')};
+        border-radius:12px; padding:12px 6px; text-align:center; cursor:pointer; transition:all 0.15s; min-height:90px; display:flex; flex-direction:column; align-items:center; justify-content:center; position:relative;
+      ">
+        ${isRevealed ? `
+          <div style="font-size:28px; margin-bottom:4px;">${item.icon}</div>
+          <div style="font-weight:600; font-size:12px;">${item.name}</div>
+          <div style="font-size:10px; color:#d29922; margin-top:2px;">价值 ${item.value}</div>
+        ` : `
+          <div style="font-size:32px; opacity:0.5;">📦</div>
+          <div style="font-size:10px; color:#484f58; margin-top:4px;">未知物资</div>
+          <button onclick="event.stopPropagation(); window.revealContainerItem(${index})" style="margin-top:6px; padding:3px 10px; background:#1f6feb; border:none; border-radius:20px; color:#fff; font-size:10px; cursor:pointer;">侦查 5分</button>
+        `}
+        ${isSelected ? '<div style="position:absolute; top:-4px; right:-4px; background:#f0883e; color:#000; border-radius:50%; width:18px; height:18px; font-size:11px; display:flex; align-items:center; justify-content:center;">✓</div>' : ''}
+      </div>
+    `;
+  }).join('');
+}
+
+window.selectContainerItem = function(index) {
+  const state = window._containerGame;
+  state.currentItem = state.roundItems[index];
+  document.getElementById('selectedItemPanel').innerHTML = `
+    <div style="text-align:center;">
+      <div style="font-size:36px; margin-bottom:4px;">${state.currentItem.icon}</div>
+      <div style="font-weight:600; font-size:14px;">${state.currentItem.name}</div>
+      <div style="font-size:11px; color:#d29922;">预估价值 ${state.currentItem.value} 积分</div>
+      <span style="display:inline-block; margin-top:4px; padding:2px 10px; background:${getQualityBg(state.currentItem.quality)}; border:1px solid ${getQualityBorder(state.currentItem.quality)}; border-radius:20px; font-size:10px;">${state.currentItem.quality}</span>
+    </div>
+  `;
+  document.getElementById('bidInput').focus();
+  renderContainerGrid();
+};
+
+window.revealContainerItem = async function(index) {
+  const state = window._containerGame;
+  const item = state.roundItems[index];
+  const { data: pts } = await sb.from('user_points').select('points').eq('user_id', APP.user.id).maybeSingle();
+  if (!pts || pts.points < 5) { showToast('积分不足，侦查需要5积分', 'warning'); return; }
+  await sb.from('user_points').update({ points: pts.points - 5 }).eq('user_id', APP.user.id);
+  state.revealedItems.add(item.id);
+  updateContainerPoints();
+  renderContainerGrid();
+  showToast(`侦查成功！揭示了 ${item.name}`, 'success');
+};
+
 window.placeContainerBid = async function() {
   const state = window._containerGame;
-  if (!state.currentItem) { showToast('请先选择一个物品', 'warning'); return; }
+  if (!state.currentItem) { showToast('请先选择一个集装箱物品', 'warning'); return; }
   const amount = parseInt(document.getElementById('bidInput').value);
-  if (!amount || amount < 1) { showToast('请输入有效出价', 'warning'); return; }
+  if (!amount || amount < 1) { showToast('请输入有效出价（至少1积分）', 'warning'); return; }
 
   const { data: pts } = await sb.from('user_points').select('points').eq('user_id', APP.user.id).maybeSingle();
   if (!pts || pts.points < amount) { showToast('积分不足', 'warning'); return; }
@@ -27180,29 +27269,21 @@ window.placeContainerBid = async function() {
   state.myBid = amount;
   document.getElementById('placeBidBtn').disabled = true;
   document.getElementById('skipBidBtn').disabled = true;
-  showToast(`已出价 ${amount} 积分，等待对手...`, 'success');
-
-  // 模拟AI对手出价（或真实对手逻辑）
+  document.getElementById('containerStatusBar').innerHTML = '⏳ 等待对手出价...';
   simulateOpponentBid(state.currentItem, amount);
 };
 
-// 跳过
 window.skipContainerBid = function() {
   showToast('你跳过了本轮竞拍', 'info');
-  // 直接结算，放弃本轮物品
-  endContainerRound(null);
+  endContainerRound(null, 0);
 };
-
-
 
 function simulateOpponentBid(item, playerBid) {
   const state = window._containerGame;
-  // AI 根据物品价值在一定范围内随机出价
-  const baseBid = item.value * 2;
-  const randomFactor = 0.5 + Math.random() * 1.5;
-  const aiBid = Math.floor(baseBid * randomFactor);
-  
-  document.getElementById('currentHighestBid').textContent = Math.max(playerBid, aiBid);
+  // AI根据物品价值和随机性出价
+  const base = item.value * 1.5;
+  const randomFactor = 0.6 + Math.random() * 1.8;
+  const aiBid = Math.max(1, Math.floor(base * randomFactor));
   
   setTimeout(() => {
     let winner = null;
@@ -27212,7 +27293,7 @@ function simulateOpponentBid(item, playerBid) {
     if (playerBid > aiBid) {
       winner = 'player';
       winnerBid = playerBid;
-      message = `你以 ${playerBid} 积分赢得了【${item.name}】！`;
+      message = `你以 ${playerBid} 积分赢得【${item.name}】！`;
     } else if (aiBid > playerBid) {
       winner = 'ai';
       winnerBid = aiBid;
@@ -27222,33 +27303,21 @@ function simulateOpponentBid(item, playerBid) {
       message = `双方出价相同，物品流拍。`;
     }
     
+    document.getElementById('currentHighestBid').textContent = Math.max(playerBid, aiBid);
     showToast(message, winner === 'player' ? 'success' : 'info');
     endContainerRound(winner === 'player' ? item : null, winnerBid);
   }, 1500);
 }
 
-
-
-function endContainerRound(wonItem, cost = 0) {
+function endContainerRound(wonItem, cost) {
   const state = window._containerGame;
   
   if (wonItem) {
-    // 扣除积分并发放物品
+    // 扣除积分并发奖
     sb.from('user_points').select('points').eq('user_id', APP.user.id).maybeSingle().then(async ({ data: pts }) => {
       if (pts && pts.points >= cost) {
         await sb.from('user_points').update({ points: pts.points - cost }).eq('user_id', APP.user.id);
-        // 发放奖励
         if (wonItem.type === 'points') {
-
-// === 全站广播（高价值物品） ===
-  if (wonItem && (wonItem.quality === 'yellow' || wonItem.quality === 'red_small' || wonItem.quality === 'red_big')) {
-    if (typeof showJackpotBroadcast === 'function') {
-      showJackpotBroadcast({ username: APP.profile.username, rewardName: wonItem.name });
-    }
-  }
-  // === 广播结束 ===
-
-
           await addUserPointsToUser(APP.user.id, wonItem.value);
         } else {
           await savePendingReward(APP.user.id, wonItem.type, wonItem.name, { value: wonItem.value || 1 });
@@ -27256,169 +27325,100 @@ function endContainerRound(wonItem, cost = 0) {
         updateContainerPoints();
       }
     });
+    
+    // 全站广播（高价值物品）
+    if (wonItem.quality === 'yellow' || wonItem.quality === 'red_small' || wonItem.quality === 'red_big') {
+      if (typeof showJackpotBroadcast === 'function') {
+        showJackpotBroadcast({ username: APP.profile.username, rewardName: wonItem.name });
+      }
+    }
   }
   
-  // 显示结算面板
   showContainerStatsPanel(wonItem, cost);
   
-  // 重置状态，准备下一轮
+  // 进入下一轮
+  state.round++;
+  if (state.round > state.totalRounds) {
+    showToast('🎉 所有轮次已结束！', 'success');
+    setTimeout(() => closeModal('containerGameModal'), 3000);
+    return;
+  }
+  
   setTimeout(() => {
-    state.currentItem = null;
-    state.myBid = 0;
-    document.getElementById('placeBidBtn').disabled = false;
-    document.getElementById('skipBidBtn').disabled = false;
-    document.getElementById('bidInput').value = '';
-    document.getElementById('currentHighestBid').textContent = '0';
-    document.getElementById('selectedItemPanel').innerHTML = '<i class="fas fa-hand-pointer" style="font-size: 30px; margin-bottom: 10px;"></i><p style="font-size: 13px;">点击集装箱选择物品</p>';
+    generateRoundItems();
+    resetBidPanel();
     renderContainerGrid();
-  }, 3000);
+    document.getElementById('containerRoundNum').textContent = state.round;
+    document.getElementById('containerStatusBar').innerHTML = '📡 新的一轮开始，请选择物品';
+    document.getElementById('selectedItemPanel').innerHTML = '<i class="fas fa-hand-pointer" style="font-size:28px; margin-bottom:8px;"></i><p style="font-size:12px;">点击集装箱选择物品</p>';
+  }, 2000);
+}
+
+function resetBidPanel() {
+  document.getElementById('bidInput').value = '';
+  document.getElementById('placeBidBtn').disabled = false;
+  document.getElementById('skipBidBtn').disabled = false;
+  document.getElementById('currentHighestBid').textContent = '0';
 }
 
 function showContainerStatsPanel(wonItem, cost) {
-  const state = window._containerGame;
+  const netGain = wonItem ? (wonItem.value - cost) : -cost;
   const modal = document.createElement('div');
   modal.className = 'modal-overlay active';
   modal.style.zIndex = '99999';
   
-  const netGain = wonItem ? (wonItem.value - cost) : (0 - cost);
-  
   modal.innerHTML = `
-    <div class="modal-content active" style="max-width:420px; text-align:center; background:#1a1f2b; color:#eee; border:2px solid #5a6b7a; border-radius:16px; padding:20px;">
-      <h3 style="color:#f1c40f;">📊 本轮结算</h3>
-      <div style="display: flex; justify-content: space-around; margin: 15px 0;">
-        <div>
-          <img src="${APP.profile.avatar_url || dicebearUrl(APP.user.id)}" style="width:50px; height:50px; border-radius:50%; border:2px solid var(--accent);">
-          <p>${APP.profile.username}</p>
-          <p style="color:${netGain >= 0 ? '#2ecc71' : '#e74c3c'};">${netGain >= 0 ? '+' : ''}${netGain} 积分</p>
+    <div class="modal-content active" style="max-width:420px; text-align:center; background:#0d1117; color:#c9d1d9; border:2px solid #30363d; border-radius:16px; padding:20px;">
+      <h3 style="color:#f0f6fc; margin-bottom:10px;">📊 本轮结算</h3>
+      <div style="background:#161b22; border-radius:12px; padding:12px; margin-bottom:10px;">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <span style="color:#8b949e;">出价</span>
+          <span style="color:#f0f6fc;">${cost} 积分</span>
         </div>
-        <div style="font-size:24px; font-weight:900; color:#aaa;">VS</div>
-        <div>
-          <img src="${dicebearUrl('ai_opponent')}" style="width:50px; height:50px; border-radius:50%; border:2px solid #aaa;">
-          <p>AI 对手</p>
-          <p style="color:#aaa;">--</p>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px;">
+          <span style="color:#8b949e;">${wonItem ? '物品价值' : '结果'}</span>
+          <span style="color:${wonItem ? '#d29922' : '#f85149'};">${wonItem ? wonItem.value + ' 积分' : '未获得物品'}</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px; font-weight:600;">
+          <span style="color:#8b949e;">净收益</span>
+          <span style="color:${netGain >= 0 ? '#3fb950' : '#f85149'};">${netGain >= 0 ? '+' + netGain : netGain} 积分</span>
         </div>
       </div>
       ${wonItem ? `
-      <div style="background:#141922; border-radius:12px; padding:12px; margin:12px 0;">
-        <div style="font-size:30px;">${wonItem.icon}</div>
-        <div style="font-weight:700;">${wonItem.name}</div>
-        <div style="font-size:12px; color:#7f8c8d;">出价 ${cost} 积分</div>
+      <div style="background:#161b22; border-radius:12px; padding:10px; margin-bottom:10px;">
+        <div style="font-size:28px;">${wonItem.icon}</div>
+        <div style="font-weight:600;">${wonItem.name}</div>
       </div>
-      ` : '<p style="color:#aaa;">本轮未获得物品</p>'}
-      <button class="btn-warm" onclick="this.closest('.modal-overlay').remove()" style="margin-top:10px;">继续</button>
-
-
-      <button class="btn-warm" onclick="this.closest('.modal-overlay').remove()" style="margin-top:10px;">继续</button>
-      <button class="btn-ghost" onclick="shareContainerResult('${wonItem?.name || '无'}', ${netGain})" style="margin-top:6px; width:100%;">📢 分享战绩</button>
-
-
+      ` : ''}
+      <button class="btn-warm" onclick="this.closest('.modal-overlay').remove()" style="width:100%; padding:10px; background:#238636; border:none; border-radius:8px; color:#fff; font-weight:600; cursor:pointer;">继续下一轮</button>
     </div>
   `;
   document.body.appendChild(modal);
 }
 
-
-// 初始化游戏
-function initContainerGame() {
-  const state = window._containerGame;
-  // 随机生成9件物品
-  state.roundItems = [];
-  for (let i = 0; i < 9; i++) {
-    const randomItem = CONTAINER_ITEM_POOL[Math.floor(Math.random() * CONTAINER_ITEM_POOL.length)];
-    state.roundItems.push({ ...randomItem, id: 'item_' + i });
-  }
-  state.revealedItems.clear();
-  state.currentItem = null;
-  state.myBid = 0;
-  renderContainerGrid();
-  updateContainerPoints();
-  document.getElementById('bidInput').value = '';
-  document.getElementById('currentHighestBid').textContent = '0';
-  document.getElementById('selectedItemPanel').innerHTML = '<i class="fas fa-hand-pointer" style="font-size: 30px; margin-bottom: 10px;"></i><p style="font-size: 13px;">点击集装箱选择物品</p>';
-  updateOperatorSkills();
-}
-
-// 渲染3x3集装箱网格
-function renderContainerGrid() {
-  const grid = document.getElementById('containerGrid');
-  const state = window._containerGame;
-  grid.innerHTML = state.roundItems.map((item, index) => {
-    const isRevealed = state.revealedItems.has(item.id);
-    return `
-      <div class="container-cell" data-index="${index}" onclick="selectContainerItem(${index})" style="
-        background: ${isRevealed ? getQualityBg(item.quality) : '#1a1f2b'};
-        border: 2px solid ${isRevealed ? getQualityBorder(item.quality) : '#444'};
-        border-radius: 12px; padding: 15px 8px; text-align: center; cursor: pointer; transition: all 0.2s; position: relative; min-height: 100px; display: flex; flex-direction: column; align-items: center; justify-content: center;
-      ">
-        ${isRevealed ? `
-          <div style="font-size: 30px; margin-bottom: 6px;">${item.icon}</div>
-          <div style="font-weight: 600; font-size: 13px;">${item.name}</div>
-          <div style="font-size: 11px; color: #FFD700; margin-top: 4px;">价值 ${item.value}</div>
-        ` : `
-          <div style="font-size: 36px; opacity: 0.4;">📦</div>
-          <div style="font-size: 11px; color: #666; margin-top: 6px;">未知物资</div>
-          <button onclick="event.stopPropagation(); window.exploreContainerItem(${index})" style="margin-top: 8px; padding: 4px 12px; background: #5a6b7a; border: none; border-radius: 20px; color: #fff; font-size: 10px; cursor: pointer;">侦查 5分</button>
-        `}
-        ${state.currentItem?.id === item.id ? '<div style="position: absolute; top: -5px; right: -5px; background: #f1c40f; color: #000; border-radius: 50%; width: 20px; height: 20px; font-size: 12px; display: flex; align-items: center; justify-content: center;">✓</div>' : ''}
-      </div>
-    `;
-  }).join('');
-}
-
-// 选择物品
-window.selectContainerItem = function(index) {
-  const state = window._containerGame;
-  state.currentItem = state.roundItems[index];
-  document.getElementById('selectedItemPanel').innerHTML = `
-    <div style="text-align: center;">
-      <div style="font-size: 40px; margin-bottom: 8px;">${state.currentItem.icon}</div>
-      <div style="font-weight: 700; font-size: 16px;">${state.currentItem.name}</div>
-      <div style="font-size: 13px; color: #f1c40f;">预估价值 ${state.currentItem.value} 积分</div>
-      <div style="margin-top: 8px; padding: 4px 12px; background: ${getQualityBg(state.currentItem.quality)}; border: 1px solid ${getQualityBorder(state.currentItem.quality)}; border-radius: 20px; font-size: 11px; display: inline-block;">品质：${state.currentItem.quality}</div>
-    </div>
-  `;
-  document.getElementById('bidInput').focus();
-  renderContainerGrid(); // 刷新选中状态
-};
-
-// 侦查物品
-window.exploreContainerItem = async function(index) {
-  const state = window._containerGame;
-  const item = state.roundItems[index];
-  // 扣除积分
-  const { data: pts } = await sb.from('user_points').select('points').eq('user_id', APP.user.id).maybeSingle();
-  if (!pts || pts.points < 5) { showToast('积分不足，需要5积分侦查', 'warning'); return; }
-  await sb.from('user_points').update({ points: pts.points - 5 }).eq('user_id', APP.user.id);
-  state.revealedItems.add(item.id);
-  updateContainerPoints();
-  renderContainerGrid();
-  showToast(`侦查成功！已揭示 ${item.name}`, 'success');
-};
-
-// 更新积分显示
 async function updateContainerPoints() {
   const { data: pts } = await sb.from('user_points').select('points').eq('user_id', APP.user.id).maybeSingle();
   document.getElementById('containerMyPoints').textContent = pts?.points || 0;
 }
 
-// 更新干员技能按钮
 function updateOperatorSkills() {
   const container = document.getElementById('operatorSkills');
   container.innerHTML = `
-    <button onclick="window.useContainerSkill('scan')" style="flex:1; padding:10px; background:#34495e; border:none; border-radius:10px; color:#fff; font-size:12px; cursor:pointer;"><i class="fas fa-eye"></i> 扫描</button>
-    <button onclick="window.useContainerSkill('hint')" style="flex:1; padding:10px; background:#34495e; border:none; border-radius:10px; color:#fff; font-size:12px; cursor:pointer;"><i class="fas fa-lightbulb"></i> 情报</button>
+    <button onclick="window.useContainerSkill('scan')" style="flex:1; padding:8px; background:#1f6feb; border:none; border-radius:8px; color:#fff; font-size:11px; cursor:pointer;"><i class="fas fa-eye"></i> 扫描</button>
+    <button onclick="window.useContainerSkill('hint')" style="flex:1; padding:8px; background:#1f6feb; border:none; border-radius:8px; color:#fff; font-size:11px; cursor:pointer;"><i class="fas fa-lightbulb"></i> 情报</button>
   `;
 }
 
-// 干员技能
 window.useContainerSkill = function(type) {
   const state = window._containerGame;
   if (type === 'scan' && state.currentItem) {
     showToast(`侦查结果：${state.currentItem.name} 价值 ${state.currentItem.value} 积分`, 'info');
   } else if (type === 'hint') {
-    showToast('情报提示：本轮有 ' + state.roundItems.filter(i => i.quality === 'yellow' || i.quality === 'red_small').length + ' 件高价值物品', 'info');
+    const highValueCount = state.roundItems.filter(i => i.quality === 'yellow' || i.quality === 'red_small' || i.quality === 'red_big').length;
+    showToast(`情报：本轮有 ${highValueCount} 件高价值物品`, 'info');
   }
 };
+
 
 
     
@@ -27442,80 +27442,104 @@ window.startDuel = async function(opponentId, isAI) {
 
 
 
-    duelModal.innerHTML = `
-    <div class="modal-content active duel-main-panel" style="max-width:650px; width:95%; text-align:center; background:radial-gradient(ellipse at center, #1a0f08 0%, #0a0503 100%); color:#eee; border:3px solid #FFD700; border-radius:24px; padding:0; position:relative; z-index:99999; overflow:hidden; font-family:'Noto Sans SC',sans-serif;">
+     duelModal.innerHTML = `
+    <div class="modal-content active" style="max-width:650px; width:95%; background:linear-gradient(180deg, #0d1117 0%, #010409 100%); color:#c9d1d9; border:2px solid #30363d; border-radius:20px; padding:0; overflow:hidden; font-family:'Noto Sans SC',sans-serif; position:relative; z-index:99999;">
       
-      <!-- 顶部状态栏 -->
-      <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 16px; background:rgba(0,0,0,0.6); border-bottom:1px solid rgba(255,215,0,0.3); backdrop-filter:blur(10px);">
-        <span style="color:#FFD700; font-weight:900; font-size:16px; letter-spacing:1px;">⚔️ 暗区突围·物资争夺</span>
-        <div style="display:flex; gap:8px; align-items:center;">
-          <span style="background:rgba(255,255,255,0.1); padding:4px 10px; border-radius:20px; font-size:12px;">回合 <b id="duelRoundNum">0</b>/3</span>
-          <span style="color:#f1c40f; font-size:12px;"><i class="fas fa-bolt"></i> 行动力 <b id="duelMyAPDisplay">3</b></span>
+      <!-- 顶部战术状态栏 -->
+      <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 16px; background:#161b22; border-bottom:1px solid #21262d;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <i class="fas fa-satellite-dish" style="color:#58a6ff;"></i>
+          <span style="font-weight:700; font-size:14px; letter-spacing:1px;">暗区战术终端</span>
         </div>
+        <div style="display:flex; gap:12px; font-size:11px; color:#8b949e;">
+          <span>回合 <b style="color:#f0f6fc;" id="duelRoundNum">0</b>/3</span>
+          <span>|</span>
+          <span>行动力 <b style="color:#f0f6fc;" id="duelMyAPDisplay">3</b></span>
+        </div>
+      </div>
+
+      <!-- 侦察报告（新增） -->
+      <div id="duelIntelBar" style="padding:6px 16px; background:#0d1117; border-bottom:1px solid #21262d; font-size:11px; color:#8b949e; display:flex; gap:16px;">
+        <span id="duelIntelText">📡 等待战术指令...</span>
       </div>
 
       <!-- 对战核心区 -->
-      <div style="display:flex; padding:16px; gap:12px; align-items:stretch;">
+      <div style="display:flex; padding:12px; gap:10px; align-items:stretch;">
         
-        <!-- 玩家侧 -->
-        <div class="duel-player-area" style="flex:1; background:rgba(255,107,53,0.05); border:2px solid rgba(255,107,53,0.3); border-radius:20px; padding:12px; position:relative;">
-          <div class="duel-avatar-glow" style="position:relative; display:inline-block;">
-            <img src="${APP.profile.avatar_url || dicebearUrl(APP.user.id)}" style="width:56px; height:56px; border-radius:50%; border:3px solid var(--accent); box-shadow:0 0 20px rgba(255,107,53,0.5);">
+        <!-- 我方作战面板 -->
+        <div style="flex:1; background:rgba(88,166,255,0.03); border:1px solid rgba(88,166,255,0.2); border-radius:12px; padding:10px; position:relative;">
+          <div style="text-align:center; margin-bottom:8px;">
+            <img src="${APP.profile.avatar_url || dicebearUrl(APP.user.id)}" style="width:44px; height:44px; border-radius:50%; border:2px solid #58a6ff; box-shadow:0 0 12px rgba(88,166,255,0.3);">
+            <p style="font-weight:600; margin:4px 0 0; font-size:12px;">${APP.profile.username}</p>
           </div>
-          <p style="font-weight:700; margin:6px 0; color:var(--accent);">${APP.profile.username}</p>
-          <div id="duelMyFortifiedBadge" style="display:none; background:#3498db; color:#fff; padding:2px 8px; border-radius:20px; font-size:10px; margin-bottom:4px;">🛡️ 已加固保护</div>
-          <div id="duelMyLootGrid" class="duel-loot-grid" style="display:grid; grid-template-columns:repeat(3,1fr); gap:6px; min-height:100px; margin-top:8px;"></div>
+          <div id="duelMyFortifiedBadge" style="display:none; text-align:center; margin-bottom:4px;">
+            <span style="background:#1f6feb; color:#fff; padding:1px 8px; border-radius:10px; font-size:10px;">🛡️ 已加固</span>
+          </div>
+          <div id="duelMyLootGrid" class="duel-loot-grid" style="display:grid; grid-template-columns:repeat(3,1fr); gap:4px; min-height:80px;"></div>
         </div>
 
-        <!-- VS 对决区 -->
-        <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; min-width:40px;">
-          <div style="font-size:28px; font-weight:900; color:#FFD700; text-shadow:0 0 20px #FF4500; animation:pulse 1.5s infinite;">VS</div>
-          <div style="background:rgba(255,255,255,0.1); border-radius:20px; padding:6px 10px; font-size:10px; text-align:center;">
-            <div style="color:#aaa;">总价值</div>
-            <div><span id="duelMyScore">0</span> : <span id="duelOppScore">0</span></div>
+        <!-- 中间状态区 -->
+        <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; min-width:36px;">
+          <div style="font-size:22px; font-weight:900; color:#f0883e; text-shadow:0 0 12px #f0883e;">VS</div>
+          <div style="background:#161b22; border-radius:12px; padding:5px 8px; font-size:10px; text-align:center;">
+            <span style="color:#8b949e;">总价</span><br>
+            <span style="color:#f0f6fc;"><span id="duelMyScore">0</span>:<span id="duelOppScore">0</span></span>
           </div>
         </div>
 
-        <!-- 对手侧 -->
-        <div class="duel-player-area" style="flex:1; background:rgba(255,71,87,0.05); border:2px solid rgba(255,71,87,0.3); border-radius:20px; padding:12px; position:relative;">
-          <div class="duel-avatar-glow" style="position:relative; display:inline-block;">
-            <img src="${oppAvatar}" style="width:56px; height:56px; border-radius:50%; border:3px solid ${isAI ? '#aaa' : '#FF4500'}; box-shadow:0 0 20px rgba(255,71,87,0.5);">
+        <!-- 敌方作战面板 -->
+        <div style="flex:1; background:rgba(248,81,73,0.03); border:1px solid rgba(248,81,73,0.2); border-radius:12px; padding:10px; position:relative;">
+          <div style="text-align:center; margin-bottom:8px;">
+            <img src="${oppAvatar}" style="width:44px; height:44px; border-radius:50%; border:2px solid ${isAI ? '#8b949e' : '#f85149'}; box-shadow:0 0 12px rgba(248,81,73,0.3);">
+            <p style="font-weight:600; margin:4px 0 0; font-size:12px;">${oppName}</p>
           </div>
-          <p style="font-weight:700; margin:6px 0;">${oppName}</p>
-          <div id="duelOppFortifiedBadge" style="display:none; background:#3498db; color:#fff; padding:2px 8px; border-radius:20px; font-size:10px; margin-bottom:4px;">🛡️ 已加固保护</div>
-          <div id="duelOppLootGrid" class="duel-loot-grid" style="display:grid; grid-template-columns:repeat(3,1fr); gap:6px; min-height:100px; margin-top:8px;"></div>
+          <div id="duelOppFortifiedBadge" style="display:none; text-align:center; margin-bottom:4px;">
+            <span style="background:#1f6feb; color:#fff; padding:1px 8px; border-radius:10px; font-size:10px;">🛡️ 已加固</span>
+          </div>
+          <div id="duelOppLootGrid" class="duel-loot-grid" style="display:grid; grid-template-columns:repeat(3,1fr); gap:4px; min-height:80px;"></div>
         </div>
       </div>
 
-      <!-- 行动指令区 -->
-      <div style="padding:0 16px 12px;">
-        <div class="duel-commands" style="display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:8px;">
-          <button class="duel-cmd-btn" onclick="window.duelAction('search')" style="padding:14px 8px; background:linear-gradient(135deg,#2ecc71,#27ae60); border:none; border-radius:14px; color:#fff; font-weight:700; font-size:14px; cursor:pointer; transition:all 0.2s; box-shadow:0 4px 12px rgba(46,204,113,0.3);">
-            <i class="fas fa-search" style="display:block; font-size:22px; margin-bottom:4px;"></i>搜刮物资
+      <!-- 战术指令区 -->
+      <div style="padding:0 12px 10px;">
+        <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin-bottom:6px;">
+          <button class="duel-cmd-btn" onclick="window.duelAction('search')" style="padding:12px 6px; background:#238636; border:1px solid #2ea043; border-radius:8px; color:#fff; font-weight:600; font-size:12px; cursor:pointer;">
+            <i class="fas fa-search" style="display:block; margin-bottom:3px; font-size:18px;"></i>搜刮物资
           </button>
-          <button class="duel-cmd-btn" onclick="window.duelAction('attack_select')" style="padding:14px 8px; background:linear-gradient(135deg,#e74c3c,#c0392b); border:none; border-radius:14px; color:#fff; font-weight:700; font-size:14px; cursor:pointer; transition:all 0.2s; box-shadow:0 4px 12px rgba(231,76,60,0.3);">
-            <i class="fas fa-crosshairs" style="display:block; font-size:22px; margin-bottom:4px;"></i>精准袭击
+          <button class="duel-cmd-btn" onclick="window.duelAction('attack_select')" style="padding:12px 6px; background:#da3633; border:1px solid #f85149; border-radius:8px; color:#fff; font-weight:600; font-size:12px; cursor:pointer;">
+            <i class="fas fa-crosshairs" style="display:block; margin-bottom:3px; font-size:18px;"></i>精准袭击
           </button>
-          <button class="duel-cmd-btn" onclick="window.duelAction('fortify_select')" style="padding:14px 8px; background:linear-gradient(135deg,#3498db,#2980b9); border:none; border-radius:14px; color:#fff; font-weight:700; font-size:14px; cursor:pointer; transition:all 0.2s; box-shadow:0 4px 12px rgba(52,152,219,0.3);">
-            <i class="fas fa-shield-alt" style="display:block; font-size:22px; margin-bottom:4px;"></i>战术加固
+          <button class="duel-cmd-btn" onclick="window.duelAction('fortify_select')" style="padding:12px 6px; background:#1f6feb; border:1px solid #388bfd; border-radius:8px; color:#fff; font-weight:600; font-size:12px; cursor:pointer;">
+            <i class="fas fa-shield-alt" style="display:block; margin-bottom:3px; font-size:18px;"></i>战术加固
           </button>
         </div>
-        <button class="duel-evacuate-btn" onclick="window.duelAction('evacuate')" style="width:100%; padding:12px; background:transparent; border:2px solid #f1c40f; border-radius:14px; color:#f1c40f; font-weight:700; font-size:14px; cursor:pointer;">
+        <button class="duel-evacuate-btn" onclick="window.duelAction('evacuate')" style="width:100%; padding:10px; background:transparent; border:1px solid #d29922; border-radius:8px; color:#d29922; font-weight:600; font-size:13px; cursor:pointer;">
           <i class="fas fa-running mr-2"></i>紧急撤离（提前结算）
         </button>
-        <div id="duelTacticalPanel" style="margin-top:8px; min-height:30px;"></div>
-      </div>
-
-      <!-- 快捷提示 -->
-      <div style="padding:0 16px 10px; display:flex; gap:8px; flex-wrap:wrap; justify-content:center; border-top:1px solid rgba(255,255,255,0.1);">
-        <span style="font-size:10px; color:#888;"><span style="color:#2ecc71;">●</span> 搜刮=随机物资</span>
-        <span style="font-size:10px; color:#888;"><span style="color:#e74c3c;">●</span> 袭击=抢夺对方</span>
-        <span style="font-size:10px; color:#888;"><span style="color:#3498db;">●</span> 加固=免疫一次袭击</span>
-        <span style="font-size:10px; color:#888;"><span style="color:#f1c40f;">●</span> 撤离=提前结算</span>
+        <div id="duelTacticalPanel" style="margin-top:6px; min-height:24px;"></div>
       </div>
     </div>
   `;
+
+
+
   document.body.appendChild(duelModal);
+
+
+  // 监听弹窗关闭（点击遮罩或关闭按钮）
+  duelModal.addEventListener('click', function(e) {
+    if (e.target === duelModal || e.target.closest('.modal-content .fa-times')) {
+      const currentState = window._duelState;
+      if (currentState && currentState.modal) {
+        showToast('⚠️ 你强行撤离了战场，本轮物资全部亏损！', 'error');
+        if (window._aiTimer) clearInterval(window._aiTimer);
+        window._duelState = null;
+      }
+    }
+  });
+
+
+
 
   window._duelState = {
     opponentId, isAI,
@@ -27534,6 +27558,9 @@ window.startDuel = async function(opponentId, isAI) {
   }
 };
 
+
+
+
 function renderDuelLoot() {
   const state = window._duelState;
   if (!state) return;
@@ -27545,30 +27572,37 @@ function renderDuelLoot() {
     const container = document.getElementById(containerId);
     if (!container) return;
     container.innerHTML = loot.map((item, idx) => `
-      <div class="duel-item-card" style="background:${getQualityBg(item.quality)}; border:2px solid ${getQualityBorder(item.quality)}; border-radius:12px; padding:8px 4px; text-align:center; position:relative; transition:all 0.2s; cursor:default;">
-        ${fortifiedIndex === idx ? '<span style="position:absolute; top:-6px; right:-6px; background:#3498db; color:#fff; border-radius:50%; width:18px; height:18px; font-size:10px; display:flex; align-items:center; justify-content:center;">🛡️</span>' : ''}
-        <div style="font-size:24px; margin-bottom:4px;">${getItemIcon(item.type)}</div>
-        <div style="font-size:11px; font-weight:600; line-height:1.2;">${item.name}</div>
-        <div style="font-size:10px; color:#FFD700; margin-top:3px;">价值 ${item.value || 1}</div>
+      <div style="background:${getQualityBg(item.quality)}; border:1px solid ${getQualityBorder(item.quality)}; border-radius:6px; padding:6px 4px; text-align:center; position:relative;">
+        ${fortifiedIndex === idx ? '<span style="position:absolute; top:-4px; right:-4px; font-size:12px;">🛡️</span>' : ''}
+        <div style="font-size:22px;">${getItemIcon(item.type)}</div>
+        <div style="font-size:10px; font-weight:600; margin-top:2px;">${item.name}</div>
+        <div style="font-size:9px; color:#d29922;">${item.value || 1} 价值</div>
       </div>
-    `).join('') || '<span style="color:#888; font-size:12px;">暂无物资</span>';
+    `).join('') || '<span style="color:#484f58; font-size:11px;">暂无物资</span>';
   };
 
   renderGrid('duelMyLootGrid', state.myLoot, state.myFortifiedIndex);
   renderGrid('duelOppLootGrid', state.oppLoot, state.oppFortifiedIndex);
 
-  // 更新价值比分
   const calcScore = (loot) => loot.reduce((sum, item) => sum + (item.value || 1), 0);
   document.getElementById('duelMyScore').textContent = calcScore(state.myLoot);
   document.getElementById('duelOppScore').textContent = calcScore(state.oppLoot);
 
-  // 显示/隐藏加固徽章
-  document.getElementById('duelMyFortifiedBadge').style.display = state.myFortifiedIndex >= 0 ? 'inline-block' : 'none';
-  document.getElementById('duelOppFortifiedBadge').style.display = state.oppFortifiedIndex >= 0 ? 'inline-block' : 'none';
+  document.getElementById('duelMyFortifiedBadge').style.display = state.myFortifiedIndex >= 0 ? 'block' : 'none';
+  document.getElementById('duelOppFortifiedBadge').style.display = state.oppFortifiedIndex >= 0 ? 'block' : 'none';
+
+  // 更新侦察报告
+  const intelEl = document.getElementById('duelIntelText');
+  if (intelEl) {
+    const myTotal = calcScore(state.myLoot);
+    const oppTotal = calcScore(state.oppLoot);
+    if (myTotal > oppTotal) intelEl.textContent = '📡 侦察报告：我方物资价值领先，建议保持优势或撤离';
+    else if (oppTotal > myTotal) intelEl.textContent = '📡 侦察报告：敌方物资价值领先，建议发动袭击';
+    else intelEl.textContent = '📡 侦察报告：双方势均力敌，战局胶着';
+  }
 
   document.getElementById('duelTacticalPanel').innerHTML = '';
 }
-
 
 
 
@@ -27578,6 +27612,13 @@ window.duelAction = function(action, isAI = false) {
   if (state.myAP <= 0 && !isAI) { showToast('没有行动力了', 'warning'); return; }
 
   if (action === 'search') {
+
+  // 在搜刮成功时
+  if (action === 'search') {
+    // 可选：播放一个微小的提示音
+    if (window._duelAudio) { window._duelAudio.currentTime = 0; window._duelAudio.play().catch(()=>{}); }
+  }
+
     const newItem = DUEL_LOOT_POOL[Math.floor(Math.random() * DUEL_LOOT_POOL.length)];
     if (isAI) {
       state.oppLoot.push(newItem);
@@ -27709,11 +27750,42 @@ async function finishDuel() {
     // 如果对手是真人，也需要给他保留，这里简化处理，仅处理自己
   }
 
-  if (state.modal) {
+     if (state.modal) {
+    const myFinalScore = calcScore(state.myLoot);
+    const oppFinalScore = calcScore(state.oppLoot);
+    const netGain = myFinalScore - oppFinalScore;
+    
     state.modal.querySelector('.modal-content').innerHTML += `
-      <div style="margin-top:16px; padding:12px; background:#222; border-radius:10px;">
-        <h3 style="color:#FFD700;">${resultText}</h3>
-        <button class="btn-warm" onclick="this.closest('.modal-overlay').remove();">关闭</button>
+      <div style="margin-top:12px; padding:14px; background:#161b22; border:1px solid #30363d; border-radius:12px; text-align:center;">
+        <h3 style="color:#f0f6fc; margin-bottom:10px;">📊 作战报告</h3>
+        
+        <!-- 双方数据对比 -->
+        <div style="display:flex; justify-content:space-around; align-items:center; margin-bottom:10px;">
+          <div style="text-align:center;">
+            <p style="color:#8b949e; font-size:11px;">我方战利品</p>
+            <p style="font-size:20px; font-weight:900; color:#58a6ff;">${myFinalScore}</p>
+            <p style="font-size:10px; color:#8b949e;">价值积分</p>
+          </div>
+          <div style="font-size:18px; font-weight:900; color:#30363d;">VS</div>
+          <div style="text-align:center;">
+            <p style="color:#8b949e; font-size:11px;">敌方战利品</p>
+            <p style="font-size:20px; font-weight:900; color:#f85149;">${oppFinalScore}</p>
+            <p style="font-size:10px; color:#8b949e;">价值积分</p>
+          </div>
+        </div>
+        
+        <!-- 净收益 -->
+        <div style="background:${netGain >= 0 ? 'rgba(35,134,54,0.15)' : 'rgba(218,54,51,0.15)'}; border-radius:8px; padding:8px; margin-bottom:10px;">
+          <p style="font-size:13px; color:${netGain >= 0 ? '#3fb950' : '#f85149'}; margin:0;">
+            ${netGain >= 0 ? '📈 净收益：+' + netGain + ' 积分' : '📉 净亏损：' + Math.abs(netGain) + ' 积分'}
+          </p>
+        </div>
+        
+        <p style="font-size:14px; font-weight:600; color:#f0883e; margin-bottom:8px;">${resultText}</p>
+        
+        <button class="btn-warm" onclick="this.closest('.modal-overlay').remove(); window._duelState = null;" style="width:100%; padding:10px; background:#238636; border:none; border-radius:8px; color:#fff; font-weight:600; font-size:13px; cursor:pointer;">
+          <i class="fas fa-check mr-2"></i>确认并关闭
+        </button>
       </div>
     `;
   }
