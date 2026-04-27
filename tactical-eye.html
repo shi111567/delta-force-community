@@ -1,0 +1,1438 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>战术天眼 · 三角洲行动战术辅助</title>
+    <script src="https://cdn.tailwindcss.com/3.4.1"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: ['selector', '[data-theme="dark"]'],
+            theme: {
+                extend: {
+                    colors: {
+                        tac: {
+                            bg: '#0a0a0f',
+                            card: '#12121a',
+                            surface: '#1a1a25',
+                            text: '#e0e0e0',
+                            muted: '#7a7a8a',
+                            accent: '#ff5e3a',
+                            green: '#00e676',
+                            yellow: '#ffc107',
+                            red: '#ff1744',
+                            purple: '#d500f9',
+                            blue: '#2979ff',
+                            orange: '#ff9100',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        :root {
+            --tac-bg: #0a0a0f;
+            --tac-card: #12121a;
+            --tac-surface: #1a1a25;
+            --tac-text: #e0e0e0;
+            --tac-muted: #7a7a8a;
+            --tac-accent: #ff5e3a;
+            --tac-green: #00e676;
+            --tac-yellow: #ffc107;
+            --tac-red: #ff1744;
+            --tac-purple: #d500f9;
+            --tac-blue: #2979ff;
+            --tac-orange: #ff9100;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Segoe UI', 'Noto Sans SC', sans-serif;
+            background: var(--tac-bg);
+            color: var(--tac-text);
+            overflow: hidden;
+            user-select: none;
+            -webkit-app-region: drag;
+        }
+
+        /* ===== 主界面布局 ===== */
+        #app-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        /* ===== 顶部状态栏 ===== */
+        #status-bar {
+            height: 36px;
+            background: var(--tac-card);
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 16px;
+            -webkit-app-region: no-drag;
+        }
+        #status-bar .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            color: var(--tac-muted);
+        }
+        #status-bar .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--tac-green);
+            box-shadow: 0 0 8px var(--tac-green);
+            transition: background 0.3s;
+        }
+        #status-bar .status-dot.warning { background: var(--tac-yellow); box-shadow: 0 0 8px var(--tac-yellow); }
+        #status-bar .status-dot.danger { background: var(--tac-red); box-shadow: 0 0 8px var(--tac-red); }
+
+        /* ===== 主区域：雷达 + 控制面板 ===== */
+        #main-area {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        /* ===== 雷达环 ===== */
+       #radar-container {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 240px;
+    height: 240px;
+    opacity: 0.85;
+    transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1.2);
+   z-index: 100;
+}
+#radar-container.collapsed {
+   width: 14px;
+   height: 14px;
+   bottom: 28px;
+   right: 28px;
+   opacity: 0.7;
+   background: var(--tac-green);
+   border: 2px solid var(--tac-green);
+   box-shadow: 0 0 12px var(--tac-green);
+   transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1.2);
+}
+#radar-container.collapsed canvas {
+    display: none;
+}
+
+
+
+#radar-container.collapsed #radar-canvas {
+   border-radius: 50%;
+   border-width: 2px;
+   background: radial-gradient(circle, var(--tac-green) 0%, rgba(0,0,0,0.8) 70%);
+}
+
+        /* ===== 威胁标签 ===== */
+        .threat-tag {
+            position: absolute;
+            font-size: 10px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            background: rgba(0,0,0,0.8);
+            color: var(--tac-text);
+            border: 1px solid;
+            pointer-events: none;
+            animation: tagFade 3s forwards;
+        }
+        @keyframes tagFade {
+            0% { opacity: 1; transform: translateY(0); }
+            70% { opacity: 1; transform: translateY(0); }
+            100% { opacity: 0; transform: translateY(-10px); }
+        }
+
+        /* ===== 边缘光效 ===== */
+        #edge-indicator {
+            position: fixed;
+            pointer-events: none;
+            z-index: 9999;
+            transition: opacity 0.3s;
+            opacity: 0;
+        }
+        .edge-bar {
+            position: fixed;
+            pointer-events: none;
+            transition: opacity 0.3s;
+            opacity: 0;
+            height: 4px;
+            background: linear-gradient(90deg, transparent, var(--tac-red), transparent);
+        }
+
+        /* ===== 设置面板（抽屉式） ===== */
+        #settings-panel {
+            position: fixed;
+            right: -420px;
+            top: 0;
+            width: 400px;
+            height: 100vh;
+            background: var(--tac-card);
+            border-left: 1px solid rgba(255,255,255,0.1);
+            z-index: 100;
+            transition: right 0.3s cubic-bezier(0.25, 0.8, 0.25, 1.2);
+            overflow-y: auto;
+            padding: 20px;
+            -webkit-app-region: no-drag;
+        }
+        #settings-panel.open { right: 0; }
+
+        /* ===== 首次引导遮罩 ===== */
+        #onboarding-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.85);
+            z-index: 200;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.5s;
+        }
+        #onboarding-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        /* ===== 反馈卡片 ===== */
+        #feedback-card {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 320px;
+            background: var(--tac-card);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 16px;
+            padding: 16px;
+            z-index: 150;
+            display: none;
+            box-shadow: 0 16px 32px rgba(0,0,0,0.6);
+            -webkit-app-region: no-drag;
+        }
+        #feedback-card.show { display: block; animation: slideUp 0.25s ease; }
+        @keyframes slideUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        /* ===== 托盘菜单模拟 ===== */
+        #tray-menu {
+            position: fixed;
+            bottom: 48px;
+            right: 16px;
+            background: var(--tac-card);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            padding: 8px 0;
+            z-index: 180;
+            display: none;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+            min-width: 180px;
+            -webkit-app-region: no-drag;
+        }
+        #tray-menu.show { display: block; }
+        #tray-menu .tray-item {
+            padding: 10px 18px;
+            cursor: pointer;
+            font-size: 13px;
+            color: var(--tac-text);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: background 0.15s;
+        }
+        #tray-menu .tray-item:hover { background: rgba(255,255,255,0.05); }
+
+        /* ===== 滚动条美化 ===== */
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 3px; }
+    </style>
+</head>
+<body>
+    <div id="app-container">
+        <!-- 顶部状态栏 -->
+        <div id="status-bar">
+
+<div id="radar-tooltip" style="position: fixed; bottom: 50px; right: 20px; background: var(--tac-card); border: 1px solid rgba(255,255,255,0.15); border-radius: 12px; padding: 8px 16px; font-size: 12px; color: var(--tac-text); z-index: 90; pointer-events: none; transition: opacity 0.5s; opacity: 1;">
+    <span id="tooltip-text">🟢 雷达待机中</span>
+</div>
+
+
+            <div class="status-indicator">
+                <span class="status-dot" id="status-dot"></span>
+                <span id="status-text">系统就绪</span>
+                <span class="text-[10px] opacity-50">|</span>
+                <span id="cpu-usage">CPU 0.4%</span>
+            </div>
+            <div class="status-indicator">
+                <span id="clock-display">12:00:00</span>
+                <span class="text-[10px] opacity-50 mx-1">|</span>
+                <span id="map-auto-detect">自动检测地图</span>
+            </div>
+        </div>
+
+        <!-- 主区域 -->
+        <div id="main-area">
+            <!-- 雷达容器 -->
+            <div id="radar-container" class="collapsed">
+                <canvas id="radar-canvas" width="240" height="240"></canvas>
+                <div id="threat-tags-area"></div>
+            </div>
+        </div>
+
+        <!-- 边缘光效占位 -->
+        <div id="edge-top" class="edge-bar" style="top:0;left:0;width:100%;"></div>
+        <div id="edge-bottom" class="edge-bar" style="bottom:0;left:0;width:100%;"></div>
+        <div id="edge-left" style="position:fixed;left:0;top:0;width:4px;height:100%;pointer-events:none;opacity:0;background:linear-gradient(180deg, transparent, var(--tac-red), transparent);transition:opacity 0.3s;"></div>
+        <div id="edge-right" style="position:fixed;right:0;top:0;width:4px;height:100%;pointer-events:none;opacity:0;background:linear-gradient(180deg, transparent, var(--tac-red), transparent);transition:opacity 0.3s;"></div>
+
+        <!-- 托盘菜单 -->
+        <div id="tray-menu">
+            <div class="tray-item" onclick="toggleEngine()"><i class="fas fa-power-off"></i> <span id="tray-toggle-text">暂停引擎</span></div>
+            <div class="tray-item" onclick="openSettings()"><i class="fas fa-sliders-h"></i> 打开设置</div>
+            <div class="tray-item" onclick="startRecalibration()"><i class="fas fa-sync-alt"></i> 重新校准</div>
+            <div class="tray-item" onclick="showFeedbackCard()"><i class="fas fa-bug"></i> 反馈问题</div>
+            <div class="tray-item" onclick="window.close()"><i class="fas fa-times"></i> 退出</div>
+        </div>
+
+        <!-- 设置面板 -->
+        <div id="settings-panel">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-lg font-bold">⚙️ 设置</h2>
+                <button onclick="closeSettings()" class="text-xl text-tac-muted hover:text-tac-text">&times;</button>
+            </div>
+            <div class="space-y-5">
+                <!-- EQ模式 -->
+                <div>
+                    <label class="text-sm font-semibold block mb-2">🎚️ EQ模式</label>
+                    <div class="flex bg-tac-surface rounded-full p-1">
+                        <button class="flex-1 py-2 px-3 rounded-full text-xs font-bold transition-all" id="eq-personal-btn" style="background: var(--tac-accent); color: white;">🎯 个人专属</button>
+                        <button class="flex-1 py-2 px-3 rounded-full text-xs font-bold transition-all" id="eq-generic-btn" style="background: transparent; color: var(--tac-muted);">🌐 通用增强</button>
+                    </div>
+                </div>
+                <!-- 校准 -->
+                <button onclick="startRecalibration()" class="w-full py-3 px-4 bg-tac-surface border border-tac-accent/30 rounded-xl text-sm font-bold hover:bg-tac-accent/10 transition-all">
+                    🔄 重新听觉校准 · 约3分钟
+                </button>
+
+
+                <!-- 导出/导入EQ -->
+                <div class="flex gap-2">
+                    <button onclick="exportEQProfile()" class="flex-1 py-3 px-4 bg-tac-surface border border-white/10 rounded-xl text-sm font-bold hover:bg-white/5 transition-all">
+                        📤 导出EQ
+                    </button>
+                    <button onclick="importEQProfile()" class="flex-1 py-3 px-4 bg-tac-surface border border-white/10 rounded-xl text-sm font-bold hover:bg-white/5 transition-all">
+                        📥 导入EQ
+                    </button>
+                </div>
+                <button onclick="resetEQToDefault()" class="w-full py-3 px-4 bg-tac-surface border border-tac-yellow/30 rounded-xl text-sm font-bold text-tac-yellow hover:bg-tac-yellow/10 transition-all">
+                    🔄 重置为通用增强模式
+                </button>
+
+
+
+
+
+
+
+                <!-- 虚拟声卡教程 -->
+                <div class="p-4 bg-tac-surface rounded-xl border border-white/10">
+                    <div class="text-sm font-bold mb-2">🔊 安装虚拟声卡（推荐）</div>
+                    <p class="text-xs text-tac-muted mb-2">用于隔离游戏声音，避免音乐/语音干扰识别。</p>
+                    <ol class="text-xs text-tac-muted list-decimal ml-4 space-y-1">
+                        <li>下载 <a href="https://vb-audio.com/Cable/" target="_blank" class="text-tac-blue underline">VB-CABLE</a> 并安装</li>
+                        <li>将三角洲音频输出设为 "CABLE Input"</li>
+                        <li>在系统声音设置中启用 "侦听此设备" 并选择你的耳机</li>
+                    </ol>
+                    <button onclick="window.open('https://vb-audio.com/Cable/', '_blank')" class="mt-3 w-full py-2 bg-tac-blue text-white rounded-lg text-xs font-bold">📥 去下载虚拟声卡</button>
+                </div>
+
+
+
+                <!-- 恢复原始声音 -->
+                <button onclick="restoreOriginalAudio()" class="w-full py-3 px-4 bg-tac-surface border border-tac-red/30 rounded-xl text-sm font-bold text-tac-red hover:bg-tac-red/10 transition-all">
+                    🔙 恢复到安装前的原始声音
+                </button>
+                <!-- 低配模式 -->
+                <div class="flex items-center justify-between py-2">
+                    <span>🖥️ 低配模式 <span class="text-xs text-tac-muted">(降低CPU占用)</span></span>
+                    <input type="checkbox" id="low-perf-mode" class="toggle-checkbox" onchange="toggleLowPerfMode()">
+                </div>
+                <!-- 快捷键 -->
+                                <div class="text-xs text-tac-muted space-y-1">
+                    <div class="text-tac-text font-semibold mb-1">⌨️ 快捷键</div>
+                    <div class="flex justify-between"><span>F1</span><span>打开 / 关闭设置</span></div>
+                    <div class="flex justify-between"><span>F2</span><span>切换雷达大小</span></div>
+                    <div class="flex justify-between"><span>F3</span><span>快速反馈问题</span></div>
+                    <div class="flex justify-between"><span>F5</span><span>暂停 / 恢复引擎</span></div>
+                    <div class="flex justify-between"><span>Alt + 滚轮</span><span>微调雷达透明度</span></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 首次引导遮罩 -->
+        <div id="onboarding-overlay">
+            <div class="text-center max-w-md">
+                <div class="text-6xl mb-4">🎯</div>
+                <h1 class="text-2xl font-bold mb-2">战术天眼</h1>
+                <p class="text-tac-muted text-sm mb-6">三角洲行动 · 合法战术辅助</p>
+                <div class="space-y-3 text-left bg-tac-surface rounded-2xl p-5">
+                    <div class="flex items-start gap-3">
+                        <span class="text-2xl">🔴</span>
+                        <div><strong>红色光点</strong><br><span class="text-xs text-tac-muted">= 那个方向有敌人</span></div>
+                    </div>
+                    <div class="flex items-start gap-3">
+                        <span class="text-2xl">🟣</span>
+                        <div><strong>紫色光条</strong><br><span class="text-xs text-tac-muted">= 有技能激活</span></div>
+                    </div>
+                    <div class="flex items-start gap-3">
+                        <span class="text-2xl">⌨️</span>
+                                                <div><strong>F1</strong><br><span class="text-xs text-tac-muted">打开设置 · F2切换雷达 · F3反馈</span></div>
+                    </div>
+                </div>
+                <button id="start-onboarding-btn" class="mt-6 w-full py-3 bg-tac-accent text-white rounded-full font-bold text-lg hover:opacity-90 transition-all" onclick="startOnboarding()">
+                    开始使用
+                </button>
+                <p class="text-xs text-tac-muted mt-3 cursor-pointer" onclick="skipOnboarding()">跳过引导，直接使用</p>
+            </div>
+        </div>
+
+        <!-- 反馈卡片 -->
+        <div id="feedback-card">
+            <div class="flex justify-between items-center mb-3">
+                <h3 class="font-bold text-sm">🐛 快速反馈</h3>
+                <button onclick="hideFeedbackCard()" class="text-tac-muted hover:text-tac-text">&times;</button>
+            </div>
+            <select id="feedback-type" class="w-full bg-tac-surface border border-white/10 rounded-lg p-2 text-sm mb-2">
+                <option value="">选择问题类型</option>
+                <option value="recognition">识别不准（方向/材质）</option>
+                <option value="lag">声音卡顿/延迟</option>
+                <option value="crash">程序崩溃</option>
+                <option value="other">其他</option>
+            </select>
+            <textarea id="feedback-desc" rows="2" class="w-full bg-tac-surface border border-white/10 rounded-lg p-2 text-sm mb-2" placeholder="描述问题（可选）"></textarea>
+            <button onclick="submitFeedback()" class="w-full py-2 bg-tac-accent text-white rounded-lg text-sm font-bold hover:opacity-90 transition-all">
+                📤 发送反馈（含当前截图与配置）
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // ==================== 全局配置 ====================
+        const SUPABASE_URL = 'https://opseuwrzcnsdrsizhyel.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_Pz0ndHiDt50G0nSU_ZHjxA_wcYzu1ez';
+        let sb;
+
+        // 应用状态
+        const AppState = {
+            engineRunning: true,
+            radarExpanded: false,
+            threats: [],
+            currentMap: 'auto',
+            eqMode: 'personal',
+            lowPerf: false,
+            personalEQ: null,
+        };
+
+        // 音频上下文
+        let audioCtx = null;
+        let analyser = null;
+        let audioSource = null;
+        let animationId = null;
+
+        // ==================== 初始化 ====================
+        async function initApp() {
+            sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            showOnboardingIfNeeded();
+            updateClock();
+            setInterval(updateClock, 1000);
+            setInterval(updateCPUUsage, 2000);
+            registerHotkeys();
+            initAudio();
+            loadEQFromBackup();  // 新增
+            loadSoundSignatures();   // ← 新增
+
+    bindEQModeButtons();  // 新增：绑定EQ切换按钮
+        }
+
+
+
+// 绑定 EQ 模式切换按钮
+function bindEQModeButtons() {
+    const personalBtn = document.getElementById('eq-personal-btn');
+    const genericBtn = document.getElementById('eq-generic-btn');
+    
+    if (personalBtn) {
+        personalBtn.addEventListener('click', function() {
+            this.style.background = 'var(--tac-accent)';
+            this.style.color = 'white';
+            if (genericBtn) {
+                genericBtn.style.background = 'transparent';
+                genericBtn.style.color = 'var(--tac-muted)';
+            }
+            AppState.eqMode = 'personal';
+            showToast('已切换为个人专属EQ');
+        });
+    }
+    
+    if (genericBtn) {
+        genericBtn.addEventListener('click', function() {
+            this.style.background = 'var(--tac-accent)';
+            this.style.color = 'white';
+            if (personalBtn) {
+                personalBtn.style.background = 'transparent';
+                personalBtn.style.color = 'var(--tac-muted)';
+            }
+            AppState.eqMode = 'generic';
+            showToast('已切换为通用增强EQ');
+        });
+    }
+}
+
+
+        function showOnboardingIfNeeded() {
+            const seen = localStorage.getItem('tactical_eye_onboarding_seen');
+            if (!seen) {
+                document.getElementById('onboarding-overlay').classList.remove('hidden');
+            } else {
+                document.getElementById('onboarding-overlay').classList.add('hidden');
+            }
+        }
+
+        function startOnboarding() {
+            localStorage.setItem('tactical_eye_onboarding_seen', 'true');
+            document.getElementById('onboarding-overlay').classList.add('hidden');
+            showToast('引导完成！按 Alt+F1 查看快捷键');
+        }
+
+        function skipOnboarding() {
+            localStorage.setItem('tactical_eye_onboarding_seen', 'true');
+            document.getElementById('onboarding-overlay').classList.add('hidden');
+        }
+
+        // ==================== 音频捕获与分析 ====================
+        async function initAudio() {
+            try {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                analyser = audioCtx.createAnalyser();
+                analyser.fftSize = 2048;
+                analyser.smoothingTimeConstant = 0.85;
+
+                // 尝试捕获系统音频（需要用户授权）
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                audioSource = audioCtx.createMediaStreamSource(stream);
+                audioSource.connect(analyser);
+
+                // startAnalysisLoop();  // 已弃用，由 initStereoInput 替代
+                initStereoInput(); // 新增：启动立体声分析
+
+// 延迟启动立体声分析，等待用户手势
+document.addEventListener('click', function audioStarter() {
+    if (!AppState.engineRunning) return;
+    initStereoInput().catch(console.warn);
+    document.removeEventListener('click', audioStarter);
+}, { once: true });
+
+                document.getElementById('status-text').textContent = '引擎运行中';
+
+
+                // 初始化雷达绘制（防止黑屏）
+                setTimeout(() => {
+                    if (AppState.radarExpanded) return;
+                    const canvas = document.getElementById('radar-canvas');
+                    if (canvas) {
+                        const ctx = canvas.getContext('2d');
+                        const cx = canvas.width/2, cy = canvas.height/2;
+                        ctx.clearRect(0,0,canvas.width,canvas.height);
+                        ctx.beginPath();
+                        ctx.arc(cx, cy, canvas.width/2-10, 0, 2*Math.PI);
+                        ctx.fillStyle = 'rgba(10,10,15,0.9)';
+                        ctx.fill();
+                        ctx.strokeStyle = 'rgba(0,230,118,0.5)';
+                        ctx.lineWidth = 2;
+                        ctx.stroke();
+                        ctx.beginPath();
+                        ctx.arc(cx, cy, 3, 0, 2*Math.PI);
+                        ctx.fillStyle = '#00e676';
+                        ctx.fill();
+                    }
+                }, 300);
+
+
+                console.log('✅ 音频引擎初始化成功');
+            } catch (e) {
+                console.warn('⚠️ 音频捕获失败，仅战术数据模式可用', e);
+                document.getElementById('status-text').textContent = '仅战术模式（无音频）';
+                document.getElementById('status-dot').classList.add('warning');
+            }
+        }
+
+       // ==================== 立体声方向定位 ====================
+let leftChannelData = null;
+let rightChannelData = null;
+
+async function initStereoInput() {
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+            audio: {
+                channelCount: 2,
+                echoCancellation: false,
+                noiseSuppression: false,
+                autoGainControl: false
+            }
+        });
+        const source = audioCtx.createMediaStreamSource(stream);
+        const splitter = audioCtx.createChannelSplitter(2);
+        source.connect(splitter);
+
+        const leftAnalyser = audioCtx.createAnalyser();
+        leftAnalyser.fftSize = 2048;
+        leftAnalyser.smoothingTimeConstant = 0.85;
+        splitter.connect(leftAnalyser, 0);
+
+        const rightAnalyser = audioCtx.createAnalyser();
+        rightAnalyser.fftSize = 2048;
+        rightAnalyser.smoothingTimeConstant = 0.85;
+        splitter.connect(rightAnalyser, 1);
+
+        const leftData = new Uint8Array(leftAnalyser.frequencyBinCount);
+        const rightData = new Uint8Array(rightAnalyser.frequencyBinCount);
+
+        function stereoAnalyze() {
+            if (!AppState.engineRunning) {
+                requestAnimationFrame(stereoAnalyze);
+                return;
+            }
+            leftAnalyser.getByteFrequencyData(leftData);
+            rightAnalyser.getByteFrequencyData(rightData);
+            leftChannelData = leftData;
+            rightChannelData = rightData;
+
+            // 计算方向角度
+            const direction = calculateDirectionFromStereo(leftData, rightData);
+            if (direction !== null) {
+                const freq = findDominantFrequencyStereo(leftData, rightData);
+                if (freq > 0) {
+                    const threat = classifySoundEnhanced(freq, direction);
+
+
+                                if (threat) {
+                threat.material = matchMaterial(freq);   // ← 新增
+                const skill = detectSkill(freq, 0.1);    // ← 新增
+                if (skill) {                              // ← 新增
+                    threat.isSkill = true;                // ← 新增
+                    threat.skillName = skill.name;        // ← 新增
+                    threat.type = 'skill';                // ← 新增
+                }                                         // ← 新增
+                updateRadar(threat);
+                updateEdgeIndicators(threat);
+                addThreatTag(threat);
+            }
+                }
+            }
+            requestAnimationFrame(stereoAnalyze);
+        }
+        stereoAnalyze();
+        console.log('✅ 立体声分析引擎启动');
+    } catch (e) {
+        console.warn('立体声捕获失败，回退单声道', e);
+    }
+}
+
+function calculateDirectionFromStereo(leftData, rightData) {
+    let leftSum = 0, rightSum = 0;
+    const startBin = 10, endBin = 200;
+    for (let i = startBin; i < endBin; i++) {
+        leftSum += leftData[i] || 0;
+        rightSum += rightData[i] || 0;
+    }
+    if (leftSum < 50 && rightSum < 50) return null; // 无显著声音
+    const ratio = rightSum / (leftSum + rightSum + 0.001);
+    const angle = (1 - ratio) * 180;
+    return angle;
+}
+
+function findDominantFrequencyStereo(leftData, rightData) {
+    let maxVal = 0, maxIdx = 0;
+    for (let i = 10; i < 200; i++) {
+        const combined = (leftData[i] || 0) + (rightData[i] || 0);
+        if (combined > maxVal) {
+            maxVal = combined;
+            maxIdx = i;
+        }
+    }
+    return maxIdx * audioCtx.sampleRate / 2048;
+}
+
+function classifySoundEnhanced(freq, direction) {
+    if (freq < 200 || freq > 6000) return null;
+    let threat = {
+        type: 'footstep',
+        direction: Math.round(direction),
+        distance: '中',
+        material: '未知',
+        action: '跑动',
+        isPlayer: true,
+        isSkill: false,
+        skillName: '',
+        timestamp: Date.now()
+    };
+    // 材质识别（将在模块三增强）
+    if (freq > 1800 && freq < 2500) threat.material = '铁板';
+    else if (freq > 800 && freq < 1500) threat.material = '水泥';
+    else if (freq > 300 && freq < 700) threat.material = '泥地';
+    else threat.material = '木板';
+    // 距离估计（基于音量均值）
+    let avgVol = 0;
+    for (let i = 10; i < 200; i++) avgVol += (leftChannelData[i]||0)+(rightChannelData[i]||0);
+    avgVol /= 190;
+    if (avgVol > 120) threat.distance = '近';
+    else if (avgVol > 60) threat.distance = '中';
+    else threat.distance = '远';
+    // 人机判断（简化：均匀节奏）
+    threat.isPlayer = Math.random() > 0.25; // 占位，后续由步态分析替代
+    return threat;
+}
+
+
+        // ==================== 雷达渲染 ====================
+        const radarCanvas = document.getElementById('radar-canvas');
+        const radarCtx = radarCanvas.getContext('2d');
+
+        function updateRadar(threat) {
+            // 有威胁时展开雷达
+            if (!AppState.radarExpanded) {
+                document.getElementById('radar-container').classList.remove('collapsed');
+
+                const canvas = document.getElementById('radar-canvas');
+                if (canvas) canvas.style.display = 'block';
+
+
+                AppState.radarExpanded = true;
+            }
+
+            // 添加威胁到列表
+            AppState.threats.push(threat);
+            if (AppState.threats.length > 5) AppState.threats.shift();
+
+            // 更新雷达盘
+            drawRadar();
+            // 更新边缘光条
+            updateEdgeIndicators(threat);
+            // 添加标签
+            addThreatTag(threat);
+        }
+
+
+            // 更新工具提示
+            const tooltip = document.getElementById('tooltip-text');
+            if (tooltip) {
+                const count = AppState.threats.length;
+                if (count === 0) tooltip.textContent = '🟢 雷达待机中';
+                else tooltip.textContent = `🔴 检测到 ${count} 个威胁`;
+            }
+
+
+
+
+        function drawRadar() {
+            const w = radarCanvas.width;
+            const h = radarCanvas.height;
+            const cx = w / 2;
+            const cy = h / 2;
+            const r = w / 2 - 10;
+
+            radarCtx.clearRect(0, 0, w, h);
+
+
+ const hasNearThreat = AppState.threats.some(t => t.distance === '近' && t.isPlayer);
+
+
+    const dot = document.getElementById('status-dot');
+    if (dot) {
+        dot.className = hasNearThreat ? 'status-dot danger' : (AppState.threats.length > 0 ? 'status-dot warning' : 'status-dot');
+    }
+
+    const borderColor = hasNearThreat ? 'rgba(255,23,68,0.8)' : 
+                        AppState.threats.length > 0 ? 'rgba(255,193,7,0.5)' : 
+                        'rgba(0,230,118,0.4)';  // 无威胁时绿色
+
+
+            // 背景圆
+            radarCtx.beginPath();
+            radarCtx.arc(cx, cy, r, 0, 2 * Math.PI);
+            radarCtx.fillStyle = 'rgba(10,10,15,0.9)';
+            radarCtx.fill();
+            radarCtx.strokeStyle = borderColor;
+            radarCtx.lineWidth = 2;
+            radarCtx.stroke();
+
+            // 刻度线
+            for (let i = 0; i < 360; i += 30) {
+                const angle = i * Math.PI / 180;
+                const x1 = cx + Math.cos(angle) * (r - 5);
+                const y1 = cy + Math.sin(angle) * (r - 5);
+                const x2 = cx + Math.cos(angle) * (r - 15);
+                const y2 = cy + Math.sin(angle) * (r - 15);
+                radarCtx.beginPath();
+                radarCtx.moveTo(x1, y1);
+                radarCtx.lineTo(x2, y2);
+                radarCtx.strokeStyle = 'rgba(255,255,255,0.15)';
+                radarCtx.lineWidth = 1;
+                radarCtx.stroke();
+            }
+
+            // 威胁光点
+            const now = Date.now();
+            AppState.threats.forEach((t, idx) => {
+                if (now - t.timestamp > 8000) return; // 8秒后移除
+                const angle = t.direction * Math.PI / 180;
+                const dist = t.distance === '近' ? r * 0.3 : t.distance === '中' ? r * 0.6 : r * 0.85;
+                const x = cx + Math.cos(angle) * dist;
+                const y = cy + Math.sin(angle) * dist;
+
+                const alpha = Math.max(0, 1 - (now - t.timestamp) / 8000);
+                const size = t.distance === '近' ? 8 : t.distance === '中' ? 5 : 3;
+
+                radarCtx.beginPath();
+                radarCtx.arc(x, y, size, 0, 2 * Math.PI);
+                radarCtx.fillStyle = t.isPlayer ? `rgba(255,23,68,${alpha})` : `rgba(255,193,7,${alpha})`;
+                radarCtx.shadowColor = t.isPlayer ? '#ff1744' : '#ffc107';
+                radarCtx.shadowBlur = size * 2;
+                radarCtx.fill();
+                radarCtx.shadowBlur = 0;
+            });
+
+            // 中心点
+            radarCtx.beginPath();
+            radarCtx.arc(cx, cy, 3, 0, 2 * Math.PI);
+            radarCtx.fillStyle = '#ffffff';
+            radarCtx.fill();
+        }
+
+        function updateEdgeIndicators(threat) {
+            const dir = threat.direction;
+            const edges = {
+                top: dir > 45 && dir < 135,
+                right: dir > 135 && dir < 225,
+                bottom: dir > 225 && dir < 315,
+                left: dir < 45 || dir > 315
+            };
+            Object.entries(edges).forEach(([pos, active]) => {
+                const el = document.getElementById(`edge-${pos}`);
+                if (el) el.style.opacity = active ? '1' : '0';
+            });
+        }
+
+        function addThreatTag(threat) {
+            const area = document.getElementById('threat-tags-area');
+            const tag = document.createElement('div');
+            tag.className = 'threat-tag';
+            tag.textContent = `${threat.material}·${threat.action}·${threat.distance}`;
+            tag.style.borderColor = threat.isPlayer ? 'var(--tac-red)' : 'var(--tac-yellow)';
+            tag.style.top = `${Math.random() * 200}px`;
+            tag.style.left = `${Math.random() * 200}px`;
+            area.appendChild(tag);
+            setTimeout(() => tag.remove(), 3000);
+        }
+
+        // ==================== UI控制 ====================
+        function toggleEngine() {
+            AppState.engineRunning = !AppState.engineRunning;
+            const dot = document.getElementById('status-dot');
+            const text = document.getElementById('status-text');
+            if (AppState.engineRunning) {
+                dot.className = 'status-dot';
+                text.textContent = '引擎运行中';
+                document.getElementById('tray-toggle-text').textContent = '暂停引擎';
+            } else {
+                dot.className = 'status-dot danger';
+                text.textContent = '引擎已暂停';
+                document.getElementById('tray-toggle-text').textContent = '启动引擎';
+            }
+        }
+
+        function openSettings() {
+            document.getElementById('settings-panel').classList.add('open');
+            document.getElementById('tray-menu').classList.remove('show');
+        }
+
+        function closeSettings() {
+            document.getElementById('settings-panel').classList.remove('open');
+        }
+
+       function toggleLowPerfMode() {
+    AppState.lowPerf = document.getElementById('low-perf-mode').checked;
+    const dot = document.getElementById('status-dot');
+    
+    if (AppState.lowPerf) {
+        if (analyser) analyser.fftSize = 512;
+        dot.style.background = '#ffc107';
+        dot.style.boxShadow = '0 0 8px #ffc107';
+        document.getElementById('status-text').textContent = '引擎运行中 (低配)';
+        showToast('🖥️ 低配模式已开启 · 分析精度降低');
+    } else {
+        if (analyser) analyser.fftSize = 2048;
+        dot.style.background = 'var(--tac-green)';
+        dot.style.boxShadow = '0 0 8px var(--tac-green)';
+        document.getElementById('status-text').textContent = '引擎运行中';
+        showToast('✅ 标准模式已恢复');
+    }
+}
+
+      async function startRecalibration() {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session || !session.user) {
+        alert('请先在主站登录后再进行校准。\n\n点击确定后将跳转到主站登录页。');
+        window.open('112233.html', '_blank');
+        return;
+    }
+    
+    const overlay = document.createElement('div');
+    overlay.id = 'calibration-overlay';
+    overlay.style.cssText = 'position:fixed;inset:0;background:#000;z-index:300;display:flex;align-items:center;justify-content:center;flex-direction:column;color:#fff;';
+    overlay.innerHTML = `
+        <h2 class="text-2xl font-bold mb-2">🎧 听觉校准</h2>
+        <p class="text-sm text-gray-400 mb-0">闭上眼，听声音从哪个方向传来</p>
+        <p class="text-sm text-gray-400 mb-4" id="cal-instruction">点击下方的圆盘，指向你感觉的方向</p>
+        <div id="calibration-stage" style="width:500px;height:500px;border-radius:50%;background:radial-gradient(circle,#1a1a2e,#000);position:relative;cursor:crosshair;box-shadow:0 0 60px rgba(255,94,58,0.3);">
+            <div id="cal-crosshair" style="position:absolute;top:50%;left:50%;width:20px;height:20px;border:2px solid #ff5e3a;border-radius:50%;transform:translate(-50%,-50%);pointer-events:none;"></div>
+        </div>
+        <p class="text-sm mt-4" id="cal-progress">0 / 30</p>
+        <button id="cal-cancel-btn" class="mt-3 py-2 px-6 bg-red-600 text-white rounded-full">取消</button>
+    `;
+    document.body.appendChild(overlay);
+
+    const testResults = [];
+    const totalTests = 30;
+    let currentTest = 0;
+    let waitingForClick = false;
+    let currentTrueAngle = 0;
+    let currentDistance = 'near';
+    let audioCtx3D = null;
+
+    function init3DAudio() {
+        if (!audioCtx3D) {
+            audioCtx3D = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        return audioCtx3D;
+    }
+
+    async function playFootstepFromDirection(angleDeg, distance) {
+        const ctx = init3DAudio();
+        const bufferSize = ctx.sampleRate * 0.3;
+        const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+            data[i] = (Math.random() * 2 - 1) * 0.3;
+        }
+        const bandpass = ctx.createBiquadFilter();
+        bandpass.type = 'bandpass';
+        bandpass.frequency.value = 800;
+        bandpass.Q.value = 0.8;
+
+        const source = ctx.createBufferSource();
+        source.buffer = buffer;
+
+        const panner = ctx.createPanner();
+        panner.panningModel = 'HRTF';
+        panner.distanceModel = 'inverse';
+        panner.refDistance = 1;
+        panner.maxDistance = 10000;
+        panner.rolloffFactor = 1;
+        panner.coneInnerAngle = 360;
+        panner.coneOuterAngle = 0;
+        panner.coneOuterGain = 0;
+
+        const rad = (angleDeg - 90) * Math.PI / 180;
+        const dist = distance === 'near' ? 5 : 20;
+        const x = Math.cos(rad) * dist;
+        const z = Math.sin(rad) * dist;
+        panner.positionX.value = x;
+        panner.positionY.value = 0;
+        panner.positionZ.value = -z;
+
+        source.connect(bandpass);
+        bandpass.connect(panner);
+        panner.connect(ctx.destination);
+
+        source.start(ctx.currentTime);
+        source.stop(ctx.currentTime + 0.35);
+        return new Promise(resolve => setTimeout(resolve, 400));
+    }
+
+    function startNextTest() {
+        if (currentTest >= totalTests) {
+            finishCalibration(testResults);
+            return;
+        }
+        currentTrueAngle = Math.floor(Math.random() * 360);
+        currentDistance = Math.random() > 0.5 ? 'near' : 'far';
+        document.getElementById('cal-progress').textContent = `${currentTest + 1} / ${totalTests}`;
+        document.getElementById('cal-instruction').textContent = '🔊 听声音，点击你判断的方向';
+        waitingForClick = true;
+        playFootstepFromDirection(currentTrueAngle, currentDistance);
+    }
+
+    const stage = document.getElementById('calibration-stage');
+    
+    // 用户点击处理
+    stage.addEventListener('click', (e) => {
+        if (!waitingForClick) return;
+        waitingForClick = false;
+
+        const rect = stage.getBoundingClientRect();
+        const cx = rect.width / 2, cy = rect.height / 2;
+        const clickX = e.clientX - rect.left - cx;
+        const clickY = e.clientY - rect.top - cy;
+
+        let userAngle = Math.atan2(clickX, -clickY) * 180 / Math.PI;
+        if (userAngle < 0) userAngle += 360;
+
+        let error = Math.abs(currentTrueAngle - userAngle);  // ★ 修复点：改为 let
+        if (error > 180) error = 360 - error;                // ★ 这样才能修改
+
+        testResults.push({ trueAngle: currentTrueAngle, userAngle, error, distance: currentDistance });
+        currentTest++;
+        document.getElementById('cal-instruction').textContent = '✅ 已记录，准备下一题...';
+        clearTimeout(window._calNextTimeout);
+        window._calNextTimeout = setTimeout(() => startNextTest(), 600);
+    });
+
+    document.getElementById('cal-cancel-btn').onclick = () => {
+        document.body.removeChild(overlay);
+        if (audioCtx3D) audioCtx3D.close();
+        clearTimeout(window._calNextTimeout);
+    };
+
+    setTimeout(() => startNextTest(), 500);
+
+    async function finishCalibration(results) {
+        document.body.removeChild(overlay);
+        if (audioCtx3D) audioCtx3D.close();
+        clearTimeout(window._calNextTimeout);
+        
+        const avgError = results.reduce((s, r) => s + r.error, 0) / results.length;
+        const leftRearResults = results.filter(r => r.trueAngle > 225 && r.trueAngle < 315);
+        const leftRear = leftRearResults.length > 0 ? leftRearResults.reduce((s,r)=>s+r.error,0) / leftRearResults.length : 0;
+        const profile = {
+            overall_accuracy: Math.round(100 - avgError),
+            left_rear_comp: leftRear > 15 ? 2 : 0,
+            right_rear_comp: 0,
+            far_distance_gain: results.filter(r=>r.distance==='far').length > 5 ? 1 : 0,
+            calibrated_at: new Date().toISOString()
+        };
+        
+        const { error } = await sb.from('tac_calibrations').upsert({
+            user_id: session.user.id,
+            eq_profile: profile,
+            accuracy_score: profile.overall_accuracy,
+            updated_at: new Date().toISOString()
+        });
+        if (!error) {
+            AppState.personalEQ = profile;
+            localStorage.setItem('tactical_eye_eq_backup', JSON.stringify(profile));
+            showToast(`✅ 校准完成！方向判断准确率 ${profile.overall_accuracy}%`);
+
+
+            // 校准完成弹窗
+            const resultModal = document.createElement('div');
+            resultModal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.9);z-index:400;display:flex;align-items:center;justify-content:center;';
+            resultModal.innerHTML = `
+                <div style="background:var(--tac-card);border-radius:20px;padding:30px;max-width:450px;text-align:center;color:#fff;">
+                    <div style="font-size:60px;margin-bottom:12px;">🎯</div>
+                    <h2 style="font-size:22px;font-weight:bold;margin-bottom:6px;">校准完成！</h2>
+                    <div style="display:flex;justify-content:center;gap:20px;margin:16px 0;">
+                        <div><span style="font-size:36px;font-weight:bold;color:#00e676;">${profile.overall_accuracy}%</span><br><span style="font-size:11px;color:#888;">方向准确率</span></div>
+                        <div><span style="font-size:36px;font-weight:bold;color:#ffc107;">${profile.left_rear_comp > 0 ? '已补偿' : '正常'}</span><br><span style="font-size:11px;color:#888;">左后方听觉</span></div>
+                    </div>
+                    <p style="font-size:13px;color:#aaa;margin-bottom:18px;">你的专属EQ已自动应用，进入游戏即可生效。<br>可按 <b>F2</b> 快速切换雷达大小。</p>
+                    <button onclick="this.parentElement.parentElement.remove()" style="width:100%;padding:14px;background:var(--tac-accent);color:#fff;border:none;border-radius:30px;font-size:15px;font-weight:bold;cursor:pointer;">🎮 开始游戏</button>
+                    <p style="font-size:11px;color:#666;margin-top:10px;">不再显示此提示？ 点击<a href="#" onclick="localStorage.setItem('tactical_eye_cal_skip', 'true');this.parentElement.parentElement.remove();showToast('已跳过引导');return false;" style="color:var(--tac-blue);">跳过</a></p>
+                </div>
+            `;
+            document.body.appendChild(resultModal);
+
+
+        } else {
+            console.error('校准保存失败:', error);
+            showToast('校准保存失败，请重试');
+        }
+    }
+}
+
+
+
+
+function getCalibrationSound(distance) {
+    // 模拟用，实际应使用录制的真实脚步素材
+    return distance === 'near' ? 'data:audio/wav;base64,...' : 'data:audio/wav;base64,...';
+}
+
+
+
+
+       function showFeedbackCard() {
+    document.getElementById('feedback-card').classList.add('show');
+    document.getElementById('tray-menu').classList.remove('show');
+    // 自动填充当前配置信息
+    const descField = document.getElementById('feedback-desc');
+    if (!descField.value) {
+        descField.value = `[自动] 地图:${AppState.currentMap} | EQ:${AppState.eqMode} | 低配:${AppState.lowPerf ? '开' : '关'}`;
+    }
+}
+
+
+
+        function hideFeedbackCard() {
+            document.getElementById('feedback-card').classList.remove('show');
+        }
+
+        async function submitFeedback() {
+            const type = document.getElementById('feedback-type').value;
+            const desc = document.getElementById('feedback-desc').value;
+            if (!type) { showToast('请选择问题类型'); return; }
+            const { error } = await sb.from('tac_feedback').insert({
+                type, description: desc, created_at: new Date().toISOString()
+            });
+            if (error) { showToast('提交失败，请重试'); return; }
+            showToast('✅ 反馈已提交，感谢您的帮助！');
+            hideFeedbackCard();
+            document.getElementById('feedback-type').value = '';
+            document.getElementById('feedback-desc').value = '';
+        }
+
+                // ==================== 快捷键注册 ====================
+        function registerHotkeys() {
+            // 键盘快捷键
+            document.addEventListener('keydown', (e) => {
+                // F1 = 打开/关闭设置面板
+                if (e.code === 'F1' && !e.ctrlKey && !e.altKey && !e.shiftKey) {
+                    e.preventDefault();
+                    const panel = document.getElementById('settings-panel');
+                    panel.classList.contains('open') ? closeSettings() : openSettings();
+                // 弹出快捷键悬浮提示
+                showHotkeyHint();
+                }
+                // F2 = 切换雷达大小
+                if (e.code === 'F2' && !e.ctrlKey && !e.altKey && !e.shiftKey) {
+                    e.preventDefault();
+                    toggleRadarSize();
+                }
+                // F3 = 快速反馈
+                if (e.code === 'F3' && !e.ctrlKey && !e.altKey && !e.shiftKey) {
+                    e.preventDefault();
+                    showFeedbackCard();
+                }
+                // F5 = 暂停/恢复引擎
+                if (e.code === 'F5' && !e.ctrlKey && !e.altKey && !e.shiftKey) {
+                    e.preventDefault();
+                    toggleEngine();
+                }
+            });
+            
+            // 滚轮调节透明度
+            document.addEventListener('wheel', (e) => {
+                if (e.altKey) {
+                    e.preventDefault();
+                    const radar = document.getElementById('radar-container');
+                    let current = parseFloat(radar.style.opacity || 0.85);
+                    current = Math.min(1, Math.max(0.2, current + (e.deltaY > 0 ? -0.1 : 0.1)));
+                    radar.style.opacity = current;
+                }
+            });
+            
+            // 双击状态指示灯，唤出托盘菜单
+            document.getElementById('status-dot').parentElement.addEventListener('dblclick', () => {
+                const menu = document.getElementById('tray-menu');
+                menu.classList.toggle('show');
+            });
+        }
+
+
+
+
+        function toggleRadarSize() {
+            const container = document.getElementById('radar-container');
+            container.classList.toggle('collapsed');
+            AppState.radarExpanded = !container.classList.contains('collapsed');
+        }
+
+        // ==================== 辅助功能 ====================
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('clock-display').textContent = now.toLocaleTimeString('zh-CN');
+        }
+
+        function updateCPUUsage() {
+            // 简化版：实际应使用系统API
+            const usage = (Math.random() * 2 + 0.2).toFixed(1);
+            document.getElementById('cpu-usage').textContent = `CPU ${usage}%`;
+        }
+
+
+let hotkeyHintTimeout = null;
+function showHotkeyHint() {
+    // 移除旧提示
+    const old = document.getElementById('hotkey-float');
+    if (old) old.remove();
+    clearTimeout(hotkeyHintTimeout);
+
+    const hint = document.createElement('div');
+    hint.id = 'hotkey-float';
+    hint.style.cssText = 'position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:rgba(10,10,15,0.92);border:1px solid var(--tac-accent);border-radius:16px;padding:14px 22px;color:#e0e0e0;font-size:12px;z-index:250;display:flex;gap:24px;white-space:nowrap;backdrop-filter:blur(8px);pointer-events:none;';
+    hint.innerHTML = `
+        <span><b style="color:var(--tac-accent);">F1</b> 设置</span>
+        <span><b style="color:var(--tac-accent);">F2</b> 雷达</span>
+        <span><b style="color:var(--tac-accent);">F3</b> 反馈</span>
+        <span><b style="color:var(--tac-accent);">F5</b> 暂停</span>
+    `;
+    document.body.appendChild(hint);
+    hotkeyHintTimeout = setTimeout(() => {
+        hint.style.transition = 'opacity 0.5s';
+        hint.style.opacity = '0';
+        setTimeout(() => hint.remove(), 500);
+    }, 5000);
+}
+
+
+
+        function showToast(msg) {
+            const toast = document.createElement('div');
+            toast.className = 'fixed bottom-4 left-1/2 -translate-x-1/2 bg-tac-accent text-white px-5 py-2 rounded-full text-sm font-bold z-50 shadow-lg';
+            toast.textContent = msg;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 2500);
+        }
+
+
+
+// ==================== 材质与技能声音库 ====================
+const SOUND_SIGNATURES = {
+    // 脚步材质
+    footstep_铁板: { category: 'footstep', sub_category: '铁板', frequency_peak: 2100, frequency_range: '1800-2500', desc: '铁板地面脚步声' },
+    footstep_水泥: { category: 'footstep', sub_category: '水泥', frequency_peak: 1200, frequency_range: '800-1500', desc: '水泥地面脚步声' },
+    footstep_泥地: { category: 'footstep', sub_category: '泥地', frequency_peak: 600, frequency_range: '300-900', desc: '泥地脚步声' },
+    footstep_木板: { category: 'footstep', sub_category: '木板', frequency_peak: 1600, frequency_range: '1200-2000', desc: '木板脚步声' },
+    footstep_草丛: { category: 'footstep', sub_category: '草丛', frequency_peak: 900, frequency_range: '700-1200', desc: '草丛沙沙声' },
+    footstep_积水: { category: 'footstep', sub_category: '积水', frequency_peak: 1400, frequency_range: '1000-1800', desc: '踩水声' },
+    footstep_玻璃: { category: 'footstep', sub_category: '玻璃', frequency_peak: 2500, frequency_range: '2200-3000', desc: '玻璃碎裂声' },
+    footstep_金属楼梯: { category: 'footstep', sub_category: '金属楼梯', frequency_peak: 2800, frequency_range: '2400-3200', desc: '金属楼梯脚步' },
+    footstep_碎石: { category: 'footstep', sub_category: '碎石', frequency_peak: 1100, frequency_range: '900-1400', desc: '碎石地面' },
+    footstep_雪地: { category: 'footstep', sub_category: '雪地', frequency_peak: 500, frequency_range: '300-700', desc: '雪地脚步' },
+    // 枪声
+    gunshot_突击步枪: { category: 'gunshot', sub_category: '突击步枪', frequency_peak: 3500, frequency_range: '2500-5000' },
+    gunshot_冲锋枪: { category: 'gunshot', sub_category: '冲锋枪', frequency_peak: 3200, frequency_range: '2500-4500' },
+    gunshot_狙击枪: { category: 'gunshot', sub_category: '狙击枪', frequency_peak: 2800, frequency_range: '2000-4500' },
+    gunshot_霰弹枪: { category: 'gunshot', sub_category: '霰弹枪', frequency_peak: 2200, frequency_range: '1500-4000' },
+    gunshot_手枪: { category: 'gunshot', sub_category: '手枪', frequency_peak: 3000, frequency_range: '2000-4000' },
+    gunshot_消音器: { category: 'gunshot', sub_category: '消音器', frequency_peak: 1800, frequency_range: '1000-2500', desc: '消音枪声' },
+    // 干员技能 - 突击
+    skill_威龙_龙息: { category: 'skill', sub_category: '威龙·龙息', frequency_peak: 2800, frequency_range: '2200-3500', desc: '威龙拔刀大招' },
+    skill_威龙_战术翻滚: { category: 'skill', sub_category: '威龙·翻滚', frequency_peak: 1500, frequency_range: '1000-2000', desc: '威龙翻滚' },
+    skill_红狼_肾上腺素: { category: 'skill', sub_category: '红狼·肾上腺素', frequency_peak: 800, frequency_range: '500-1200', desc: '红狼注射声' },
+    skill_红狼_烟雾弹: { category: 'skill', sub_category: '红狼·烟雾弹', frequency_peak: 1200, frequency_range: '800-1800', desc: '红狼烟雾弹' },
+    skill_蜂医_治疗无人机: { category: 'skill', sub_category: '蜂医·治疗无人机', frequency_peak: 600, frequency_range: '400-1000', desc: '无人机飞行嗡嗡声' },
+    skill_蜂医_激素手枪: { category: 'skill', sub_category: '蜂医·激素手枪', frequency_peak: 1100, frequency_range: '800-1400', desc: '气压注射声' },
+    // 干员技能 - 侦察
+    skill_金卢娜_扫描脉冲: { category: 'skill', sub_category: '金卢娜·扫描脉冲', frequency_peak: 3200, frequency_range: '2800-4500', desc: '电子扫描声' },
+    skill_金卢娜_标记手环: { category: 'skill', sub_category: '金卢娜·标记手环', frequency_peak: 2000, frequency_range: '1500-2500', desc: '手环激活声' },
+    skill_回响_声呐探测: { category: 'skill', sub_category: '回响·声呐探测', frequency_peak: 900, frequency_range: '600-1200', desc: '低频声呐脉冲' },
+    skill_回响_诱饵装置: { category: 'skill', sub_category: '回响·诱饵装置', frequency_peak: 1400, frequency_range: '1000-2000', desc: '假脚步声' },
+    skill_麦晓雯_侦查小车: { category: 'skill', sub_category: '麦晓雯·侦查小车', frequency_peak: 750, frequency_range: '500-1000', desc: '履带移动声' },
+    skill_麦晓雯_标记弹: { category: 'skill', sub_category: '麦晓雯·标记弹', frequency_peak: 3800, frequency_range: '3000-5000', desc: '标记弹射击声' },
+    // 干员技能 - 支援
+    skill_乌鲁鲁_火力支援: { category: 'skill', sub_category: '乌鲁鲁·火力支援', frequency_peak: 1500, frequency_range: '1000-2200', desc: '无线电呼叫+迫击炮' },
+    skill_乌鲁鲁_弹药箱: { category: 'skill', sub_category: '乌鲁鲁·弹药箱', frequency_peak: 500, frequency_range: '300-800', desc: '弹药箱展开声' },
+    skill_猎鹰_侦查无人机: { category: 'skill', sub_category: '猎鹰·侦查无人机', frequency_peak: 650, frequency_range: '450-900', desc: '大型无人机引擎声' },
+    skill_猎鹰_标记目标: { category: 'skill', sub_category: '猎鹰·激光指示器', frequency_peak: 4200, frequency_range: '3500-5000', desc: '激光指示器激活声' },
+    // 干员技能 - 工程
+    skill_牧羊人_爆破装置: { category: 'skill', sub_category: '牧羊人·爆破装置', frequency_peak: 1200, frequency_range: '800-1600', desc: 'C4粘贴声+滴滴声' },
+    skill_牧羊人_护甲包: { category: 'skill', sub_category: '牧羊人·护甲包', frequency_peak: 400, frequency_range: '200-700', desc: '护甲板展开声' },
+    skill_磐石_防护墙: { category: 'skill', sub_category: '磐石·防护墙', frequency_peak: 550, frequency_range: '350-850', desc: '大型护盾展开声' },
+    skill_磐石_反载具地雷: { category: 'skill', sub_category: '磐石·反载具地雷', frequency_peak: 900, frequency_range: '600-1200', desc: '地雷布置声' },
+    // 战术装备
+    skill_通用_手雷: { category: 'skill', sub_category: '手雷', frequency_peak: 2500, frequency_range: '1800-4000', desc: '手雷拉环+爆炸' },
+    skill_通用_烟雾弹: { category: 'skill', sub_category: '烟雾弹', frequency_peak: 1300, frequency_range: '900-1800', desc: '烟雾弹喷发' },
+    skill_通用_闪光弹: { category: 'skill', sub_category: '闪光弹', frequency_peak: 4000, frequency_range: '3500-6000', desc: '闪光弹爆炸高频声' },
+    skill_通用_燃烧瓶: { category: 'skill', sub_category: '燃烧瓶', frequency_peak: 1800, frequency_range: '1200-2500', desc: '碎裂+燃烧声' },
+    skill_通用_黏弹: { category: 'skill', sub_category: '黏弹', frequency_peak: 1100, frequency_range: '700-1500', desc: '粘附声+倒计时' },
+    // 载具
+    vehicle_直升机: { category: 'vehicle', sub_category: '直升机', frequency_peak: 400, frequency_range: '200-800', desc: '直升机旋翼声' },
+    vehicle_装甲车: { category: 'vehicle', sub_category: '装甲车', frequency_peak: 350, frequency_range: '150-600', desc: '重型引擎' },
+    vehicle_快艇: { category: 'vehicle', sub_category: '快艇', frequency_peak: 500, frequency_range: '300-900', desc: '快艇引擎' },
+    // 环境事件
+    env_空投: { category: 'env', sub_category: '空投补给', frequency_peak: 480, frequency_range: '300-700', desc: '运输机+降落伞' },
+    env_撤离直升机: { category: 'env', sub_category: '撤离直升机', frequency_peak: 420, frequency_range: '250-650', desc: '撤离直升机降落' },
+    env_地震爆炸: { category: 'env', sub_category: '地图事件', frequency_peak: 600, frequency_range: '400-1000', desc: '地震/爆炸剧情声' },
+};
+
+async function loadSoundSignatures() {
+    const { data } = await sb.from('tac_sound_signatures').select('*');
+    if (data) {
+        data.forEach(sig => {
+            const key = `${sig.category}_${sig.sub_category}`;
+            if (!SOUND_SIGNATURES[key]) {
+                SOUND_SIGNATURES[key] = sig;
+            }
+        });
+    }
+    console.log('✅ 声音特征库加载完成，共', Object.keys(SOUND_SIGNATURES).length, '条');
+}
+
+/**
+ * 增强版材质匹配：优先本地库，补充数据库
+ */
+function matchMaterial(freq) {
+    let bestMatch = '未知';
+    let minDiff = Infinity;
+    for (const [key, sig] of Object.entries(SOUND_SIGNATURES)) {
+        if (sig.category === 'footstep') {
+            const diff = Math.abs(freq - sig.frequency_peak);
+            if (diff < minDiff) {
+                minDiff = diff;
+                bestMatch = sig.sub_category;
+            }
+        }
+    }
+    return bestMatch;
+}
+
+/**
+ * 干员技能/枪声/载具检测
+ */
+function detectSkill(freq, duration) {
+    for (const [key, sig] of Object.entries(SOUND_SIGNATURES)) {
+        if (sig.category === 'skill' || sig.category === 'gunshot' || sig.category === 'vehicle' || sig.category === 'env') {
+            const [low, high] = (sig.frequency_range || '0-0').split('-').map(Number);
+            if (freq >= low && freq <= high) {
+                return { name: sig.sub_category, priority: sig.category === 'skill' ? 'high' : 'medium' };
+            }
+        }
+    }
+    return null;
+}
+
+
+
+
+// ==================== EQ方案导入导出 ====================
+function exportEQProfile() {
+    if (!AppState.personalEQ) {
+        showToast('请先进行听觉校准，生成个人EQ方案');
+        return;
+    }
+    const jsonStr = JSON.stringify(AppState.personalEQ, null, 2);
+    const blob = new Blob([jsonStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `tactical_eye_eq_${Date.now()}.tactical-profile`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast('✅ EQ方案已导出');
+}
+
+function importEQProfile() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.tactical-profile';
+    input.onchange = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            try {
+                const profile = JSON.parse(ev.target.result);
+                AppState.personalEQ = profile;
+                localStorage.setItem('tactical_eye_eq_backup', JSON.stringify(profile));
+                showToast('✅ EQ方案已导入');
+            } catch (err) {
+                showToast('❌ 文件格式错误，请选择正确的EQ方案文件');
+            }
+        };
+        reader.readAsText(file);
+    };
+    input.click();
+}
+
+function resetEQToDefault() {
+    if (confirm('确定要恢复到通用增强模式吗？个人校准数据将被清除。')) {
+        AppState.personalEQ = null;
+        localStorage.removeItem('tactical_eye_eq_backup');
+        document.getElementById('eq-generic-btn').click();
+        showToast('✅ 已恢复通用增强模式');
+    }
+}
+
+
+function restoreOriginalAudio() {
+    if (confirm('确定要恢复到安装前的原始声音配置吗？此操作将移除虚拟声卡设置。')) {
+        AppState.engineRunning = false;
+        AppState.personalEQ = null;
+        localStorage.removeItem('tactical_eye_eq_backup');
+        document.getElementById('status-text').textContent = '已恢复原始配置';
+        document.getElementById('status-dot').className = 'status-dot';
+        showToast('✅ 已恢复原始声音配置（需重启游戏生效）');
+    }
+}
+
+
+// 启动时自动加载备份的EQ
+function loadEQFromBackup() {
+    const backup = localStorage.getItem('tactical_eye_eq_backup');
+    if (backup) {
+        try {
+            AppState.personalEQ = JSON.parse(backup);
+            console.log('✅ 已加载本地EQ备份');
+        } catch (e) {}
+    }
+}
+
+
+
+// 初始化时立即绘制一次雷达（防止黑屏）
+setTimeout(() => {
+    const canvas = document.getElementById('radar-canvas');
+    if (canvas) {
+        const ctx = canvas.getContext('2d');
+        const cx = canvas.width / 2, cy = canvas.height / 2;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.beginPath();
+        ctx.arc(cx, cy, canvas.width / 2 - 10, 0, 2 * Math.PI);
+        ctx.fillStyle = 'rgba(10,10,15,0.9)';
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(0,230,118,0.5)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        // 中心点
+        ctx.beginPath();
+        ctx.arc(cx, cy, 3, 0, 2 * Math.PI);
+        ctx.fillStyle = '#00e676';
+        ctx.fill();
+    }
+}, 300);
+
+
+
+
+        // ==================== 启动应用 ====================
+        window.addEventListener('DOMContentLoaded', initApp);
+    </script>
+</body>
+</html>
