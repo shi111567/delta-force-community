@@ -2007,7 +2007,55 @@ transition: max-width 0.3s ease;
 #budgetDetailModal .modal-content {
   animation: modalPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
-/* 起装方案卡片适配 */
+
+
+
+
+
+
+
+/* 热门方案面板 */
+#hotRecommendPanel .card-base { border-radius: 16px; }
+.hot-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 12px;
+  min-width: 240px;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.hot-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+.hot-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.hot-card-title { font-weight: 700; font-size: 15px; }
+.hot-card-meta { font-size: 11px; color: var(--muted); }
+.hot-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 10px;
+}
+.hot-card-code {
+  font-family: monospace;
+  font-size: 11px;
+  background: var(--surface);
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+
+
+
+
+
+
+
 @media (max-width: 640px) {
   #budgetLoadoutTab .grid {
     gap: 12px;
@@ -5865,6 +5913,55 @@ body {
   </div>
 
   
+<!-- 热门方案实时推荐面板（可折叠） -->
+<div id="hotRecommendPanel" class="card-base p-3 mb-3" style="border-left: 4px solid var(--accent);">
+  <div class="flex items-center justify-between cursor-pointer" onclick="toggleHotPanel()">
+    <div class="flex items-center gap-2">
+      <i class="fas fa-fire" style="color: var(--accent);"></i>
+      <span class="font-bold text-sm">实时热门方案</span>
+      <span class="text-xs px-2 py-0.5 rounded-full" style="background: var(--accent); color: white;">基于真实改枪码🔥</span>
+    </div>
+    <i class="fas fa-chevron-down transition-transform" id="hotPanelChevron"></i>
+  </div>
+
+  <div id="hotPanelContent" style="display: none;" class="mt-3">
+    <!-- 快速筛选栏（横向滚动） -->
+    <div class="flex items-center gap-2 mb-3 overflow-x-auto" id="hotFilterBar">
+      <select id="hotMapFilter" class="px-3 py-1.5 rounded-full text-xs" style="background: var(--surface); border: 1px solid var(--border);">
+        <option value="all">全部地图</option>
+        <option value="航天基地">航天基地</option>
+        <option value="零号大坝">大坝</option>
+        <option value="长弓溪谷">长弓</option>
+        <option value="巴克什">巴克什</option>
+      </select>
+      <select id="hotScenarioFilter" class="px-3 py-1.5 rounded-full text-xs" style="background: var(--surface); border: 1px solid var(--border);">
+        <option value="all">全部场景</option>
+        <option value="跑刀">跑刀</option>
+        <option value="卡战备">卡战备</option>
+        <option value="猛攻">猛攻</option>
+        <option value="绝密">绝密</option>
+        <option value="通用">通用</option>
+      </select>
+      <div class="flex items-center gap-1">
+        <span class="text-xs">预算</span>
+        <input type="range" id="hotBudgetRange" min="5" max="200" value="100" class="w-20" oninput="document.getElementById('hotBudgetVal').textContent = this.value">
+        <span class="text-xs font-bold" id="hotBudgetVal">100</span>万
+      </div>
+      <button class="btn-ghost text-xs px-3 py-1 rounded-full" onclick="applyHotFilters()">
+        <i class="fas fa-filter"></i> 筛选
+      </button>
+    </div>
+    
+    <!-- 方案横向滚动卡片 -->
+    <div id="hotRecommendCards" class="flex gap-3 overflow-x-auto pb-2"></div>
+    <button id="hotLoadMoreBtn" class="btn-ghost text-xs w-full mt-2 py-1" style="display:none;" onclick="loadMoreHot()">
+      加载更多…
+    </button>
+  </div>
+</div>
+
+
+
 
   <!-- 自由搭配视图（原有网格） -->
   <div id="budgetBrowseView">
@@ -22517,6 +22614,8 @@ function updateQuizUI() {
 document.addEventListener('DOMContentLoaded', () => {
   setTimeout(() => {
     initWanxiangQuiz();
+initSmartGunsmith();
+
   }, 500);
 });
 const DAILY_PUZZLE_KEY = 'delta_daily_puzzle';
@@ -23089,16 +23188,111 @@ async function fetchBudgetLoadoutsFromCrawler(forceRender = true) {
 }
 
 
-
-
-
-
-
-
 // 渲染起装方案网格
 let budgetPageSize = 12;
 let budgetCurrentPage = 1;
 let budgetFilteredData = [];
+
+
+
+
+// ==================== 热门方案实时推荐 ====================
+function toggleHotPanel() {
+  const content = document.getElementById('hotPanelContent');
+  const chevron = document.getElementById('hotPanelChevron');
+  const isHidden = content.style.display === 'none';
+  content.style.display = isHidden ? 'block' : 'none';
+  chevron.style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)';
+  if (isHidden) applyHotFilters();
+}
+
+function applyHotFilters() {
+  const map = document.getElementById('hotMapFilter').value;
+  const scenario = document.getElementById('hotScenarioFilter').value;
+  const maxBudget = parseInt(document.getElementById('hotBudgetRange').value);
+  
+  let filtered = (typeof BUDGET_LOADOUTS !== 'undefined' && BUDGET_LOADOUTS.length) 
+    ? [...BUDGET_LOADOUTS] : [];
+  
+  // 地图筛选（如果数据中有 map 字段）
+  if (map !== 'all') {
+    filtered = filtered.filter(item => item.map && item.map.includes(map));
+  }
+  if (scenario !== 'all') {
+    filtered = filtered.filter(item => item.scenario === scenario);
+  }
+  filtered = filtered.filter(item => (item.totalPrice || 0) <= maxBudget);
+  
+  // 热度排序：优先按 hotScore，没有则按场景权重 + 价格适中度
+  filtered.sort((a, b) => {
+    const scoreA = a.hotScore || calcSceneScore(a);
+    const scoreB = b.hotScore || calcSceneScore(b);
+    return scoreB - scoreA;
+  });
+  
+  currentHotPage = 0;
+  hotFilteredData = filtered;
+  renderHotCards();
+}
+
+const sceneWeights = { '猛攻': 5, '绝密': 4, '通用': 3, '卡战备': 2, '跑刀': 1 };
+function calcSceneScore(item) {
+  const base = sceneWeights[item.scenario] || 2;
+  // 价格适中加分（约30万左右最好）
+  const price = item.totalPrice || 30;
+  const priceScore = Math.max(0, 10 - Math.abs(price - 30) / 3);
+  return base * 10 + priceScore;
+}
+
+const HOT_PAGE_SIZE = 8;
+let currentHotPage = 0, hotFilteredData = [];
+
+function renderHotCards() {
+  const container = document.getElementById('hotRecommendCards');
+  const loadMoreBtn = document.getElementById('hotLoadMoreBtn');
+  const start = 0;
+  const end = (currentHotPage + 1) * HOT_PAGE_SIZE;
+  const pageData = hotFilteredData.slice(start, end);
+  
+  container.innerHTML = pageData.map(item => `
+    <div class="hot-card" onclick="showBudgetDetail('${item.name.replace(/'/g, "\\'")}')">
+      <div class="hot-card-header">
+        <span class="hot-card-title">${item.name.split('·')[0] || item.name}</span>
+        <span class="text-xs font-bold" style="color: var(--accent);">${item.totalPrice}万</span>
+      </div>
+      <div class="hot-card-meta">
+        ${item.scenario ? `<span class="tag-pill text-xs" style="margin-right:4px;">${item.scenario}</span>` : ''}
+        ${item.weapons?.[0]?.name || ''}
+      </div>
+      <div class="hot-card-footer">
+        <code class="hot-card-code">${item.weapons?.[0]?.code || '暂无'}</code>
+        <button class="text-xs px-2 py-1 rounded-full" style="background: var(--accent); color: white;" 
+          onclick="event.stopPropagation(); copyLoadoutCode('${item.weapons?.[0]?.code || ''}', this)">
+          <i class="far fa-copy"></i>
+        </button>
+      </div>
+    </div>
+  `).join('');
+  
+  loadMoreBtn.style.display = (end < hotFilteredData.length) ? 'block' : 'none';
+}
+
+function loadMoreHot() {
+  currentHotPage++;
+  renderHotCards();
+}
+
+// 在爬虫数据加载后自动更新面板（如果展开着）
+const origFetchBudget = fetchBudgetLoadoutsFromCrawler;
+fetchBudgetLoadoutsFromCrawler = async function(forceRender = true) {
+  await origFetchBudget(forceRender);
+  if (document.getElementById('hotPanelContent')?.style.display !== 'none') {
+    applyHotFilters();
+  }
+};
+
+
+
 
 async function renderBudgetLoadouts(resetPage = true) {
  // 检查用户是否有命名权
