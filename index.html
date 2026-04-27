@@ -6196,6 +6196,9 @@ body {
 
 
 
+
+
+
 <!-- 积分商城入口卡片 -->
 <div class="card-base p-4 mb-4 flex items-center justify-between cursor-pointer group hover:shadow-xl transition-all" 
      style="background: linear-gradient(135deg, rgba(255,215,0,0.1) 0%, rgba(255,107,53,0.05) 100%); border-left: 6px solid #FFD700;"
@@ -14614,7 +14617,10 @@ function renderToolbox() {
     { id: 'timer', icon: 'fa-stopwatch', name: '撤离计时', desc: '撤离时间倒计时' },
   { id: 'lootPrice', icon: 'fa-coins', name: '物资行情', desc: '实时物资价格' },
   { id: 'seasonTask', icon: 'fa-tasks', name: '赛季任务', desc: 'S9任务追踪' },
-  { id: 'ttkRank', icon: 'fa-chart-line', name: 'TTK排行', desc: '武器击杀时间' }
+  { id: 'ttkRank', icon: 'fa-chart-line', name: 'TTK排行', desc: '武器击杀时间' },
+  { id: 'tacticalEye', icon: 'fa-eye', name: '战术天眼', desc: '战场声音可视化' }
+
+
   ];
 
   const bar = document.getElementById('toolboxBar');
@@ -14689,6 +14695,14 @@ case 'budgetLoadout':
       openModal('ttkRankModal');
       loadTTKRank();
       break;
+
+
+
+    case 'tacticalEye':
+      window.open('tactical-eye.html', '_blank');
+      break;
+
+
     default:
       showToast('该功能正在开发中', 'info');
   }
