@@ -5964,15 +5964,138 @@ body {
 
 
   <!-- 自由搭配视图（原有网格） -->
+
+
+
+
+<!-- AI 智能配装系统 (增强版) -->
+<div id="aiLoadoutPanel" class="card-base p-4 mb-4" style="border-left: 5px solid var(--accent);">
+  <div class="flex items-center justify-between cursor-pointer" onclick="toggleAIPanel()">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-full flex items-center justify-center" style="background: linear-gradient(135deg, var(--accent), var(--accent2));">
+        <i class="fas fa-robot text-white text-lg"></i>
+      </div>
+      <div>
+        <h3 class="font-display text-lg flex items-center gap-2">
+          AI 智能配装
+          <span class="text-xs px-2 py-1 rounded-full" style="background: var(--accent); color: white;">DeepSeek 驱动</span>
+        </h3>
+        <p class="text-xs" style="color: var(--muted);">支持搜索筛选 · 包含跑刀方案 · 点击卡片查看详细搭配</p>
+      </div>
+    </div>
+    <i class="fas fa-chevron-down transition-transform" id="aiPanelChevron"></i>
+  </div>
+
+  <div id="aiPanelContent" style="display: none;" class="mt-4">
+    <!-- 基础设置 -->
+    <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
+      <div>
+        <label class="text-xs font-bold block mb-1">🗺️ 地图</label>
+        <select id="aiMap" class="w-full p-2 rounded-lg text-sm" style="background: var(--surface); border: 1px solid var(--border);">
+          <option value="all">全部地图</option>
+          <option value="零号大坝">零号大坝</option>
+          <option value="航天基地">航天基地</option>
+          <option value="长弓溪谷">长弓溪谷</option>
+          <option value="巴克什">巴克什</option>
+        </select>
+      </div>
+      <div>
+        <label class="text-xs font-bold block mb-1">⚔️ 难度</label>
+        <select id="aiDifficulty" class="w-full p-2 rounded-lg text-sm" style="background: var(--surface); border: 1px solid var(--border);">
+          <option value="普通">普通</option>
+          <option value="机密">机密</option>
+          <option value="绝密" selected>绝密</option>
+        </select>
+      </div>
+      <div>
+        <label class="text-xs font-bold block mb-1">💰 预算 (万)</label>
+        <input type="number" id="aiBudget" class="w-full p-2 rounded-lg text-sm" style="background: var(--surface); border: 1px solid var(--border);" value="60" min="0">
+      </div>
+      <div>
+        <label class="text-xs font-bold block mb-1">🎯 偏好</label>
+        <select id="aiPlaystyle" class="w-full p-2 rounded-lg text-sm" style="background: var(--surface); border: 1px solid var(--border);">
+          <option value="均衡">均衡</option>
+          <option value="近战爆发">近战爆发</option>
+          <option value="远程狙击">远程狙击</option>
+          <option value="高生存">高生存</option>
+          <option value="跑刀">跑刀/低成本</option>
+        </select>
+      </div>
+      <div>
+        <label class="text-xs font-bold block mb-1">🤖 AI 模型</label>
+        <select id="aiModel" class="w-full p-2 rounded-lg text-sm" style="background: var(--surface); border: 1px solid var(--border);">
+          <option value="rules">本地规则推荐</option>
+          <option value="deepseek">DeepSeek AI</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- 装备选择区 (带搜索) -->
+    <details class="mb-4" open>
+      <summary class="text-sm font-bold cursor-pointer" style="color: var(--accent);">🔧 自选装备偏好 (点击收起)</summary>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3">
+        <div>
+          <label class="text-xs font-bold block mb-1">🔫 主武器</label>
+          <input type="text" id="aiWeaponInput" placeholder="输入或选择武器" list="aiWeaponsList" class="w-full p-2 rounded-lg text-sm" style="background: var(--surface); border: 1px solid var(--border);">
+          <datalist id="aiWeaponsList"></datalist>
+        </div>
+        <div>
+          <label class="text-xs font-bold block mb-1">🛡️ 护甲</label>
+          <input type="text" id="aiArmorInput" placeholder="输入或选择护甲" list="aiArmorsList" class="w-full p-2 rounded-lg text-sm" style="background: var(--surface); border: 1px solid var(--border);">
+         <datalist id="aiArmorsList"></datalist>
+        </div>
+        <div>
+          <label class="text-xs font-bold block mb-1">⛑️ 头盔</label>
+          <input type="text" id="aiHelmetInput" placeholder="输入或选择头盔" list="aiHelmetsList" class="w-full p-2 rounded-lg text-sm" style="background: var(--surface); border: 1px solid var(--border);">
+          <datalist id="aiHelmetsList"></datalist>
+        </div>
+        <div>
+          <label class="text-xs font-bold block mb-1">🎒 背包/胸挂</label>
+          <input type="text" id="aiBackpackInput" placeholder="输入或选择背包" list="aiBackpacksList" class="w-full p-2 rounded-lg text-sm" style="background: var(--surface); border: 1px solid var(--border);">
+          <datalist id="aiBackpacksList"></datalist>
+        </div>
+        <div>
+          <label class="text-xs font-bold block mb-1">💊 药品</label>
+          <input type="text" id="aiMedicineInput" placeholder="输入或选择药品" list="aiMedicineList" class="w-full p-2 rounded-lg text-sm" style="background: var(--surface); border: 1px solid var(--border);">
+          <datalist id="aiMedicineList"></datalist>
+        </div>
+        <div>
+          <label class="text-xs font-bold block mb-1">🔫 子弹</label>
+          <input type="text" id="aiAmmoInput" placeholder="输入或选择子弹" list="aiAmmoList" class="w-full p-2 rounded-lg text-sm" style="background: var(--surface); border: 1px solid var(--border);">
+          <datalist id="aiAmmoList"></datalist>
+        </div>
+        <div>
+          <label class="text-xs font-bold block mb-1">🔧 配件</label>
+          <input type="text" id="aiPartsInput" placeholder="输入或选择配件" list="aiPartsList" class="w-full p-2 rounded-lg text-sm" style="background: var(--surface); border: 1px solid var(--border);">
+          <datalist id="aiPartsList"></datalist>
+        </div>
+        <div>
+          <label class="text-xs font-bold block mb-1">🔧 其他</label>
+          <input type="text" id="aiOtherInput" placeholder="输入或选择其他物品" list="aiOtherList" class="w-full p-2 rounded-lg text-sm" style="background: var(--surface); border: 1px solid var(--border);">
+          <datalist id="aiOtherList"></datalist>
+        </div>
+      </div>
+    </details>
+
+    <button class="btn-warm w-full py-3 text-base font-bold" onclick="aiGenerate()">
+      <i class="fas fa-magic mr-2"></i> AI 生成推荐方案
+    </button>
+    <div id="aiResult" class="mt-4 space-y-3"></div>
+  </div>
+</div>
+
+
+
+
+
+
+
   <div id="budgetBrowseView">
     <div class="grid grid-cols-3 gap-3 mb-4">
       <div class="card-base p-3 text-center">
         <div class="text-xl font-bold" style="color: var(--accent);" id="budgetTotalCount">0</div>
         <div class="text-xs" style="color: var(--muted);">总方案数</div>
       </div>
-
-
-
 
 
       <div class="card-base p-3 text-center">
@@ -22614,7 +22737,6 @@ function updateQuizUI() {
 document.addEventListener('DOMContentLoaded', () => {
   setTimeout(() => {
     initWanxiangQuiz();
-initSmartGunsmith();
 
   }, 500);
 });
@@ -23505,6 +23627,476 @@ function updateBudgetStats(filtered) {
   document.getElementById('budgetAvgPrice').textContent = avgPrice;
   document.getElementById('budgetHotScenario').textContent = hotScenario;
 }
+
+
+
+
+
+// 切换面板
+function toggleAIPanel() {
+  const content = document.getElementById('aiPanelContent');
+  const chevron = document.getElementById('aiPanelChevron');
+  if (!content || !chevron) return;
+  if (content.style.display === 'none') {
+    content.style.display = 'block';
+    chevron.style.transform = 'rotate(180deg)';
+    if (!window.__aiSelectsInit) { initAISelects(); window.__aiSelectsInit = true; }
+  } else {
+    content.style.display = 'none';
+    chevron.style.transform = 'rotate(0deg)';
+  }
+}
+
+// 生成方案
+async function aiGenerate() {
+  const resultEl = document.getElementById('aiResult');
+  resultEl.innerHTML = '<div class="text-center py-8 text-sm" style="color: var(--muted);"><i class="fas fa-spinner fa-pulse mr-2"></i>AI 正在分析最佳配装...</div>';
+
+  const selections = {
+    map: document.getElementById('aiMap').value,
+    difficulty: document.getElementById('aiDifficulty').value,
+    budget: document.getElementById('aiBudget').value || 60,
+    playstyle: document.getElementById('aiPlaystyle').value,
+    weapon: document.getElementById('aiWeapon').value,
+    armor: document.getElementById('aiArmor').value,
+    helmet: document.getElementById('aiHelmet').value,
+    backpack: document.getElementById('aiBackpack').value,
+    medicine: document.getElementById('aiMedicine').value,
+    ammo: document.getElementById('aiAmmo').value,
+    parts: document.getElementById('aiParts').value,
+    other: document.getElementById('aiOther').value,
+    model: document.getElementById('aiModel').value
+  };
+
+  // 本地规则推荐（快速）
+  if (selections.model === 'rules') {
+    const plans = generateRulesRecommendation(selections);
+    renderAIResults(plans);
+    return;
+  }
+
+  // === DeepSeek AI 推荐 ===
+  // 内置 API Key（你可以替换成自己的）
+  const API_KEY = 'sk-pepolnjfpyivqhhizuyugmpnehusxzvkdynooppgdggoqmtp';  // 请替换成你的真实 Key
+  const prompt = `你是三角洲行动配装专家。请根据以下条件推荐3套最佳配装方案（每套必须包含武器、护甲、头盔、背包、药品、弹药、配件、其他，且总价不超过预算）：
+地图：${selections.map}  难度：${selections.difficulty}  预算：${selections.budget}万
+偏好：${selections.playstyle}
+用户自选装备：
+  武器：${selections.weapon}  护甲：${selections.armor}  头盔：${selections.helmet}
+  背包：${selections.backpack}  药品：${selections.medicine}
+  子弹：${selections.ammo}  配件：${selections.parts}  其他：${selections.other}
+请只返回 JSON 数组，不要加任何解释。格式：[{"name":"方案名","totalPrice":数字,"weapons":[{"name":"","code":"改枪码"}],"armors":[{"name":"","price":数字}],"helmets":[{"name":"","price":数字}],"backpacks":[{"name":"","price":数字}],"medicine":[{"name":"","price":数字}],"ammo":[{"name":"","price":数字}],"parts":[{"name":"","price":数字}],"other":[{"name":"","price":数字}]}]`;
+
+  try {
+    const response = await fetch('https://api.siliconflow.cn/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${API_KEY}` },
+      body: JSON.stringify({ model: 'deepseek-ai/DeepSeek-V3', messages: [{ role: 'user', content: prompt }], temperature: 0.5, max_tokens: 2000 })
+    });
+    const data = await response.json();
+    const text = data.choices?.[0]?.message?.content;
+    if (text) {
+      const jsonMatch = text.match(/```json([\s\S]*)```/) || text.match(/(\[[\s\S]*\])/);
+      const jsonStr = jsonMatch ? jsonMatch[1] || jsonMatch[0] : text;
+      const plans = JSON.parse(jsonStr);
+      renderAIResults(plans);
+      return;
+    }
+  } catch (e) { console.warn('AI 接口调用失败，自动切换为本地规则推荐', e); }
+
+  showToast('AI 接口调用失败，已自动切换为本地规则推荐', 'warning');
+  renderAIResults(generateRulesRecommendation(selections));
+}
+
+// 本地规则推荐
+function generateRulesRecommendation(sel) {
+  const budgetVal = parseInt(sel.budget) || 60;
+  let candidates = (typeof BUDGET_LOADOUTS !== 'undefined' && BUDGET_LOADOUTS.length) ? [...BUDGET_LOADOUTS] : [];
+  if (sel.map !== 'all') candidates = candidates.filter(item => item.map && item.map.includes(sel.map));
+  candidates = candidates.filter(item => (item.totalPrice || 0) <= budgetVal);
+  const diffMap = { '普通': ['跑刀','卡战备','通用'], '机密': ['猛攻','卡战备','通用'], '绝密': ['绝密','猛攻','通用'] };
+  const scenarios = diffMap[sel.difficulty] || [];
+  candidates = candidates.filter(item => scenarios.includes(item.scenario));
+  if (sel.weapon !== 'any') candidates = candidates.filter(item => item.weapons?.some(w => w.name.includes(sel.weapon)));
+  candidates.sort((a, b) => (b.hotScore || 0) - (a.hotScore || 0));
+  return candidates.slice(0, 3).map(item => ({
+    ...item,
+    medicine: sel.medicine !== 'any' ? [{ name: sel.medicine, price: 3 }] : [{ name: '标准医疗包', price: 3 }],
+    ammo: sel.ammo !== 'any' ? [{ name: sel.ammo, price: 5 }] : [{ name: '三级弹', price: 5 }],
+    parts: sel.parts !== 'any' ? [{ name: sel.parts, price: 4 }] : [],
+    other: sel.other !== 'any' ? [{ name: sel.other, price: 2 }] : []
+  }));
+}
+
+// 渲染结果
+function renderAIResults(plans) {
+  const container = document.getElementById('aiResult');
+  if (!plans || plans.length === 0) {
+    container.innerHTML = '<div class="text-center py-8 text-sm" style="color: var(--muted);">暂无符合方案，请放宽条件</div>';
+    return;
+  }
+  container.innerHTML = plans.map(p => `
+    <div class="p-4 rounded-xl" style="background: var(--surface); border: 1px solid var(--border);">
+      <div class="flex justify-between items-center mb-3">
+        <div>
+          <span class="font-bold text-base">${p.name || '推荐方案'}</span>
+          ${p.scenario ? `<span class="tag-pill text-xs ml-2">${p.scenario}</span>` : ''}
+        </div>
+        <span class="text-xl font-bold" style="color: var(--accent);">${p.totalPrice || '?'} 万</span>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+        ${renderList('枪械', p.weapons, 'fa-gun', 'var(--accent)')}
+        ${renderList('护甲', p.armors, 'fa-shield-halved', '#3498db')}
+        ${renderList('头盔', p.helmets, 'fa-helmet-safety', '#e67e22')}
+        ${renderList('背包', p.backpacks, 'fa-backpack', '#1abc9c')}
+        ${renderList('药品', p.medicine, 'fa-medkit', '#27ae60')}
+        ${renderList('弹药', p.ammo, 'fa-bolt', '#f1c40f')}
+        ${renderList('配件', p.parts, 'fa-wrench', '#9b59b6')}
+        ${renderList('其他', p.other, 'fa-tools', '#888')}
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderList(label, items, icon, color) {
+  if (!items || items.length === 0) return '';
+  return `
+    <div class="flex items-center gap-2">
+      <i class="fas ${icon} text-xs" style="color: ${color};"></i>
+      <span class="text-xs font-medium">${label}:</span>
+      <span class="text-xs">${items.map(i => `${i.name || i}${i.price ? ' (' + i.price + '万)' : ''}`).join(', ')}</span>
+    </div>
+  `;
+}
+
+// 页面加载后初始化选项
+document.addEventListener('DOMContentLoaded', () => {
+  if (document.getElementById('aiWeapon')) initAISelects();
+});
+
+
+
+
+// ========== AI 完整装备库 (三角洲真实数据) ==========
+const AI_GEAR = {
+  weapons: ['M4A1','K416','AKM','SCAR-H','AUG','AR57','G3','MCX LT','PTR-32','腾龙突击步枪','CAR-15','191式','QBZ95-1','AS Val','M7','MK47','K437','ASh-12','MP5','MP7','Vector','UZI','P90','勇士冲锋枪','SR-3M','SMG-45','QCQ171','AWM','M82A1','R93','SV-98','M700','MK2','SR-25','M14','SKS','VSS','PKM','M249','M250','QJB201','S12K','M1014','FS-12','M870'],
+  armors: ['2级轻便甲','3级防弹背心','3级甲','射手战术背心','蝰蛇轻型','DT-AVS防弹衣','四级甲','五级甲 (FS复合)','六级甲 (赤枭)'],
+  helmets: ['户外棒球帽','MC201战术头盔','D6头盔','4级听力头戴','MHS战术头盔','GT1战术头盔','四级头','五级头 (DICH)','六级头'],
+  backpacks: ['强袭战术背心','战术快拆背包','野战背包','GIR野战胸挂','MAP侦察背包'],
+  medicine: ['标准医疗包','高级医疗包','战地医疗箱','体能强化剂','E型滤毒罐'],
+  ammo: ['0级弹 (FMJ)','1级穿甲弹','2级穿甲弹','3级穿甲弹 (M855)','4级穿甲弹 (M855A1)','5级穿甲弹 (M995)','6级穿甲弹','7级穿甲弹'],
+  parts: ['垂直握把','三角握把','轻量握把','长枪管 (A8)','短枪管 (CQB)','重型枪管','消焰枪管','影袭托芯枪托','轻型枪托','红点瞄具','3倍镜','6倍镜','40发扩容','快速弹匣','钛金制退器','消音器','脚架','红激光','手电筒'],
+  other: ['手雷','烟雾弹','闪光弹','燃烧瓶','C4炸药','热成像仪','夜视仪','军用望远镜']
+};
+
+// 填充datalist选项
+function initAISelects() {
+  for (const [key, options] of Object.entries(AI_GEAR)) {
+    const listId = 'ai' + key.charAt(0).toUpperCase() + key.slice(1) + 'List';
+    const list = document.getElementById(listId);
+    if (!list) continue;
+    list.innerHTML = options.map(o => `<option value="${o}">${o}</option>`).join('');
+  }
+}
+
+// 切换面板
+function toggleAIPanel() {
+  const content = document.getElementById('aiPanelContent');
+  const chevron = document.getElementById('aiPanelChevron');
+  if (!content || !chevron) return;
+  if (content.style.display === 'none') {
+    content.style.display = 'block';
+    chevron.style.transform = 'rotate(180deg)';
+    if (!window.__aiSelectsInit) { initAISelects(); window.__aiSelectsInit = true; }
+  } else {
+    content.style.display = 'none';
+    chevron.style.transform = 'rotate(0deg)';
+  }
+}
+
+// 生成方案 (包含跑刀)
+async function aiGenerate() {
+  const resultEl = document.getElementById('aiResult');
+  resultEl.innerHTML = '<div class="text-center py-8 text-sm" style="color: var(--muted);"><i class="fas fa-spinner fa-pulse mr-2"></i>AI 正在分析最佳配装...</div>';
+
+  const selections = {
+    map: document.getElementById('aiMap').value,
+    difficulty: document.getElementById('aiDifficulty').value,
+    budget: document.getElementById('aiBudget').value || 60,
+    playstyle: document.getElementById('aiPlaystyle').value,
+    weapon: document.getElementById('aiWeaponInput').value || 'any',
+    armor: document.getElementById('aiArmorInput').value || 'any',
+    helmet: document.getElementById('aiHelmetInput').value || 'any',
+    backpack: document.getElementById('aiBackpackInput').value || 'any',
+    medicine: document.getElementById('aiMedicineInput').value || 'any',
+    ammo: document.getElementById('aiAmmoInput').value || 'any',
+    parts: document.getElementById('aiPartsInput').value || 'any',
+    other: document.getElementById('aiOtherInput').value || 'any',
+    model: document.getElementById('aiModel').value
+  };
+
+  if (selections.model === 'rules') {
+    const plans = generateRulesRecommendation(selections);
+    renderAIResults(plans);
+    return;
+  }
+
+  // DeepSeek AI (硅基流动)
+  const API_KEY = 'sk-pepolnjfpyivqhhizuyugmpnehusxzvkdynooppgdggoqmtp';
+  const prompt = `你是三角洲行动配装专家。根据以下条件推荐3套方案（必须包含跑刀或低成本方案，如果预算允许）。每套方案必须包含以下字段：name, totalPrice, weapons, armors, helmets, backpacks, medicine, ammo, parts, other。返回纯JSON数组，不要任何额外文字。
+地图：${selections.map}  难度：${selections.difficulty}  预算：${selections.budget}万
+偏好：${selections.playstyle}
+自选装备：
+  武器：${selections.weapon}  护甲：${selections.armor}  头盔：${selections.helmet}
+  背包：${selections.backpack}  药品：${selections.medicine}
+  子弹：${selections.ammo}  配件：${selections.parts}  其他：${selections.other}
+方案示例：[{"name": "方案名", "totalPrice": 45, "weapons": [{"name": "M4A1", "code": "6IMVF...", "price": 15}], "armors": [{"name": "四级甲", "price": 18}], "helmets": [{"name": "四级头", "price": 10}], "backpacks": [{"name": "GIR野战胸挂", "price": 5}], "medicine": [{"name": "标准医疗包", "price": 3}], "ammo": [{"name": "三级弹", "price": 5}], "parts": [{"name": "垂直握把", "price": 3}], "other": []}]`;
+
+  try {
+    const response = await fetch('https://api.siliconflow.cn/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${API_KEY}` },
+      body: JSON.stringify({ model: 'deepseek-ai/DeepSeek-V3', messages: [{ role: 'user', content: prompt }], temperature: 0.7, max_tokens: 1500 })
+    });
+    const data = await response.json();
+    const text = data.choices?.[0]?.message?.content;
+    if (text) {
+      const jsonMatch = text.match(/```json([\s\S]*)```/) || text.match(/(\[[\s\S]*\])/);
+      const jsonStr = jsonMatch ? jsonMatch[1] || jsonMatch[0] : text;
+      const plans = JSON.parse(jsonStr);
+      renderAIResults(plans);
+      return;
+    }
+  } catch(e) { console.warn('AI失败，回退本地', e); }
+  renderAIResults(generateRulesRecommendation(selections));
+}
+
+// 本地规则推荐 (包含跑刀)
+function generateRulesRecommendation(sel) {
+  const budgetVal = parseInt(sel.budget) || 60;
+  let candidates = (typeof BUDGET_LOADOUTS !== 'undefined' && BUDGET_LOADOUTS.length) ? [...BUDGET_LOADOUTS] : [];
+  if (sel.map !== 'all') candidates = candidates.filter(item => item.map && item.map.includes(sel.map));
+  candidates = candidates.filter(item => (item.totalPrice || 0) <= budgetVal);
+  const diffMap = { '普通': ['跑刀','卡战备','通用'], '机密': ['猛攻','卡战备','通用'], '绝密': ['绝密','猛攻','通用'] };
+  const scenarios = diffMap[sel.difficulty] || [];
+  candidates = candidates.filter(item => scenarios.includes(item.scenario));
+  if (sel.playstyle === '跑刀/低成本') {
+    candidates = candidates.filter(item => item.scenario === '跑刀' || (item.totalPrice && item.totalPrice < 20));
+  }
+  if (sel.weapon !== 'any') candidates = candidates.filter(item => item.weapons?.some(w => w.name.includes(sel.weapon)));
+  candidates.sort((a, b) => (b.hotScore || 0) - (a.hotScore || 0));
+
+  // *** 新增：默认改枪码映射表 ***
+  const DEFAULT_WEAPON_CODES = {
+    'M4A1': '6IMVF7O0B0GKDDOTE9T6Q',
+    'K416': '6EIALPC02U9HU6AC38CQJ',
+    'AKM': '6J2Q7Q40FP8PKANEBHTBM',
+    'SCAR-H': 'SCAR-H-烽火地带-6JO0TK0A',
+    'AUG': 'AUG-烽火地带-6JO0VHO0',
+    'G3': 'G3-烽火地带-6JO0TDK0',
+    'MCX LT': 'MCX-LT-烽火地带-6J0DPQ00',
+    'PTR-32': 'PTR-32-烽火地带-6IRJFES0',
+    'AR57': 'AR57-烽火地带-6JO197C0',
+    'MP5': 'MP5-烽火地带-6ICCO940',
+    'MP7': 'MP7-烽火地带-6IC1LR80',
+    'Vector': 'Vector-烽火地带-6HB6D280',
+    'UZI': 'UZI-烽火地带-6EIALBS0',
+    'P90': 'P90-烽火地带-6J33GQ00',
+    '勇士冲锋枪': '6J2Q7Q40FP8PKANEBHTBM',
+    'AWM': 'AWM-烽火地带-6G5S6M00',
+    'M82A1': 'M82A1-烽火地带-6G5Q7M00',
+    'SR-25': 'SR-25-烽火地带-6G0RKVK0',
+    'M14': 'M14-烽火地带-6G5S6M00',
+    'PKM': 'PKM-烽火地带-6G5S7M00',
+    'M249': 'M249-烽火地带-6G5S8M00',
+    'S12K': 'S12K-烽火地带-6G5S9M00',
+  };
+
+  return candidates.slice(0, 3).map(item => ({
+    name: item.name,
+    totalPrice: item.totalPrice,
+    // *** 关键修改：为每个武器自动补充 code ***
+    weapons: (item.weapons || []).map(w => ({
+      name: w.name,
+      code: w.code || DEFAULT_WEAPON_CODES[w.name] || '',  // 优先用原有 code，否则用映射表
+      price: w.price,
+      desc: w.desc || ''
+    })),
+    armors: item.armors || [],
+    helmets: item.helmets || [],
+    backpacks: item.backpacks || [],
+    medicine: sel.medicine !== 'any' ? [{ name: sel.medicine, price: 3 }] : [{ name: '标准医疗包', price: 3 }],
+    ammo: sel.ammo !== 'any' ? [{ name: sel.ammo, price: 5 }] : [{ name: '三级弹', price: 5 }],
+    parts: sel.parts !== 'any' ? [{ name: sel.parts, price: 4 }] : [],
+    other: sel.other !== 'any' ? [{ name: sel.other, price: 2 }] : [],
+    scenario: item.scenario
+  }));
+}
+
+
+// 渲染结果卡片 (可点击)
+function renderAIResults(plans) {
+  const container = document.getElementById('aiResult');
+  if (!plans || plans.length === 0) {
+    container.innerHTML = '<div class="text-center py-8 text-sm" style="color: var(--muted);">暂无符合方案，请放宽条件</div>';
+    return;
+  }
+  container.innerHTML = plans.map((p, idx) => `
+    <div class="p-4 rounded-xl cursor-pointer hover:shadow-lg transition-all" style="background: var(--surface); border: 1px solid var(--border);" onclick="showAIDetail(${idx})">
+      <div class="flex justify-between items-center mb-2">
+        <span class="font-bold text-base">${idx+1}. ${p.name || '方案'}</span>
+        <span class="text-lg font-bold" style="color: var(--accent);">${p.totalPrice || '?'} 万</span>
+      </div>
+      <div class="text-xs" style="color: var(--muted);">
+        武器: ${(p.weapons||[]).map(w=>w.name).join(', ') || '未指定'} | 护甲: ${(p.armors||[]).map(a=>a.name).join(',') || '未指定'} | 头盔: ${(p.helmets||[]).map(h=>h.name).join(',') || '未指定'}
+      </div>
+    </div>
+  `).join('');
+
+  // 存储当前结果以便详情查看
+  window._aiCurrentPlans = plans;
+}
+
+// 详情弹窗
+function showAIDetail(index) {
+  const plan = window._aiCurrentPlans[index];
+  if (!plan) return;
+
+  // 武器配件参考库（弹窗内展示用）
+  const WEAPON_ACCESSORIES = {
+    'M4A1': '垂直握把 + 消音器 + 红点 + 快速弹匣',
+    'K416': '堡垒水平 + 红激光 + 共振一代 + A8长枪管',
+    'AKM': '补偿器 + RK-0前握把 + 3倍镜 + 40发弹匣',
+    'SCAR-H': '重型枪管 + 脚架 + 6倍镜',
+    'G3': '长枪管 + 垂直握把 + 红点',
+    'MCX LT': '消焰枪管 + 三角握把 + 3倍镜',
+    'PTR-32': 'G3镂空握把 + G3加强长枪管 + FFC双流制退器',
+    'MP5': '消音器 + 垂直握把 + 红点',
+    'Vector': '长枪管 + 垂直握把 + 红点 + 45发弹鼓',
+    'UZI': '钛金制退器 + 导轨护木 + 红激光 + 45发弹匣',
+    'P90': '消音器 + 三角握把 + 全息',
+    'AWM': '消音器 + 8倍镜 + 脚架 + 快速枪栓',
+    'SR-25': '消音器 + 6倍镜 + 脚架',
+  };
+
+  // 构建每个分类
+  const createSection = (title, icon, items, isWeapon = false) => {
+    if (!items || items.length === 0) return '';
+    let html = `
+      <div style="margin-bottom: 18px;">
+        <h4 style="font-size: 15px; font-weight: 700; margin: 0 0 8px; display: flex; align-items: center;">
+          <i class="fas ${icon}" style="color: var(--accent); margin-right: 8px;"></i>${title}
+        </h4>
+    `;
+    items.forEach(item => {
+      const name = item.name || item;
+      const price = item.price !== undefined ? `${item.price}万` : '';
+      const code = item.code || '';
+      const desc = item.desc || '';
+      const accessory = isWeapon ? (WEAPON_ACCESSORIES[name] || '') : '';
+
+      html += `
+        <div style="background: var(--surface); border-radius: 12px; padding: 12px; margin-bottom: 8px; border: 1px solid var(--border);">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-weight: 600; font-size: 14px;">${name}</span>
+            <span style="font-size: 14px; color: var(--accent); font-weight: 700;">${price}</span>
+          </div>
+          ${desc ? `<div style="font-size: 12px; color: var(--muted); margin-top: 4px;">📌 ${desc}</div>` : ''}
+          ${accessory ? `<div style="font-size: 12px; color: var(--muted); margin-top: 4px;">🔧 推荐配件：${accessory}</div>` : ''}
+          ${code ? `
+            <div style="margin-top: 8px; padding: 8px; background: var(--card); border-radius: 8px; border: 1px dashed var(--accent);">
+              <div style="font-size: 11px; color: var(--muted); margin-bottom: 4px;">改枪码</div>
+              <code style="font-family: monospace; font-size: 13px; color: var(--accent); word-break: break-all;">${code}</code>
+              <button class="btn-warm" style="margin-top: 6px; padding: 4px 12px; font-size: 11px;" onclick="event.stopPropagation(); copySingleCode('${code}')">
+                <i class="far fa-copy"></i> 复制此码
+              </button>
+            </div>
+          ` : `<div style="font-size: 11px; color: var(--muted); margin-top: 6px;">⚠️ 暂无该武器的改枪码</div>`}
+        </div>
+      `;
+    });
+    html += `</div>`;
+    return html;
+  };
+
+  const calibrationText = plan.calibration || '根据后坐力方向微调枪口制退器，拉满垂直后坐控制，其余点散布。';
+
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay active';
+  modal.style.zIndex = '10002';
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) {
+      modal.classList.remove('active');
+      setTimeout(() => modal.remove(), 200);
+    }
+  });
+
+  modal.innerHTML = `
+    <div class="modal-content" style="max-width: 680px; width: 95%; max-height: 85vh; overflow-y: auto; padding: 20px; animation: modalSlideIn 0.25s ease-out;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px;">
+        <h3 style="font-family: 'ZCOOL QingKe HuangYou', sans-serif; font-size: 22px; color: var(--accent); margin: 0;">
+          <i class="fas fa-gun" style="margin-right: 8px;"></i>${plan.name || 'AI推荐方案'}
+        </h3>
+        <span style="font-size: 24px; font-weight: 900; color: var(--accent);">${plan.totalPrice} 万</span>
+      </div>
+      <div style="background: var(--surface); border-radius: 12px; padding: 10px 14px; margin-bottom: 18px; font-size: 13px; color: var(--muted); border: 1px solid var(--border);">
+        <i class="fas fa-lightbulb" style="color: #FFD700; margin-right: 6px;"></i>
+        ${plan.scenario ? `场景：${plan.scenario} · ` : ''}AI 精算配装，点击改枪码旁的按钮可直接复制。
+      </div>
+      ${createSection('🔫 主武器', 'fa-gun', plan.weapons, true)}
+      ${createSection('🛡️ 护甲', 'fa-shield-halved', plan.armors)}
+      ${createSection('⛑️ 头盔', 'fa-helmet-safety', plan.helmets)}
+      ${createSection('🎒 背包/胸挂', 'fa-backpack', plan.backpacks)}
+      ${createSection('💊 药品', 'fa-medkit', plan.medicine)}
+      ${createSection('🔫 子弹', 'fa-bolt', plan.ammo)}
+      ${createSection('🔧 配件', 'fa-wrench', plan.parts)}
+      ${createSection('📦 其他', 'fa-tools', plan.other)}
+      <div style="background: var(--surface); border-radius: 12px; padding: 12px; margin-bottom: 18px; border: 1px solid var(--border);">
+        <h4 style="font-size: 15px; font-weight: 700; margin: 0 0 6px; color: var(--accent);">
+          <i class="fas fa-sliders-h" style="margin-right: 8px;"></i>🎯 精校建议
+        </h4>
+        <div style="font-size: 13px; color: var(--muted);">${calibrationText}</div>
+      </div>
+      <button class="btn-ghost" style="width: 100%; padding: 12px; margin-top: 8px; font-size: 14px;" 
+        onclick="this.closest('.modal-overlay').classList.remove('active'); setTimeout(() => this.closest('.modal-overlay').remove(), 200);">
+        关闭
+      </button>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+  requestAnimationFrame(() => modal.classList.add('active'));
+}
+
+
+// 单码复制
+function copySingleCode(code) {
+  if (!code) return;
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(code).then(() => showToast('✅ 改枪码已复制', 'success'));
+  } else {
+    const textarea = document.createElement('textarea');
+    textarea.value = code;
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textarea);
+    showToast('✅ 改枪码已复制', 'success');
+  }
+}
+
+
+
+// 一键复制全部（从详情弹窗调用）
+function copyAllCodesFromDetail(codesStr) {
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(codesStr).then(() => showToast('✅ 全部改枪码已复制', 'success'));
+  } else {
+    showManualCopyModal(codesStr);
+  }
+}
+
+
 
 // 筛选函数
 function filterBudgetLoadouts() {
@@ -26464,7 +27056,20 @@ function showWelfareGuide() {
   showModal('🎁 发帖福利指南', content, '知道了');
 }
 
-// 下一个函数...
+
+
+document.addEventListener('DOMContentLoaded', function() {
+  setTimeout(function() {
+    if (typeof initAISelects === 'function') {
+      initAISelects();
+    }
+  }, 500);
+});
+
+
+
+
+
 
 </script>
 <script>
@@ -26665,6 +27270,27 @@ function showWelfareGuide() {
 .duel-cmd-btn:active { transform:scale(0.95); }
 .duel-item-card:hover { transform:scale(1.05); box-shadow:0 0 15px rgba(255,215,0,0.3); }
 .duel-loot-grid { min-height: 100px; }
+
+
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(30px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* 移动端优化 */
+@media (max-width: 640px) {
+  .modal-content[style*="animation: modalSlideIn"] {
+    padding: 14px !important;
+  }
+}
+
 
 
 </style>
