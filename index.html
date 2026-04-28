@@ -2530,10 +2530,13 @@ pointer-events: auto !important;
     box-shadow: 0 4px 20px var(--shadow);
   }
   .card-base:hover {
-    transform: translateY(-6px) scale(1.02);
-    box-shadow: 0 20px 40px var(--glow);
+    transform: translateY(-6px) translateZ(0);  /* 向上移动，同时强制 GPU 合成层 */
+    box-shadow: 0 24px 44px -8px var(--glow), 0 12px 20px -8px var(--shadow);
     border-color: var(--accent);
-  }
+    will-change: transform;                     /* 提前告知浏览器优化 */
+    backface-visibility: hidden;                /* 防止边缘模糊 */
+    -webkit-font-smoothing: antialiased;        /* 保持字体清晰 */
+}
 
   /* 按钮动画 */
   .btn-warm {
@@ -9459,24 +9462,71 @@ window.openCheckinCalendarModal = async function() {
 
 // Toast 提示
 function showToast(msg, type = 'info') {
+  // 移除上一个残留的 toast（避免重叠）
+  const old = document.querySelector('.global-toast');
+  if (old) old.remove();
+
   const t = document.createElement('div');
-  t.className = 'toast';
+  t.className = 'global-toast';
   
-  const iconMap = {
-    success: '<i class="fas fa-check-circle mr-2" style="color: #2ecc71;"></i>',
-    error: '<i class="fas fa-times-circle mr-2" style="color: #e74c3c;"></i>',
-    warning: '<i class="fas fa-exclamation-triangle mr-2" style="color: #f1c40f;"></i>',
-    info: '<i class="fas fa-info-circle mr-2"></i>'
-  };
-  
-  t.innerHTML = `${iconMap[type] || iconMap.info}${msg}`;
-  t.style.background = type === 'error' ? 'linear-gradient(135deg, #e74c3c, #c0392b)' : 
-                       type === 'success' ? 'linear-gradient(135deg, #2ecc71, #27ae60)' : 
-                       'linear-gradient(135deg, #FF6B35, #FF4757)';
-  
-  $('toastContainer').appendChild(t);
-  setTimeout(() => t.remove(), 3200);
+  // 根据类型选颜色
+  const bgColor = type === 'error'   ? 'linear-gradient(135deg, #e74c3c, #c0392b)' :
+                  type === 'success' ? 'linear-gradient(135deg, #2ecc71, #27ae60)' :
+                  type === 'warning' ? 'linear-gradient(135deg, #f39c12, #e67e22)' :
+                                       'linear-gradient(135deg, #FF6B35, #FF4757)';
+
+  t.style.cssText = `
+    position: fixed !important;
+    bottom: 80px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    background: ${bgColor} !important;
+    color: white !important;
+    padding: 12px 24px !important;
+    border-radius: 40px !important;
+    font-weight: 600 !important;
+    z-index: 100000 !important;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3) !important;
+    animation: globalToastIn 0.3s ease, globalToastOut 0.3s 2.7s forwards !important;
+    white-space: nowrap !important;
+    pointer-events: none !important;
+    font-size: 14px !important;
+    letter-spacing: 0.5px !important;
+    max-width: 90vw !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  `;
+  t.textContent = msg;
+  document.body.appendChild(t);
+
+  // 自动销毁
+  setTimeout(() => {
+    if (t.parentNode) t.remove();
+  }, 3000);
 }
+
+function showWeaponTooltip(e, name) {
+  const w = WEAPON_DATA.find(w => w.name === name);
+  if (!w) return;
+  let t = document.getElementById('weapon-tooltip');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'weapon-tooltip';
+    t.style.cssText = 'position:fixed; background:var(--card); border:2px solid var(--accent); border-radius:12px; padding:10px; z-index:99999; font-size:12px; box-shadow:0 8px 20px var(--glow); pointer-events:none;';
+    document.body.appendChild(t);
+  }
+  t.innerHTML = `<b style="color:var(--accent)">${w.name}</b><br>伤害 ${w.damage} | 射速 ${w.fireRate}<br>精准 ${w.accuracy} | 射程 ${w.range}`;
+  t.style.left = (e.clientX + 15) + 'px';
+  t.style.top = (e.clientY + 15) + 'px';
+  t.style.display = 'block';
+}
+function hideWeaponTooltip() {
+  const t = document.getElementById('weapon-tooltip');
+  if (t) t.style.display = 'none';
+}
+
+
+
 // ==================== 弹窗控制 ====================
 function openModal(id) {
   const modal = $(id);
@@ -15179,6 +15229,9 @@ function renderLoadoutList() {
       <div class="flex items-center gap-2 mb-3 text-sm">
         <i class="fas fa-gun" style="color: var(--accent);"></i>
         <span style="color: var(--text);">${l.weapon || '未知枪械'}</span>
+
+
+
         <span class="mx-2" style="color: var(--border);">|</span>
         <i class="fas fa-wrench" style="color: var(--muted);"></i>
         <span style="color: var(--muted);" class="truncate">${l.attachments || '热门配件'}</span>
@@ -16379,7 +16432,29 @@ function resetAllLoadoutFilters() {
   
   applyLoadoutFilters();
 }
-// ==================== 核心筛选函数（整合搜索） ====================
+
+
+// 获取武器伤害
+function getWeaponDamage(weaponName) {
+  const w = WEAPON_DATA.find(w => w.name === weaponName);
+  return w ? w.damage : '?';
+}
+// 获取武器射速
+function getWeaponFireRate(weaponName) {
+  const w = WEAPON_DATA.find(w => w.name === weaponName);
+  return w ? w.fireRate : '?';
+}
+
+
+function getRecommendedAmmo(weaponName) {
+  const w = WEAPON_DATA.find(w => w.name === weaponName);
+  if (!w) return "3级弹";
+  if (w.damage >= 50) return "5级弹";
+  if (w.fireRate >= 800) return "4级弹";
+  return "3级弹";
+}
+
+
 // ==================== 核心筛选函数（整合搜索 + 价格排序） ====================
 function applyLoadoutFilters() {
   // 获取搜索关键词
@@ -16464,6 +16539,18 @@ function applyLoadoutFilters() {
       <div class="flex items-center gap-2 mb-3 text-sm">
         <i class="fas fa-gun" style="color: var(--accent);"></i>
         <span style="color: var(--text);">${l.weapon || '未知枪械'}</span>
+
+
+<span class="tag-pill text-xs ml-2" style="background: #3498db20; color: #3498db;">
+  <i class="fas fa-crosshairs"></i> 伤害${getWeaponDamage(l.weapon)} | 射速${getWeaponFireRate(l.weapon)}
+</span>
+
+
+<span class="tag-pill text-xs ml-2" style="background: #e67e2220; color: #e67e22;">
+  <i class="fas fa-bolt"></i> 推荐${getRecommendedAmmo(l.weapon)}
+</span>
+
+
         <span class="mx-2" style="color: var(--border);">|</span>
         <i class="fas fa-wrench" style="color: var(--muted);"></i>
         <span style="color: var(--muted);" class="truncate">${l.attachments || '热门配件'}</span>
@@ -23243,6 +23330,17 @@ function updateIntelSummary() {
   const summaryEl = document.getElementById('intelSummary');
   if (summaryEl) summaryEl.textContent = '3项情报待阅';
 }
+
+// ==================== 起装方案 "加载更多" 功能 (全局) ====================
+(function() {
+    window.loadMoreBudget = function() {
+        budgetCurrentPage++;
+        renderBudgetLoadouts(false);
+    };
+})();
+
+
+
 // ==================== 性价比起装方案（实时热门版） ====================
 // 基础方案库（会被实时数据覆盖）
 let BUDGET_LOADOUTS = [
@@ -23491,7 +23589,7 @@ async function renderBudgetLoadouts(resetPage = true) {
       <div class="flex items-center justify-between text-sm py-1.5 border-b border-dashed" style="border-color: var(--border);">
         <div class="flex items-center gap-2">
           <i class="fas fa-gun text-xs" style="color: var(--accent);"></i>
-          <span class="font-medium cursor-pointer hover:underline" onclick="event.stopPropagation(); jumpToWeaponData('${w.name}')">${w.name}</span>
+          <span class="font-medium cursor-pointer" onmouseenter="showWeaponTooltip(event, '${w.name}')" onmouseleave="hideWeaponTooltip()" onclick="... jumpToWeaponData('${w.name}')">${w.name}</span>
           ${w.desc ? `<span class="text-xs" style="color: var(--muted);">${w.desc}</span>` : ''}
         </div>
         <div class="flex items-center gap-2">
@@ -23501,6 +23599,11 @@ async function renderBudgetLoadouts(resetPage = true) {
             <i class="far fa-copy"></i>
           </button>
           ` : ''}
+
+
+
+
+
         </div>
       </div>
     `).join('');
@@ -23514,11 +23617,7 @@ if (loadMoreBtn) {
   }
 
 
-// 加载更多
-function loadMoreBudget() {
-  budgetCurrentPage++;
-  renderBudgetLoadouts(false);
-}
+
 
     const armorsHtml = item.armors.map(a => `
       <div class="flex items-center justify-between text-sm py-1.5 border-b border-dashed" style="border-color: var(--border);">
@@ -23607,6 +23706,7 @@ function loadMoreBudget() {
     ` : ''}
   </div>
 </div>
+
   </div>
 `;
   }).join('');
@@ -23782,7 +23882,9 @@ function renderAIResults(plans) {
 
 
   container.innerHTML = plans.map(p => `
-    <div class="p-4 rounded-xl" style="background: var(--surface); border: 1px solid var(--border);">
+    <div class="p-4 rounded-xl cursor-pointer hover:shadow-lg transition-all duration-300 hover:scale-[1.02]"
+     style="background: var(--surface); border: 1px solid var(--border);"
+     onclick="showAIDetail('${p.name.replace(/'/g, "\\'")}')">
       <div class="flex justify-between items-center mb-3">
         <div>
           <span class="font-bold text-base">${p.name || '推荐方案'}</span>
@@ -23802,6 +23904,8 @@ function renderAIResults(plans) {
       </div>
     </div>
   `).join('');
+
+window.__aiCurrentPlans = plans; // 👈 添加这一行
 }
 
 function renderList(label, items, icon, color) {
@@ -23819,6 +23923,7 @@ function renderList(label, items, icon, color) {
 document.addEventListener('DOMContentLoaded', () => {
   if (document.getElementById('aiWeapon')) initAISelects();
 });
+
 
 
 
@@ -23981,70 +24086,169 @@ function generateRulesRecommendation(sel) {
 
 
 
-// 详情弹窗
-function showAIDetail(index) {
-  const plan = window._aiCurrentPlans[index];
-  if (!plan) return;
 
-  // 武器配件参考库（弹窗内展示用）
-  const WEAPON_ACCESSORIES = {
-    'M4A1': '垂直握把 + 消音器 + 红点 + 快速弹匣',
-    'K416': '堡垒水平 + 红激光 + 共振一代 + A8长枪管',
-    'AKM': '补偿器 + RK-0前握把 + 3倍镜 + 40发弹匣',
-    'SCAR-H': '重型枪管 + 脚架 + 6倍镜',
-    'G3': '长枪管 + 垂直握把 + 红点',
-    'MCX LT': '消焰枪管 + 三角握把 + 3倍镜',
-    'PTR-32': 'G3镂空握把 + G3加强长枪管 + FFC双流制退器',
-    'MP5': '消音器 + 垂直握把 + 红点',
-    'Vector': '长枪管 + 垂直握把 + 红点 + 45发弹鼓',
-    'UZI': '钛金制退器 + 导轨护木 + 红激光 + 45发弹匣',
-    'P90': '消音器 + 三角握把 + 全息',
-    'AWM': '消音器 + 8倍镜 + 脚架 + 快速枪栓',
-    'SR-25': '消音器 + 6倍镜 + 脚架',
-  };
+function getRecommendedAmmo(weaponName) {
+  const w = WEAPON_DATA.find(w => w.name === weaponName);
+  if (!w) return "3级弹";
+  if (w.damage >= 50) return "5级弹";
+  if (w.fireRate >= 800) return "4级弹";
+  return "3级弹";
+}
 
-  // 构建每个分类
-  const createSection = (title, icon, items, isWeapon = false) => {
+
+
+// ==================== AI配装详情弹窗（增强版） ====================
+window.showAIDetail = function(planName) {
+    // 从当前的AI结果页面中找到对应的方案数据
+    const planCard = document.querySelector(`[onclick*="${planName}"]`);
+    if (!planCard) return;
+    
+    // 由于AI方案是动态生成的，我们直接从卡片上解析数据，或者从缓存的全局变量中获取
+    // 这里我们假设 renderAIResults 将方案数据暂存到了 window.__aiCurrentPlans
+    const plans = window.__aiCurrentPlans || [];
+    const plan = plans.find(p => p.name === planName);
+    if (!plan) { showToast('方案数据错误', 'error'); return; }
+
+    // 精校建议（模拟，可根据预算和场景生成不同建议）
+    const calibration = plan.totalPrice < 30 ? '极限预算方案，优先拉满后坐力控制，其余点数投入人机工效。' :
+                       plan.totalPrice < 60 ? '均衡配置，可根据手感微调枪口制退器，建议保证75以上人机工效。' :
+                       '豪华配置，建议满改。枪口选用钛金制退器，拉满水平后坐，其余点散布，打造激光枪。';
+
+    // 创建弹窗HTML
+    let modalHTML = `
+    <div id="aiDetailModal" class="modal-overlay active" style="z-index: 100000;">
+      <div class="modal-content active" style="max-width: 680px; width: 95%; padding: 24px; max-height: 90vh; overflow-y: auto; border-radius: 24px; animation: modalSlideIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);">
+        
+        <!-- 关闭按钮 (美化版) -->
+        <button onclick="closeModalById('aiDetailModal')" style="position: sticky; top: 8px; float: right; z-index: 10; background: var(--surface); border: 1px solid var(--border); width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='var(--accent)'; this.querySelector('i').style.color='white'" onmouseout="this.style.background='var(--surface)'; this.querySelector('i').style.color='var(--muted)'">
+          <i class="fas fa-times" style="color: var(--muted); transition: color 0.2s;"></i>
+        </button>
+
+        <!-- 方案头部 -->
+        <div class="flex items-center justify-between mb-6">
+          <h2 style="font-family: 'ZCOOL QingKe HuangYou', sans-serif; font-size: 24px; margin: 0; color: var(--accent);">
+            <i class="fas fa-gun mr-2"></i>${plan.name}
+          </h2>
+          <div class="text-right">
+            <span style="font-size: 28px; font-weight: 900; color: var(--accent);">${plan.totalPrice}万</span>
+            <span style="display: block; font-size: 12px; color: var(--muted);">总价</span>
+          </div>
+        </div>
+
+        <!-- 方案各部分详情 -->
+        ${renderDetailSection('fa-gun', '主武器', '#e74c3c', plan.weapons, true)}
+        ${renderDetailSection('fa-shield-halved', '护甲', '#3498db', plan.armors)}
+        ${renderDetailSection('fa-helmet-safety', '头盔', '#e67e22', plan.helmets)}
+        ${renderDetailSection('fa-backpack', '背包/胸挂', '#1abc9c', plan.backpacks)}
+        ${renderDetailSection('fa-bolt', '弹药', '#f1c40f', plan.ammo)}
+        ${renderDetailSection('fa-medkit', '药品', '#2ecc71', plan.medicine)}
+        ${renderDetailSection('fa-wrench', '配件', '#9b59b6', plan.parts)}
+        ${renderDetailSection('fa-tools', '其他', '#95a5a6', plan.other)}
+
+        <!-- 精校建议区 -->
+        <div style="background: linear-gradient(145deg, rgba(255,107,53,0.08), rgba(255,71,87,0.04)); border: 1px solid var(--accent); border-radius: 16px; padding: 16px; margin: 24px 0;">
+          <div class="flex items-center gap-2 mb-2">
+            <i class="fas fa-sliders-h" style="color: var(--accent); font-size: 18px;"></i>
+            <span style="font-weight: 700; color: var(--accent);">🎯 精校建议</span>
+          </div>
+          <p style="font-size: 14px; color: var(--text); margin: 0; line-height: 1.6;">${calibration}</p>
+        </div>
+
+        <!-- 底部操作栏 -->
+        <div class="flex gap-3">
+          <button onclick="event.stopPropagation(); copyAllCodesFromPlan('${planName}')" class="btn-warm flex-1 py-3 text-base font-bold">
+            <i class="fas fa-copy mr-2"></i>复制全部改枪码
+          </button>
+          <button onclick="closeModalById('aiDetailModal')" class="btn-ghost flex-1 py-3 text-base font-bold">
+            关闭
+          </button>
+        </div>
+      </div>
+    </div>
+    `;
+
+    // 移除可能存在的旧弹窗，然后添加新弹窗
+    const oldModal = document.getElementById('aiDetailModal');
+    if (oldModal) oldModal.remove();
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+};
+
+// 辅助函数：渲染一个装备详情区域
+function renderDetailSection(iconClass, title, color, items, isWeapon = false) {
     if (!items || items.length === 0) return '';
     let html = `
-      <div style="margin-bottom: 18px;">
-        <h4 style="font-size: 15px; font-weight: 700; margin: 0 0 8px; display: flex; align-items: center;">
-          <i class="fas ${icon}" style="color: var(--accent); margin-right: 8px;"></i>${title}
-        </h4>
-    `;
-    items.forEach(item => {
-      const name = item.name || item;
-      const price = item.price !== undefined ? `${item.price}万` : '';
-      const code = item.code || '';
-      const desc = item.desc || '';
-      const accessory = isWeapon ? (WEAPON_ACCESSORIES[name] || '') : '';
-
-      html += `
-        <div style="background: var(--surface); border-radius: 12px; padding: 12px; margin-bottom: 8px; border: 1px solid var(--border);">
+    <div style="margin-bottom: 20px;">
+      <h3 style="display: flex; align-items: center; gap: 8px; font-size: 16px; font-weight: 700; margin: 0 0 12px; color: ${color};">
+        <i class="fas ${iconClass}"></i> ${title}
+      </h3>`;
+    
+    items.forEach((item) => {
+        const name = item.name || item;
+        const price = item.price !== undefined ? `${item.price}万` : '';
+        const code = item.code || '';
+        html += `
+        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px; margin-bottom: 8px;">
           <div style="display: flex; justify-content: space-between; align-items: center;">
-            <span style="font-weight: 600; font-size: 14px;">${name}</span>
-            <span style="font-size: 14px; color: var(--accent); font-weight: 700;">${price}</span>
-          </div>
-          ${desc ? `<div style="font-size: 12px; color: var(--muted); margin-top: 4px;">📌 ${desc}</div>` : ''}
-          ${accessory ? `<div style="font-size: 12px; color: var(--muted); margin-top: 4px;">🔧 推荐配件：${accessory}</div>` : ''}
-          ${code ? `
-            <div style="margin-top: 8px; padding: 8px; background: var(--card); border-radius: 8px; border: 1px dashed var(--accent);">
-              <div style="font-size: 11px; color: var(--muted); margin-bottom: 4px;">改枪码</div>
-              <code style="font-family: monospace; font-size: 13px; color: var(--accent); word-break: break-all;">${code}</code>
-              <button class="btn-warm" style="margin-top: 6px; padding: 4px 12px; font-size: 11px;" onclick="event.stopPropagation(); copySingleCode('${code}')">
-                <i class="far fa-copy"></i> 复制此码
-              </button>
-            </div>
-          ` : `<div style="font-size: 11px; color: var(--muted); margin-top: 6px;">⚠️ 暂无该武器的改枪码</div>`}
-        </div>
-      `;
+            <span style="font-weight: 600;">${name}</span>
+            <span style="font-weight: 700; color: ${color};">${price}</span>
+          </div>`;
+        
+        if (isWeapon && code) {
+            html += `
+            <div style="background: var(--card); border: 1px dashed var(--accent); border-radius: 8px; padding: 10px; margin-top: 10px;">
+              <div style="display: flex; align-items: center; justify-content: space-between;">
+                <span style="font-size: 13px; font-family: monospace; color: var(--accent); word-break: break-all; flex: 1; margin-right: 10px;">${code}</span>
+                <button onclick="event.stopPropagation(); copySingleCode('${code}')" style="background: var(--accent); color: white; border: none; border-radius: 20px; padding: 6px 14px; font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; transition: transform 0.1s;" onmousedown="this.style.transform='scale(0.95)'" onmouseup="this.style.transform='scale(1)'">
+                  <i class="far fa-copy mr-1"></i>复制
+                </button>
+              </div>
+            </div>`;
+        }
+        html += `</div>`;
     });
     html += `</div>`;
     return html;
-  };
+}
 
-  const calibrationText = plan.calibration || '根据后坐力方向微调枪口制退器，拉满垂直后坐控制，其余点散布。';
+// 复制单个改枪码（带反馈）
+window.copySingleCode = function(code) {
+    if (!code) return;
+    universalCopy(code);
+    showToast('✅ 改枪码已复制', 'success');
+};
 
+// 复制整个方案的所有改枪码
+window.copyAllCodesFromPlan = function(planName) {
+    const plans = window.__aiCurrentPlans || [];
+    const plan = plans.find(p => p.name === planName);
+    if (!plan) return;
+    const codes = (plan.weapons || []).filter(w => w.code).map(w => `${w.name}: ${w.code}`).join('\n');
+    if (codes) {
+        universalCopy(codes);
+        showToast(`📋 「${planName}」的所有改枪码已复制`, 'success');
+    } else {
+        showToast('该方案暂无改枪码', 'info');
+    }
+};
+
+// 带ID关闭弹窗函数
+window.closeModalById = function(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.classList.remove('active');
+        setTimeout(() => modal.remove(), 200);
+    }
+};	
+
+// ========== AI配装详情弹窗（终极版：内联复制反馈，绝对生效） ==========
+function showAIDetail(index) {
+  const plan = window._aiCurrentPlans && window._aiCurrentPlans[index];
+  if (!plan) {
+    showToast('方案数据丢失', 'error');
+    return;
+  }
+
+  // 创建弹窗（直接用 innerHTML 生成，按钮带内联复制逻辑）
   const modal = document.createElement('div');
   modal.className = 'modal-overlay active';
   modal.style.zIndex = '10002';
@@ -24055,33 +24259,70 @@ function showAIDetail(index) {
     }
   });
 
+  // 按类别生成详情的辅助函数（直接返回 HTML 字符串）
+  const renderSection = (title, icon, items, isWeapon = false) => {
+    if (!items || !items.length) return '';
+    let html = `<div style="margin-bottom: 18px;">
+      <h4 style="font-size:15px;font-weight:700;margin:0 0 8px;display:flex;align-items:center;">
+        <i class="fas ${icon}" style="color:var(--accent);margin-right:8px;"></i>${title}
+      </h4>`;
+    items.forEach(item => {
+      const name = item.name || item;
+      const price = item.price !== undefined ? `${item.price}万` : '';
+      const code = item.code || '';
+      const desc = item.desc || '';
+      // 为武器项额外显示推荐配件（可选）
+      const accessory = isWeapon ? (name === 'M4A1' ? '垂直握把 + 消音器 + 红点 + 快速弹匣' : '请根据后坐力方向自选握把和枪口') : '';
+      html += `<div style="background:var(--surface);border-radius:12px;padding:12px;margin-bottom:8px;border:1px solid var(--border);">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <span style="font-weight:600;font-size:14px;">${name}</span>
+          <span style="font-size:14px;color:var(--accent);font-weight:700;">${price}</span>
+        </div>
+        ${desc ? `<div style="font-size:12px;color:var(--muted);margin-top:4px;">📌 ${desc}</div>` : ''}
+        ${accessory ? `<div style="font-size:12px;color:var(--muted);margin-top:4px;">🔧 推荐配件：${accessory}</div>` : ''}
+        ${code ? `
+        <div style="margin-top:8px;padding:8px;background:var(--card);border-radius:8px;border:1px dashed var(--accent);">
+          <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">改枪码</div>
+          <code style="font-family:monospace;font-size:13px;color:var(--accent);word-break:break-all;">${code}</code>
+          <!-- ⚡ 终极内联复制：不再依赖任何外部函数 -->
+          <button style="margin-top:6px;padding:4px 12px;font-size:11px;background:var(--accent);color:white;border:none;border-radius:20px;cursor:pointer;"
+            onclick="var c='${code.replace(/'/g, "\\'")}';var b=this;var o=b.innerHTML;function ok(){b.innerHTML='<i class=\\'fas fa-check\\'></i> 已复制';b.style.background='#2ecc71';b.disabled=true;setTimeout(function(){b.innerHTML=o;b.style.background='';b.disabled=false;},1500);showToast('✅ 改枪码已复制','success');} if(navigator.clipboard){navigator.clipboard.writeText(c).then(ok).catch(function(){var t=document.createElement('textarea');t.value=c;document.body.appendChild(t);t.select();document.execCommand('copy');document.body.removeChild(t);ok();})}else{var t=document.createElement('textarea');t.value=c;document.body.appendChild(t);t.select();document.execCommand('copy');document.body.removeChild(t);ok();}">
+            <i class="far fa-copy"></i> 复制此码
+          </button>
+        </div>` : `<div style="font-size:11px;color:var(--muted);margin-top:6px;">⚠️ 暂无改枪码</div>`}
+      </div>`;
+    });
+    html += `</div>`;
+    return html;
+  };
+
   modal.innerHTML = `
-    <div class="modal-content" style="max-width: 680px; width: 95%; max-height: 85vh; overflow-y: auto; padding: 20px; animation: modalSlideIn 0.25s ease-out;">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px;">
-        <h3 style="font-family: 'ZCOOL QingKe HuangYou', sans-serif; font-size: 22px; color: var(--accent); margin: 0;">
-          <i class="fas fa-gun" style="margin-right: 8px;"></i>${plan.name || 'AI推荐方案'}
+    <div class="modal-content" style="max-width:680px; width:95%; max-height:85vh; overflow-y:auto; padding:20px; animation:modalSlideIn 0.25s ease-out;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px;">
+        <h3 style="font-family:'ZCOOL QingKe HuangYou',sans-serif; font-size:22px; color:var(--accent); margin:0;">
+          <i class="fas fa-gun" style="margin-right:8px;"></i>${plan.name || 'AI推荐方案'}
         </h3>
-        <span style="font-size: 24px; font-weight: 900; color: var(--accent);">${plan.totalPrice} 万</span>
+        <span style="font-size:24px; font-weight:900; color:var(--accent);">${plan.totalPrice} 万</span>
       </div>
-      <div style="background: var(--surface); border-radius: 12px; padding: 10px 14px; margin-bottom: 18px; font-size: 13px; color: var(--muted); border: 1px solid var(--border);">
-        <i class="fas fa-lightbulb" style="color: #FFD700; margin-right: 6px;"></i>
-        ${plan.scenario ? `场景：${plan.scenario} · ` : ''}AI 精算配装，点击改枪码旁的按钮可直接复制。
+      <div style="background:var(--surface); border-radius:12px; padding:10px 14px; margin-bottom:18px; font-size:13px; color:var(--muted); border:1px solid var(--border);">
+        <i class="fas fa-lightbulb" style="color:#FFD700; margin-right:6px;"></i>
+        ${plan.scenario ? `场景：${plan.scenario} · ` : ''}AI 精算配装，点击按钮可直接复制改枪码。
       </div>
-      ${createSection('🔫 主武器', 'fa-gun', plan.weapons, true)}
-      ${createSection('🛡️ 护甲', 'fa-shield-halved', plan.armors)}
-      ${createSection('⛑️ 头盔', 'fa-helmet-safety', plan.helmets)}
-      ${createSection('🎒 背包/胸挂', 'fa-backpack', plan.backpacks)}
-      ${createSection('💊 药品', 'fa-medkit', plan.medicine)}
-      ${createSection('🔫 子弹', 'fa-bolt', plan.ammo)}
-      ${createSection('🔧 配件', 'fa-wrench', plan.parts)}
-      ${createSection('📦 其他', 'fa-tools', plan.other)}
-      <div style="background: var(--surface); border-radius: 12px; padding: 12px; margin-bottom: 18px; border: 1px solid var(--border);">
-        <h4 style="font-size: 15px; font-weight: 700; margin: 0 0 6px; color: var(--accent);">
-          <i class="fas fa-sliders-h" style="margin-right: 8px;"></i>🎯 精校建议
+      ${renderSection('🔫 主武器', 'fa-gun', plan.weapons, true)}
+      ${renderSection('🛡️ 护甲', 'fa-shield-halved', plan.armors)}
+      ${renderSection('⛑️ 头盔', 'fa-helmet-safety', plan.helmets)}
+      ${renderSection('🎒 背包/胸挂', 'fa-backpack', plan.backpacks)}
+      ${renderSection('💊 药品', 'fa-medkit', plan.medicine)}
+      ${renderSection('🔫 子弹', 'fa-bolt', plan.ammo)}
+      ${renderSection('🔧 配件', 'fa-wrench', plan.parts)}
+      ${renderSection('📦 其他', 'fa-tools', plan.other)}
+      <div style="background:var(--surface); border-radius:12px; padding:12px; margin-bottom:18px; border:1px solid var(--border);">
+        <h4 style="font-size:15px; font-weight:700; margin:0 0 6px; color:var(--accent);">
+          <i class="fas fa-sliders-h" style="margin-right:8px;"></i>🎯 精校建议
         </h4>
-        <div style="font-size: 13px; color: var(--muted);">${calibrationText}</div>
+        <div style="font-size:13px; color:var(--muted);">根据后坐力方向微调枪口制退器，拉满垂直后坐控制，其余点散布。</div>
       </div>
-      <button class="btn-ghost" style="width: 100%; padding: 12px; margin-top: 8px; font-size: 14px;" 
+      <button class="btn-ghost" style="width:100%; padding:12px; margin-top:8px; font-size:14px;"
         onclick="this.closest('.modal-overlay').classList.remove('active'); setTimeout(() => this.closest('.modal-overlay').remove(), 200);">
         关闭
       </button>
@@ -24091,9 +24332,7 @@ function showAIDetail(index) {
   document.body.appendChild(modal);
   requestAnimationFrame(() => modal.classList.add('active'));
 }
-
-
-// 单码复制
+// 单码复制（保持不变）
 function copySingleCode(code) {
   if (!code) return;
   if (navigator.clipboard) {
@@ -24370,44 +24609,73 @@ async function initBudgetLoadouts() {
 }
 // 增强版模式切换（修复按钮状态与视图同步）
 function switchBudgetMode(mode) {
-  currentBudgetMode = mode;
-  const recBtn = document.getElementById('modeRecommendBtn');
-  const browseBtn = document.getElementById('modeBrowseBtn');
-  const recView = document.getElementById('budgetRecommendView');
-  const browseView = document.getElementById('budgetBrowseView');
-  
-  if (!recBtn || !browseBtn || !recView || !browseView) {
-    console.warn('DOM 元素未就绪，稍后重试');
-    setTimeout(() => switchBudgetMode(mode), 50);
-    return;
-  }
-  
-  // 更新按钮样式
-  if (mode === 'recommend') {
-    recBtn.style.background = 'var(--accent)';
-    recBtn.style.color = 'white';
-    browseBtn.style.background = 'transparent';
-    browseBtn.style.color = 'var(--muted)';
-    recView.style.display = 'block';
-    browseView.style.display = 'none';
-    // 只有数据准备好后才生成推荐，避免空白
-    if (budgetDataReady && typeof BUDGET_LOADOUTS !== 'undefined') {
-      generateRecommendations();
+    currentBudgetMode = mode;
+    const recBtn = document.getElementById('modeRecommendBtn');
+    const browseBtn = document.getElementById('modeBrowseBtn');
+    const recView = document.getElementById('budgetRecommendView');
+    const browseView = document.getElementById('budgetBrowseView');
+
+    if (!recBtn || !browseBtn || !recView || !browseView) {
+        console.warn('DOM 元素未就绪，稍后重试');
+        setTimeout(() => switchBudgetMode(mode), 50);
+        return;
+    }
+
+    // 更新按钮样式
+    if (mode === 'recommend') {
+        recBtn.style.background = 'var(--accent)';
+        recBtn.style.color = 'white';
+        browseBtn.style.background = 'transparent';
+        browseBtn.style.color = 'var(--muted)';
+        recView.style.display = 'block';
+        browseView.style.display = 'none';
     } else {
-      setTimeout(() => generateRecommendations(), 100);
+        browseBtn.style.background = 'var(--accent)';
+        browseBtn.style.color = 'white';
+        recBtn.style.background = 'transparent';
+        recBtn.style.color = 'var(--muted)';
+        recView.style.display = 'none';
+        browseView.style.display = 'block';
     }
-  } else {
-    browseBtn.style.background = 'var(--accent)';
-    browseBtn.style.color = 'white';
-    recBtn.style.background = 'transparent';
-    recBtn.style.color = 'var(--muted)';
-    recView.style.display = 'none';
-    browseView.style.display = 'block';
-    if (budgetDataReady && typeof renderBudgetLoadouts === 'function') {
-      renderBudgetLoadouts();
+
+    // ⭐ 关键：控制热门方案面板和AI面板的显示
+    // 使用 setTimeout 确保视图切换完成后再操作
+    setTimeout(() => {
+        const hotPanel = document.getElementById('hotRecommendPanel');
+        const aiPanel = document.getElementById('aiLoadoutPanel');
+
+        if (mode === 'recommend') {
+            // 智能推荐模式下隐藏
+            if (hotPanel) hotPanel.style.display = 'none';
+            if (aiPanel) aiPanel.style.display = 'none';
+        } else {
+            // 自由搭配模式下强制显示
+            if (hotPanel) {
+                hotPanel.style.display = 'block';
+                console.log('✅ 热门方案面板已显示');
+            } else {
+                console.warn('❌ 找不到 hotRecommendPanel');
+            }
+            if (aiPanel) {
+                aiPanel.style.display = 'block';
+                console.log('✅ AI配装面板已显示');
+            } else {
+                console.warn('❌ 找不到 aiLoadoutPanel');
+            }
+        }
+    }, 50);
+
+    // 如果数据已准备好，渲染对应视图
+    if (budgetDataReady && typeof BUDGET_LOADOUTS !== 'undefined') {
+        if (mode === 'recommend') {
+            generateRecommendations();
+        } else {
+            renderBudgetLoadouts();
+        }
     }
-  }
 }
+
+
 
 // 修改刷新函数，确保刷新后智能推荐也能更新
 const originalRefresh = refreshBudgetLoadouts;
@@ -27315,6 +27583,20 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 }
 
+
+@keyframes globalToastIn {
+  from { opacity: 0; transform: translateX(-50%) translateY(20px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+@keyframes globalToastOut {
+  from { opacity: 1; transform: translateX(-50%) translateY(0); }
+  to   { opacity: 0; transform: translateX(-50%) translateY(20px); }
+}
+
+
+@media (max-width: 640px) {
+  #budgetLoadoutGrid { grid-template-columns: 1fr !important; }
+}
 
 
 </style>
