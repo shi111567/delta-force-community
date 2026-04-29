@@ -6033,59 +6033,163 @@ body {
       </div>
     </div>
 
-    <!-- 装备选择区 (带搜索) -->
-    <details class="mb-4" open>
-      <summary class="text-sm font-bold cursor-pointer" style="color: var(--accent);">🔧 自选装备偏好 (点击收起)</summary>
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3">
-        <div>
-          <label class="text-xs font-bold block mb-1">🔫 主武器</label>
-          <input type="text" id="aiWeaponInput" placeholder="输入或选择武器" list="aiWeaponsList" class="w-full p-2 rounded-lg text-sm" style="background: var(--surface); border: 1px solid var(--border);">
-          <datalist id="aiWeaponsList"></datalist>
-        </div>
-        <div>
-          <label class="text-xs font-bold block mb-1">🛡️ 护甲</label>
-          <input type="text" id="aiArmorInput" placeholder="输入或选择护甲" list="aiArmorsList" class="w-full p-2 rounded-lg text-sm" style="background: var(--surface); border: 1px solid var(--border);">
-         <datalist id="aiArmorsList"></datalist>
-        </div>
-        <div>
-          <label class="text-xs font-bold block mb-1">⛑️ 头盔</label>
-          <input type="text" id="aiHelmetInput" placeholder="输入或选择头盔" list="aiHelmetsList" class="w-full p-2 rounded-lg text-sm" style="background: var(--surface); border: 1px solid var(--border);">
-          <datalist id="aiHelmetsList"></datalist>
-        </div>
-        <div>
-          <label class="text-xs font-bold block mb-1">🎒 背包/胸挂</label>
-          <input type="text" id="aiBackpackInput" placeholder="输入或选择背包" list="aiBackpacksList" class="w-full p-2 rounded-lg text-sm" style="background: var(--surface); border: 1px solid var(--border);">
-          <datalist id="aiBackpacksList"></datalist>
-        </div>
-        <div>
-          <label class="text-xs font-bold block mb-1">💊 药品</label>
-          <input type="text" id="aiMedicineInput" placeholder="输入或选择药品" list="aiMedicineList" class="w-full p-2 rounded-lg text-sm" style="background: var(--surface); border: 1px solid var(--border);">
-          <datalist id="aiMedicineList"></datalist>
-        </div>
-        <div>
-          <label class="text-xs font-bold block mb-1">🔫 子弹</label>
-          <input type="text" id="aiAmmoInput" placeholder="输入或选择子弹" list="aiAmmoList" class="w-full p-2 rounded-lg text-sm" style="background: var(--surface); border: 1px solid var(--border);">
-          <datalist id="aiAmmoList"></datalist>
-        </div>
-        <div>
-          <label class="text-xs font-bold block mb-1">🔧 配件</label>
-          <input type="text" id="aiPartsInput" placeholder="输入或选择配件" list="aiPartsList" class="w-full p-2 rounded-lg text-sm" style="background: var(--surface); border: 1px solid var(--border);">
-          <datalist id="aiPartsList"></datalist>
-        </div>
-        <div>
-          <label class="text-xs font-bold block mb-1">🔧 其他</label>
-          <input type="text" id="aiOtherInput" placeholder="输入或选择其他物品" list="aiOtherList" class="w-full p-2 rounded-lg text-sm" style="background: var(--surface); border: 1px solid var(--border);">
-          <datalist id="aiOtherList"></datalist>
-        </div>
-      </div>
-    </details>
-
-    <button class="btn-warm w-full py-3 text-base font-bold" onclick="aiGenerate()">
-      <i class="fas fa-magic mr-2"></i> AI 生成推荐方案
-    </button>
-    <div id="aiResult" class="mt-4 space-y-3"></div>
+  <!-- 装备选择区 (改为移动端友好的 select 下拉) -->
+<details class="mb-4" open>
+  <summary class="text-sm font-bold cursor-pointer" style="color: var(--accent);">🔧 自选装备偏好 (点击收起)</summary>
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3">
+    
+    <div>
+      <label class="text-xs font-bold block mb-1">🔫 主武器</label>
+      <select id="aiWeapon" class="w-full p-2 rounded-lg text-sm" style="background: var(--surface); border: 1px solid var(--border); color: var(--text);">
+        <option value="any">不限</option>
+        <option value="M4A1">M4A1</option>
+        <option value="K416">K416</option>
+        <option value="AKM">AKM</option>
+        <option value="SCAR-H">SCAR-H</option>
+        <option value="AUG">AUG</option>
+        <option value="AR57">AR57</option>
+        <option value="G3">G3</option>
+        <option value="MCX LT">MCX LT</option>
+        <option value="PTR-32">PTR-32</option>
+        <option value="腾龙突击步枪">腾龙突击步枪</option>
+        <option value="AS Val">AS Val</option>
+        <option value="M7">M7</option>
+        <option value="MK47">MK47</option>
+        <option value="K437">K437</option>
+        <option value="MP5">MP5</option>
+        <option value="MP7">MP7</option>
+        <option value="Vector">Vector</option>
+        <option value="UZI">UZI</option>
+        <option value="P90">P90</option>
+        <option value="勇士冲锋枪">勇士冲锋枪</option>
+        <option value="SR-3M">SR-3M</option>
+        <option value="AWM">AWM</option>
+        <option value="M82A1">M82A1</option>
+        <option value="R93">R93</option>
+        <option value="SR-25">SR-25</option>
+        <option value="M14">M14</option>
+        <option value="SKS">SKS</option>
+        <option value="VSS">VSS</option>
+        <option value="PKM">PKM</option>
+        <option value="M249">M249</option>
+        <option value="MG4">MG4</option>
+        <option value="FS-12">FS-12</option>
+        <option value="S12K">S12K</option>
+        <option value="M1014">M1014</option>
+        <option value="M870">M870</option>
+      </select>
+    </div>
+    
+    <div>
+      <label class="text-xs font-bold block mb-1">🛡️ 护甲</label>
+      <select id="aiArmor" class="w-full p-2 rounded-lg text-sm" style="background: var(--surface); border: 1px solid var(--border); color: var(--text);">
+        <option value="any">不限</option>
+        <option value="2级轻便甲">2级轻便甲</option>
+        <option value="3级防弹背心">3级防弹背心</option>
+        <option value="3级甲">3级甲</option>
+        <option value="射手战术背心">射手战术背心</option>
+        <option value="蝰蛇轻型">蝰蛇轻型</option>
+        <option value="DT-AVS防弹衣">DT-AVS防弹衣</option>
+        <option value="四级甲">四级甲</option>
+        <option value="五级甲">五级甲</option>
+        <option value="六级甲">六级甲</option>
+      </select>
+    </div>
+    
+    <div>
+      <label class="text-xs font-bold block mb-1">⛑️ 头盔</label>
+      <select id="aiHelmet" class="w-full p-2 rounded-lg text-sm" style="background: var(--surface); border: 1px solid var(--border); color: var(--text);">
+        <option value="any">不限</option>
+        <option value="户外棒球帽">户外棒球帽</option>
+        <option value="MC201战术头盔">MC201战术头盔</option>
+        <option value="D6头盔">D6头盔</option>
+        <option value="4级听力头戴">4级听力头戴</option>
+        <option value="MHS战术头盔">MHS战术头盔</option>
+        <option value="GT1战术头盔">GT1战术头盔</option>
+        <option value="四级头">四级头</option>
+        <option value="五级头">五级头</option>
+        <option value="六级头">六级头</option>
+      </select>
+    </div>
+    
+    <div>
+      <label class="text-xs font-bold block mb-1">🎒 背包/胸挂</label>
+      <select id="aiBackpack" class="w-full p-2 rounded-lg text-sm" style="background: var(--surface); border: 1px solid var(--border); color: var(--text);">
+        <option value="any">不限</option>
+        <option value="强袭战术背心">强袭战术背心</option>
+        <option value="战术快拆背包">战术快拆背包</option>
+        <option value="野战背包">野战背包</option>
+        <option value="GIR野战胸挂">GIR野战胸挂</option>
+        <option value="MAP侦察背包">MAP侦察背包</option>
+      </select>
+    </div>
+    
+    <div>
+      <label class="text-xs font-bold block mb-1">💊 药品</label>
+      <select id="aiMedicine" class="w-full p-2 rounded-lg text-sm" style="background: var(--surface); border: 1px solid var(--border); color: var(--text);">
+        <option value="any">不限</option>
+        <option value="标准医疗包">标准医疗包</option>
+        <option value="高级医疗包">高级医疗包</option>
+        <option value="战地医疗箱">战地医疗箱</option>
+        <option value="体能强化剂">体能强化剂</option>
+        <option value="E型滤毒罐">E型滤毒罐</option>
+      </select>
+    </div>
+    
+    <div>
+      <label class="text-xs font-bold block mb-1">🔫 子弹</label>
+      <select id="aiAmmo" class="w-full p-2 rounded-lg text-sm" style="background: var(--surface); border: 1px solid var(--border); color: var(--text);">
+        <option value="any">不限</option>
+        <option value="0级弹 (FMJ)">0级弹</option>
+        <option value="1级穿甲弹">1级穿甲弹</option>
+        <option value="2级穿甲弹">2级穿甲弹</option>
+        <option value="3级穿甲弹 (M855)">3级穿甲弹</option>
+        <option value="4级穿甲弹 (M855A1)">4级穿甲弹</option>
+        <option value="5级穿甲弹 (M995)">5级穿甲弹</option>
+        <option value="6级穿甲弹">6级穿甲弹</option>
+      </select>
+    </div>
+    
+    <div>
+      <label class="text-xs font-bold block mb-1">🔧 配件</label>
+      <select id="aiParts" class="w-full p-2 rounded-lg text-sm" style="background: var(--surface); border: 1px solid var(--border); color: var(--text);">
+        <option value="any">不限</option>
+        <option value="垂直握把">垂直握把</option>
+        <option value="三角握把">三角握把</option>
+        <option value="轻量握把">轻量握把</option>
+        <option value="长枪管">长枪管</option>
+        <option value="短枪管">短枪管</option>
+        <option value="重型枪管">重型枪管</option>
+        <option value="消音器">消音器</option>
+        <option value="钛金制退器">钛金制退器</option>
+        <option value="红点瞄具">红点瞄具</option>
+        <option value="3倍镜">3倍镜</option>
+        <option value="6倍镜">6倍镜</option>
+        <option value="45发弹鼓">45发弹鼓</option>
+        <option value="快速弹匣">快速弹匣</option>
+        <option value="脚架">脚架</option>
+        <option value="红激光">红激光</option>
+        <option value="手电筒">手电筒</option>
+      </select>
+    </div>
+    
+    <div>
+      <label class="text-xs font-bold block mb-1">🔧 其他</label>
+      <select id="aiOther" class="w-full p-2 rounded-lg text-sm" style="background: var(--surface); border: 1px solid var(--border); color: var(--text);">
+        <option value="any">不限</option>
+        <option value="手雷">手雷</option>
+        <option value="烟雾弹">烟雾弹</option>
+        <option value="闪光弹">闪光弹</option>
+        <option value="燃烧瓶">燃烧瓶</option>
+        <option value="C4炸药">C4炸药</option>
+        <option value="热成像仪">热成像仪</option>
+        <option value="夜视仪">夜视仪</option>
+        <option value="军用望远镜">军用望远镜</option>
+      </select>
+    </div>
+    
   </div>
-</div>
+</details>
 
 
 
@@ -23740,7 +23844,6 @@ function toggleAIPanel() {
   if (content.style.display === 'none') {
     content.style.display = 'block';
     chevron.style.transform = 'rotate(180deg)';
-    if (!window.__aiSelectsInit) { initAISelects(); window.__aiSelectsInit = true; }
   } else {
     content.style.display = 'none';
     chevron.style.transform = 'rotate(0deg)';
@@ -23757,16 +23860,16 @@ async function aiGenerate() {
     difficulty: document.getElementById('aiDifficulty').value,
     budget: document.getElementById('aiBudget').value || 60,
     playstyle: document.getElementById('aiPlaystyle').value,
-    weapon: document.getElementById('aiWeapon').value,
-    armor: document.getElementById('aiArmor').value,
-    helmet: document.getElementById('aiHelmet').value,
-    backpack: document.getElementById('aiBackpack').value,
-    medicine: document.getElementById('aiMedicine').value,
-    ammo: document.getElementById('aiAmmo').value,
-    parts: document.getElementById('aiParts').value,
-    other: document.getElementById('aiOther').value,
+    weapon: document.getElementById('aiWeapon').value || 'any',
+    armor: document.getElementById('aiArmor').value || 'any',
+    helmet: document.getElementById('aiHelmet').value || 'any',
+    backpack: document.getElementById('aiBackpack').value || 'any',
+    medicine: document.getElementById('aiMedicine').value || 'any',
+    ammo: document.getElementById('aiAmmo').value || 'any',
+    parts: document.getElementById('aiParts').value || 'any',
+    other: document.getElementById('aiOther').value || 'any',
     model: document.getElementById('aiModel').value
-  };
+};
 
   // 本地规则推荐（快速）
   if (selections.model === 'rules') {
