@@ -2555,6 +2555,11 @@ pointer-events: auto !important;
     -webkit-font-smoothing: antialiased;        /* 保持字体清晰 */
 }
 
+
+
+
+
+
   /* 按钮动画 */
   .btn-warm {
     background: linear-gradient(135deg, #FF6B35, #FF4757);
@@ -6056,51 +6061,103 @@ body {
       <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3">
         <div>
           <label class="text-xs font-bold block mb-1">🔫 主武器</label>
-          <input type="text" id="aiWeaponInput" placeholder="输入或选择武器" list="aiWeaponsList" class="w-full p-2 rounded-lg text-sm" style="background: var(--surface); border: 1px solid var(--border);">
+
+
+          <input type="text" id="aiWeaponInput" placeholder="输入或选择武器" data-autocomplete="true" data-source="weapons" class="w-full p-2 rounded-lg text-sm" style="background: var(--surface); border: 1px solid var(--border);">
+
+
+
           <datalist id="aiWeaponsList"></datalist>
         </div>
         <div>
           <label class="text-xs font-bold block mb-1">🛡️ 护甲</label>
-          <input type="text" id="aiArmorInput" placeholder="输入或选择护甲" list="aiArmorsList" class="w-full p-2 rounded-lg text-sm" style="background: var(--surface); border: 1px solid var(--border);">
+
+
+          <input type="text" id="aiArmorInput" placeholder="输入或选择护甲" data-autocomplete="true" data-source="armors" class="w-full p-2 rounded-lg text-sm" style="background: var(--surface); border: 1px solid var(--border);">
+
+
+
          <datalist id="aiArmorsList"></datalist>
         </div>
         <div>
           <label class="text-xs font-bold block mb-1">⛑️ 头盔</label>
-          <input type="text" id="aiHelmetInput" placeholder="输入或选择头盔" list="aiHelmetsList" class="w-full p-2 rounded-lg text-sm" style="background: var(--surface); border: 1px solid var(--border);">
+
+
+          <input type="text" id="aiHelmetInput" placeholder="输入或选择头盔" data-autocomplete="true" data-source="helmets" class="w-full p-2 rounded-lg text-sm" style="background: var(--surface); border: 1px solid var(--border);">
+
+
           <datalist id="aiHelmetsList"></datalist>
         </div>
         <div>
           <label class="text-xs font-bold block mb-1">🎒 背包/胸挂</label>
-          <input type="text" id="aiBackpackInput" placeholder="输入或选择背包" list="aiBackpacksList" class="w-full p-2 rounded-lg text-sm" style="background: var(--surface); border: 1px solid var(--border);">
+
+
+          <input type="text" id="aiBackpackInput" placeholder="输入或选择背包" data-autocomplete="true" data-source="backpacks" class="w-full p-2 rounded-lg text-sm" style="background: var(--surface); border: 1px solid var(--border);">
+
+
+
           <datalist id="aiBackpacksList"></datalist>
         </div>
         <div>
           <label class="text-xs font-bold block mb-1">💊 药品</label>
-          <input type="text" id="aiMedicineInput" placeholder="输入或选择药品" list="aiMedicineList" class="w-full p-2 rounded-lg text-sm" style="background: var(--surface); border: 1px solid var(--border);">
+
+
+         <input type="text" id="aiMedicineInput" placeholder="输入或选择药品" data-autocomplete="true" data-source="medicine" class="w-full p-2 rounded-lg text-sm" style="background: var(--surface); border: 1px solid var(--border);">
+
+
           <datalist id="aiMedicineList"></datalist>
         </div>
         <div>
           <label class="text-xs font-bold block mb-1">🔫 子弹</label>
-          <input type="text" id="aiAmmoInput" placeholder="输入或选择子弹" list="aiAmmoList" class="w-full p-2 rounded-lg text-sm" style="background: var(--surface); border: 1px solid var(--border);">
+
+
+          <input type="text" id="aiAmmoInput" placeholder="输入或选择子弹" data-autocomplete="true" data-source="ammo" class="w-full p-2 rounded-lg text-sm" style="background: var(--surface); border: 1px solid var(--border);">
+
+
           <datalist id="aiAmmoList"></datalist>
         </div>
         <div>
           <label class="text-xs font-bold block mb-1">🔧 配件</label>
-          <input type="text" id="aiPartsInput" placeholder="输入或选择配件" list="aiPartsList" class="w-full p-2 rounded-lg text-sm" style="background: var(--surface); border: 1px solid var(--border);">
+
+
+          <input type="text" id="aiPartsInput" placeholder="输入或选择配件" data-autocomplete="true" data-source="parts" class="w-full p-2 rounded-lg text-sm" style="background: var(--surface); border: 1px solid var(--border);">
+
+
           <datalist id="aiPartsList"></datalist>
         </div>
         <div>
           <label class="text-xs font-bold block mb-1">🔧 其他</label>
-          <input type="text" id="aiOtherInput" placeholder="输入或选择其他物品" list="aiOtherList" class="w-full p-2 rounded-lg text-sm" style="background: var(--surface); border: 1px solid var(--border);">
+
+
+          <input type="text" id="aiOtherInput" placeholder="输入或选择其他物品" data-autocomplete="true" data-source="other" class="w-full p-2 rounded-lg text-sm" style="background: var(--surface); border: 1px solid var(--border);">
+
+
           <datalist id="aiOtherList"></datalist>
         </div>
       </div>
     </details>
 
-    <button class="btn-warm w-full py-3 text-base font-bold" onclick="aiGenerate()">
-      <i class="fas fa-magic mr-2"></i> AI 生成推荐方案
-    </button>
-    <div id="aiResult" class="mt-4 space-y-3"></div>
+   <div class="flex gap-2 mt-3" style="position: relative; z-index: 1; min-height: 48px; overflow: visible;">
+  <button class="btn-warm flex-1 py-3 text-base font-bold" id="aiGenerateBtn"
+    style="background: linear-gradient(135deg, #FF6B35, #FF4757) !important; color: white !important; border: none !important; border-radius: 12px !important; padding: 12px 24px !important; box-shadow: 0 2px 10px rgba(255,107,53,0.3) !important;"
+    onclick="aiGenerate()">
+    <i class="fas fa-magic mr-2"></i> AI 生成推荐方案
+  </button>
+  <button class="btn-ghost py-3 px-4 text-base font-bold" id="aiCancelBtn"
+    style="background: transparent !important; color: var(--text) !important; border: 1.5px solid var(--border) !important; border-radius: 12px !important; padding: 12px 24px !important; display:none !important; position: relative; z-index: 2;"
+    onclick="cancelAIGeneration()">
+    <i class="fas fa-times mr-2"></i> 取消
+  </button>
+</div>
+
+
+<div id="aiResult" class="mt-4 space-y-3"></div>   <!-- 注意添加这一行 -->
+
+
+  <button class="btn-ghost py-3 px-4 text-base font-bold hidden" id="aiCancelBtn" onclick="cancelAIGeneration()">
+    <i class="fas fa-times mr-2"></i> 取消
+  </button>
+</div>
   </div>
 </div>
 
@@ -14986,9 +15043,9 @@ case 'budgetLoadout':
 
 
 
-    case 'tacticalEye':
-      window.open('tactical-eye.html', '_blank');
-      break;
+    case 'tacticalAcademy':
+  openTacticalAcademy();
+  break;
 
 
     default:
@@ -23759,37 +23816,52 @@ function toggleAIPanel() {
 }
 
 // 生成方案
-async function aiGenerate() {
-  const resultEl = document.getElementById('aiResult');
-  resultEl.innerHTML = '<div class="text-center py-8 text-sm" style="color: var(--muted);"><i class="fas fa-spinner fa-pulse mr-2"></i>AI 正在分析最佳配装...</div>';
+let aiAbortController = null;
 
+async function aiGenerate() {
+  const generateBtn = document.getElementById('aiGenerateBtn');
+  const cancelBtn = document.getElementById('aiCancelBtn');
+  const resultEl = document.getElementById('aiResult');
+  
+  if (aiAbortController) aiAbortController.abort();
+  aiAbortController = new AbortController();
+  
+  generateBtn.disabled = true;
+  cancelBtn.style.display = 'inline-flex';   // 显示取消按钮
+  
+  if (resultEl) resultEl.innerHTML = '<div class="text-center py-8 text-sm" style="color: var(--muted);"><i class="fas fa-spinner fa-pulse mr-2"></i>AI 正在分析最佳配装...</div>';
+
+  // 读取选项（保持不变）
   const selections = {
-    map: document.getElementById('aiMap').value,
-    difficulty: document.getElementById('aiDifficulty').value,
-    budget: document.getElementById('aiBudget').value || 60,
-    playstyle: document.getElementById('aiPlaystyle').value,
-    weapon: document.getElementById('aiWeapon').value,
-    armor: document.getElementById('aiArmor').value,
-    helmet: document.getElementById('aiHelmet').value,
-    backpack: document.getElementById('aiBackpack').value,
-    medicine: document.getElementById('aiMedicine').value,
-    ammo: document.getElementById('aiAmmo').value,
-    parts: document.getElementById('aiParts').value,
-    other: document.getElementById('aiOther').value,
-    model: document.getElementById('aiModel').value
+    map: document.getElementById('aiMap')?.value || 'all',
+    difficulty: document.getElementById('aiDifficulty')?.value || '绝密',
+    budget: document.getElementById('aiBudget')?.value || '60',
+    playstyle: document.getElementById('aiPlaystyle')?.value || '均衡',
+    weapon: document.getElementById('aiWeaponInput')?.value?.trim() || 'any',
+    armor: document.getElementById('aiArmorInput')?.value?.trim() || 'any',
+    helmet: document.getElementById('aiHelmetInput')?.value?.trim() || 'any',
+    backpack: document.getElementById('aiBackpackInput')?.value?.trim() || 'any',
+    medicine: document.getElementById('aiMedicineInput')?.value?.trim() || 'any',
+    ammo: document.getElementById('aiAmmoInput')?.value?.trim() || 'any',
+    parts: document.getElementById('aiPartsInput')?.value?.trim() || 'any',
+    other: document.getElementById('aiOtherInput')?.value?.trim() || 'any',
+    model: document.getElementById('aiModel')?.value || 'rules'
   };
 
-  // 本地规则推荐（快速）
-  if (selections.model === 'rules') {
-    const plans = generateRulesRecommendation(selections);
-    renderAIResults(plans);
-    return;
-  }
+  try {
+    const inputIds = ['aiWeaponInput','aiArmorInput','aiHelmetInput','aiBackpackInput','aiMedicineInput','aiAmmoInput','aiPartsInput','aiOtherInput'];
+    let userChanged = false;
+    const changeHandler = () => { userChanged = true; };
+    inputIds.forEach(id => document.getElementById(id)?.addEventListener('input', changeHandler, { once: true }));
 
-  // === DeepSeek AI 推荐 ===
-  // 内置 API Key（你可以替换成自己的）
-  const API_KEY = 'sk-pepolnjfpyivqhhizuyugmpnehusxzvkdynooppgdggoqmtp';  // 请替换成你的真实 Key
-  const prompt = `你是三角洲行动配装专家。请根据以下条件推荐3套最佳配装方案（每套必须包含武器、护甲、头盔、背包、药品、弹药、配件、其他，且总价不超过预算）：
+    if (selections.model === 'rules') {
+      const plans = generateRulesRecommendation(selections);
+      if (userChanged) throw new Error('changed');
+      if (resultEl) renderAIResults(plans);
+    } else {
+      // DeepSeek 调用，保留原有 prompt
+      const API_KEY = 'sk-pepolnjfpyivqhhizuyugmpnehusxzvkdynooppgdggoqmtp';
+      const prompt = `你是三角洲行动配装专家。请根据以下条件推荐3套最佳配装方案（每套必须包含武器、护甲、头盔、背包、药品、弹药、配件、其他，且总价不超过预算）：
 地图：${selections.map}  难度：${selections.difficulty}  预算：${selections.budget}万
 偏好：${selections.playstyle}
 用户自选装备：
@@ -23797,27 +23869,42 @@ async function aiGenerate() {
   背包：${selections.backpack}  药品：${selections.medicine}
   子弹：${selections.ammo}  配件：${selections.parts}  其他：${selections.other}
 请只返回 JSON 数组，不要加任何解释。格式：[{"name":"方案名","totalPrice":数字,"weapons":[{"name":"","code":"改枪码"}],"armors":[{"name":"","price":数字}],"helmets":[{"name":"","price":数字}],"backpacks":[{"name":"","price":数字}],"medicine":[{"name":"","price":数字}],"ammo":[{"name":"","price":数字}],"parts":[{"name":"","price":数字}],"other":[{"name":"","price":数字}]}]`;
-
-  try {
-    const response = await fetch('https://api.siliconflow.cn/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${API_KEY}` },
-      body: JSON.stringify({ model: 'deepseek-ai/DeepSeek-V3', messages: [{ role: 'user', content: prompt }], temperature: 0.5, max_tokens: 2000 })
-    });
-    const data = await response.json();
-    const text = data.choices?.[0]?.message?.content;
-    if (text) {
+      const response = await fetch('https://api.siliconflow.cn/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${API_KEY}` },
+        body: JSON.stringify({ model: 'deepseek-ai/DeepSeek-V3', messages: [{ role: 'user', content: prompt }], temperature: 0.5, max_tokens: 2000 }),
+        signal: aiAbortController.signal
+      });
+      if (!response.ok) throw new Error('API请求失败');
+      const data = await response.json();
+      const text = data.choices?.[0]?.message?.content;
       const jsonMatch = text.match(/```json([\s\S]*)```/) || text.match(/(\[[\s\S]*\])/);
       const jsonStr = jsonMatch ? jsonMatch[1] || jsonMatch[0] : text;
       const plans = JSON.parse(jsonStr);
-      renderAIResults(plans);
-      return;
+      if (userChanged) throw new Error('changed');
+      if (resultEl) renderAIResults(plans);
     }
-  } catch (e) { console.warn('AI 接口调用失败，自动切换为本地规则推荐', e); }
-
-  showToast('AI 接口调用失败，已自动切换为本地规则推荐', 'warning');
-  renderAIResults(generateRulesRecommendation(selections));
+  } catch (e) {
+    if (e.name === 'AbortError') {
+      if (resultEl) resultEl.innerHTML = '<div class="text-center py-8 text-sm" style="color:var(--muted);">已取消生成</div>';
+    } else if (e.message === 'changed') {
+      if (resultEl) resultEl.innerHTML = '<div class="text-center py-8 text-sm" style="color:var(--accent);">检测到选项变更，请重新点击生成</div>';
+    } else {
+      if (resultEl) resultEl.innerHTML = '<div class="text-center py-8 text-sm" style="color:var(--muted);">生成失败：' + e.message + '</div>';
+    }
+  } finally {
+    generateBtn.disabled = false;
+    cancelBtn.style.display = 'none';   // 隐藏取消按钮
+    aiAbortController = null;
+  }
 }
+
+// 取消函数
+window.cancelAIGeneration = function() {
+  if (aiAbortController) aiAbortController.abort();
+};
+
+
 
 // 本地规则推荐
 function generateRulesRecommendation(sel) {
@@ -23953,13 +24040,25 @@ const AI_GEAR = {
 
 // 填充datalist选项
 function initAISelects() {
-  for (const [key, options] of Object.entries(AI_GEAR)) {
-    const listId = 'ai' + key.charAt(0).toUpperCase() + key.slice(1) + 'List';
+  const gearMap = {
+    aiWeapon: AI_GEAR.weapons,
+    aiArmor: AI_GEAR.armors,
+    aiHelmet: AI_GEAR.helmets,
+    aiBackpack: AI_GEAR.backpacks,
+    aiMedicine: AI_GEAR.medicine,
+    aiAmmo: AI_GEAR.ammo,
+    aiParts: AI_GEAR.parts,
+    aiOther: AI_GEAR.other
+  };
+  for (const [inputId, options] of Object.entries(gearMap)) {
+    const listId = inputId + 'List';
     const list = document.getElementById(listId);
     if (!list) continue;
     list.innerHTML = options.map(o => `<option value="${o}">${o}</option>`).join('');
   }
 }
+
+
 
 // 切换面板
 function toggleAIPanel() {
@@ -27370,66 +27469,345 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
 
-// ========== 移动端AI输入框自动替换为下拉框 ==========
-(function() {
-    // 只在需要替换时执行一次
-    if (window.__aiInputsReplaced) return;
-    window.__aiInputsReplaced = true;
+// ==================== 战术学院（完整版·站内播放·语音） ====================
+const TACTICAL_ACADEMY_DATA = {
+  operators: ['红狼','金卢娜','蜂医','威龙','牧羊人','回响','无名','白狼','黑鹰','幽灵'],
+  maps: ['零号大坝','航天基地','长弓溪谷','巴克什','坠机之地','荒漠','雪地'],
+  items: ['M4A1','K416','AWM','Vector','五级甲','热成像','医疗箱','C4炸药','烟雾弹','跑刀'],
+  points: ['A点攻防','B点狙击','撤离点','高资源点','地下通道','屋顶','桥头','楼梯口']
+};
+let academyState = { op: '', map: '', item: '', point: '' };
 
-    // 选项数据（来自 AI_GEAR）
-    const optionsMap = {
-        aiWeapon: ['不限','M4A1','K416','AKM','SCAR-H','AUG','AR57','G3','MCX LT','PTR-32','腾龙突击步枪','CAR-15','191式','QBZ95-1','AS Val','M7','MK47','K437','ASh-12','MP5','MP7','Vector','UZI','P90','勇士冲锋枪','SR-3M','SMG-45','QCQ171','AWM','M82A1','R93','SV-98','M700','MK2','SR-25','M14','SKS','VSS','PKM','M249','M250','QJB201','S12K','M1014','FS-12','M870'],
-        aiArmor: ['不限','2级轻便甲','3级防弹背心','3级甲','射手战术背心','蝰蛇轻型','DT-AVS防弹衣','四级甲','五级甲','六级甲'],
-        aiHelmet: ['不限','户外棒球帽','MC201战术头盔','D6头盔','4级听力头戴','MHS战术头盔','GT1战术头盔','四级头','五级头','六级头'],
-        aiBackpack: ['不限','强袭战术背心','战术快拆背包','野战背包','GIR野战胸挂','MAP侦察背包'],
-        aiMedicine: ['不限','标准医疗包','高级医疗包','战地医疗箱','体能强化剂','E型滤毒罐'],
-        aiAmmo: ['不限','0级弹','1级穿甲弹','2级穿甲弹','3级穿甲弹','4级穿甲弹','5级穿甲弹','6级穿甲弹'],
-        aiParts: ['不限','垂直握把','三角握把','轻量握把','长枪管','短枪管','重型枪管','消音器','钛金制退器','红点瞄具','3倍镜','6倍镜','45发弹鼓','快速弹匣','脚架','红激光','手电筒'],
-        aiOther: ['不限','手雷','烟雾弹','闪光弹','燃烧瓶','C4炸药','热成像仪','夜视仪','军用望远镜']
-    };
+function openTacticalAcademy() {
+  const existing = document.getElementById('tacticalAcademyModal');
+  if (existing) existing.remove();
 
-    function ensureSelect(id) {
-        const oldEl = document.getElementById(id + 'Input');
-        if (!oldEl) return;                       // 已经是 select 或不存在
-        const parent = oldEl.parentNode;
-        const select = document.createElement('select');
-        select.id = id;
-        select.className = oldEl.className;
-        select.setAttribute('style', oldEl.getAttribute('style') || '');
-        
-        // 填充选项
-        const options = optionsMap[id] || [];
-        options.forEach(opt => {
-            const option = document.createElement('option');
-            option.value = opt === '不限' ? 'any' : opt;
-            option.textContent = opt;
-            select.appendChild(option);
-        });
-        
-        // 替换元素
-        parent.replaceChild(select, oldEl);
-        // 移除关联的 <datalist>
-        const list = document.getElementById(id + 'List');
-        if (list) list.remove();
-    }
+  const modal = document.createElement('div');
+  modal.id = 'tacticalAcademyModal';
+  modal.className = 'modal-overlay active';
+  modal.style.zIndex = '10000';
+  modal.innerHTML = `
+    <div class="modal-content" style="max-width:860px; width:95%; max-height:90vh; overflow-y:auto; border-radius:20px; padding:20px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+        <h2 style="font-family:'ZCOOL QingKe HuangYou',sans-serif; font-size:24px; color:var(--accent);">
+          <i class="fas fa-graduation-cap"></i> 战术学院
+        </h2>
+        <button onclick="document.getElementById('tacticalAcademyModal').remove()" 
+          style="background:var(--surface); border:none; width:36px; height:36px; border-radius:50%; font-size:18px;">✕</button>
+      </div>
 
-    // 等待 DOM 完全加载后执行
-    function doReplace() {
-        const panel = document.getElementById('aiPanelContent');
-        if (!panel) {
-            setTimeout(doReplace, 200);
-            return;
-        }
-        ['aiWeapon','aiArmor','aiHelmet','aiBackpack','aiMedicine','aiAmmo','aiParts','aiOther'].forEach(ensureSelect);
-    }
+      <div id="academyVideoPlayer" style="display:none; margin-bottom:20px; background:#000; border-radius:12px; overflow:hidden; position:relative;">
+        <iframe id="academyIframe" style="width:100%; height:400px;" src="" frameborder="0" allowfullscreen></iframe>
+        <button onclick="closeAcademyPlayer()" style="position:absolute; top:10px; right:10px; background:rgba(0,0,0,0.7); color:white; border:none; border-radius:50%; width:36px; height:36px; font-size:18px;">✕</button>
+      </div>
 
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', doReplace);
+      <div class="academy-filter-container">
+        <div class="filter-row"><span>🧑‍✈️ 干员</span><div class="tag-list" id="tagOps"></div></div>
+        <div class="filter-row"><span>🗺️ 地图</span><div class="tag-list" id="tagMaps"></div></div>
+        <div class="filter-row"><span>📦 道具/枪械</span><div class="tag-list" id="tagItems"></div></div>
+        <div class="filter-row"><span>📍 点位</span><div class="tag-list" id="tagPoints"></div></div>
+      </div>
+
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <span style="color:var(--muted); font-size:13px;">点选标签，精准学习</span>
+        <button class="btn-ghost text-xs px-3 py-1" onclick="refreshAcademyVideos()"><i class="fas fa-sync-alt"></i> 刷新</button>
+      </div>
+
+      <div id="academyVideoList" class="masonry" style="min-height:200px;"></div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  renderAcademyTags();
+  loadAcademyVideos();
+}
+
+function renderAcademyTags() {
+  ['Ops','Maps','Items','Points'].forEach(t => {
+    const key = t === 'Ops' ? 'operators' : t === 'Maps' ? 'maps' : t === 'Items' ? 'items' : 'points';
+    const container = document.getElementById('tag'+t);
+    container.innerHTML = TACTICAL_ACADEMY_DATA[key].map(v => {
+      const active = academyState[key.slice(0,-1)] === v ? ' academy-tag-active' : '';
+      return `<span class="academy-tag${active}" onclick="selectAcademyFilter('${t}', '${v}')">${v}</span>`;
+    }).join('');
+  });
+}
+
+function selectAcademyFilter(type, value) {
+  const key = type === 'Ops' ? 'op' : type === 'Maps' ? 'map' : type === 'Items' ? 'item' : 'point';
+  academyState[key] = academyState[key] === value ? '' : value;
+  renderAcademyTags();
+  loadAcademyVideos();
+}
+
+function buildAcademyKeyword() {
+  let kw = '三角洲行动';
+  if (academyState.op) kw += ' ' + academyState.op;
+  if (academyState.map) kw += ' ' + academyState.map;
+  if (academyState.item) kw += ' ' + academyState.item;
+  if (academyState.point) kw += ' ' + academyState.point + '点位';
+  kw += ' 教学';
+  return kw.trim();
+}
+
+async function loadAcademyVideos() {
+  const container = document.getElementById('academyVideoList');
+  if (!container) return;
+  container.innerHTML = '<div class="text-center py-8" style="color:var(--muted);"><i class="fas fa-spinner fa-pulse"></i> 正在搜索教程...</div>';
+  const keyword = buildAcademyKeyword();
+  try {
+    const apiUrl = `https://api.bilibili.com/x/web-interface/search/type?search_type=video&keyword=${encodeURIComponent(keyword)}&page=1`;
+    const proxy = `https://api.allorigins.win/raw?url=${encodeURIComponent(apiUrl)}`;
+    const response = await fetch(proxy);
+    const data = await response.json();
+    let videos = [];
+    if (data.code === 0 && data.data?.result) videos = data.data.result;
+    if (videos.length > 0) {
+      renderAcademyVideos(videos);
     } else {
-        doReplace();
+      container.innerHTML = '<div class="text-center py-8" style="color:var(--muted);">未找到相关教程，试试调整标签</div>';
     }
+  } catch (e) {
+    container.innerHTML = '<div class="text-center py-8" style="color:var(--muted);">搜索失败，请稍后重试</div>';
+  }
+}
+
+function renderAcademyVideos(videos) {
+  const container = document.getElementById('academyVideoList');
+  if (!container) return;
+  container.innerHTML = videos.map(v => {
+    const title = v.title || '';
+    const author = v.author || '';
+    const play = v.play || 0;
+    const bvid = v.bvid || '';
+    const pic = v.pic || '';
+    const duration = v.duration || '';
+    const mins = Math.floor(duration / 60);
+    const secs = duration % 60;
+    const durationStr = duration ? `${mins}:${secs.toString().padStart(2,'0')}` : '';
+    return `
+    <div class="masonry-item">
+      <div class="academy-video-card" onclick="playAcademyVideo('${bvid}')">
+        <div class="academy-thumb">
+          <img src="${pic}" alt="${title}" onerror="this.style.display='none'">
+          ${durationStr ? `<span class="academy-duration">${durationStr}</span>` : ''}
+          <div class="academy-play-overlay"><i class="fas fa-play"></i></div>
+        </div>
+        <div class="academy-info">
+          <h4 class="academy-title">${title}</h4>
+          <div class="academy-meta">
+            <span><i class="fas fa-user"></i> ${author}</span>
+            <span><i class="fas fa-play"></i> ${formatAcademyNumber(play)}</span>
+            <button class="academy-tts-btn" onclick="event.stopPropagation(); speakAcademyText('${title.replace(/'/g, '\\\'')}')" title="朗读标题"><i class="fas fa-volume-up"></i></button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+window.playAcademyVideo = function(bvid) {
+  const player = document.getElementById('academyVideoPlayer');
+  const iframe = document.getElementById('academyIframe');
+  if (player && iframe) {
+    iframe.src = `https://player.bilibili.com/player.html?bvid=${bvid}&autoplay=1`;
+    player.style.display = 'block';
+    player.scrollIntoView({ behavior: 'smooth' });
+  }
+};
+
+window.closeAcademyPlayer = function() {
+  const player = document.getElementById('academyVideoPlayer');
+  const iframe = document.getElementById('academyIframe');
+  if (player) player.style.display = 'none';
+  if (iframe) iframe.src = '';
+};
+
+function refreshAcademyVideos() { loadAcademyVideos(); }
+
+function formatAcademyNumber(num) {
+  if (num >= 10000) return (num / 10000).toFixed(1) + '万';
+  return num.toString();
+}
+
+function speakAcademyText(text) {
+  if ('speechSynthesis' in window) {
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.lang = 'zh-CN';
+    utter.rate = 1.0;
+    speechSynthesis.cancel();
+    speechSynthesis.speak(utter);
+  }
+}
+
+// 立即注入样式（不要放在别处）
+(function addAcademyStyle() {
+  if (document.getElementById('academy-style-id')) return;
+  const style = document.createElement('style');
+  style.id = 'academy-style-id';
+  style.textContent = `
+    .academy-filter-container { margin-bottom: 16px; display: flex; flex-direction: column; gap: 12px; }
+    .filter-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .filter-row > span { font-size: 13px; font-weight: 600; min-width: 70px; color: var(--text); }
+    .tag-list { display: flex; flex-wrap: wrap; gap: 6px; }
+    .academy-tag {
+      padding: 6px 14px; background: var(--surface); border: 1px solid var(--border);
+      border-radius: 30px; font-size: 12px; font-weight: 500; cursor: pointer;
+      transition: all 0.2s; white-space: nowrap; user-select: none;
+    }
+    .academy-tag:hover, .academy-tag-active {
+      background: var(--accent); color: white; border-color: var(--accent);
+    }
+    .academy-video-card {
+      background: var(--card); border-radius: 14px; overflow: hidden; cursor: pointer;
+      border: 1px solid var(--border); transition: all 0.3s;
+    }
+    .academy-video-card:hover { transform: translateY(-4px); box-shadow: 0 12px 24px var(--glow); }
+    .academy-thumb { position: relative; overflow: hidden; height: 140px; background: var(--surface); }
+    .academy-thumb img { width: 100%; height: 100%; object-fit: cover; }
+    .academy-duration {
+      position: absolute; bottom: 6px; right: 6px; background: rgba(0,0,0,0.7); color: #fff;
+      padding: 2px 8px; border-radius: 20px; font-size: 11px;
+    }
+    .academy-play-overlay {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+      width: 48px; height: 48px; background: rgba(0,0,0,0.6); border-radius: 50%;
+      display: flex; align-items: center; justify-content: center; opacity: 0; transition: 0.3s;
+    }
+    .academy-video-card:hover .academy-play-overlay { opacity: 1; }
+    .academy-play-overlay i { color: white; font-size: 22px; }
+    .academy-info { padding: 10px 12px; }
+    .academy-title { font-size: 14px; font-weight: 600; margin-bottom: 6px; display: -webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow: hidden; }
+    .academy-meta { display: flex; align-items: center; gap: 12px; font-size: 12px; color: var(--muted); }
+    .academy-tts-btn { background: none; border: none; color: var(--accent); cursor: pointer; font-size: 14px; padding: 2px; }
+    @media (max-width: 640px) {
+      .tag-list { gap: 4px; }
+      .academy-tag { padding: 5px 10px; font-size: 11px; }
+      .academy-thumb { height: 100px; }
+    }
+  `;
+  document.head.appendChild(style);
 })();
 
+
+
+// ==================== 自定义自动完成下拉（手机+电脑） ====================
+(function initCustomAutocomplete() {
+  const style = document.createElement('style');
+  style.textContent = `
+    .custom-autocomplete-wrap { position: relative; }
+    .custom-autocomplete-list {
+      position: absolute; top: 100%; left: 0; right: 0; max-height: 200px;
+      overflow-y: auto; background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; z-index: 9999; display: none; list-style: none;
+      padding: 4px 0; margin: 4px 0 0; box-shadow: 0 8px 20px var(--shadow);
+    }
+    .custom-autocomplete-item {
+      padding: 10px 16px; cursor: pointer; font-size: 14px; color: var(--text);
+      transition: background 0.15s;
+    }
+    .custom-autocomplete-item:hover, .custom-autocomplete-item.active {
+      background: var(--accent); color: white;
+    }
+    @media (max-width: 640px) {
+      .custom-autocomplete-item { padding: 12px 16px; font-size: 15px; }
+    }
+  `;
+  document.head.appendChild(style);
+
+  function initInput(input) {
+    const sourceKey = input.dataset.source;
+    if (!sourceKey || !AI_GEAR || !AI_GEAR[sourceKey]) return;
+    const options = AI_GEAR[sourceKey];
+
+    const wrap = document.createElement('div');
+    wrap.className = 'custom-autocomplete-wrap';
+    input.parentNode.insertBefore(wrap, input);
+    wrap.appendChild(input);
+
+    const list = document.createElement('ul');
+    list.className = 'custom-autocomplete-list';
+    wrap.appendChild(list);
+
+    let activeIndex = -1;
+
+    function showList(matches) {
+      list.innerHTML = '';
+      activeIndex = -1;
+      matches.forEach((text, idx) => {
+        const li = document.createElement('li');
+        li.className = 'custom-autocomplete-item';
+        li.textContent = text;
+        li.addEventListener('mousedown', (e) => {
+          e.preventDefault();
+          input.value = text;
+          list.style.display = 'none';
+          input.focus();
+        });
+        li.addEventListener('touchstart', (e) => {
+          e.preventDefault();
+          input.value = text;
+          list.style.display = 'none';
+        });
+        list.appendChild(li);
+      });
+      list.style.display = 'block';
+    }
+
+    function filter(keyword) {
+      const kw = keyword.toLowerCase();
+      const matches = options.filter(o => o.toLowerCase().includes(kw));
+      if (matches.length === 0) {
+        list.style.display = 'none';
+        return;
+      }
+      showList(matches);
+    }
+
+    input.addEventListener('input', () => filter(input.value));
+    input.addEventListener('focus', () => {
+      if (!input.value.trim()) showList(options);
+      else filter(input.value);
+    });
+
+    input.addEventListener('keydown', (e) => {
+      const items = list.querySelectorAll('.custom-autocomplete-item');
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        if (activeIndex < items.length - 1) activeIndex++;
+        else activeIndex = 0;
+        items.forEach((it, i) => it.classList.toggle('active', i === activeIndex));
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        if (activeIndex > 0) activeIndex--;
+        else activeIndex = items.length - 1;
+        items.forEach((it, i) => it.classList.toggle('active', i === activeIndex));
+      } else if (e.key === 'Enter' && activeIndex >= 0) {
+        e.preventDefault();
+        if (items[activeIndex]) {
+          input.value = items[activeIndex].textContent;
+          list.style.display = 'none';
+        }
+      } else if (e.key === 'Escape') {
+        list.style.display = 'none';
+      }
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!wrap.contains(e.target)) list.style.display = 'none';
+    });
+  }
+
+  function bindAll() {
+    document.querySelectorAll('input[data-autocomplete="true"]').forEach(initInput);
+    // 如果输入框是动态生成的，可以用 MutationObserver 再次绑定，这里先手动调一次
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bindAll);
+  } else {
+    bindAll();
+  }
+})();
 
 
 
@@ -27667,6 +28045,28 @@ document.addEventListener('DOMContentLoaded', function() {
 @media (max-width: 640px) {
   #budgetLoadoutGrid { grid-template-columns: 1fr !important; }
 }
+
+
+
+/* 只修复AI面板内的按钮变形 */
+#aiLoadoutPanel button {
+  background-image: none !important;
+  -webkit-appearance: none;
+  appearance: none;
+}
+#aiLoadoutPanel .btn-warm {
+  background: linear-gradient(135deg, #FF6B35, #FF4757) !important;
+  color: #fff !important;
+  border: none !important;
+  border-radius: 12px !important;
+  box-shadow: 0 2px 10px rgba(255,107,53,0.3) !important;
+}
+#aiLoadoutPanel .btn-ghost {
+  background: transparent !important;
+  color: var(--text) !important;
+  border: 1.5px solid var(--border) !important;
+}
+
 
 
 </style>
