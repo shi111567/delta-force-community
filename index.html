@@ -895,6 +895,41 @@ function enableHorizontalDragScroll(element) {
 
 
 /* ===== 首页轮播图 · 增强版（工具箱上方） ===== */
+
+
+
+/* ----- 战神榜悬浮特效 start ----- */
+#hero-banner {
+  position: relative;
+  overflow: hidden;
+}
+#hero-banner::before {
+  content: '🔥 全服战神榜';
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  z-index: 20;
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.9), rgba(255, 107, 53, 0.9));
+  color: #1a120b;
+  padding: 6px 16px;
+  border-radius: 30px;
+  font-weight: 900;
+  font-size: 13px;
+  letter-spacing: 1px;
+  box-shadow: 0 4px 15px rgba(255, 107, 53, 0.4);
+  animation: breatheGlow 2s infinite alternate;
+}
+@keyframes breatheGlow {
+  0% { transform: scale(1); box-shadow: 0 4px 15px rgba(255, 107, 53, 0.4); }
+  100% { transform: scale(1.05); box-shadow: 0 8px 30px rgba(255, 215, 0, 0.7); }
+}
+/* ----- 战神榜悬浮特效 end ----- */
+
+
+
+
+
+
 #homeBannerSection {
   animation: bannerFadeIn 0.5s ease-out;
 }
@@ -15055,6 +15090,23 @@ case 'budgetLoadout':
 
 
 
+// ===== 新增：获取武器属性辅助函数 =====
+function getWeaponDamage(weaponName) {
+    const w = WEAPON_DATA.find(w => w.name === weaponName);
+    return w ? w.damage : '?';
+}
+function getWeaponFireRate(weaponName) {
+    const w = WEAPON_DATA.find(w => w.name === weaponName);
+    return w ? w.fireRate : '?';
+}
+function getRecommendedAmmo(weaponName) {
+    const w = WEAPON_DATA.find(w => w.name === weaponName);
+    if (!w) return "3级弹";
+    if (w.damage >= 50) return "5级弹";
+    if (w.fireRate >= 800) return "4级弹";
+    return "3级弹";
+}
+
 
 
 // ==================== 配装推荐（数据库实时读取版） ====================
@@ -15245,86 +15297,61 @@ function getOpColor(opClass) {
 }
 
 function renderLoadoutList() {
-  const container = document.getElementById('loadoutListContainer');
-  if (!container) return;
-  // ---------- 动态生成枪械筛选按钮 ----------
-  const weaponFilterDiv = document.getElementById('weaponFilterContainer');
-  if (weaponFilterDiv) {
-    const allWeapons = [...new Set(currentLoadoutData.map(item => item.weapon).filter(Boolean))];
-    const allBtn = weaponFilterDiv.querySelector('[data-weapon="all"]');
-    weaponFilterDiv.innerHTML = '';
-    if (allBtn) weaponFilterDiv.appendChild(allBtn.cloneNode(true));
-    else {
-      const btn = document.createElement('button');
-      btn.className = 'filter-chip active'; btn.dataset.weapon = 'all';
-      btn.innerHTML = '<i class="fas fa-list"></i> 全部枪械';
-      btn.style.background = 'var(--accent)'; btn.style.color = 'white';
-      weaponFilterDiv.appendChild(btn);
+    const container = document.getElementById('loadoutListContainer');
+    if (!container) return;
+    
+    // 1. 更新枪械下拉选项（保留原有功能）
+    updateWeaponDropdownOptions();
+    
+    // 2. 重新应用筛选逻辑（复制自 applyLoadoutFilters，保持一致性）
+    let filtered = currentLoadoutData;
+    if (currentClassFilter !== 'all') filtered = filtered.filter(item => item.class === currentClassFilter);
+    if (currentWeaponFilter !== 'all') filtered = filtered.filter(item => item.weapon === currentWeaponFilter);
+    if (loadoutSearchKeyword) {
+        filtered = filtered.filter(item => 
+            item.weapon.toLowerCase().includes(loadoutSearchKeyword) ||
+            item.name.toLowerCase().includes(loadoutSearchKeyword) ||
+            item.code.toLowerCase().includes(loadoutSearchKeyword)
+        );
     }
-    allWeapons.sort().forEach(w => {
-      const btn = document.createElement('button');
-      btn.className = 'filter-chip'; btn.dataset.weapon = w;
-      btn.innerHTML = `<i class="fas fa-gun"></i> ${w}`;
-      btn.style.background = 'var(--surface)'; btn.style.color = 'var(--text)'; btn.style.border = '1px solid var(--border)';
-      weaponFilterDiv.appendChild(btn);
-    });
-    bindLoadoutFilters(); // 重新绑定事件
-  }
-  // 确保数据存在
-  if (!currentLoadoutData || currentLoadoutData.length === 0) {
-    container.innerHTML = '<div class="text-center py-6 text-xs" style="color:var(--muted);">暂无配装，请稍后重试</div>';
-    return;
-  }
+    if (currentPriceFilter === 'low') filtered = [...filtered].sort((a,b) => parsePrice(a.price) - parsePrice(b.price));
+    else if (currentPriceFilter === 'high') filtered = [...filtered].sort((a,b) => parsePrice(b.price) - parsePrice(a.price));
 
-  let filtered = currentLoadoutFilter === 'all'
-    ? currentLoadoutData
-    : currentLoadoutData.filter(item => item.class === currentLoadoutFilter);
+    // 更新结果计数
+    const countEl = document.getElementById('loadoutResultCount');
+    if (countEl) countEl.textContent = filtered.length;
 
-  // 如果筛选后为空，则显示全部数据（避免空白）
-  if (filtered.length === 0) {
-    filtered = currentLoadoutData;
-  }
+    // 3. 渲染全新卡片（核心升级：高密度 + 一键复制）
+    container.innerHTML = filtered.map(l => `
+        <div class="loadout-card" onclick="showLoadoutDetail('${l.code}')" 
+             style="display:flex; flex-direction:column; gap:6px; padding:12px; margin-bottom:10px; background:var(--card); border:1px solid var(--border); border-radius:16px; cursor:pointer; transition:0.2s;">
+            
+            <!-- 头部：兵种标签 + 超大武器名 + 价格 -->
+            <div style="display:flex; align-items:center; gap:8px;">
+                <span style="background:${getOpColor(l.class)}20; color:${getOpColor(l.class)}; padding:2px 10px; border-radius:12px; font-size:12px; font-weight:600; border:1px solid ${getOpColor(l.class)}40;">${l.class}</span>
+                <span style="font-weight:800; font-size:20px; letter-spacing:-0.5px; color:var(--text);">${l.weapon}</span>
+                ${l.price ? `<span style="margin-left:auto; font-weight:600; color:var(--accent); font-size:15px;">${l.price}</span>` : ''}
+            </div>
 
-      container.innerHTML = filtered.map(l => `
-    <div class="p-4 rounded-xl cursor-pointer transition-all duration-300 hover:shadow-lg" 
-         style="background: var(--card); border: 2px solid var(--border); margin-bottom: 12px; box-shadow: 0 4px 12px var(--shadow);"
-         onclick="showLoadoutDetail('${l.code}')">
-      
-      <!-- 头部：兵种标签 + 方案名 + 价格 -->
-      <div class="flex items-center gap-2 mb-3">
-        <span class="tag-pill text-sm font-bold" style="background: ${getOpColor(l.class)}20; color: ${getOpColor(l.class)}; border: 1px solid ${getOpColor(l.class)}40;">
-          ${l.class || '全能'}
-        </span>
-        <span class="font-bold text-base truncate" style="color: var(--text);">${l.name || '热门配装'}</span>
-        ${l.price && l.price !== '暂无报价' ? 
-          `<span class="ml-auto text-sm font-bold" style="color: var(--accent);"><i class="fas fa-coins mr-1"></i>${l.price}</span>` : ''}
-      </div>
-      
-      <!-- 枪械和配件信息 -->
-      <div class="flex items-center gap-2 mb-3 text-sm">
-        <i class="fas fa-gun" style="color: var(--accent);"></i>
-        <span style="color: var(--text);">${l.weapon || '未知枪械'}</span>
+            <!-- 数据标签化：伤害、射速、推荐弹药 -->
+            <div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:2px;">
+                <span style="border-radius:12px; padding:2px 8px; font-size:11px; background:#e74c3c20; color:#e74c3c; border:1px solid #e74c3c40;"><i class="fas fa-crosshairs" style="margin-right:4px;"></i>伤害 ${getWeaponDamage(l.weapon)}</span>
+                <span style="border-radius:12px; padding:2px 8px; font-size:11px; background:#3498db20; color:#3498db; border:1px solid #3498db40;"><i class="fas fa-clock" style="margin-right:4px;"></i>射速 ${getWeaponFireRate(l.weapon)}</span>
+                <span style="border-radius:12px; padding:2px 8px; font-size:11px; background:#2ecc7120; color:#2ecc71; border:1px solid #2ecc7140;"><i class="fas fa-bolt" style="margin-right:4px;"></i>推荐 ${getRecommendedAmmo(l.weapon)}</span>
+            </div>
 
-
-
-        <span class="mx-2" style="color: var(--border);">|</span>
-        <i class="fas fa-wrench" style="color: var(--muted);"></i>
-        <span style="color: var(--muted);" class="truncate">${l.attachments || '热门配件'}</span>
-      </div>
-      
-      <!-- 底部：改枪码 + 复制按钮 -->
-      <div class="flex items-center justify-between pt-2 border-t" style="border-color: var(--border);">
-        <code class="text-xs font-mono px-2 py-1 rounded" style="background: var(--surface); color: var(--accent);">${l.code}</code>
-        <button class="text-xs px-4 py-2 rounded-full font-bold transition-all duration-200" 
-                style="background: var(--accent); color: white; border: none; cursor: pointer;"
-                onclick="event.stopPropagation(); copyLoadoutCode('${l.code}', this)">
-          <i class="far fa-copy mr-1"></i>复制
-        </button>
-      </div>
-    </div>
-  `).join('');
+            <!-- 底部：改枪码 + 复制按钮（一体化） -->
+            <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px dashed var(--border); padding-top:4px; margin-top:4px;">
+                <div onclick="copyLoadoutCode('${l.code}', this)" style="display:flex; align-items:center; gap:6px; cursor:pointer; flex-wrap:wrap;">
+                    <code style="font-size:13px; font-family:monospace; color:var(--accent); font-weight:500;">${l.code}</code>
+                    <i class="far fa-copy" style="font-size:13px; color:var(--muted); transition:0.1s;"></i>
+                    <span style="font-size:10px; color:var(--muted);">点击复制</span>
+                </div>
+                <span style="font-size:10px; color:var(--muted); border:1px solid var(--border); border-radius:20px; padding:2px 10px;">点击查看详情</span>
+            </div>
+        </div>
+    `).join('');
 }
-
 
 function copyLoadoutCode(code, btn) {
   safeCopy(code, () => {
@@ -29951,6 +29978,45 @@ listHtml += `<div style="display:flex;justify-content:space-between;"><span>🗺
 </script>
 
 <script>
+
+
+// ========== 通用点击波纹（丝滑反馈） ==========
+document.addEventListener('click', function(e) {
+  const target = e.target.closest('button, .btn-ghost, .btn-warm, .post-action-btn, .tool-item, .map-select-btn, .diff-select-btn, .filter-chip, .tactical-tool-btn');
+  if (!target) return;
+
+  const ripple = document.createElement('span');
+  ripple.style.cssText = `
+    position: absolute;
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.4);
+    transform: scale(0);
+    animation: rippleEffect 0.6s ease-out;
+    pointer-events: none;
+    width: 100px;
+    height: 100px;
+    left: ${e.clientX - target.getBoundingClientRect().left - 50}px;
+    top: ${e.clientY - target.getBoundingClientRect().top - 50}px;
+  `;
+  target.style.position = 'relative';
+  target.style.overflow = 'hidden';
+  target.appendChild(ripple);
+
+  setTimeout(() => ripple.remove(), 600);
+});
+
+// 在 style 标签中添加 @keyframes
+const styleSheet = document.createElement('style');
+styleSheet.textContent = `
+  @keyframes rippleEffect {
+    to { transform: scale(4); opacity: 0; }
+  }
+`;
+document.head.appendChild(styleSheet);
+
+
+
+
 // ========== 权益使用 ==========
 window.useGroupReward = async function(type, sampleId) {
   // 统一更新权益数组
@@ -30152,6 +30218,42 @@ window.activateDynamicBg = async function(rewardId) {
   openModal('bgPickerModal');
 };
 </script>
+
+
+// ========== 通用点击波纹（丝滑反馈） ==========
+document.addEventListener('click', function(e) {
+  const target = e.target.closest('button, .btn-ghost, .btn-warm, .post-action-btn, .tool-item, .map-select-btn, .diff-select-btn, .filter-chip, .tactical-tool-btn');
+  if (!target) return;
+
+  const ripple = document.createElement('span');
+  ripple.style.cssText = `
+    position: absolute;
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.4);
+    transform: scale(0);
+    animation: rippleEffect 0.6s ease-out;
+    pointer-events: none;
+    width: 100px;
+    height: 100px;
+    left: ${e.clientX - target.getBoundingClientRect().left - 50}px;
+    top: ${e.clientY - target.getBoundingClientRect().top - 50}px;
+  `;
+  target.style.position = 'relative';
+  target.style.overflow = 'hidden';
+  target.appendChild(ripple);
+
+  setTimeout(() => ripple.remove(), 600);
+});
+
+// 在 style 标签中添加 @keyframes
+const styleSheet = document.createElement('style');
+styleSheet.textContent = `
+  @keyframes rippleEffect {
+    to { transform: scale(4); opacity: 0; }
+  }
+`;
+document.head.appendChild(styleSheet);
+
 
 
 </body>
