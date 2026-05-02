@@ -4977,6 +4977,8 @@ body {
 <!-- 顶部导航栏 -->
 <nav class="top-nav" id="topNav">
   <div class="max-w-7xl mx-auto px-2 sm:px-4 h-14 flex items-center justify-between">
+
+
     <!-- 左侧 Logo -->
     <div class="flex items-center gap-1 sm:gap-3">
       <span class="font-display text-base sm:text-xl md:text-2xl truncate" style="background:linear-gradient(135deg,#FF6B35,#FF4757);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">三角洲墨辰电竞</span>
@@ -30242,15 +30244,17 @@ listHtml += `<div style="display:flex;justify-content:space-between;"><span>🗺
 })(); 
 
 
-// 入口自动插入（工具箱下方）
+// 入口自动插入（工具箱下方）——修复版
 (function addEntrance() {
   if (document.getElementById('supplyTeaser')) return;
-  const toolbox = document.getElementById('toolboxSection');
-  if (!toolbox) return setTimeout(addEntrance, 200);
-  const container = toolbox.querySelector('.flex.overflow-x-auto') || toolbox;
+  const toolboxSection = document.getElementById('toolboxSection');
+  const toolboxBar = document.getElementById('toolboxBar');
+  if (!toolboxSection || !toolboxBar) return setTimeout(addEntrance, 200);
+
   const teaser = document.createElement('div');
   teaser.id = 'supplyTeaser';
-  teaser.className = 'w-full mt-3';
+  // 样式：块级元素，独占一行，和工具箱横条分开
+  teaser.style.cssText = 'width:100%; margin-top:16px;';
   teaser.innerHTML = `
     <div class="card-base p-4 flex items-center gap-3 cursor-pointer" style="border-left: 6px solid #FFD700; background: linear-gradient(135deg, rgba(255,215,0,0.12), rgba(255,107,53,0.05));" onclick="window.openSupplyBoxModal()">
       <div class="w-12 h-12 rounded-full flex items-center justify-center" style="background: linear-gradient(135deg, #FFD700, #FF6B35);">
@@ -30262,8 +30266,13 @@ listHtml += `<div style="display:flex;justify-content:space-between;"><span>🗺
       </div>
     </div>
   `;
-  container.appendChild(teaser);
+  // 关键改动：把入口放在 toolboxBar 后面，而不是塞进 toolboxBar 里面
+  toolboxBar.after(teaser);
 })();
+
+
+
+
 </script>
 
 <script>
