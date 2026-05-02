@@ -7536,6 +7536,10 @@ body {
 </div>
 <!-- 配装推荐弹窗（增强版） -->
 <div class="modal-overlay" id="loadoutModal">
+
+
+
+
   <div class="modal-content" style="max-width:480px">
     <div class="flex justify-between items-center mb-4">
       <h2 class="font-display text-xl"><i class="fas fa-gun mr-2"></i>配装推荐</h2>
@@ -7552,6 +7556,14 @@ body {
       <button onclick="closeModal('loadoutDetailModal')" class="w-8 h-8 rounded-full flex items-center justify-center" style="background: var(--surface);">
         <i class="fas fa-times"></i>
       </button>
+
+
+
+
+
+
+
+
     </div>
     <div id="loadoutDetailContent"></div>
   </div>
@@ -7564,6 +7576,23 @@ body {
   <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-sm" style="color: var(--accent); z-index: 1;"></i>
   <input type="text" id="loadoutSearchInput" placeholder="搜索枪械、兵种或配件..." class="w-full pl-11 pr-4 py-3 rounded-xl text-sm" style="background: var(--surface); border: 2px solid var(--border); color: var(--text); transition: all 0.25s;" oninput="applyLoadoutFilters()">
 </div>
+
+
+<!-- 改枪码快速定位栏 -->
+<div class="mt-3 mb-4">
+    <div class="flex items-center gap-2">
+        <div class="relative flex-1">
+            <i class="fas fa-bolt absolute left-4 top-1/2 -translate-y-1/2 text-sm" style="color: var(--accent);"></i>
+            <input type="text" id="loadoutQuickCodeInput" placeholder="粘贴改枪码，秒定位配装" class="w-full pl-11 pr-4 py-2.5 rounded-xl text-sm" style="background: var(--surface); border: 2px solid var(--border); color: var(--text); transition: all 0.25s;">
+        </div>
+        <button class="btn-warm text-sm px-5 py-2.5 rounded-xl font-bold flex items-center gap-1.5 hover:shadow-lg transition-all duration-200" onclick="quickLocateLoadoutByCode()" style="background: linear-gradient(135deg, var(--accent), var(--accent2));">
+            <i class="fas fa-bolt"></i> 定位
+        </button>
+    </div>
+    <p class="text-[10px] mt-1.5 pl-2" style="color: var(--muted);"><i class="fas fa-info-circle mr-1"></i>支持模糊匹配，如输入 "6IMVF" 可找到对应武器配装</p>
+</div>
+
+
 
 <!-- 下拉筛选栏（三列） -->
 <div class="grid grid-cols-3 gap-2 mb-4">
@@ -21869,11 +21898,24 @@ function openDamageCalculatorModal() {
       final = Math.round(final * (1 - armor.reduction));
 
       damageDisplay.textContent = final;
+
+
+const shotsToKill = final > 0 ? Math.ceil(100 / final) : '∞';
+const killInfoEl = document.getElementById('calcShotsToKill');
+if (killInfoEl) {
+  killInfoEl.textContent = shotsToKill + '枪致死';
+  killInfoEl.style.color = shotsToKill > 5 ? '#e74c3c' : (shotsToKill > 3 ? '#f39c12' : '#2ecc71');
+}
+
+
       damageDisplay.style.transform = 'scale(1.1)';
       setTimeout(() => damageDisplay.style.transform = 'scale(1)', 100);
 
       const shots = final > 0 ? Math.ceil(100 / final) : '∞';
-      shotsDisplay.textContent = shots;
+     if (shotsDisplay) {
+  shotsDisplay.textContent = shots;
+  shotsDisplay.style.color = shots > 5 ? '#e74c3c' : (shots > 3 ? '#f39c12' : '#2ecc71');
+}
 
       const penRatio = Math.min(1, ammo.penLevel / Math.max(armor.level, 1));
       penBar.style.width = (penRatio * 100) + '%';
@@ -28067,7 +28109,21 @@ window.closeAcademyPlayer = function() {
 })();
 
 
-
+window.quickLocateLoadoutByCode = function() {
+  const code = document.getElementById('loadoutQuickCodeInput').value.trim();
+  if (!code) return showToast('请粘贴改枪码', 'warning');
+  // 在 currentLoadoutData 中模糊匹配
+  const found = currentLoadoutData.find(item => item.code && item.code.includes(code));
+  if (!found) return showToast('未找到匹配的配装', 'error');
+  // 将搜索框清空并填入武器名，触发筛选
+  const searchInput = document.getElementById('loadoutSearchInput');
+  if (searchInput) {
+    searchInput.value = found.weapon;
+    // 手动触发筛选
+    if (typeof applyLoadoutFilters === 'function') applyLoadoutFilters();
+  }
+  showToast(`已定位：${found.name}`, 'success');
+};
 
 
 
