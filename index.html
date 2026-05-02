@@ -13080,6 +13080,21 @@ function openLightbox(url, postId = null, e) {
     media.style.transform = 'scale(1)';
   });
 
+
+
+  // 键盘左右翻图（不处理 ESC，全局已处理）
+  lightbox._keyHandler = (ev) => {
+    if (ev.key === 'ArrowLeft') {
+      const prev = lightbox.querySelector('.lightbox-prev');
+      if (prev) prev.click();
+    } else if (ev.key === 'ArrowRight') {
+      const next = lightbox.querySelector('.lightbox-next');
+      if (next) next.click();
+    }
+  };
+  document.addEventListener('keydown', lightbox._keyHandler);
+
+
   if (e && e.stopPropagation) e.stopPropagation();
 }
 
@@ -13088,6 +13103,12 @@ function openLightbox(url, postId = null, e) {
 
 
 function closeLightbox() {
+
+
+  if (lightboxInstance && lightboxInstance._keyHandler) {
+    document.removeEventListener('keydown', lightboxInstance._keyHandler);
+  }
+
   if (lightboxInstance) {
     const lightbox = lightboxInstance;
     const img = lightbox.querySelector('img');
