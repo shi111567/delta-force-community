@@ -2368,6 +2368,12 @@ transition: max-width 0.3s ease;
   margin-top: 4px;
 }
 
+
+
+/* 移动端长按提示（可选依靠title属性） */
+
+
+
 /* 卡片内容区 */
 .post-title {
   font-size: 20px;
@@ -5048,6 +5054,22 @@ body {
     </div>
   </div>
   <div id="loadingBar" class="absolute bottom-0 left-0 h-0.5 bg-accent" style="width:0%; transition:width 0.2s;"></div>
+
+
+
+<!-- 阅读进度条 -->
+<div id="readProgressBar" style="position:fixed;top:56px;left:0;height:3px;background:linear-gradient(90deg,#FF6B35,#FFD700);z-index:999;width:0%;transition:width 0.1s linear;"></div>
+<script>
+window.addEventListener('scroll', () => {
+  const scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
+  const scrollHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+  const progress = scrollHeight > 0 ? (scrollTop / scrollHeight) * 100 : 0;
+  document.getElementById('readProgressBar').style.width = progress + '%';
+});
+</script>
+
+
+
 </nav>
 
 
@@ -5217,6 +5239,14 @@ body {
   </div>
   
   <!-- 更多筛选按钮（打开抽屉） -->
+
+
+<button class="btn-ghost text-sm px-4 py-2 flex items-center gap-1" id="unreadFilterBtn" onclick="toggleUnreadFilter()">
+  <i class="fas fa-eye"></i> <span class="hidden sm:inline">未读</span>
+</button>
+
+
+
   <button class="btn-ghost text-sm px-4 py-2 flex items-center gap-1" onclick="openFilterDrawer()">
     <i class="fas fa-sliders-h"></i> <span class="hidden sm:inline">筛选</span>
   </button>
@@ -11286,6 +11316,27 @@ function initFilterDrawerTopics() {
     container.appendChild(btn);
   });
 }
+
+
+let unreadFilterActive = false;
+function toggleUnreadFilter() {
+  unreadFilterActive = !unreadFilterActive;
+  const btn = document.getElementById('unreadFilterBtn');
+  if (unreadFilterActive) {
+    btn.style.background = 'var(--accent)';
+    btn.style.color = 'white';
+    showToast('正在显示未读帖子', 'info');
+  } else {
+    btn.style.background = '';
+    btn.style.color = '';
+    showToast('显示全部帖子', 'info');
+  }
+  loadPosts(true); // 重新加载帖子
+}
+
+
+
+
 // ==================== 帖子加载与渲染 ====================
 const HOT_TOPICS = ['战术研讨','新手攻略','武器评测','战队招募','精彩集锦','三角洲行动','每日打卡','求助大神','晒战绩','游戏资讯','版本更新','枪械配件','地图攻略','狙击教学','团队配合'];
 // 修改话题云的渲染，增加点击计数（mock数据）和热度火焰icon
@@ -11540,6 +11591,15 @@ function highlightKeywords(keyword) {
   let query = sb.from('posts').select('*, profiles(username, avatar_url, level, display_badge, badges)', { count: 'exact' })
     .neq('post_type', 'story');
 
+
+  if (unreadFilterActive && APP.user) {
+    const readPosts = JSON.parse(localStorage.getItem('readPosts') || '{}');
+    const twentyFourHoursAgo = new Date(Date.now() - 86400000).toISOString();
+    query = query.gte('created_at', twentyFourHoursAgo);
+  }
+
+
+
   if (APP.filters.type !== 'all') query = query.eq('post_type', APP.filters.type);
   if (APP.filters.op !== 'all') query = query.eq('operator_class', APP.filters.op);
   // 关键词搜索（对标题和描述进行模糊匹配）
@@ -11573,12 +11633,19 @@ if (APP.filters.topic && APP.filters.topic !== 'all') {
 
   await loadTopPost();
 
-  (data || []).forEach((p, i) => {
+    let filteredData = data || [];
+  if (unreadFilterActive && APP.user) {
+    const readPosts = JSON.parse(localStorage.getItem('readPosts') || '{}');
+    filteredData = filteredData.filter(p => !readPosts[p.id]);
+  }
+  filteredData.forEach((p, i) => {
     const el = createPostCard(p, i);
     $('postsGrid').appendChild(el);
   });
 
-  if ((data || []).length < APP.postsPerPage) APP.allPostsLoaded = true;
+  if (filteredData.length < APP.postsPerPage) APP.allPostsLoaded = true;
+
+  
   APP.postsPage++;
 
   await loadUserVotes();
@@ -11634,6 +11701,10 @@ function createPostCard(post, idx, isTop = false) {
     }
   }
 
+
+
+
+
 const mediaHTML = (() => {
   const urls = post.media_urls || [];
   if (urls.length === 0) return '';
@@ -11679,6 +11750,17 @@ const opLabel = `<span class="tag-pill" style="background:${opColor}20; color:${
     `).join('')}</div>`;
   }
 
+
+
+  // 判断帖子是否为新帖（24小时内且未读）
+  const postDate = new Date(post.created_at);
+  const hoursAgo = (Date.now() - postDate) / 3600000;
+  const readPosts = JSON.parse(localStorage.getItem('readPosts') || '{}');
+  const isNew = hoursAgo < 24 && !readPosts[post.id];
+  const newBadge = isNew ? '<span style="background:#e74c3c;color:#fff;font-size:10px;padding:1px 6px;border-radius:10px;margin-right:6px;">新帖</span>' : '';
+
+
+
     // ========== 替换开始 ==========
   div.innerHTML = `
         <div class="post-card">
@@ -11695,7 +11777,10 @@ const opLabel = `<span class="tag-pill" style="background:${opColor}20; color:${
             ${APP.user && APP.user.id !== post.user_id ? `<button class="text-xs px-2 py-0.5 rounded-full" style="border:1px solid var(--accent);color:var(--accent); background: transparent;" onclick="event.stopPropagation(); followUser('${post.user_id}')">${APP.followedIds.includes(post.user_id) ? '已关注' : '+ 关注'}</button>` : ''}
           </div>
           <div class="post-meta">
-            <span><i class="far fa-clock"></i> ${timeAgo(post.created_at)}</span>
+            <span class="post-time-wrap" style="position: relative;">
+  <i class="far fa-clock"></i> ${timeAgo(post.created_at)}
+  <span style="display: none; position: absolute; left: 0; top: 1.5em; background: #1e1e2e; color: #fff; padding: 4px 8px; border-radius: 6px; font-size: 11px; white-space: nowrap; z-index: 10;" class="full-time-tip">${new Date(post.created_at).toLocaleString('zh-CN', { hour12: false })}</span>
+</span>
             <span>·</span>
             <span>${opLabel}</span>
             ${typeLabel ? `<span>·</span><span>${typeLabel}</span>` : ''}
@@ -11719,7 +11804,7 @@ const opLabel = `<span class="tag-pill" style="background:${opColor}20; color:${
         </div>
       </div>
 
-      <h3 class="post-title">${isTop ? '<i class="fas fa-thumbtack" style="color: var(--accent); margin-right: 8px;"></i>' : ''}${post.title}</h3>
+      <h3 class="post-title">${isTop ? '<i class="fas fa-thumbtack" style="color: var(--accent); margin-right: 8px;"></i>' : ''}${newBadge}${post.title}</h3>
       ${post.description ? `<p class="post-description">${post.description.substring(0,150)}${post.description.length>150?'...':''}</p>` : ''}
 
       <!-- 媒体区保持不变 -->
@@ -11785,6 +11870,19 @@ const opLabel = `<span class="tag-pill" style="background:${opColor}20; color:${
   `;
 // 添加点击波纹效果
 div.addEventListener('click', function(e) {
+
+
+// 点击时间显示完整时间（移动端友好）
+const timeSpan = div.querySelector('.post-time-wrap');
+if (timeSpan) {
+  timeSpan.addEventListener('click', function(e) {
+    e.stopPropagation(); // 阻止触发卡片其他点击
+    const fullTime = new Date(post.created_at).toLocaleString('zh-CN', { hour12: false });
+    showToast(`📅 发布于 ${fullTime}`, 'info');
+  });
+}
+
+
   // 避免点击按钮时也触发波纹
   if (e.target.closest('button') || e.target.closest('.post-action-btn')) return;
   
@@ -11801,6 +11899,32 @@ div.addEventListener('click', function(e) {
   // ========== 替换结束 ==========
   div.dataset.postId = post.id;
 div.setAttribute('data-media-urls', JSON.stringify(post.media_urls || []));
+
+
+
+  // ===== 新增：关键词高亮 =====
+  setTimeout(() => {
+    const keywords = {
+      '跑刀': '#e74c3c', '零号大坝': '#f1c40f', '航天基地': '#3498db',
+      '长弓溪谷': '#2ecc71', '巴克什': '#9b59b6', '绝密': '#e67e22',
+      '机密': '#e67e22', '猛攻': '#e74c3c', '卡战备': '#f1c40f',
+      '护航员': '#FFD700', '三角洲行动': '#FF6B35', '改枪': '#3498db'
+    };
+    const titleEl = div.querySelector('.post-title');
+    const descEl = div.querySelector('.post-description');
+    [titleEl, descEl].forEach(el => {
+      if (!el) return;
+      let html = el.innerHTML;
+      for (let [word, color] of Object.entries(keywords)) {
+        const regex = new RegExp(`(${word})`, 'g');
+        html = html.replace(regex, `<span style="color:${color};font-weight:700;">$1</span>`);
+      }
+      el.innerHTML = html;
+    });
+  }, 0);
+
+
+
   return div;
 }
 
@@ -11916,15 +12040,7 @@ async function publishPost() {
     showToast('内容至少10个字'); btn.disabled = false; return;
   }
 
-  // 3. 内容相关性检查（标题+描述必须包含三角洲相关关键词）
-  const deltaKeywords = ['三角洲','行动','战术','枪械','配装','地图','大坝','航天','干员','武器','跑刀','开荒','点位','撤离','哈夫','起装','改枪','弹挂','护甲','头盔','背包','冲锋','狙击','步枪','机枪','霰弹'];
-  const combined = `${title}${desc}`;
-  const hasKeyword = deltaKeywords.some(kw => combined.includes(kw));
-  if (!hasKeyword) {
-    showToast('标题或内容必须包含三角洲游戏相关关键词（如：战术、配装、地图等）', 'error');
-    btn.disabled = false;
-    return;
-  }
+
 
   // 4. 频率限制：每小时最多发 3 帖
   const now = new Date();
@@ -12175,6 +12291,18 @@ async function openComments(pid) {
   APP.currentPostId = pid;
 
   
+
+
+// 记录已读帖子（用于未读标记）
+let readPosts = JSON.parse(localStorage.getItem('readPosts') || '{}');
+readPosts[pid] = Date.now();
+// 只保留最近7天的记录
+const weekAgo = Date.now() - 7*86400000;
+for (let key in readPosts) { if (readPosts[key] < weekAgo) delete readPosts[key]; }
+localStorage.setItem('readPosts', JSON.stringify(readPosts));
+
+
+
   // 获取帖子详情
   const { data: post } = await sb.from('posts').select('*, profiles(username, avatar_url, level, display_badge, badges)').eq('id', pid).single();
       // 记录浏览历史
@@ -19409,43 +19537,65 @@ function subscribeRealtime() {
   
   // 创建频道，先不订阅
   globalRealtimeChannel = sb.channel('global-updates', {
-    config: { broadcast: { self: false } }
+  config: { broadcast: { self: false } }
+});
+
+// 1. 评论通知
+globalRealtimeChannel
+  .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'comments' }, (payload) => {
+    if (APP.user && payload.new.user_id !== APP.user.id) {
+      APP.notifications.push({ type: 'comment', msg: '有人评论了你的帖子', time: new Date() });
+      document.getElementById('notifDot').style.display = 'block';
+      if (typeof renderNotifications === 'function') renderNotifications();
+    }
+  })
+  // 2. 新帖实时提醒（插入的新功能）
+  .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'posts' }, (payload) => {
+    if (APP.user && payload.new.user_id !== APP.user.id) {
+      if (document.getElementById('newPostToast')) return;
+      const toast = document.createElement('div');
+      toast.id = 'newPostToast';
+      toast.style.cssText = 'position:fixed;top:70px;left:50%;transform:translateX(-50%);z-index:10000;background:#FF6B35;color:#fff;padding:8px 20px;border-radius:40px;font-weight:bold;cursor:pointer;box-shadow:0 4px 15px rgba(255,107,53,0.5);animation:slideDown 0.3s ease;white-space:nowrap;';
+      toast.innerHTML = '📢 有新帖子发布，点击刷新';
+      toast.onclick = () => {
+        toast.remove();
+        loadPosts(true);
+      };
+      document.body.appendChild(toast);
+      setTimeout(() => { if (toast.parentNode) toast.remove(); }, 8000);
+    }
+  })
+  // 3. 点赞通知
+  .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'votes' }, (payload) => {
+    if (APP.user && payload.new.vote_type === 'up') {
+      APP.notifications.push({ type: 'like', msg: '你的帖子收到了赞', time: new Date() });
+      document.getElementById('notifDot').style.display = 'block';
+      if (typeof renderNotifications === 'function') renderNotifications();
+    }
+  })
+
+  // 4. 暗拍监听（如果有的话，保持原有逻辑）
+  .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'dark_auctions' }, (payload) => {
+    const auction = payload.new;
+    if (!APP.user || auction.seller_id === APP.user.id) return;
+    const bid = prompt(`【暗拍】${auction.item_name} 底价${auction.base_price}积分，暴击价${auction.burst_price}积分，请输入你的出价：`);
+    if (bid && !isNaN(bid) && parseInt(bid) >= auction.base_price) {
+      const amount = parseInt(bid);
+      const bids = auction.bids || [];
+      bids.push({ user_id: APP.user.id, username: APP.profile.username, amount });
+      sb.from('dark_auctions').update({ bids }).eq('auction_id', auction.auction_id).then(() => {
+        showToast('✅ 出价成功！等待结束...', 'success');
+      });
+    }
+  })
+  // 最后再订阅
+  globalRealtimeChannel.subscribe((status) => {
+    if (status === 'SUBSCRIBED') {
+      console.log('✅ Realtime 订阅成功 (global-updates)');
+    } else if (status === 'CHANNEL_ERROR') {
+      console.error('❌ Realtime 频道错误');
+    }
   });
-  
-  // 1. 先绑定所有数据库变更监听
-  globalRealtimeChannel
-    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'comments' }, (payload) => {
-      if (APP.user && payload.new.user_id !== APP.user.id) {
-        APP.notifications.push({ type: 'comment', msg: '有人评论了你的帖子', time: new Date() });
-        document.getElementById('notifDot').style.display = 'block';
-        if (typeof renderNotifications === 'function') renderNotifications();
-      }
-    })
-    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'votes' }, (payload) => {
-      if (APP.user && payload.new.vote_type === 'up') {
-        APP.notifications.push({ type: 'like', msg: '你的帖子收到了赞', time: new Date() });
-        document.getElementById('notifDot').style.display = 'block';
-        if (typeof renderNotifications === 'function') renderNotifications();
-      }
-    });
-  
-
-
-  // 2. 然后绑定广播事件（以及新增的暗拍监听）
-  globalRealtimeChannel
-    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'dark_auctions' }, (payload) => {
-      const auction = payload.new;
-      if (!APP.user || auction.seller_id === APP.user.id) return;
-      const bid = prompt(`【暗拍】${auction.item_name} 底价${auction.base_price}积分，暴击价${auction.burst_price}积分，请输入你的出价：`);
-      if (bid && !isNaN(bid) && parseInt(bid) >= auction.base_price) {
-        const amount = parseInt(bid);
-        const bids = auction.bids || [];
-        bids.push({ user_id: APP.user.id, username: APP.profile.username, amount });
-        sb.from('dark_auctions').update({ bids }).eq('auction_id', auction.auction_id).then(() => {
-          showToast('✅ 出价成功！等待结束...', 'success');
-        });
-      }
-    })
    
   
 
@@ -28676,7 +28826,7 @@ window.quickLocateLoadoutByCode = function() {
   to { width: 0%; }
 }
 
-
+.post-time-wrap:hover .full-time-tip { display: block !important; }
 
 </style>
 
