@@ -2146,7 +2146,7 @@ transition: max-width 0.3s ease;
 }
 .task-claim-btn:disabled { opacity: 0.5; pointer-events: none; }
 @keyframes modalPop {
-  0% { transform: scale(0.8); opacity: 0; }
+  0% { transform: scale(0.92); opacity: 0; }
   100% { transform: scale(1); opacity: 1; }
 }
 .delete-notif-btn:hover {
@@ -4946,6 +4946,9 @@ body {
   }
 }
 
+
+
+
 </style>
 <script src="https://cdn.jsdelivr.net/npm/interactjs@1.10.27/dist/interact.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/tus-js-client@4.1.0/dist/tus.min.js"></script>
@@ -6681,10 +6684,15 @@ body {
   <button onclick="switchTab('budgetLoadout')" class="flex flex-col items-center gap-0.5 py-1 px-3" id="mobBudget"><i class="fas fa-piggy-bank text-lg" style="color:var(--muted)"></i><span class="text-[10px]">起装</span></button>
   <button onclick="openProfile()" class="flex flex-col items-center gap-0.5 py-1 px-3" id="mobProfile"><i class="fas fa-user text-lg" style="color:var(--muted)"></i><span class="text-[10px]">我的</span></button>
 </div>
+
+
 <!-- 回到顶部/底部悬浮按钮 -->
 <button class="scroll-btn" id="scrollBtn" onclick="smartScroll()" aria-label="滚动到顶部或底部">
   <i class="fas fa-arrow-up" id="scrollIcon"></i>
 </button>
+
+
+
 <!-- 组队招募悬浮按钮 -->
 <button class="scroll-btn" id="squadFloatBtn" style="bottom: 90px; right: 24px;" onclick="openSquadModal()" title="快速组队">
   <i class="fas fa-user-plus"></i>
@@ -7548,6 +7556,9 @@ body {
     <div id="loadoutDetailContent"></div>
   </div>
 </div>
+
+<div id="loadoutHistoryContainer" style="display:none; margin-bottom:12px;"></div>
+
 <!-- 搜索栏 -->
 <div class="relative mb-4">
   <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-sm" style="color: var(--accent); z-index: 1;"></i>
@@ -7648,6 +7659,12 @@ body {
         <button class="btn-ghost text-sm px-3 py-1" onclick="exportWeaponData()">
           <i class="fas fa-download mr-1"></i>导出
         </button>
+
+
+<button class="btn-ghost text-sm px-3 py-1" onclick="exportWeaponDataAsImage()">
+  <i class="fas fa-camera mr-1"></i>截图
+</button>
+
         <button class="btn-ghost text-sm px-3 py-1" onclick="shareWeaponData()">
           <i class="fas fa-share-alt mr-1"></i>分享
         </button>
@@ -9596,48 +9613,57 @@ window.openCheckinCalendarModal = async function() {
 
 // Toast 提示
 function showToast(msg, type = 'info') {
-  // 移除上一个残留的 toast（避免重叠）
   const old = document.querySelector('.global-toast');
   if (old) old.remove();
 
   const t = document.createElement('div');
   t.className = 'global-toast';
-  
-  // 根据类型选颜色
-  const bgColor = type === 'error'   ? 'linear-gradient(135deg, #e74c3c, #c0392b)' :
-                  type === 'success' ? 'linear-gradient(135deg, #2ecc71, #27ae60)' :
-                  type === 'warning' ? 'linear-gradient(135deg, #f39c12, #e67e22)' :
-                                       'linear-gradient(135deg, #FF6B35, #FF4757)';
 
+  // 图标与颜色
+  const iconMap = {
+    success: '<i class="fas fa-check-circle mr-2"></i>',
+    error: '<i class="fas fa-times-circle mr-2"></i>',
+    warning: '<i class="fas fa-exclamation-triangle mr-2"></i>',
+    info: '<i class="fas fa-info-circle mr-2"></i>'
+  };
+  const bgMap = {
+    success: 'linear-gradient(135deg, #2ecc71, #27ae60)',
+    error: 'linear-gradient(135deg, #e74c3c, #c0392b)',
+    warning: 'linear-gradient(135deg, #f39c12, #e67e22)',
+    info: 'linear-gradient(135deg, #FF6B35, #FF4757)'
+  };
+
+  t.innerHTML = iconMap[type] + msg;
   t.style.cssText = `
     position: fixed !important;
     bottom: 80px !important;
     left: 50% !important;
     transform: translateX(-50%) !important;
-    background: ${bgColor} !important;
+    background: ${bgMap[type] || bgMap.info} !important;
     color: white !important;
-    padding: 12px 24px !important;
-    border-radius: 40px !important;
-    font-weight: 600 !important;
+    padding: 14px 28px !important;
+    border-radius: 60px !important;
+    font-weight: 700 !important;
+    font-size: 15px !important;
     z-index: 100000 !important;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.3) !important;
-    animation: globalToastIn 0.3s ease, globalToastOut 0.3s 2.7s forwards !important;
+    box-shadow: 0 12px 28px rgba(0,0,0,0.25) !important;
+    animation: globalToastIn 0.4s cubic-bezier(0.34,1.56,0.64,1) forwards,
+               globalToastOut 0.35s 2.5s forwards !important;
     white-space: nowrap !important;
     pointer-events: none !important;
-    font-size: 14px !important;
     letter-spacing: 0.5px !important;
     max-width: 90vw !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
+    display: flex !important;
+    align-items: center !important;
   `;
-  t.textContent = msg;
   document.body.appendChild(t);
 
-  // 自动销毁
   setTimeout(() => {
     if (t.parentNode) t.remove();
   }, 3000);
 }
+
+
 
 function showWeaponTooltip(e, name) {
   const w = WEAPON_DATA.find(w => w.name === name);
@@ -9671,16 +9697,20 @@ function openModal(id) {
   modal.classList.add('active');
 }
 
-function closeModal(id) { 
-  $(id).classList.remove('active'); 
-  // 如果是关闭评论弹窗，同时移除沉浸模式
+function closeModal(id) {
+  const modal = document.getElementById(id);
+  if (!modal) return;
+  modal.style.opacity = '0';
+  setTimeout(() => {
+    modal.classList.remove('active');
+    modal.style.opacity = '';
+  }, 200);
   if (id === 'commentsModal') {
-    $('commentsModal').classList.remove('immersive');
-  }
-  if (id === 'musicSearchModal') {
-    // 可选：关闭搜索弹窗时不清除播放器，保持后台播放
+    document.getElementById('commentsModal')?.classList.remove('immersive');
   }
 }
+
+
 
 // 生成随机昵称后缀
 function randSuffix() { return String(Math.floor(Math.random()*9000)+1000); }
@@ -12873,10 +12903,17 @@ function closeLightbox() {
 // ==================== ESC 关闭弹窗 ====================
 document.addEventListener('keydown', function(e) {
   if (e.key === 'Escape') {
+    // 关闭所有激活的弹窗
+    document.querySelectorAll('.modal-overlay.active').forEach(m => {
+      if (m.onclick) m.click();
+      else m.classList.remove('active');
+    });
     if (typeof closeLightbox === 'function') closeLightbox();
     if (typeof closeVideoLightbox === 'function') closeVideoLightbox();
   }
 });
+
+
 // ==================== 视频弹窗 ====================
 let videoLightboxInstance = null;
 
@@ -16029,6 +16066,29 @@ bodyHtml += `</tr>`;
   tableBody.innerHTML = bodyHtml;
 }
 
+
+
+async function exportWeaponDataAsImage() {
+  const table = document.getElementById('weaponDataTable');
+  if (!table) return;
+  showToast('正在生成图片...', 'info');
+  try {
+    const canvas = await html2canvas(table, {
+      backgroundColor: getComputedStyle(document.body).getPropertyValue('--bg'),
+      scale: 2,
+    });
+    const link = document.createElement('a');
+    link.download = `weapon_data_${new Date().toISOString().split('T')[0]}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+    showToast('图片已保存', 'success');
+  } catch (e) {
+    console.error(e);
+    showToast('导出失败，请检查网络或重试', 'error');
+  }
+}
+
+
 // ==================== 导出/分享 ====================
 function exportWeaponData() {
   const weapons = Array.from(selectedWeapons).length > 0 
@@ -16525,10 +16585,11 @@ openModal = function(id) {
   // 确保原始函数存在且可调用
   if (typeof originalOpenModal === 'function') {
     // 在打开前初始化对应弹窗数据
-            if (id === 'loadoutModal') { 
+           if (id === 'loadoutModal') { 
   fetchGunsmithCodes(); 
-  resetAllLoadoutFilters(); // 新增：重置下拉菜单状态
-  if (typeof bindLoadoutFilters === 'function') bindLoadoutFilters(); 
+  resetAllLoadoutFilters();
+  if (typeof bindLoadoutFilters === 'function') bindLoadoutFilters();
+  renderLoadoutHistory();  // 新增
 }
     if (id === 'weaponModal' && typeof renderWeaponTable === 'function') {
       renderWeaponTable();
@@ -21940,6 +22001,16 @@ function openExtractionTimerModal() {
         <button class="btn-ghost px-4 py-2" onclick="pauseExtractionTimer()"><i class="fas fa-pause mr-1"></i>暂停</button>
         <button class="btn-ghost px-4 py-2" onclick="resetExtractionTimer()"><i class="fas fa-redo mr-1"></i>重置</button>
       </div>
+
+<div class="flex gap-2 mb-3 flex-wrap">
+  <button onclick="setTimerPreset(5)" class="btn-ghost text-xs px-3 py-1">5分钟</button>
+  <button onclick="setTimerPreset(10)" class="btn-ghost text-xs px-3 py-1">10分钟</button>
+  <button onclick="setTimerPreset(15)" class="btn-ghost text-xs px-3 py-1">15分钟</button>
+  <button onclick="setTimerPreset(20)" class="btn-ghost text-xs px-3 py-1">20分钟</button>
+  <button onclick="setTimerPreset(30)" class="btn-ghost text-xs px-3 py-1">30分钟</button>
+</div>
+
+
       <div class="flex items-center justify-center gap-2">
         <input type="number" id="timerMinutes" value="5" min="1" max="30"
                class="w-20 p-2 rounded-lg text-center" style="background:var(--surface);">
@@ -27997,6 +28068,9 @@ window.closeAcademyPlayer = function() {
 
 
 
+
+
+
 </script>
 <script>
   window.addEventListener('load', function() {
@@ -28028,6 +28102,14 @@ window.closeAcademyPlayer = function() {
 
 
 <style>
+
+
+
+
+
+
+
+
   /* 入口呼吸光效 */
   #supplyTeaser .card-base {
     animation: breathBorder 2s infinite;
@@ -28219,12 +28301,12 @@ window.closeAcademyPlayer = function() {
 
 
 @keyframes globalToastIn {
-  from { opacity: 0; transform: translateX(-50%) translateY(20px); }
-  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+  0%   { opacity: 0; transform: translateX(-50%) translateY(30px); }
+  100% { opacity: 1; transform: translateX(-50%) translateY(0); }
 }
 @keyframes globalToastOut {
-  from { opacity: 1; transform: translateX(-50%) translateY(0); }
-  to   { opacity: 0; transform: translateX(-50%) translateY(20px); }
+  0%   { opacity: 1; transform: translateX(-50%) translateY(0); }
+  100% { opacity: 0; transform: translateX(-50%) translateY(20px); }
 }
 
 
@@ -28390,6 +28472,32 @@ window.closeAcademyPlayer = function() {
 }
 
 
+
+/* ===== 三端自适应微调 ===== */
+@media (min-width: 1025px) {
+  .post-card { padding: 24px; }
+  .post-title { font-size: 22px; }
+}
+@media (max-width: 1024px) and (min-width: 641px) {
+  .post-card { padding: 20px; }
+  .post-title { font-size: 20px; }
+}
+@media (max-width: 640px) {
+  .post-card { padding: 16px; }
+  .post-title { font-size: 18px; }
+  .masonry { column-count: 1; }
+  .mobile-nav { display: flex !important; }
+  body { padding-bottom: 80px; }
+}
+
+/* ===== 修复：回到顶部按钮始终可见 ===== */
+#scrollBtn {
+  position: fixed !important;
+  z-index: 999 !important;
+  pointer-events: auto !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
 
 </style>
 
@@ -28613,6 +28721,17 @@ window.closeAcademyPlayer = function() {
 </div>
 
 <script>
+
+
+
+window.setTimerPreset = function(minutes) {
+  const input = document.getElementById('timerMinutes');
+  if (input) input.value = minutes;
+  resetExtractionTimer();
+};
+
+
+
 (async function() {
   if (typeof APP === 'undefined' || typeof sb === 'undefined') return setTimeout(arguments.callee, 200);
 
@@ -30271,6 +30390,47 @@ listHtml += `<div style="display:flex;justify-content:space-between;"><span>🗺
 })();
 
 
+// ========== 配装历史记录 ==========
+const LOADOUT_HISTORY_MAX = 8;
+window.renderLoadoutHistory = function() {
+  const container = document.getElementById('loadoutHistoryContainer');
+  if (!container) return;
+  const history = JSON.parse(localStorage.getItem('loadoutDetailHistory') || '[]');
+  if (history.length === 0) {
+    container.style.display = 'none';
+    return;
+  }
+  container.style.display = 'block';
+  container.innerHTML = `
+    <div class="text-xs font-bold mb-2" style="color:var(--muted);"><i class="fas fa-history mr-1"></i>最近浏览</div>
+    <div class="flex gap-2 overflow-x-auto pb-1" style="scrollbar-width:none;">
+      ${history.map(h => `
+        <div class="flex items-center gap-2 p-2 rounded-xl cursor-pointer hover:bg-white/5 transition" 
+             style="background:var(--surface); border:1px solid var(--border); white-space:nowrap;"
+             onclick="showLoadoutDetail('${h.code.replace(/'/g, "\\'")}')">
+          <i class="fas fa-gun text-xs" style="color:var(--accent);"></i>
+          <span class="text-xs">${h.name}</span>
+        </div>
+      `).join('')}
+    </div>
+  `;
+};
+
+// 在查看详情时记录历史
+const originalShowLoadoutDetail = showLoadoutDetail;
+showLoadoutDetail = function(code) {
+  const item = currentLoadoutData.find(l => l.code === code);
+  if (item) {
+    let history = JSON.parse(localStorage.getItem('loadoutDetailHistory') || '[]');
+    history = history.filter(h => h.code !== code);
+    history.unshift({ name: item.weapon || item.name, code: code });
+    if (history.length > LOADOUT_HISTORY_MAX) history.pop();
+    localStorage.setItem('loadoutDetailHistory', JSON.stringify(history));
+  }
+  originalShowLoadoutDetail(code);
+};
+
+
 
 
 </script>
@@ -30488,6 +30648,8 @@ window.activateDynamicBg = async function(rewardId) {
   openModal('bgPickerModal');
 };
 </script>
+
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 
 </body>
 </html>
