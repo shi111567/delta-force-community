@@ -2615,7 +2615,13 @@ pointer-events: auto !important;
     -webkit-font-smoothing: antialiased;        /* 保持字体清晰 */
 }
 
-
+.card-base {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.card-base:hover {
+  transform: perspective(1000px) rotateX(1deg) rotateY(-1deg) translateY(-4px);
+  box-shadow: 0 24px 44px -8px var(--glow), 0 12px 20px -8px var(--shadow);
+}
 
 
 
@@ -5027,7 +5033,7 @@ body {
       </div>
       
       <!-- 阅读历史（移动端隐藏，避免太挤） -->
-      <div class="hidden sm:relative">
+      <div class="hidden sm:flex items-center">
         <button onclick="openHistoryDrawer()" class="w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center" style="background:var(--surface);border:1px solid var(--border)" aria-label="阅读历史">
           <i class="fas fa-history text-xs sm:text-sm" style="color:var(--muted)"></i>
         </button>
@@ -9648,7 +9654,6 @@ function showToast(msg, type = 'info') {
   const t = document.createElement('div');
   t.className = 'global-toast';
 
-  // 图标与颜色
   const iconMap = {
     success: '<i class="fas fa-check-circle mr-2"></i>',
     error: '<i class="fas fa-times-circle mr-2"></i>',
@@ -9662,7 +9667,13 @@ function showToast(msg, type = 'info') {
     info: 'linear-gradient(135deg, #FF6B35, #FF4757)'
   };
 
-  t.innerHTML = iconMap[type] + msg;
+  t.innerHTML = `
+    <div style="display:flex; align-items:center;">
+      ${iconMap[type] || iconMap.info} ${msg}
+    </div>
+    <div class="toast-progress"></div>
+    <button class="toast-close-btn" onclick="this.parentElement.remove()"><i class="fas fa-times"></i></button>
+  `;
   t.style.cssText = `
     position: fixed !important;
     bottom: 80px !important;
@@ -9670,28 +9681,38 @@ function showToast(msg, type = 'info') {
     transform: translateX(-50%) !important;
     background: ${bgMap[type] || bgMap.info} !important;
     color: white !important;
-    padding: 14px 28px !important;
+    padding: 12px 24px !important;
     border-radius: 60px !important;
     font-weight: 700 !important;
-    font-size: 15px !important;
+    font-size: 14px !important;
     z-index: 100000 !important;
     box-shadow: 0 12px 28px rgba(0,0,0,0.25) !important;
-    animation: globalToastIn 0.4s cubic-bezier(0.34,1.56,0.64,1) forwards,
-               globalToastOut 0.35s 2.5s forwards !important;
-    white-space: nowrap !important;
-    pointer-events: none !important;
-    letter-spacing: 0.5px !important;
-    max-width: 90vw !important;
     display: flex !important;
     align-items: center !important;
+    gap: 8px !important;
+    max-width: 90vw !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    animation: toastSlideIn 0.3s ease forwards;
+    cursor: pointer;
   `;
+
+  // 进度条
+  const progress = t.querySelector('.toast-progress');
+  progress.style.cssText = `
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 3px;
+    background: rgba(255,255,255,0.7);
+    border-radius: 0 0 60px 60px;
+    animation: toastProgress 3s linear forwards;
+  `;
+
   document.body.appendChild(t);
-
-  setTimeout(() => {
-    if (t.parentNode) t.remove();
-  }, 3000);
+  t.addEventListener('click', () => t.remove());
+  setTimeout(() => { if (t.parentNode) t.remove(); }, 3000);
 }
-
 
 
 function showWeaponTooltip(e, name) {
@@ -10617,6 +10638,19 @@ setTimeout(() => loadUserFavoriteStatus(), 300);
   window.dispatchEvent(new Event('resize'));
   console.log('🎉 switchTab 执行完毕');
 
+
+  // 页面过渡动画
+  const main = document.getElementById('mainContent');
+  if (main) {
+    main.style.opacity = '0';
+    main.style.transform = 'translateY(10px)';
+    main.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
+    requestAnimationFrame(() => {
+      main.style.opacity = '1';
+      main.style.transform = 'translateY(0)';
+    });
+  }
+
 }
 
 
@@ -11431,6 +11465,17 @@ function removeSearchHistory(text) {
 
 // 绑定事件
 $('homeSearchInput')?.addEventListener('focus', showSearchSuggestions);
+
+
+// 搜索框获得焦点时添加高亮边框
+$('homeSearchInput')?.addEventListener('focus', function() {
+  this.style.boxShadow = '0 0 0 4px var(--glow)';
+});
+$('homeSearchInput')?.addEventListener('blur', function() {
+  this.style.boxShadow = '';
+});
+
+
 $('homeSearchInput')?.addEventListener('input', showSearchSuggestions);
 document.addEventListener('click', (e) => {
   if (!e.target.closest('#homeSearchInput') && !e.target.closest('#homeSearchSuggestions')) {
@@ -28219,7 +28264,14 @@ window.quickLocateLoadoutByCode = function() {
 
 
 
-
+@keyframes toastSlideIn {
+  from { opacity: 0; transform: translateX(-50%) translateY(20px); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+@keyframes toastProgress {
+  from { width: 100%; }
+  to { width: 0%; }
+}
 
 
 
