@@ -5016,13 +5016,13 @@ body {
       
       <!-- 在线人数（手机端只显示数字+图标） -->
       <span class="text-[9px] sm:text-xs font-mono flex items-center gap-0.5 whitespace-nowrap" style="color:var(--accent)">
-        <i class="fas fa-fire text-[10px]"></i> <span id="onlineCount">0</span><span class="hidden sm:inline ml-0.5">人在线</span>
-      </span>
+  <i class="fas fa-fire text-[10px]"></i> <span id="onlineCount">0</span>
+</span>
       
       <!-- 积分（手机端只显示数字+图标） -->
       <span class="text-[9px] sm:text-xs font-mono flex items-center gap-0.5 whitespace-nowrap" style="color: #FFD700;">
-        <i class="fas fa-coins text-[10px]"></i> <span id="userPointsDisplay">0</span><span class="hidden sm:inline ml-0.5">积分</span>
-      </span>
+  <i class="fas fa-coins text-[10px]"></i> <span id="userPointsDisplay">0</span>
+</span>
 
       <!-- 主题切换 -->
       <button onclick="toggleTheme()" class="w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center" style="background:var(--surface);border:1px solid var(--border)" id="themeBtn" aria-label="切换主题">☀️</button>
@@ -5039,11 +5039,11 @@ body {
       </div>
       
       <!-- 阅读历史（移动端隐藏，避免太挤） -->
-      <div class="hidden sm:flex items-center">
-        <button onclick="openHistoryDrawer()" class="w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center" style="background:var(--surface);border:1px solid var(--border)" aria-label="阅读历史">
-          <i class="fas fa-history text-xs sm:text-sm" style="color:var(--muted)"></i>
-        </button>
-      </div>
+      <div class="relative">
+  <button onclick="openHistoryDrawer()" class="w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center" style="background:var(--surface);border:1px solid var(--border)" aria-label="阅读历史">
+    <i class="fas fa-history text-xs sm:text-sm" style="color:var(--muted)"></i>
+  </button>
+</div>
       
       <!-- 登录/头像 -->
       <button onclick="openAuthModal()" class="btn-ghost text-[10px] sm:text-sm px-1 sm:px-2" id="authBtn">登录</button>
@@ -5230,9 +5230,21 @@ window.addEventListener('scroll', () => {
       <div id="homeSearchSuggestions" class="absolute top-full left-0 right-0 mt-1 card-base p-2 hidden" style="z-index:100; max-height:300px; overflow-y:auto;">
         <div class="text-xs font-bold px-2 py-1" style="color:var(--muted);">热门搜索</div>
         <div id="hotSearchList" class="space-y-1"></div>
-        <div id="searchHistoryList" class="space-y-1 mt-2 hidden"></div>
+        <div id="searchHistoryList" class="space-y-1 mt-2 hidden">
+
+<div id="searchHistoryDropdown" class="card-base p-2 hidden" style="position:absolute; top:100%; left:0; right:0; z-index:101; max-height:200px; overflow-y:auto;">
+  <div class="text-xs font-bold px-2 py-1" style="color:var(--muted);">最近搜索</div>
+  <div id="searchHistoryListContent" class="space-y-1"></div>
+</div>
+
+</div>
       </div>
     </div>
+
+
+ 
+
+
     <button class="btn-ghost text-sm px-3 py-2" onclick="performHomeSearch()">
       <i class="fas fa-arrow-right"></i>
     </button>
@@ -6718,7 +6730,12 @@ window.addEventListener('scroll', () => {
   
   <button onclick="switchTab('escort')" class="flex flex-col items-center gap-0.5 py-1 px-3" id="mobEscort"><i class="fas fa-shield-halved text-lg" style="color:var(--muted)"></i><span class="text-[10px]">护航</span></button>
   <button onclick="switchTab('budgetLoadout')" class="flex flex-col items-center gap-0.5 py-1 px-3" id="mobBudget"><i class="fas fa-piggy-bank text-lg" style="color:var(--muted)"></i><span class="text-[10px]">起装</span></button>
-  <button onclick="openProfile()" class="flex flex-col items-center gap-0.5 py-1 px-3" id="mobProfile"><i class="fas fa-user text-lg" style="color:var(--muted)"></i><span class="text-[10px]">我的</span></button>
+  <button onclick="openProfile()" class="flex flex-col items-center gap-0.5 py-1 px-3" id="mobProfile"><i class="fas fa-user text-lg"
+
+
+
+
+ style="color:var(--muted)"></i><span class="text-[10px]">我的</span></button>
 </div>
 
 
@@ -11451,36 +11468,45 @@ function showSearchSuggestions() {
   const sugBox = $('homeSearchSuggestions');
   const hotList = $('hotSearchList');
   const historyList = $('searchHistoryList');
-  
+
   if (kw.length > 0) {
-    // 有输入时显示历史（如果有匹配）和热门
-    renderSearchSuggestions(kw);
-    sugBox.classList.remove('hidden');
+    hotList.innerHTML = HOT_SEARCHES.filter(t => t.includes(kw)).map(t => `
+      <div class="search-suggest-item" onclick="applySearchSuggestion('${t}')">
+        <i class="fas fa-search"></i>
+        <span class="flex-1 text-sm">${t}</span>
+      </div>
+    `).join('') || '<div class="text-xs p-2" style="color:var(--muted);">无匹配建议</div>';
+    historyList.classList.add('hidden');
   } else {
-    // 无输入时显示热门和历史
+    let histHtml = '';
+    if (searchHistory.length) {
+      histHtml = searchHistory.map(h => `
+        <div class="search-suggest-item" onclick="applySearchSuggestion('${h}')">
+          <i class="fas fa-history"></i>
+          <span class="flex-1 text-sm">${h}</span>
+          <i class="fas fa-times text-xs" style="color:var(--muted);" onclick="event.stopPropagation(); removeSearchHistoryItem('${h}')"></i>
+        </div>
+      `).join('');
+      historyList.innerHTML = `
+        <div class="text-xs font-bold px-2 py-1" style="color:var(--muted);">最近搜索</div>
+        ${histHtml}
+      `;
+      historyList.classList.remove('hidden');
+    } else {
+      historyList.classList.add('hidden');
+    }
     hotList.innerHTML = HOT_SEARCHES.map(t => `
       <div class="search-suggest-item" onclick="applySearchSuggestion('${t}')">
         <i class="fas fa-fire" style="color:var(--accent);"></i>
         <span class="flex-1 text-sm">${t}</span>
       </div>
     `).join('');
-    
-    if (searchHistory.length) {
-      historyList.classList.remove('hidden');
-      historyList.innerHTML = `
-        <div class="text-xs font-bold px-2 py-1" style="color:var(--muted);">最近搜索</div>
-        ${searchHistory.map(h => `
-          <div class="search-suggest-item" onclick="applySearchSuggestion('${h}')">
-            <i class="fas fa-history"></i>
-            <span class="flex-1 text-sm">${h}</span>
-            <i class="fas fa-times text-xs" style="color:var(--muted);" onclick="event.stopPropagation(); removeSearchHistory('${h}')"></i>
-          </div>
-        `).join('')}
-      `;
-    }
-    sugBox.classList.remove('hidden');
   }
+  sugBox.classList.remove('hidden');
 }
+
+
+
 
 function renderSearchSuggestions(kw) {
   const hotList = $('hotSearchList');
@@ -11507,7 +11533,7 @@ function applySearchSuggestion(text) {
   }
 }
 
-function removeSearchHistory(text) {
+function removeSearchHistoryItem(text) {
   const idx = searchHistory.indexOf(text);
   if (idx > -1) searchHistory.splice(idx, 1);
   localStorage.setItem('searchHistory', JSON.stringify(searchHistory));
@@ -11771,7 +11797,10 @@ const opLabel = `<span class="tag-pill" style="background:${opColor}20; color:${
         </div>
         <div class="post-author-info">
           <div class="post-author-name">
-            ${post.profiles?.username || '干员'} 
+                        ${post.profiles?.username || '干员'}
+            <span class="text-xs ml-1" style="color:var(--muted); background:rgba(255,255,255,0.05); padding:1px 6px; border-radius:8px; font-size:10px;">Lv.${post.profiles?.level || 1} · ${post.operator_class || '全能'}</span>
+
+
   ${getEscortBadgeHtml(post.profiles)} 
   ${displayBadgeHtml}
             ${APP.user && APP.user.id !== post.user_id ? `<button class="text-xs px-2 py-0.5 rounded-full" style="border:1px solid var(--accent);color:var(--accent); background: transparent;" onclick="event.stopPropagation(); followUser('${post.user_id}')">${APP.followedIds.includes(post.user_id) ? '已关注' : '+ 关注'}</button>` : ''}
@@ -12291,6 +12320,24 @@ async function openComments(pid) {
   APP.currentPostId = pid;
 
   
+  // 阅读计数：同一用户24小时内不重复计数
+  const viewKey = `viewed_${pid}`;
+  const lastView = localStorage.getItem(viewKey);
+  const now = Date.now();
+  if (!lastView || (now - parseInt(lastView)) > 86400000) {
+    // 新方法：先查询后更新
+    (async () => {
+      try {
+        const { data: viewData } = await sb.from('posts').select('view_count').eq('id', pid).single();
+        const currentViews = viewData?.view_count || 0;
+        await sb.from('posts').update({ view_count: currentViews + 1 }).eq('id', pid);
+      } catch (err) {
+        // 静默处理，不影响主流程
+      }
+    })();
+    localStorage.setItem(viewKey, now);
+  }
+
 
 
 // 记录已读帖子（用于未读标记）
@@ -12374,10 +12421,26 @@ localStorage.setItem('readPosts', JSON.stringify(readPosts));
         <img src="${post.profiles?.avatar_url || dicebearUrl('u')}" class="w-8 h-8 rounded-full object-cover">
         <div>
           <div class="text-sm font-bold">${post.profiles?.username || '干员'}</div>
+
+<div class="text-xs mt-1" style="color:var(--muted);">Lv.${post.profiles?.level || 1} · ${post.operator_class || '全能'}</div>
+
+
           <div class="text-xs" style="color:var(--muted)">${timeAgo(post.created_at)}</div>
         </div>
       </div>
       <h3 class="font-bold text-base mb-1">${post.title}</h3>
+
+<div class="text-xs mb-2" style="color:var(--muted);"><i class="fas fa-eye mr-1"></i>阅读 ${post.view_count || 0} 次</div>
+
+
+<div class="flex items-center gap-2 mb-2">
+  <button class="text-xs px-3 py-1 rounded-full bg-white/10 hover:bg-white/20 transition" onclick="copyPostLink('${post.id}')">
+    <i class="fas fa-link mr-1"></i>复制链接
+  </button>
+</div>
+
+
+
       ${post.description ? `<p class="text-sm mb-2" style="color:var(--muted)">${post.description}</p>` : ''}
       ${mediaHTML ? `<div class="flex flex-col gap-2">${mediaHTML}</div>` : ''}
     `;
@@ -13102,6 +13165,9 @@ function openLightbox(url, postId = null, e) {
 
 
 
+
+
+
 function closeLightbox() {
 
 
@@ -13266,31 +13332,17 @@ function setLoadingBar(percent) {
   }
 }
 function loadMorePosts() {
-  // 如果正在加载或已全部加载
-  if (APP.loading || APP.allPostsLoaded) {
+  if (APP.loading || APP.allPostsLoaded) return;
+  const loadMoreEl = $('loadMoreIndicator');
+  if (loadMoreEl) loadMoreEl.classList.remove('hidden');
+  loadPosts(false).finally(() => {
+    if (loadMoreEl) loadMoreEl.classList.add('hidden');
     if (APP.allPostsLoaded) {
-      // 显示“没有更多”提示，3秒后自动隐藏
       const noMoreEl = $('noMoreIndicator');
       if (noMoreEl) {
         noMoreEl.classList.remove('hidden');
-        setTimeout(() => noMoreEl.classList.add('hidden'), 3000);
+        setTimeout(() => noMoreEl.classList.add('hidden'), 2000);
       }
-    }
-    return;
-  }
-  
-  // 显示加载中指示器
-  const loadMoreEl = $('loadMoreIndicator');
-  const noMoreEl = $('noMoreIndicator');
-  if (loadMoreEl) loadMoreEl.classList.remove('hidden');
-  if (noMoreEl) noMoreEl.classList.add('hidden');
-  
-  // 调用原有的加载逻辑（loadPosts 会修改 APP.loading 和 APP.allPostsLoaded）
-  loadPosts(false).finally(() => {
-    if (loadMoreEl) loadMoreEl.classList.add('hidden');
-    if (APP.allPostsLoaded && noMoreEl) {
-      noMoreEl.classList.remove('hidden');
-      setTimeout(() => noMoreEl.classList.add('hidden'), 3000);
     }
   });
 }
@@ -28392,6 +28444,55 @@ window.closeAcademyPlayer = function() {
 })();
 
 
+function showSearchSuggestions() {
+  const kw = $('homeSearchInput').value.trim();
+  const sugBox = $('homeSearchSuggestions');
+  const hotList = $('hotSearchList');
+  const historyList = $('searchHistoryList');
+
+  if (kw.length > 0) {
+    // 有输入时显示匹配的热门词
+    hotList.innerHTML = HOT_SEARCHES.filter(t => t.includes(kw)).map(t => `
+      <div class="search-suggest-item" onclick="applySearchSuggestion('${t}')">
+        <i class="fas fa-search"></i>
+        <span class="flex-1 text-sm">${t}</span>
+      </div>
+    `).join('') || '<div class="text-xs p-2" style="color:var(--muted);">无匹配建议</div>';
+    historyList.classList.add('hidden');
+  } else {
+    // 没有输入时，显示搜索历史
+    if (searchHistory.length) {
+      historyList.innerHTML = `
+        <div class="text-xs font-bold px-2 py-1" style="color:var(--muted);">最近搜索</div>
+        ${searchHistory.map(h => `
+          <div class="search-suggest-item" onclick="applySearchSuggestion('${h}')">
+            <i class="fas fa-history"></i>
+            <span class="flex-1 text-sm">${h}</span>
+            <i class="fas fa-times text-xs" style="color:var(--muted);" onclick="event.stopPropagation(); removeSearchHistoryItem('${h}')"></i>
+          </div>
+        `).join('')}
+      `;
+      historyList.classList.remove('hidden');
+    } else {
+      // 无历史时显示提示
+      historyList.innerHTML = '<div class="text-xs p-2 text-center" style="color:var(--muted);">暂无搜索历史</div>';
+      historyList.classList.remove('hidden');
+    }
+    // 热门推荐始终显示在下面（可以保留）
+    hotList.innerHTML = HOT_SEARCHES.map(t => `
+      <div class="search-suggest-item" onclick="applySearchSuggestion('${t}')">
+        <i class="fas fa-fire" style="color:var(--accent);"></i>
+        <span class="flex-1 text-sm">${t}</span>
+      </div>
+    `).join('');
+  }
+  sugBox.classList.remove('hidden');
+}
+
+
+
+
+
 window.quickLocateLoadoutByCode = function() {
   const code = document.getElementById('loadoutQuickCodeInput').value.trim();
   if (!code) return showToast('请粘贴改枪码', 'warning');
@@ -28407,6 +28508,9 @@ window.quickLocateLoadoutByCode = function() {
   }
   showToast(`已定位：${found.name}`, 'success');
 };
+
+
+
 
 
 
@@ -28848,6 +28952,13 @@ window.quickLocateLoadoutByCode = function() {
 }
 
 .post-time-wrap:hover .full-time-tip { display: block !important; }
+
+
+
+
+
+
+
 
 </style>
 
@@ -30780,6 +30891,23 @@ showLoadoutDetail = function(code) {
   originalShowLoadoutDetail(code);
 };
 
+
+
+function copyPostLink(postId) {
+  const url = window.location.origin + window.location.pathname + '#post-' + postId;
+  navigator.clipboard?.writeText(url).then(() => {
+    showToast('✅ 帖子链接已复制', 'success');
+  }).catch(() => {
+    // 降级方案
+    const textarea = document.createElement('textarea');
+    textarea.value = url;
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textarea);
+    showToast('✅ 帖子链接已复制', 'success');
+  });
+}
 
 
 
