@@ -11994,12 +11994,25 @@ div.setAttribute('data-media-urls', JSON.stringify(post.media_urls || []));
 
 
   // 如果当前用户已经对这个帖子投过票，则立即禁用所有投票选项
+    // 普通投票：根据 APP.myVoteMap 禁用
   if (APP.myVoteMap[post.id]) {
     const voteOptionDivs = div.querySelectorAll('[id^="vote-' + post.id + '-"]');
     voteOptionDivs.forEach(function(el) {
       el.style.pointerEvents = 'none';
       el.style.opacity = '0.7';
     });
+  }
+  
+  // 匿名投票：根据 localStorage 禁用
+  if (post.anonymous_voting) {
+    const votedKey = `anon_vote_${post.id}_${APP.user ? APP.user.id : 'guest'}`;
+    if (APP.user && localStorage.getItem(votedKey)) {
+      const voteOptionDivs = div.querySelectorAll('[id^="vote-' + post.id + '-"]');
+      voteOptionDivs.forEach(function(el) {
+        el.style.pointerEvents = 'none';
+        el.style.opacity = '0.7';
+      });
+    }
   }
 
 
@@ -12145,6 +12158,13 @@ async function publishPost() {
   if (!title) { showToast('请输入标题'); btn.disabled = false; return; }
   if (title.length < 5) { showToast('标题至少5个字'); btn.disabled = false; return; }
 
+
+  // 兵种检查
+  var pubOpClassVal = $('pubOpClass').value;
+  if (!pubOpClassVal) { showToast('请选择兵种'); btn.disabled = false; return; }
+
+
+
   // 2. 内容检查（story 类型除外）
   if (pubType !== 'story' && (!desc || desc.length < 10)) {
     showToast('内容至少10个字'); btn.disabled = false; return;
@@ -12211,7 +12231,7 @@ const postData = {
   description: $('pubDesc').value.trim(),
   media_urls: mediaUrls, 
   post_type: postType,
-  operator_class: $('pubOpClass').value || null,
+  operator_class: pubOpClassVal,
   tags: tags,
   vote_options: voteOptions,
 anonymous_voting: document.getElementById('pubAnonymousVote')?.checked || false,
@@ -13108,7 +13128,7 @@ async function castVote(optIdx, pid) {
     // 增加票数
     opts[optIdx].votes = (opts[optIdx].votes || 0) + 1;
     
-    // 更新数据库
+    // 更新数据库（只更新票数，不插入 votes 表）
     const { error: updateError } = await sb.from('posts').update({ vote_options: opts }).eq('id', pid);
     if (updateError) { showToast('投票失败'); return; }
     
@@ -13121,7 +13141,7 @@ async function castVote(optIdx, pid) {
       el.style.pointerEvents = 'none';
       el.style.opacity = '0.7';
       const bar = el.querySelector('.vote-bar');
-      const countSpan = el.querySelector('.font-bold'); // 我们新增的票数显示
+      const countSpan = el.querySelector('.font-bold');
       if (bar) bar.style.width = totalVotes ? ((opts[i].votes || 0) / totalVotes * 100) + '%' : '0%';
       if (countSpan) countSpan.textContent = `${opts[i].votes || 0} 票`;
     });
@@ -13161,6 +13181,8 @@ async function castVote(optIdx, pid) {
     showToast('投票成功', 'success');
   }
 }
+
+
 
 
 
