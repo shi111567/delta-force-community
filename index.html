@@ -6930,7 +6930,7 @@ window.addEventListener('scroll', () => {
     <div id="commentsList" class="space-y-3 max-h-88 overflow-y-auto mb-3"></div>
     <div class="flex gap-2 items-end">
       <div class="flex-1">
-        <textarea id="commentInput" rows="2" placeholder="写评论... @提及用户" class="w-full text-sm"></textarea>
+        <textarea id="commentInput" rows="2" placeholder="友善交流，分享你的战术见解..."class="w-full text-sm"></textarea>
 
         <div class="flex gap-1 mt-1">
           <button class="text-xs px-2 py-1 rounded" style="background:var(--surface)" onclick="insertEmoji('👍')">👍</button>
@@ -11843,6 +11843,9 @@ if (post.post_type === 'vote' && post.vote_options) {
             <span>·</span>
             <span>${opLabel}</span>
             ${typeLabel ? `<span>·</span><span>${typeLabel}</span>` : ''}
+
+<span>·</span><span class="text-xs" style="color:var(--muted)"><i class="far fa-eye mr-1"></i>${post.view_count || 0}</span>
+
           </div>
         </div>
         <div class="relative" style="margin-left: auto;">
@@ -11914,6 +11917,10 @@ if (post.post_type === 'vote' && post.vote_options) {
           </div>
         </div>
       </div>
+
+
+
+
   <!-- 快速回复区域（默认隐藏） -->
   <div class="quick-reply-area hidden" id="quickReply-${post.id}" style="margin-top: 12px;">
     <!-- 评论预览区 -->
