@@ -10013,6 +10013,15 @@ function toggleTheme() {
   const next = order[(cur+1)%3];
   localStorage.setItem('themePref', next);
   applyTheme(next);
+const themeBtn = $('themeBtn');
+if (themeBtn) {
+  themeBtn.style.transition = 'transform 0.3s';
+  themeBtn.style.transform = 'rotate(360deg)';
+  setTimeout(() => {
+    themeBtn.style.transform = 'rotate(0deg)';
+  }, 300);
+}
+
 }
 applyTheme(localStorage.getItem('themePref') || 'light');
 
