@@ -6798,6 +6798,16 @@ window.addEventListener('scroll', () => {
     <option value="qa">问答帖</option>
     <option value="story">📱 动态</option>
   </select>
+
+<!-- 匿名投票复选框，仅在投票帖时显示 -->
+<div id="anonymousVoteArea" style="display:none; margin-top: 8px;">
+  <label class="flex items-center gap-2 text-sm cursor-pointer select-none">
+    <input type="checkbox" id="pubAnonymousVote" class="rounded">
+    <span>🕶️ 匿名投票（不公开投票人身份）</span>
+  </label>
+</div>
+
+
   <select id="pubOpClass" class="flex-1">
     <option value="">选择兵种</option>
     <option value="突击">突击</option>
@@ -11768,17 +11778,33 @@ const displayTags = (post.tags||[]).filter(t => !post.description?.includes('#' 
 
   const tagsHTML = displayTags.slice(0,3).map(t => `<span class="tag-pill">#${t}</span>`).join(' ');
 
-  // 投票选项渲染
-  let voteHTML = '';
-  if (post.post_type === 'vote' && post.vote_options) {
-    const opts = typeof post.vote_options === 'string' ? JSON.parse(post.vote_options) : post.vote_options;
-    voteHTML = `<div class="space-y-1.5 mt-2">${(opts||[]).map((o,i) => `
-      <div class="vote-option" onclick="castVote(${i},'${post.id}')">
-        <div class="vote-bar" style="width:0%"></div>
-        <span class="relative z-10 text-sm">${o.text || o}</span>
-      </div>
-    `).join('')}</div>`;
+ 
+    
+   // 投票选项渲染
+let voteHTML = '';
+if (post.post_type === 'vote' && post.vote_options) {
+  var opts = typeof post.vote_options === 'string' ? JSON.parse(post.vote_options) : post.vote_options;
+  var totalVotes = (opts || []).reduce(function(sum, o) { return sum + (o.votes || 0); }, 0);
+
+  var itemsHtml = '';
+  (opts || []).forEach(function(o, i) {
+    var widthPercent = totalVotes ? ((o.votes || 0) / totalVotes * 100) : 0;
+    itemsHtml += '<div class="vote-option" onclick="castVote(' + i + ',\'' + post.id + '\')" id="vote-' + post.id + '-' + i + '">' +
+                 '<div class="vote-bar" style="width:' + widthPercent + '%"></div>' +
+                 '<span class="relative z-10 flex justify-between">' +
+                 '<span>' + (o.text || o) + '</span>' +
+                 '<span class="font-bold">' + (o.votes || 0) + ' 票</span>' +
+                 '</span>' +
+                 '</div>';
+  });
+
+  var anonymousTip = '';
+  if (post.anonymous_voting) {
+    anonymousTip = '<p class="text-xs mt-2" style="color: var(--muted);"><i class="fas fa-user-secret mr-1"></i>匿名投票（身份保密）</p>';
   }
+
+  voteHTML = '<div class="space-y-1.5 mt-2">' + itemsHtml + anonymousTip + '</div>';
+}
 
 
 
@@ -11837,7 +11863,8 @@ const displayTags = (post.tags||[]).filter(t => !post.description?.includes('#' 
         </div>
       </div>
 
-      <h3 class="post-title">${isTop ? '<i class="fas fa-thumbtack" style="color: var(--accent); margin-right: 8px;"></i>' : ''}${newBadge}${post.title}</h3>
+            <h3 class="post-title">${isTop ? '<i class="fas fa-thumbtack" style="color: var(--accent); margin-right: 8px;"></i>' : ''}${newBadge}${post.anonymous_voting ? `<span class="tag-pill" style="background:#9b59b620;color:#9b59b6;border-color:#9b59b640; margin-right: 6px;"><i class="fas fa-user-secret mr-1"></i>匿名</span>` : ''}${post.title}</h3>
+
             ${post.description ? `<p class="post-description">${formatPostDescription(post.description)}</p>` : ''}
 
       <!-- 媒体区保持不变 -->
@@ -11966,6 +11993,17 @@ div.setAttribute('data-media-urls', JSON.stringify(post.media_urls || []));
 
 
 
+  // 如果当前用户已经对这个帖子投过票，则立即禁用所有投票选项
+  if (APP.myVoteMap[post.id]) {
+    const voteOptionDivs = div.querySelectorAll('[id^="vote-' + post.id + '-"]');
+    voteOptionDivs.forEach(function(el) {
+      el.style.pointerEvents = 'none';
+      el.style.opacity = '0.7';
+    });
+  }
+
+
+
   return div;
 }
 
@@ -12019,7 +12057,20 @@ function onTypeChange() {
   } else {
     if (hintEl) hintEl.remove();
   }
+
+  // 控制匿名投票复选框的显示
+  const anonymousArea = document.getElementById('anonymousVoteArea');
+  if (anonymousArea) {
+    anonymousArea.style.display = type === 'vote' ? 'block' : 'none';
+  }
+
 }
+
+
+
+
+
+
 function addVoteOption() {
   const div = document.createElement('div');
   div.className = 'flex gap-2';
@@ -12151,6 +12202,10 @@ async function publishPost() {
 
   const postType = $('pubType').value;
 const postData = {
+
+
+
+
   user_id: APP.user.id, 
   title: title,
   description: $('pubDesc').value.trim(),
@@ -12158,7 +12213,11 @@ const postData = {
   post_type: postType,
   operator_class: $('pubOpClass').value || null,
   tags: tags,
-  vote_options: voteOptions
+  vote_options: voteOptions,
+anonymous_voting: document.getElementById('pubAnonymousVote')?.checked || false,
+
+
+
 };
 
 // 如果是动态类型，设置过期时间为24小时后
@@ -13032,25 +13091,78 @@ async function submitReport() {
 
 // ==================== 投票 ====================
 async function castVote(optIdx, pid) {
-  const { data: post } = await sb.from('posts').select('vote_options').eq('id', pid).single();
-  if (!post) return;
+  if (!APP.user) { showToast('请先登录'); openAuthModal(); return; }
+  
+  // 1. 获取帖子信息，判断是否匿名投票
+  const { data: post, error: postError } = await sb.from('posts').select('anonymous_voting, vote_options').eq('id', pid).single();
+  if (postError || !post) { showToast('帖子不存在'); return; }
+  
+  const isAnonymous = post.anonymous_voting === true;
   let opts = typeof post.vote_options === 'string' ? JSON.parse(post.vote_options) : post.vote_options;
-  if (!opts[optIdx]) return;
-  opts[optIdx].votes = (opts[optIdx].votes||0) + 1;
-  const total = opts.reduce((s,o) => s + (o.votes||0), 0);
-  await sb.from('posts').update({ vote_options: opts }).eq('id', pid);
-  // 更新UI
-  const card = document.querySelector(`[data-post-id="${pid}"]`);
-  if (card) {
-    const bars = card.querySelectorAll('.vote-bar');
-    const labels = card.querySelectorAll('.vote-option .relative');
-    opts.forEach((o, i) => {
-      if (bars[i]) bars[i].style.width = total ? ((o.votes||0)/total*100)+'%' : '0%';
-      if (labels[i]) labels[i].textContent = `${o.text || o} (${total ? Math.round((o.votes||0)/total*100) : 0}%)`;
+  
+  if (isAnonymous) {
+    // ======== 匿名投票处理 ========
+    const votedKey = `anon_vote_${pid}_${APP.user.id}`;
+    if (localStorage.getItem(votedKey)) { showToast('你已经投过票了（匿名）'); return; }
+    
+    // 增加票数
+    opts[optIdx].votes = (opts[optIdx].votes || 0) + 1;
+    
+    // 更新数据库
+    const { error: updateError } = await sb.from('posts').update({ vote_options: opts }).eq('id', pid);
+    if (updateError) { showToast('投票失败'); return; }
+    
+    // 本地标记已投票
+    localStorage.setItem(votedKey, '1');
+    
+    // 更新UI：禁用所有选项并刷新票数
+    const totalVotes = opts.reduce((s, o) => s + (o.votes || 0), 0);
+    document.querySelectorAll(`[id^="vote-${pid}-"]`).forEach((el, i) => {
+      el.style.pointerEvents = 'none';
+      el.style.opacity = '0.7';
+      const bar = el.querySelector('.vote-bar');
+      const countSpan = el.querySelector('.font-bold'); // 我们新增的票数显示
+      if (bar) bar.style.width = totalVotes ? ((opts[i].votes || 0) / totalVotes * 100) + '%' : '0%';
+      if (countSpan) countSpan.textContent = `${opts[i].votes || 0} 票`;
     });
+    
+    showToast('匿名投票成功', 'success');
+    
+  } else {
+    // ======== 普通投票处理（原有逻辑）========
+    if (APP.myVoteMap[pid]) { showToast('你已经投过票了'); return; }
+    
+    // 检查数据库是否已投
+    const { data: existing } = await sb.from('votes').select('id').eq('user_id', APP.user.id).eq('post_id', pid).maybeSingle();
+    if (existing) { showToast('你已经投过票了'); return; }
+    
+    // 插入投票记录
+    const { error: insertError } = await sb.from('votes').insert({ user_id: APP.user.id, post_id: pid, vote_type: 'up' });
+    if (insertError) { showToast('投票失败'); return; }
+    
+    // 更新票数
+    opts[optIdx].votes = (opts[optIdx].votes || 0) + 1;
+    const { error: updateError } = await sb.from('posts').update({ vote_options: opts }).eq('id', pid);
+    if (updateError) { showToast('投票失败'); return; }
+    
+    APP.myVoteMap[pid] = 'up';
+    
+    // 更新UI
+    const totalVotes = opts.reduce((s, o) => s + (o.votes || 0), 0);
+    document.querySelectorAll(`[id^="vote-${pid}-"]`).forEach((el, i) => {
+      el.style.pointerEvents = 'none';
+      el.style.opacity = '0.7';
+      const bar = el.querySelector('.vote-bar');
+      const countSpan = el.querySelector('.font-bold');
+      if (bar) bar.style.width = totalVotes ? ((opts[i].votes || 0) / totalVotes * 100) + '%' : '0%';
+      if (countSpan) countSpan.textContent = `${opts[i].votes || 0} 票`;
+    });
+    
+    showToast('投票成功', 'success');
   }
-  showToast('投票成功');
 }
+
+
 
 // 动态创建 Lightbox，彻底避免 CSS 污染
 let lightboxInstance = null;
@@ -13237,13 +13349,35 @@ function openLightbox(url, postId = null, e) {
 
 
 
+async function castVote(optIdx, pid) {
+  if (!APP.user) { showToast('请先登录'); openAuthModal(); return; }
+  
+  // 检查本地缓存是否已投
+  if (APP.myVoteMap[pid]) { showToast('你已经投过票了'); return; }
+  
+  // 插入数据库...
+  // 成功后：
+  APP.myVoteMap[pid] = 'up';
+  
+  // 立即禁用当前帖子的所有选项
+  const allOptions = document.querySelectorAll(`[id^="vote-${pid}-"]`);
+  allOptions.forEach(opt => {
+    opt.style.pointerEvents = 'none';
+    opt.style.opacity = '0.7';
+  });
+  
+  // 更新票数显示（可选：重新渲染整个投票区域）
+  const post = await sb.from('posts').select('vote_options').eq('id', pid).single();
+  if (post) {
+    // 重新计算并更新 UI（这里可以写一个专门的 updateVoteUI 函数）
+  }
+}
+
 
 
 
 
 function closeLightbox() {
-
-
   if (lightboxInstance && lightboxInstance._keyHandler) {
     document.removeEventListener('keydown', lightboxInstance._keyHandler);
   }
