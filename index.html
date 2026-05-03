@@ -7880,11 +7880,12 @@ window.addEventListener('scroll', () => {
       <h2 class="font-display text-xl flex items-center gap-2">
         <i class="fas fa-coins" style="color: #FFD700;"></i> 物资实时行情
         <span class="text-xs px-2 py-1 rounded-full" style="background: var(--accent); color: white;" id="lootUpdateBadge">更新中</span>
+        <span class="text-xs ml-auto" id="lootUpdateTime" style="color:var(--muted);"></span>
+        <button class="w-6 h-6 rounded-full flex items-center justify-center" style="background: var(--surface);" onclick="refreshLootPrices()" title="刷新价格">
+          <i class="fas fa-sync-alt" style="font-size:12px;"></i>
+        </button>
       </h2>
       <div class="flex items-center gap-2">
-        <button class="w-8 h-8 rounded-full flex items-center justify-center" style="background: var(--surface);" onclick="refreshLootPrices()" title="刷新价格">
-          <i class="fas fa-sync-alt"></i>
-        </button>
         <button onclick="closeModal('lootPriceModal')" class="w-8 h-8 rounded-full flex items-center justify-center" style="background: var(--surface);">
           <i class="fas fa-times"></i>
         </button>
@@ -7920,6 +7921,8 @@ window.addEventListener('scroll', () => {
     </p>
   </div>
 </div>
+
+
 
 <!-- ==================== 赛季任务追踪弹窗 ==================== -->
 <div class="modal-overlay" id="seasonTaskModal">
@@ -11594,10 +11597,7 @@ async function loadPosts(reset) {
   if (APP.allPostsLoaded) {
     if ($('postsSkeleton')) $('postsSkeleton').style.display = 'none';
     setLoadingBar(100);
-// 在 loadPosts 函数的最后，APP.loading = false; 之前，新增高亮逻辑
-if (APP.filters.keyword && APP.filters.keyword.trim() !== '') {
-    highlightKeywords(APP.filters.keyword);
-}
+
 
 // 在文件任意位置添加高亮函数
 function highlightKeywords(keyword) {
@@ -11762,7 +11762,11 @@ const opColorMap = {
 };
 const opColor = opColorMap[opClass] || '#9b59b6';
 const opLabel = `<span class="tag-pill" style="background:${opColor}20; color:${opColor}; border-color:${opColor}40; margin-left:4px; font-weight:600; padding:4px 10px;"><i class="fas fa-shield-alt mr-1"></i>${opClass}</span>`;
-  const tagsHTML = (post.tags||[]).slice(0,3).map(t => `<span class="tag-pill">#${t}</span>`).join(' ');
+
+// 去重：避免标签和话题重复显示
+const displayTags = (post.tags||[]).filter(t => !post.description?.includes('#' + t));
+
+  const tagsHTML = displayTags.slice(0,3).map(t => `<span class="tag-pill">#${t}</span>`).join(' ');
 
   // 投票选项渲染
   let voteHTML = '';
@@ -11834,7 +11838,7 @@ const opLabel = `<span class="tag-pill" style="background:${opColor}20; color:${
       </div>
 
       <h3 class="post-title">${isTop ? '<i class="fas fa-thumbtack" style="color: var(--accent); margin-right: 8px;"></i>' : ''}${newBadge}${post.title}</h3>
-      ${post.description ? `<p class="post-description">${post.description.substring(0,150)}${post.description.length>150?'...':''}</p>` : ''}
+            ${post.description ? `<p class="post-description">${formatPostDescription(post.description)}</p>` : ''}
 
       <!-- 媒体区保持不变 -->
       ${mediaHTML ? `<div class="mb-4 post-media">${mediaHTML}</div>` : ''}
@@ -11897,6 +11901,14 @@ const opLabel = `<span class="tag-pill" style="background:${opColor}20; color:${
   </div>
     </div>
   `;
+
+
+
+
+
+
+
+
 // 添加点击波纹效果
 div.addEventListener('click', function(e) {
 
@@ -11956,6 +11968,24 @@ div.setAttribute('data-media-urls', JSON.stringify(post.media_urls || []));
 
   return div;
 }
+
+
+function formatPostDescription(desc) {
+  let truncated = desc.substring(0, 150) + (desc.length > 150 ? '...' : '');
+  return truncated.replace(/#(\S+)/g, '<span class="post-hashtag" onclick="event.stopPropagation(); searchByTag(\'$1\')">#$1</span>');
+}
+window.searchByTag = function(tag) {
+  APP.filters.topic = tag;
+  // 尝试更新筛选栏标签（如果存在）
+  const labelEl = document.getElementById('currentTopicLabel');
+  if (labelEl) labelEl.textContent = tag;
+  // 切换到首页并加载帖子
+  switchTab('home');
+  loadPosts(true);
+  showToast('搜索话题 #' + tag, 'info');
+};
+
+
 
 function togglePostMenu(e, pid) {
   e.stopPropagation();
@@ -12111,7 +12141,13 @@ async function publishPost() {
     });
   }
 
-  const tags = $('pubTags').value.split(/[,，]/).map(t => t.trim()).filter(Boolean);
+    // 自动提取 #话题 标签（从标题和描述中）
+  const descText = $('pubDesc').value.trim();
+  const hashTags = (descText + ' ' + title).match(/#(\S+)/g) || [];
+  const cleanedHashTags = hashTags.map(t => t.replace(/#/g, ''));
+  const manualTags = $('pubTags').value.split(/[,，]/).map(t => t.trim()).filter(Boolean);
+  const combinedTags = [...new Set([...manualTags, ...cleanedHashTags])]; // 去重
+  const tags = combinedTags;
 
   const postType = $('pubType').value;
 const postData = {
@@ -12182,8 +12218,7 @@ if (postType === 'story') {
 
   // ========== 新增：发帖增加幸运值 ==========
   let luckyBonus = 5;  // 基础+5
-  const descText = $('pubDesc').value.trim();
-  if (descText.length >= 80) luckyBonus = 10;  // 内容越长幸运值越多，鼓励高质量发帖
+   if (descText.length >= 80) luckyBonus = 10;  // 内容越长幸运值越多，鼓励高质量发帖
   const newLucky = Math.min((APP.profile.lucky_value || 0) + luckyBonus, 200);
   await sb.from('profiles').update({ lucky_value: newLucky }).eq('id', APP.user.id);
   APP.profile.lucky_value = newLucky;
@@ -12437,12 +12472,23 @@ localStorage.setItem('readPosts', JSON.stringify(readPosts));
   <button class="text-xs px-3 py-1 rounded-full bg-white/10 hover:bg-white/20 transition" onclick="copyPostLink('${post.id}')">
     <i class="fas fa-link mr-1"></i>复制链接
   </button>
+
+
+
 </div>
 
 
 
       ${post.description ? `<p class="text-sm mb-2" style="color:var(--muted)">${post.description}</p>` : ''}
       ${mediaHTML ? `<div class="flex flex-col gap-2">${mediaHTML}</div>` : ''}
+
+
+<div id="relatedPosts" class="mt-4">
+  <h4 class="text-sm font-bold mb-2">📌 相关推荐</h4>
+  <div id="relatedPostsList" class="space-y-1 text-xs" style="color:var(--muted);">加载中...</div>
+</div>
+
+
     `;
   }
   
@@ -12451,6 +12497,33 @@ localStorage.setItem('readPosts', JSON.stringify(readPosts));
     // 开启沉浸式阅读模式
   $('commentsModal').classList.add('immersive');
   openModal('commentsModal');
+
+
+
+// 加载相关帖子
+(async () => {
+  const tags = post.tags || [];
+  if (tags.length === 0) {
+    document.getElementById('relatedPostsList').innerHTML = '暂无相关推荐';
+    return;
+  }
+  const { data: related } = await sb.from('posts')
+    .select('id,title')
+    .contains('tags', [tags[0]])
+    .neq('id', pid)
+    .limit(3);
+  if (related && related.length > 0) {
+    document.getElementById('relatedPostsList').innerHTML = related.map(p => 
+      `<div class="cursor-pointer hover:text-accent" onclick="closeModal('commentsModal');openComments('${p.id}')">• ${p.title}</div>`
+    ).join('');
+  } else {
+    document.getElementById('relatedPostsList').innerHTML = '暂无相关推荐';
+  }
+})();
+
+
+
+
   setTimeout(() => $('commentInput')?.focus(), 100);
 }
 async function loadComments(pid) {
@@ -26012,6 +26085,9 @@ async function loadLootPrices() {
     const data = await response.json();
     lootPrices = data;
     document.getElementById('lootUpdateBadge').textContent = '实时';
+
+  window.lootFetchTime = Date.now();
+
     document.getElementById('lootDataSource').textContent = '数据来源：交易行实时抓取 · 每日更新';
   } catch (e) {
     console.warn('实时数据获取失败，使用本地缓存', e);
@@ -26071,6 +26147,19 @@ function renderLootList() {
   }).join('');
 }
 
+
+  // 更新时间显示
+  function updateLootTime() {
+    const timeEl = document.getElementById('lootUpdateTime');
+    if (timeEl && window.lootFetchTime) {
+      const seconds = Math.floor((Date.now() - window.lootFetchTime) / 1000);
+      timeEl.textContent = `更新于 ${seconds}秒前`;
+    }
+  }
+  setInterval(updateLootTime, 1000);
+  updateLootTime();
+
+
 function bindLootEvents() {
   const searchInput = document.getElementById('lootSearchInputModal');
   if (searchInput) {
@@ -26111,6 +26200,11 @@ window.showLootDetailModal = function(name) {
       </div>
       <canvas id="lootTrendCanvas" width="360" height="160" style="width:100%; height:auto;"></canvas>
       <p class="text-xs mt-2 text-center" style="color:var(--muted);">近7天价格走势（模拟）</p>
+      <div class="flex gap-2 mt-3">
+        <button class="btn-warm flex-1 py-2 text-sm" onclick="shareLootItem('${item.name.replace(/'/g, "\\'")}', ${item.price}, '${item.unit}', '${item.trend}')">
+          <i class="fas fa-share-alt mr-1"></i>分享物品
+        </button>
+      </div>
     </div>
   `;
   document.body.appendChild(modal);
@@ -26120,19 +26214,31 @@ window.showLootDetailModal = function(name) {
     new Chart(canvas, {
       type: 'line',
       data: {
-        labels: ['1天前','2天前','3天前','4天前','5天前','6天前','今天'],
+        labels: ['7天前','6天前','5天前','4天前','3天前','2天前','昨天','今天'],
         datasets: [{
-          data: Array.from({length:7}, () => item.price * (0.85 + Math.random() * 0.3)),
-          borderColor: '#FF6B35',
+          label: item.name,
+          data: Array.from({length:8}, () => (item.price * (0.85 + Math.random() * 0.3)).toFixed(1)),
+          borderColor: item.trend === 'up' ? '#2ecc71' : (item.trend === 'down' ? '#e74c3c' : '#FF6B35'),
           borderWidth: 2,
           fill: false,
-          tension: 0.3
+          tension: 0.3,
+          pointRadius: 3,
+          pointBackgroundColor: '#FFD700'
         }]
       },
-      options: { plugins: { legend: { display: false } } }
+      options: {
+        responsive: true,
+        plugins: { legend: { display: true, labels: { color: '#ccc' } } },
+        scales: {
+          x: { ticks: { color: '#aaa' }, grid: { color: '#333' } },
+          y: { ticks: { color: '#aaa' }, grid: { color: '#333' } }
+        }
+      }
     });
   }, 100);
 };
+
+
 
 // ----- 赛季任务 -----
 const S9_SEASON_TASKS = [
@@ -28510,7 +28616,26 @@ window.quickLocateLoadoutByCode = function() {
 };
 
 
-
+window.shareLootItem = function(name, price, unit, trend) {
+  const trendText = trend === 'up' ? '📈 上涨中' : (trend === 'down' ? '📉 下跌中' : '➡️ 稳定');
+  const text = `【三角洲行动·物资行情】\n物品：${name}\n当前价格：${price}${unit}\n趋势：${trendText}\n数据来源：墨辰电竞`;
+  
+  if (navigator.share) {
+    navigator.share({ title: '物资行情分享', text: text });
+  } else {
+    navigator.clipboard?.writeText(text).then(() => {
+      showToast('✅ 物资信息已复制，可直接粘贴到群聊', 'success');
+    }).catch(() => {
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+      showToast('✅ 物资信息已复制', 'success');
+    });
+  }
+};
 
 
 
@@ -28954,7 +29079,19 @@ window.quickLocateLoadoutByCode = function() {
 .post-time-wrap:hover .full-time-tip { display: block !important; }
 
 
-
+.post-hashtag {
+  color: #3498db;
+  background: rgba(52,152,219,0.15);
+  padding: 1px 6px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 600;
+  margin: 0 2px;
+}
+.post-hashtag:hover {
+  background: #3498db;
+  color: #fff;
+}
 
 
 
