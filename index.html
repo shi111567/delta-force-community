@@ -6461,7 +6461,9 @@ window.addEventListener('scroll', () => {
           <div class="font-bold" id="spiritName">小火人</div>
           <div class="text-xs" style="color:var(--muted)" id="spiritStage">幼年 · 成长值 0</div>
         </div>
-        <button class="btn-ghost text-xs ml-auto" onclick="interactSpirit()"><i class="fas fa-hand-sparkles mr-1"></i>互动</button>
+        <button class="btn-ghost text-xs ml-auto" onclick="event.stopPropagation(); interactSpirit()">
+  <i class="fas fa-hand-sparkles mr-1"></i>互动
+</button>
       </div>
       <!-- 勋章墙 -->
       <div class="mb-4">
@@ -14633,30 +14635,186 @@ async function loadSpirit() {
 }
 
 async function interactSpirit() {
+  if (!APP.user) return;
   const today = new Date().toDateString();
-  // 初始化或重置每日计数
-  if (!APP.spiritDate) APP.spiritDate = today;
-  if (APP.spiritDate !== today) {
+  if (!APP.spiritDate || APP.spiritDate !== today) {
     APP.spiritDate = today;
     APP.spiritInteractCount = 0;
   }
-  
   if (APP.spiritInteractCount >= 3) {
     showToast('今日互动已达上限（3次），明天再来吧！');
     return;
   }
-  
-  const { data } = await sb.from('spirits').select('*').eq('owner_id', APP.user.id).single();
-  if (!data) return;
-  const newGrowth = Math.min(200, (data.growth || 0) + 5);
-  await sb.from('spirits').update({ growth: newGrowth, last_interaction: new Date().toISOString() }).eq('owner_id', APP.user.id);
-  $('spiritContainer').classList.remove('gray');
-  
-  APP.spiritInteractCount++;
-  const remain = 3 - APP.spiritInteractCount;
-  showToast(`小火人成长值 +5！（今日剩余 ${remain} 次）`);
-  loadSpirit();
+
+  // ========== 环形转盘互动 ==========
+  showRingMenu(async (choice) => {
+    const growthMap = { 'feed': 8, 'play': 5, 'clean': 3 };
+    const growth = growthMap[choice] || 5;
+    const actionName = { 'feed': '喂食', 'play': '玩耍', 'clean': '清洁', 'photo': '拍照' }[choice] || '互动';
+
+    const { data } = await sb.from('spirits').select('*').eq('owner_id', APP.user.id).single();
+    if (!data) return;
+    const newGrowth = Math.min(200, (data.growth || 0) + growth);
+    await sb.from('spirits').update({ growth: newGrowth, last_interaction: new Date().toISOString() }).eq('owner_id', APP.user.id);
+    
+    const stageEl = document.getElementById('spiritStage');
+    if (stageEl) stageEl.textContent = `${data.stage || '幼年'} · 成长值 ${newGrowth}`;
+    const container = document.getElementById('spiritContainer');
+    if (container) container.classList.remove('gray');
+
+    APP.spiritInteractCount++;
+    const remain = 3 - APP.spiritInteractCount;
+    showToast(`小火人 ${actionName} +${growth} 成长值！（今日剩余 ${remain} 次）`);
+
+    if (choice === 'photo') {
+      setTimeout(() => {
+        const snap = document.querySelector('.spirit-flame')?.outerHTML;
+        if (snap) {
+          navigator.clipboard?.writeText(snap).then(() => showToast('📸 小火人快照已复制！'));
+        }
+      }, 500);
+    }
+  });
 }
+
+
+// ========== 环形转盘菜单（通用） ==========
+function showRingMenu(callback) {
+  // 移除可能已存在的转盘
+  const old = document.querySelector('.spirit-ring-menu-overlay');
+  if (old) old.remove();
+
+  const items = [
+    { key: 'feed',  label: '喂食', icon: '🥩', color: '#FF6B35' },
+    { key: 'play',  label: '玩耍', icon: '🎮', color: '#2ecc71' },
+    { key: 'clean', label: '清洁', icon: '🛀', color: '#3498db' },
+    { key: 'photo', label: '拍照', icon: '📸', color: '#f1c40f' }
+  ];
+
+  const overlay = document.createElement('div');
+  overlay.className = 'spirit-ring-menu-overlay';
+  overlay.style.cssText = 'position:fixed; inset:0; z-index:99999; background:rgba(0,0,0,0.7); display:flex; align-items:center; justify-content:center; cursor:pointer;';
+  
+  const canvas = document.createElement('canvas');
+  canvas.width = 360;
+  canvas.height = 360;
+  canvas.style.cssText = 'border-radius:50%;';
+  overlay.appendChild(canvas);
+  
+  const ctx = canvas.getContext('2d');
+  const cx = 180, cy = 180, outerR = 150, innerR = 55; // 环形内径加大，留出中心按钮
+
+  let hoveredIndex = -1;
+
+  // 获取鼠标在 canvas 上的角度
+  function getAngle(e) {
+    const rect = canvas.getBoundingClientRect();
+    const x = (e.clientX || e.touches?.[0]?.clientX) - rect.left - rect.width / 2;
+    const y = (e.clientY || e.touches?.[0]?.clientY) - rect.top - rect.height / 2;
+    const dist = Math.sqrt(x * x + y * y);
+    if (dist < innerR || dist > outerR) return -1; // 不在环形内
+    let angle = Math.atan2(y, x) * 180 / Math.PI + 90;
+    if (angle < 0) angle += 360;
+    return Math.floor(angle / 90); // 4个选项，每个占90°
+  }
+
+  // 绘制转盘
+  function draw() {
+    ctx.clearRect(0, 0, 360, 360);
+    items.forEach((item, i) => {
+      const startAngle = (-90 + i * 90) * Math.PI / 180;
+      const endAngle = startAngle + Math.PI / 2;
+      
+      // 扇区背景
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.arc(cx, cy, outerR, startAngle, endAngle);
+      ctx.closePath();
+      ctx.fillStyle = i === hoveredIndex ? item.color : 'rgba(255,255,255,0.1)';
+      ctx.fill();
+      
+      // 图标和文字
+      const midAngle = startAngle + Math.PI / 4;
+      const labelR = (innerR + outerR) / 2 + 5;
+      const lx = cx + Math.cos(midAngle) * labelR;
+      const ly = cy + Math.sin(midAngle) * labelR;
+      ctx.fillStyle = '#fff';
+      ctx.font = '28px "Noto Sans SC"';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(item.icon, lx, ly - 10);
+      ctx.font = '13px "Noto Sans SC"';
+      ctx.fillText(item.label, lx, ly + 18);
+    });
+
+    // 中心关闭按钮
+    ctx.beginPath();
+    ctx.arc(cx, cy, innerR - 2, 0, Math.PI * 2);
+    ctx.fillStyle = hoveredIndex === -1 ? 'rgba(0,0,0,0.8)' : 'rgba(255,255,255,0.15)';
+    ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.font = '14px "Noto Sans SC"';
+    ctx.fillText('✕ 取消', cx, cy);
+  }
+
+  draw();
+
+  // 鼠标/触摸事件
+  canvas.addEventListener('mousemove', e => {
+    hoveredIndex = getAngle(e);
+    draw();
+    canvas.style.cursor = hoveredIndex !== -1 ? 'pointer' : 'default';
+  });
+  canvas.addEventListener('touchmove', e => {
+    e.preventDefault();
+    hoveredIndex = getAngle(e);
+    draw();
+  }, { passive: false });
+
+  canvas.addEventListener('mouseleave', () => { hoveredIndex = -1; draw(); });
+
+  // 点击执行
+  const confirm = (e) => {
+    const idx = getAngle(e);
+    if (idx >= 0 && idx < items.length) {
+      // 选中动画
+      const item = items[idx];
+      ctx.beginPath();
+      const sa = (-90 + idx * 90) * Math.PI / 180;
+      const ea = sa + Math.PI / 2;
+      ctx.moveTo(cx, cy);
+      ctx.arc(cx, cy, outerR, sa, ea);
+      ctx.closePath();
+      ctx.fillStyle = item.color;
+      ctx.globalAlpha = 0.6;
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      
+      setTimeout(() => {
+        overlay.remove();
+        callback(item.key);
+      }, 300);
+    } else {
+      overlay.remove();
+    }
+  };
+
+  canvas.addEventListener('click', confirm);
+  canvas.addEventListener('touchend', e => {
+    e.preventDefault();
+    confirm(e);
+  });
+
+  // 点击遮罩关闭
+  overlay.addEventListener('click', e => {
+    if (e.target === overlay) overlay.remove();
+  });
+
+  document.body.appendChild(overlay);
+}
+
+
+
 // ==================== 关注系统 ====================
 async function loadFollowingIds() {
   if (!APP.user) return;
@@ -17149,6 +17307,8 @@ function loadScript(src) {
 // ==================== 战绩卡片（增强） ====================
 function showStatsModal() {
   const contentEl = document.getElementById('statsModalContent');
+  if (!contentEl) return;  // ← 安全检查
+  
   if (!APP.user) {
     contentEl.innerHTML = '<p class="text-center py-8" style="color:var(--muted);">请先登录查看战绩</p>';
     openModal('statsModal');
@@ -17156,150 +17316,233 @@ function showStatsModal() {
   }
   
   const user = APP.profile;
+  const avatarImg = user.avatar_url || dicebearUrl(user.username);
   const level = user.level || 1;
   const exp = user.exp || 0;
   const nextExp = level * 100;
-  const expProgress = Math.min(100, (exp / nextExp) * 100);
-  
-  const postsCount = user.posts_count || 0;
-  const likesReceived = user.likes_received || 0;
-  const followersCount = user.followers_count || 0;
-  const followingCount = user.following_count || 0;
-  
-  // 模拟战力与战斗数据（可扩展为真实数据）
-  const combatPower = Math.min(9999, (likesReceived * 10) + (postsCount * 5) + (followersCount * 20) + 500);
+  const expPercent = Math.min(100, (exp / nextExp) * 100);
+  const combatPower = Math.min(9999, (user.likes_received || 0) * 10 + (user.posts_count || 0) * 5 + (user.followers_count || 0) * 20 + 500);
   const kd = (Math.random() * 2.5 + 1.2).toFixed(2);
   const winRate = Math.floor(Math.random() * 30) + 45;
   const kills = Math.floor(Math.random() * 800) + 100;
-  
   const badges = user.badges || [];
   const achievements = user.achievements || [];
   const favoriteWeapons = ['M7', 'AS Val', 'K416', 'MP7', 'AWM'];
-  
+
   contentEl.innerHTML = `
-    <div class="stats-card-horizontal" style="background: linear-gradient(135deg, #0a0f1a 0%, #1a1f2e 100%); border-radius: 20px; overflow: hidden; color: #e0e8f0; box-shadow: 0 20px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,215,0,0.15); width: 100%; max-width: 520px; margin: 0 auto;">
-      
-      <!-- 卡片主体：横向布局 -->
-      <div style="display: flex; padding: 20px; gap: 20px;">
-        
-        <!-- 左侧：头像与核心数据 -->
-        <div style="display: flex; flex-direction: column; align-items: center; gap: 8px; min-width: 100px;">
-          <div style="position: relative;">
-            <img src="${user.avatar_url || dicebearUrl(user.username)}" style="width: 80px; height: 80px; border-radius: 50%; border: 3px solid #FFD700; object-fit: cover; box-shadow: 0 4px 15px rgba(255,215,0,0.3);">
-            <span style="position: absolute; bottom: 0; right: 0; width: 18px; height: 18px; background: #2ecc71; border: 2px solid #0a0f1a; border-radius: 50%;"></span>
+    <div class="military-dossier" style="
+      max-width: 500px; margin: 0 auto; 
+      background: radial-gradient(ellipse at 20% 0%, #1a2030 0%, #0b0f18 70%);
+      border: 1px solid rgba(255,215,0,0.15);
+      border-radius: 30px;
+      overflow: hidden;
+      position: relative;
+      box-shadow: 0 25px 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,107,53,0.1);
+      font-family: 'Noto Sans SC', sans-serif;
+    ">
+      <div style="
+        background: linear-gradient(90deg, rgba(255,107,53,0.15), transparent, rgba(255,215,0,0.1));
+        border-bottom: 1px solid rgba(255,215,0,0.2);
+        padding: 10px 20px; 
+        display: flex; align-items: center; justify-content: space-between;
+        font-size: 12px; letter-spacing: 2px; color: rgba(255,215,0,0.8);
+        backdrop-filter: blur(10px);
+      ">
+        <span>🔴 CLASSIFIED · 绝密档案</span>
+        <span>ID: ${(user.id || '').substring(0,8)}</span>
+      </div>
+      <div style="padding: 24px 20px 20px;">
+        <div style="display: flex; align-items: center; gap: 18px; margin-bottom: 24px;">
+          <div style="position: relative; flex-shrink: 0;">
+            <div style="
+              width: 88px; height: 88px; border-radius: 50%;
+              background: conic-gradient(from 0deg, #FF6B35, #FFD700, #FF6B35);
+              padding: 3px;
+              animation: avatarGlow 3s linear infinite;
+            ">
+              <img src="${avatarImg}" style="
+                width: 100%; height: 100%; object-fit: cover;
+                border-radius: 50%; display: block;
+                border: 3px solid #0b0f18;
+              ">
+            </div>
+            <div style="position: absolute; bottom: 4px; right: 4px; 
+              width: 18px; height: 18px; background: #2ecc71; 
+              border-radius: 50%; border: 2px solid #0b0f18;
+              box-shadow: 0 0 10px #2ecc71;"></div>
           </div>
-          <div style="text-align: center;">
-            <div style="font-weight: 800; font-size: 18px; letter-spacing: 1px;">${user.username}</div>
-            <div style="display: flex; gap: 6px; justify-content: center; margin-top: 4px;">
-              <span style="background: linear-gradient(135deg, #FFD700, #FFA500); padding: 3px 10px; border-radius: 20px; font-size: 10px; font-weight: bold; color: #0a0f1a;">Lv.${level}</span>
-              <span style="background: rgba(255,107,53,0.2); padding: 3px 10px; border-radius: 20px; font-size: 10px; font-weight: bold; color: #FF6B35; border: 1px solid rgba(255,107,53,0.4);">战力${combatPower}</span>
+          <div style="flex: 1; min-width: 0;">
+            <div style="font-size: 20px; font-weight: 800; color: #fff; letter-spacing: 1px;">${user.username || '干员'}</div>
+            <div style="display: flex; gap: 8px; margin-top: 6px;">
+              <span style="background: linear-gradient(135deg, #FFD700, #FFA500); padding: 4px 10px; border-radius: 15px; font-size: 11px; font-weight: 700; color: #000;">Lv.${level}</span>
+              <span style="background: rgba(255,107,53,0.15); padding: 4px 10px; border-radius: 15px; font-size: 11px; font-weight: 700; color: #FF6B35; border: 1px solid rgba(255,107,53,0.3);">⚡ ${combatPower}</span>
+            </div>
+            <div style="margin-top: 10px;">
+              <div style="height: 6px; background: rgba(255,255,255,0.05); border-radius: 10px; overflow: hidden;">
+                <div style="width: ${expPercent}%; height: 100%; background: linear-gradient(90deg, #FF6B35, #FFD700); border-radius: 10px; transition: width 0.6s;"></div>
+              </div>
+              <div style="display: flex; justify-content: space-between; font-size: 10px; color: rgba(255,255,255,0.4); margin-top: 4px;">
+                <span>EXP ${exp} / ${nextExp}</span>
+                <span>${expPercent}%</span>
+              </div>
             </div>
           </div>
         </div>
-        
-        <!-- 中间：六维雷达图 -->
-        <div style="flex: 1; min-width: 180px;">
-          <div style="font-size: 10px; color: #8899aa; margin-bottom: 6px; text-align: center; letter-spacing: 2px;">干员六维能力</div>
-          <canvas id="statsRadarCanvasV3" width="180" height="100" style="width: 100%; height: auto; background: rgba(0,0,0,0.2); border-radius: 10px;"></canvas>
+        <div style="
+          background: rgba(255,255,255,0.02); 
+          border: 1px solid rgba(255,255,255,0.05); 
+          border-radius: 16px; 
+          padding: 16px 10px 6px; 
+          margin-bottom: 18px;
+        ">
+          <div style="font-size: 11px; color: rgba(255,255,255,0.4); text-align: center; letter-spacing: 2px; margin-bottom: 6px;">干员作战参数</div>
+          <canvas id="statsRadarCanvasV3" width="240" height="140" style="width: 100%; height: auto; display: block;"></canvas>
         </div>
-        
-        <!-- 右侧：核心数据网格 -->
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; min-width: 120px;">
-          <div style="background: rgba(255,255,255,0.03); border-radius: 10px; padding: 8px 4px; text-align: center; border: 1px solid rgba(255,255,255,0.05);">
-            <div style="font-size: 18px; font-weight: 700; color: #FF6B35;">${postsCount}</div>
-            <div style="font-size: 9px; color: #667788;">发帖</div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 18px;">
+          <div style="background: rgba(255,255,255,0.03); border-radius: 14px; padding: 14px; text-align: center; border: 1px solid rgba(255,255,255,0.03);">
+            <div style="font-size: 24px; font-weight: 800; color: #FF6B35;">${user.posts_count || 0}</div>
+            <div style="font-size: 11px; color: rgba(255,255,255,0.4); letter-spacing: 1px;">发帖</div>
           </div>
-          <div style="background: rgba(255,255,255,0.03); border-radius: 10px; padding: 8px 4px; text-align: center; border: 1px solid rgba(255,255,255,0.05);">
-            <div style="font-size: 18px; font-weight: 700; color: #e74c3c;">${likesReceived}</div>
-            <div style="font-size: 9px; color: #667788;">获赞</div>
+          <div style="background: rgba(255,255,255,0.03); border-radius: 14px; padding: 14px; text-align: center; border: 1px solid rgba(255,255,255,0.03);">
+            <div style="font-size: 24px; font-weight: 800; color: #e74c3c;">${user.likes_received || 0}</div>
+            <div style="font-size: 11px; color: rgba(255,255,255,0.4); letter-spacing: 1px;">获赞</div>
           </div>
-          <div style="background: rgba(255,255,255,0.03); border-radius: 10px; padding: 8px 4px; text-align: center; border: 1px solid rgba(255,255,255,0.05);">
-            <div style="font-size: 18px; font-weight: 700; color: #3498db;">${followersCount}</div>
-            <div style="font-size: 9px; color: #667788;">粉丝</div>
+          <div style="background: rgba(255,255,255,0.03); border-radius: 14px; padding: 14px; text-align: center; border: 1px solid rgba(255,255,255,0.03);">
+            <div style="font-size: 24px; font-weight: 800; color: #3498db;">${user.followers_count || 0}</div>
+            <div style="font-size: 11px; color: rgba(255,255,255,0.4); letter-spacing: 1px;">粉丝</div>
           </div>
-          <div style="background: rgba(255,255,255,0.03); border-radius: 10px; padding: 8px 4px; text-align: center; border: 1px solid rgba(255,255,255,0.05);">
-            <div style="font-size: 18px; font-weight: 700; color: #2ecc71;">${kills}</div>
-            <div style="font-size: 9px; color: #667788;">击杀</div>
+          <div style="background: rgba(255,255,255,0.03); border-radius: 14px; padding: 14px; text-align: center; border: 1px solid rgba(255,255,255,0.03);">
+            <div style="font-size: 24px; font-weight: 800; color: #2ecc71;">${kills}</div>
+            <div style="font-size: 11px; color: rgba(255,255,255,0.4); letter-spacing: 1px;">击杀</div>
           </div>
         </div>
-      </div>
-      
-      <!-- 底部：战斗数据栏 -->
-      <div style="display: flex; justify-content: space-around; padding: 12px 20px; background: rgba(0,0,0,0.2); border-top: 1px solid rgba(255,255,255,0.05); border-bottom: 1px solid rgba(255,255,255,0.05);">
-        <div style="text-align: center;"><span style="font-size: 16px; font-weight: 700; color: #FFD700;">${kd}</span><span style="font-size: 9px; color: #667788; display: block;">K/D</span></div>
-        <div style="width: 1px; background: rgba(255,255,255,0.08);"></div>
-        <div style="text-align: center;"><span style="font-size: 16px; font-weight: 700; color: #2ecc71;">${winRate}%</span><span style="font-size: 9px; color: #667788; display: block;">胜率</span></div>
-        <div style="width: 1px; background: rgba(255,255,255,0.08);"></div>
-        <div style="text-align: center;"><span style="font-size: 16px; font-weight: 700; color: #9b59b6;">${followingCount}</span><span style="font-size: 9px; color: #667788; display: block;">关注</span></div>
-        <div style="width: 1px; background: rgba(255,255,255,0.08);"></div>
-        <div style="text-align: center;"><span style="font-size: 16px; font-weight: 700; color: #e67e22;">${badges.length + achievements.length}</span><span style="font-size: 9px; color: #667788; display: block;">勋章</span></div>
-      </div>
-      
-      <!-- 底部：常用枪械与操作按钮 -->
-      <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 20px;">
-        <div style="display: flex; gap: 4px;">
-          ${favoriteWeapons.map(w => `<span style="background: rgba(255,107,53,0.1); padding: 4px 8px; border-radius: 20px; font-size: 9px; border: 1px solid rgba(255,107,53,0.2); color: #FF6B35;">${w}</span>`).join('')}
+        <div style="display: flex; justify-content: space-around; padding: 14px 0; background: rgba(255,255,255,0.02); border-radius: 14px; margin-bottom: 18px;">
+          <div style="text-align: center;"><span style="font-size: 18px; font-weight: 700; color: #FFD700;">${kd}</span><span style="font-size: 10px; color: rgba(255,255,255,0.4); display: block;">K/D</span></div>
+          <div style="text-align: center;"><span style="font-size: 18px; font-weight: 700; color: #2ecc71;">${winRate}%</span><span style="font-size: 10px; color: rgba(255,255,255,0.4); display: block;">胜率</span></div>
+          <div style="text-align: center;"><span style="font-size: 18px; font-weight: 700; color: #9b59b6;">${user.following_count || 0}</span><span style="font-size: 10px; color: rgba(255,255,255,0.4); display: block;">关注</span></div>
+          <div style="text-align: center;"><span style="font-size: 18px; font-weight: 700; color: #e67e22;">${badges.length + achievements.length}</span><span style="font-size: 10px; color: rgba(255,255,255,0.4); display: block;">勋章</span></div>
         </div>
-        <div style="display: flex; gap: 8px;">
-          <button id="saveStatsCardBtnV3" style="padding: 8px 16px; background: rgba(44,62,80,0.8); border: none; border-radius: 25px; color: white; font-size: 11px; font-weight: bold; cursor: pointer; transition: all 0.2s; border: 1px solid rgba(255,255,255,0.1);" onmouseenter="this.style.background='rgba(52,73,94,0.9)'" onmouseleave="this.style.background='rgba(44,62,80,0.8)'">
-            <i class="fas fa-camera mr-1"></i>保存
+        <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 18px;">
+          ${favoriteWeapons.map(w => '<span style="background: rgba(255,107,53,0.08); padding: 6px 12px; border-radius: 20px; font-size: 11px; border: 1px solid rgba(255,107,53,0.2); color: #FF6B35; letter-spacing: 0.5px;">' + w + '</span>').join('')}
+        </div>
+        <div style="display: flex; gap: 10px;">
+          <button id="saveStatsCardBtnV3" style="
+            flex: 1; padding: 14px; 
+            background: rgba(255,255,255,0.04); 
+            border: 1px solid rgba(255,255,255,0.08); 
+            border-radius: 20px; color: #fff; font-size: 13px; font-weight: 600; 
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center; gap: 6px;
+          ">
+            <i class="fas fa-camera"></i> 保存档案
           </button>
-          <button id="shareStatsCardBtnV3" style="padding: 8px 16px; background: linear-gradient(135deg, #FF6B35, #e85d2c); border: none; border-radius: 25px; color: white; font-size: 11px; font-weight: bold; cursor: pointer; transition: all 0.2s;" onmouseenter="this.style.background='linear-gradient(135deg, #FF7F50, #FF6B35)'" onmouseleave="this.style.background='linear-gradient(135deg, #FF6B35, #e85d2c)'">
-            <i class="fas fa-share-alt mr-1"></i>分享
+          <button id="shareStatsCardBtnV3" style="
+            flex: 1; padding: 14px; 
+            background: linear-gradient(135deg, #FF6B35, #e85d2c); 
+            border: none; border-radius: 20px; color: #fff; font-size: 13px; font-weight: 600; 
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center; gap: 6px;
+            box-shadow: 0 8px 20px rgba(255,107,53,0.3);
+          ">
+            <i class="fas fa-share-alt"></i> 分享战绩
           </button>
         </div>
+        <div style="text-align: center; margin-top: 14px; font-size: 10px; color: rgba(255,255,255,0.15); letter-spacing: 3px;">三角洲墨辰电竞 · 荣誉干员</div>
       </div>
-      <div style="text-align: center; padding: 6px 0 12px; font-size: 8px; color: #445566;">三角洲墨辰电竞 · 荣誉干员</div>
     </div>
+    <style>
+      @keyframes avatarGlow {
+        0% { filter: hue-rotate(0deg); }
+        100% { filter: hue-rotate(360deg); }
+      }
+      .military-dossier {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+      }
+      .military-dossier:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 30px 70px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,107,53,0.2);
+      }
+    </style>
   `;
-  
+
   openModal('statsModal');
   
+  // 绑定按钮事件
+  setTimeout(() => {
+    const saveBtn = document.getElementById('saveStatsCardBtnV3');
+    const shareBtn = document.getElementById('shareStatsCardBtnV3');
+    if (saveBtn) saveBtn.onclick = () => showToast('📸 请使用系统截图或长按保存', 'info');
+    if (shareBtn) shareBtn.onclick = () => {
+      const shareText = '【三角洲墨辰电竞】' + (user.username || '干员') + ' | 战力:' + combatPower + ' | K/D:' + kd + ' | 胜率:' + winRate + '%';
+      if (navigator.share) {
+        navigator.share({ title: (user.username || '干员') + ' 的干员战绩', text: shareText });
+      } else {
+        navigator.clipboard?.writeText(shareText);
+        showToast('✅ 战绩信息已复制', 'success');
+      }
+    };
+  }, 200);
+
   // 绘制雷达图
   setTimeout(() => {
     const canvas = document.getElementById('statsRadarCanvasV3');
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
-    const centerX = 90, centerY = 50, radius = 35;
+    const w = canvas.width, h = canvas.height;
+    const cx = w / 2, cy = h / 2, r = Math.min(w, h) * 0.35;
     const values = [72, 65, 80, 58, 76, 68];
     const labels = ['击杀', '生存', '战术', '支援', '枪法', '意识'];
     const angles = labels.map((_, i) => (i * 60 - 90) * Math.PI / 180);
     
-    ctx.clearRect(0, 0, 180, 100);
-    ctx.strokeStyle = 'rgba(255,255,255,0.3)';
-    ctx.fillStyle = 'rgba(255, 107, 53, 0.35)';
-    ctx.font = 'bold 13px "Noto Sans SC"';
-    for(let i = 0; i < 6; i++){
-      const x = centerX + Math.cos(angles[i]) * (radius + 12);
-      const y = centerY + Math.sin(angles[i]) * (radius + 12);
-      ctx.fillText(labels[i], x - 8, y - 3);
+    ctx.clearRect(0, 0, w, h);
+    // 绘制网格
+    ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+    ctx.lineWidth = 1;
+    for (let i = 1; i <= 5; i++) {
+      ctx.beginPath();
+      angles.forEach((a, j) => {
+        const x = cx + Math.cos(a) * r * (i / 5);
+        const y = cy + Math.sin(a) * r * (i / 5);
+        if (j === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      });
+      ctx.closePath();
+      ctx.stroke();
     }
-    
+    // 标签
+    ctx.fillStyle = 'rgba(255,255,255,0.6)';
+    ctx.font = '11px "Noto Sans SC"';
+    ctx.textAlign = 'center';
+    labels.forEach((l, i) => {
+      const x = cx + Math.cos(angles[i]) * (r + 16);
+      const y = cy + Math.sin(angles[i]) * (r + 16);
+      ctx.fillText(l, x, y + 3);
+    });
+    // 数据区域
     ctx.beginPath();
     values.forEach((v, i) => {
-      const r = (v / 100) * radius;
-      const x = centerX + Math.cos(angles[i]) * r;
-      const y = centerY + Math.sin(angles[i]) * r;
-      if(i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      const x = cx + Math.cos(angles[i]) * r * (v / 100);
+      const y = cy + Math.sin(angles[i]) * r * (v / 100);
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
     });
     ctx.closePath();
-    ctx.fillStyle = 'rgba(255,107,53,0.3)';
+    ctx.fillStyle = 'rgba(255,107,53,0.25)';
     ctx.fill();
-    ctx.strokeStyle = '#FF6B35'; ctx.lineWidth = 3;
-    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = '#FF6B35';
+    ctx.lineWidth = 2.5;
     ctx.stroke();
-  }, 100);
-  
-  document.getElementById('saveStatsCardBtnV3').onclick = () => showToast('📸 请使用系统截图或长按保存', 'info');
-  document.getElementById('shareStatsCardBtnV3').onclick = () => {
-    const shareText = `【三角洲墨辰电竞】${user.username} | 战力:${combatPower} | K/D:${kd} | 胜率:${winRate}%`;
-    if (navigator.share) {
-      navigator.share({ title: `${user.username} 的干员战绩`, text: shareText });
-    } else {
-      navigator.clipboard?.writeText(shareText);
-      showToast('✅ 战绩信息已复制', 'success');
-    }
-  };
+    // 数据点
+    values.forEach((v, i) => {
+      const x = cx + Math.cos(angles[i]) * r * (v / 100);
+      const y = cy + Math.sin(angles[i]) * r * (v / 100);
+      ctx.beginPath();
+      ctx.arc(x, y, 4, 0, Math.PI * 2);
+      ctx.fillStyle = '#FFD700';
+      ctx.fill();
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    });
+  }, 300);
 }
 
 
@@ -29638,6 +29881,16 @@ function exportAllFavoritesAsText() {
 }
 
 
+
+
+@media (max-width: 480px) {
+  .military-dossier {
+    border-radius: 20px !important;
+  }
+  #statsRadarCanvasV3 {
+    height: 120px !important;
+  }
+}
 
 
 
