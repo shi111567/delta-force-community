@@ -5984,17 +5984,16 @@ window.addEventListener('scroll', () => {
 
 
 <!-- ✅ 预设地图下拉菜单 - 插入在这里 -->
-<div class="filter-dropdown relative" id="presetMapDropdown">
+<div class="filter-dropdown relative" id="presetMapDropdown" style="z-index: 200;">
   <button class="tactical-tool-btn" onclick="toggleFilterDropdown('presetMapDropdown')">
     <i class="fas fa-map"></i> 预设地图 <i class="fas fa-chevron-down text-xs ml-1"></i>
   </button>
-  <div class="filter-menu hidden absolute bottom-full left-0 mb-2" style="min-width:110px;">
+  <div class="filter-menu hidden absolute top-full left-0 mt-1" style="z-index: 9999 !important; min-width:110px;">
     <button class="filter-option" onclick="loadPresetMap('dam');toggleFilterDropdown('presetMapDropdown')">🏭 大坝</button>
     <button class="filter-option" onclick="loadPresetMap('space');toggleFilterDropdown('presetMapDropdown')">🚀 航天</button>
     <button class="filter-option" onclick="loadPresetMap('valley');toggleFilterDropdown('presetMapDropdown')">🏹 长弓</button>
   </div>
 </div>
-
 
 
 <button class="tactical-tool-btn" data-tool="coordinate" id="coordinateModeBtn" onclick="toggleCoordinateMode()"><i class="fas fa-map-pin"></i> 坐标</button>
@@ -7769,8 +7768,16 @@ window.addEventListener('scroll', () => {
 <!-- 当前筛选结果标签（可选） -->
 <div class="flex items-center justify-between mb-2">
   <span class="text-xs" style="color: var(--muted);"><span id="loadoutResultCount">0</span> 个配装方案</span>
-  <button class="text-xs underline" style="color: var(--accent);" onclick="resetAllLoadoutFilters()">重置筛选</button>
+  <button class="btn-ghost text-xs px-4 py-1.5 rounded-full flex items-center gap-1" 
+          style="border:1px solid var(--accent); color:var(--accent);" 
+          onclick="resetAllLoadoutFilters()">
+    <i class="fas fa-undo-alt"></i> 清空筛选
+  </button>
 </div>
+
+
+
+
     <!-- 配装列表容器 -->
     <div id="loadoutListContainer" class="space-y-3 max-h-96 overflow-y-auto pr-1"></div>
     <p class="text-xs text-center mt-3" style="color:var(--muted);"><i class="fas fa-copy mr-1"></i>点击配装可复制代码</p>
@@ -18193,9 +18200,9 @@ async function loadSquadMessages(squadId) {
 // ==================== 排行榜 ====================
 // ==================== 战术板 ====================
 let tacCanvas, tacCtx, tacPainting = false, tacTool = 'pen', tacColor = '#FF6B35', tacSize = 5;
-let tacStartX, tacStartY;
-let tacDrawingData = []; // 保存绘图数据
-let tacticalBgImage = null; // 保存底图 Image 对象
+let tacDrawingData = [];
+let tacticalBgImage = null;
+let tacBgCanvas = null, tacBgCtx = null;   // ← 新增：暴露背景层
 
 
 
@@ -18232,9 +18239,11 @@ let placeMode = false;
   
   // ========== 离屏Canvas：分层管理 ==========
   const bgCanvas = document.createElement('canvas');
-  bgCanvas.width = 800;
-  bgCanvas.height = 500;
-  const bgCtx = bgCanvas.getContext('2d');
+bgCanvas.width = 800;
+bgCanvas.height = 500;
+const bgCtx = bgCanvas.getContext('2d');
+tacBgCanvas = bgCanvas;   // ← 新增
+tacBgCtx = bgCtx;         // ← 新增
   
   freeCanvas = document.createElement('canvas');
   freeCanvas.width = 800;
@@ -26394,6 +26403,7 @@ async function deleteHomeBanner(id) {
 
 // ==================== 物资行情 + 赛季任务 + TTK排行 完整实现 ====================
 let lootPrices = [];
+
 let seasonTasks = [];
 let currentLootCat = 'all';
 let currentTTKArmor = 5;
@@ -26406,6 +26416,9 @@ const TTK_DATA_URL = 'https://raw.githubusercontent.com/shi111567/delta-gunsmith
 // ----- 物资行情 -----
 async function loadLootPrices() {
   const container = document.getElementById('lootPriceList');
+  // ✅ 每次打开弹窗时，从 localStorage 读取之前的关注列表
+  lootWatchlist = JSON.parse(localStorage.getItem('loot_watchlist') || '[]');
+
   if (!container) return;
   container.innerHTML = '<div class="text-center py-8" style="color: var(--muted);"><i class="fas fa-spinner fa-pulse fa-2x mb-2"></i><p>正在抓取最新行情...</p></div>';
   try {
@@ -26447,15 +26460,23 @@ function renderLootList() {
 lootWatchlist = JSON.parse(localStorage.getItem('loot_watchlist') || '[]');
 
   let filtered = lootPrices.filter(item => {
+    // 1. 关注列表模式：只筛选关注物品，忽略等级筛选
+    if (currentLootCat === 'watchlist') {
+        const watchlist = JSON.parse(localStorage.getItem('loot_watchlist') || '[]');
+        // 必须同时在关注列表中，且可通过搜索过滤
+        if (!watchlist.some(w => w === item.name.trim())) return false;
+        if (searchTerm && !item.name.toLowerCase().includes(searchTerm)) return false;
+        return true;   // ← 关键：直接返回，不再检查 item.tier
+    }
 
-
-    if (currentLootCat === 'watchlist' && !lootWatchlist.includes(item.name)) return false;
-
-
+    // 2. 正常等级分类模式
     if (currentLootCat !== 'all' && item.tier !== currentLootCat) return false;
     if (searchTerm && !item.name.toLowerCase().includes(searchTerm)) return false;
     return true;
-  });
+});
+
+
+
   filtered.sort((a, b) => b.price - a.price);
   if (filtered.length === 0) {
     container.innerHTML = '<div class="text-center py-8" style="color: var(--muted);"><i class="fas fa-search text-3xl mb-2 opacity-30"></i><p>没有找到相关物资</p></div>';
@@ -26481,7 +26502,7 @@ lootWatchlist = JSON.parse(localStorage.getItem('loot_watchlist') || '[]');
           <div class="loot-item-price">${item.price}<span class="loot-item-unit">${item.unit}</span></div>
 
 <i class="fas fa-star text-xs cursor-pointer ml-2" 
-   style="color: ${JSON.parse(localStorage.getItem('loot_watchlist') || '[]').includes(item.name) ? '#f1c40f' : '#555'};"
+   style="color: ${(JSON.parse(localStorage.getItem('loot_watchlist') || '[]') || []).includes(item.name) ? '#f1c40f' : '#555'};"
    onclick="event.stopPropagation(); toggleLootWatch('${item.name}')"
    id="loot-star-${item.name.replace(/[^a-zA-Z\u4e00-\u9fa5]/g, '')}"
    title="关注此物资"></i>
@@ -29004,12 +29025,6 @@ setInterval(autoThemeByTime, 3600000);
 
 
 
-function clearLoadoutHistory() {
-  localStorage.removeItem('loadout_history');
-  const container = document.getElementById('loadoutHistoryContainer');
-  if (container) container.style.display = 'none';
-  showToast('🧹 浏览历史已清空', 'success');
-}
 
 
 
@@ -31401,7 +31416,10 @@ window.renderLoadoutHistory = function() {
   }
   container.style.display = 'block';
   container.innerHTML = `
-    <div class="text-xs font-bold mb-2" style="color:var(--muted);"><i class="fas fa-history mr-1"></i>最近浏览</div>
+    <div class="flex items-center justify-between mb-2">
+      <span class="text-xs font-bold" style="color:var(--muted);"><i class="fas fa-history mr-1"></i>最近浏览</span>
+      <button class="text-xs underline" style="color:var(--accent); cursor:pointer;" onclick="clearLoadoutHistory()"><i class="fas fa-trash-alt mr-1"></i>清空</button>
+    </div>
     <div class="flex gap-2 overflow-x-auto pb-1" style="scrollbar-width:none;">
       ${history.map(h => `
         <div class="flex items-center gap-2 p-2 rounded-xl cursor-pointer hover:bg-white/5 transition" 
@@ -31414,6 +31432,17 @@ window.renderLoadoutHistory = function() {
     </div>
   `;
 };
+
+// 清空浏览历史
+function clearLoadoutHistory() {
+  localStorage.removeItem('loadoutDetailHistory');
+  const container = document.getElementById('loadoutHistoryContainer');
+  if (container) container.style.display = 'none';
+  showToast('🧹 浏览历史已清空', 'success');
+}
+
+
+
 
 // 在查看详情时记录历史
 const originalShowLoadoutDetail = showLoadoutDetail;
@@ -31453,7 +31482,10 @@ window.loadPresetMap = function(type) {
     const canvas = document.getElementById('tacticalCanvas');
     if (canvas) tacCtx = canvas.getContext('2d');
   }
-  if (!tacCtx) return;
+  // 确保背景层也可用
+  if (!tacBgCtx && tacBgCanvas) {
+    tacBgCtx = tacBgCanvas.getContext('2d');
+  }
   
   const colors = {
     dam: { bg: '#2a3a2a', grid: '#3a5a3a', name: '零号大坝' },
@@ -31461,12 +31493,27 @@ window.loadPresetMap = function(type) {
     valley: { bg: '#2a2a1a', grid: '#3a3a2a', name: '长弓溪谷' }
   };
   const c = colors[type];
-  tacCtx.fillStyle = c.bg;
-  tacCtx.fillRect(0, 0, 800, 500);
-  tacCtx.strokeStyle = c.grid;
-  tacCtx.lineWidth = 0.5;
-  for (let i = 0; i <= 800; i += 40) { tacCtx.beginPath(); tacCtx.moveTo(i,0); tacCtx.lineTo(i,500); tacCtx.stroke(); }
-  for (let i = 0; i <= 500; i += 40) { tacCtx.beginPath(); tacCtx.moveTo(0,i); tacCtx.lineTo(800,i); tacCtx.stroke(); }
+  
+  // ✅ 同时更新主画布
+  if (tacCtx) {
+    tacCtx.fillStyle = c.bg;
+    tacCtx.fillRect(0, 0, 800, 500);
+    tacCtx.strokeStyle = c.grid;
+    tacCtx.lineWidth = 0.5;
+    for (let i = 0; i <= 800; i += 40) { tacCtx.beginPath(); tacCtx.moveTo(i,0); tacCtx.lineTo(i,500); tacCtx.stroke(); }
+    for (let i = 0; i <= 500; i += 40) { tacCtx.beginPath(); tacCtx.moveTo(0,i); tacCtx.lineTo(800,i); tacCtx.stroke(); }
+  }
+  
+  // ✅ 同时更新背景层（防止 redrawCanvas 覆盖）
+  if (tacBgCtx) {
+    tacBgCtx.fillStyle = c.bg;
+    tacBgCtx.fillRect(0, 0, 800, 500);
+    tacBgCtx.strokeStyle = c.grid;
+    tacBgCtx.lineWidth = 0.5;
+    for (let i = 0; i <= 800; i += 40) { tacBgCtx.beginPath(); tacBgCtx.moveTo(i,0); tacBgCtx.lineTo(i,500); tacBgCtx.stroke(); }
+    for (let i = 0; i <= 500; i += 40) { tacBgCtx.beginPath(); tacBgCtx.moveTo(0,i); tacBgCtx.lineTo(800,i); tacBgCtx.stroke(); }
+  }
+  
   showToast(`✅ 已加载 ${c.name} 战术地图`, 'success');
 };
 
@@ -31474,21 +31521,34 @@ window.loadPresetMap = function(type) {
 
 let lootWatchlist = JSON.parse(localStorage.getItem('loot_watchlist') || '[]');
 
-function toggleLootWatch(name) {
-  const idx = lootWatchlist.indexOf(name);
-  if (idx === -1) {
-    lootWatchlist.push(name);
-    showToast(`🌟 已关注 ${name}`, 'success');
+window.toggleLootWatch = function(name) {
+  let watchlist = JSON.parse(localStorage.getItem('loot_watchlist') || '[]');
+  const target = name.trim();
+  const index = watchlist.indexOf(target);
+  
+  if (index === -1) {
+    watchlist.push(target);
+    showToast(`🌟 已关注 ${target}`, 'success');
   } else {
-    lootWatchlist.splice(idx, 1);
-    showToast(`已取消关注 ${name}`, 'info');
+    watchlist.splice(index, 1);
+    showToast(`已取消关注 ${target}`, 'info');
   }
-  localStorage.setItem('loot_watchlist', JSON.stringify(lootWatchlist));
-  renderLootList();
-}
-
-
-
+  
+  localStorage.setItem('loot_watchlist', JSON.stringify(watchlist));
+  
+  // 自动切换标签：如果添加关注且当前不是关注标签，切换到关注标签
+  if (index === -1 && watchlist.length > 0) {
+    document.querySelectorAll('.loot-cat-chip').forEach(chip => {
+      chip.classList.toggle('active', chip.dataset.cat === 'watchlist');
+    });
+    currentLootCat = 'watchlist';
+  }
+  
+  // 重新渲染
+  if (typeof renderLootList === 'function') {
+    renderLootList();
+  }
+};
 
 
 
