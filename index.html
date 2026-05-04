@@ -6508,9 +6508,16 @@ window.addEventListener('scroll', () => {
       <div id="adminEntry">
         <button class="btn-ghost text-sm" onclick="openModal('adminModal')"><i class="fas fa-shield-halved mr-1"></i>管理后台</button>
       </div>
-      <!-- 我的帖子 -->
-      <h3 class="font-bold mt-4 mb-2">我的帖子</h3>
-      <div id="myPostsGrid" class="masonry"></div>
+      <!-- 我的帖子折叠面板 -->
+<div class="card-base p-3 mb-3 cursor-pointer" onclick="toggleSection('myPosts')">
+  <div class="flex items-center justify-between">
+    <h3 class="font-bold text-sm">我的帖子</h3>
+    <i class="fas fa-chevron-down transition-transform" id="myPostsIcon"></i>
+  </div>
+</div>
+<div id="myPostsBody" style="display: none;">
+  <div id="myPostsGrid" class="masonry"></div>
+</div>
 
 
 <!-- 新人7日任务 -->
@@ -6556,9 +6563,16 @@ window.addEventListener('scroll', () => {
 
 
 
-<!-- 待使用权益 -->
-<h3 class="font-bold mt-4 mb-2"><i class="fas fa-gift mr-1" style="color: #FFD700;"></i>待使用权益</h3>
-<div id="profilePendingRewards" class="mb-4"></div>
+<!-- 待使用权益折叠面板 -->
+<div class="card-base p-3 mb-3 cursor-pointer" onclick="toggleSection('pendingRewards')">
+  <div class="flex items-center justify-between">
+    <h3 class="font-bold text-sm flex items-center gap-2"><i class="fas fa-gift mr-1" style="color: #FFD700;"></i>待使用权益</h3>
+    <i class="fas fa-chevron-down transition-transform" id="pendingRewardsIcon"></i>
+  </div>
+</div>
+<div id="pendingRewardsBody" style="display: none;">
+  <div id="profilePendingRewards" class="mb-4"></div>
+</div>
 
 
 <!-- 幸运值进度条 -->
@@ -6682,21 +6696,21 @@ window.addEventListener('scroll', () => {
 
 
 
-<!-- 我的配装仓库 -->
-<h3 class="font-bold mt-4 mb-2 flex items-center gap-2">
-  <i class="fas fa-box" style="color: var(--accent);"></i>我的配装仓库
-  <button class="text-xs btn-ghost px-2 py-1" onclick="exportAllFavoritesAsImage()">
-    <i class="fas fa-camera mr-1"></i>导出仓库卡片
-  </button>
 
-
-<button class="text-xs btn-ghost px-2 py-1" onclick="exportAllFavoritesAsText()">
-  <i class="fas fa-file-export mr-1"></i>导出文本
-</button>
-
-
-</h3>
-<div id="myLoadoutFavoritesGrid" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
+<!-- 配装仓库折叠面板 -->
+<div class="card-base p-3 mb-3 cursor-pointer" onclick="toggleSection('loadoutWarehouse')">
+  <div class="flex items-center justify-between">
+    <h3 class="font-bold text-sm flex items-center gap-2"><i class="fas fa-box" style="color: var(--accent);"></i>我的配装仓库</h3>
+    <i class="fas fa-chevron-down transition-transform" id="loadoutWarehouseIcon"></i>
+  </div>
+</div>
+<div id="loadoutWarehouseBody" style="display: none;">
+  <div class="flex items-center gap-2 mb-2">
+    <button class="text-xs btn-ghost px-2 py-1" onclick="event.stopPropagation(); exportAllFavoritesAsImage()"><i class="fas fa-camera mr-1"></i>导出卡片</button>
+    <button class="text-xs btn-ghost px-2 py-1" onclick="event.stopPropagation(); exportAllFavoritesAsText()"><i class="fas fa-file-export mr-1"></i>导出文本</button>
+  </div>
+  <div id="myLoadoutFavoritesGrid" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
+</div>
 
 
     </div>
@@ -6850,6 +6864,29 @@ window.addEventListener('scroll', () => {
     <option value="全能">全能</option>
   </select>
 </div>
+
+
+
+
+<!-- 战术打卡复选框 -->
+<div class="flex items-center gap-2 mb-2">
+  <input type="checkbox" id="pubAttachCoord">
+  <label for="pubAttachCoord" class="text-sm cursor-pointer">📍 附带当前战术坐标（战术打卡）</label>
+  <span id="coordPreview" class="text-xs" style="color: var(--accent);"></span>
+</div>
+<script>
+  // 实时显示最后保存的坐标
+  document.getElementById('pubAttachCoord').addEventListener('change', function() {
+    if (this.checked && window.lastTacticalCoord) {
+      document.getElementById('coordPreview').textContent = window.lastTacticalCoord;
+    } else {
+      document.getElementById('coordPreview').textContent = '';
+    }
+  });
+</script>
+
+
+
       <!-- 投票选项 -->
       <div id="voteOptionsArea" style="display:none">
         <label class="text-sm font-bold block mb-1">投票选项</label>
@@ -11837,11 +11874,21 @@ const opColorMap = {
 const opColor = opColorMap[opClass] || '#9b59b6';
 const opLabel = `<span class="tag-pill" style="background:${opColor}20; color:${opColor}; border-color:${opColor}40; margin-left:4px; font-weight:600; padding:4px 10px;"><i class="fas fa-shield-alt mr-1"></i>${opClass}</span>`;
 
-// 去重：避免标签和话题重复显示
-const displayTags = (post.tags||[]).filter(t => !post.description?.includes('#' + t));
 
-  const tagsHTML = displayTags.slice(0,3).map(t => `<span class="tag-pill">#${t}</span>`).join(' ');
 
+  // 原 displayTags 过滤逻辑保留，但先不计算
+const allTags = post.tags || [];
+const coordTags = allTags.filter(t => t.startsWith('coord:'));
+const normalTags = allTags.filter(t => !t.startsWith('coord:'));
+const displayTags = normalTags.filter(t => !post.description?.includes('#' + t)).slice(0,3);
+// 生成普通标签 HTML
+const tagsHTML = displayTags.map(t => `<span class="tag-pill">#${t}</span>`).join(' ');
+// 生成坐标标签 HTML（最多显示2个）
+const coordHTML = coordTags.slice(0,2).map(t => {
+  const coord = t.replace('coord:', '');
+  return `<span class="tag-pill coord-tag" style="background:#1abc9c20;color:#1abc9c;cursor:pointer;" 
+          onclick="event.stopPropagation(); jumpToCoord('${coord}')"><i class="fas fa-map-pin mr-1"></i>${coord}</span>`;
+}).join(' ');
  
     
    // 投票选项渲染
@@ -11939,7 +11986,7 @@ if (post.post_type === 'vote' && post.vote_options) {
 
       <!-- 标签区 -->
       <div class="post-tags">
-        ${tagsHTML}
+        ${tagsHTML}${coordHTML}
       </div>
 
       <!-- 投票区保持不变 -->
@@ -12106,6 +12153,16 @@ window.searchByTag = function(tag) {
   loadPosts(true);
   showToast('搜索话题 #' + tag, 'info');
 };
+
+
+// 跳转到战术板坐标
+function jumpToCoord(coord) {
+  if (coord) {
+    window.lastTacticalCoord = coord;
+    switchTab('tactical');
+    showToast(`坐标 ${coord} 已锁定，请在战术板上查看`, 'success');
+  }
+}
 
 
 
@@ -12289,7 +12346,10 @@ async function publishPost() {
   const cleanedHashTags = hashTags.map(t => t.replace(/#/g, ''));
   const manualTags = $('pubTags').value.split(/[,，]/).map(t => t.trim()).filter(Boolean);
   const combinedTags = [...new Set([...manualTags, ...cleanedHashTags])]; // 去重
-  const tags = combinedTags;
+  let tags = combinedTags;
+if (document.getElementById('pubAttachCoord')?.checked && window.lastTacticalCoord) {
+  tags.push('coord:' + window.lastTacticalCoord); // 专属标签格式
+}
 
   const postType = $('pubType').value;
 const postData = {
@@ -16194,6 +16254,8 @@ function closeModalWithAnimation(overlay) {
 }
 // 点击配装卡片弹出详情放大弹窗
 function showLoadoutDetail(code) {
+
+window.showLoadoutDetail = showLoadoutDetail;
   const loadoutData = currentLoadoutData.find(item => item.code === code);
   if (!loadoutData) return;
   const modal = document.createElement('div');
@@ -24942,6 +25004,20 @@ function toggleAIPanel() {
   }
 }
 
+
+
+function toggleSection(sectionId) {
+  const body = document.getElementById(sectionId + 'Body');
+  const icon = document.getElementById(sectionId + 'Icon');
+  if (!body || !icon) return;
+  const isHidden = body.style.display === 'none';
+  body.style.display = isHidden ? 'block' : 'none';
+  icon.style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)';
+}
+
+
+
+
 // 生成方案 (包含跑刀)
 async function aiGenerate() {
   const resultEl = document.getElementById('aiResult');
@@ -25519,6 +25595,15 @@ function showBudgetDetail(loadoutName) {
         </div>
       </div>
       
+
+
+<button class="btn-warm w-full py-4 text-base font-bold mb-2" id="copyHomeworkBtn" 
+        style="background: linear-gradient(135deg, #FFD700, #FFA500); color: #3D2B1F;" 
+        onclick="event.stopPropagation(); quickSaveLoadoutFromDetail('${loadoutData.code.replace(/'/g, "\\'")}', '${loadoutData.name.replace(/'/g, "\\'")}')">
+  <i class="fas fa-graduation-cap mr-2"></i>📋 抄作业（一键保存到我的仓库）
+</button>
+
+
       <!-- 一键复制全部按钮 -->
       <button class="btn-warm w-full py-4 text-base font-bold" onclick="copyAllBudgetCodes('${loadout.name.replace(/'/g, "\\'")}')">
         <i class="fas fa-copy mr-2"></i>📋 复制全部改枪码
@@ -25598,6 +25683,49 @@ async function initBudgetLoadouts() {
     }
   });
 }
+
+
+// ========== 一键抄作业 ==========
+async function quickSaveLoadoutFromDetail(code, name) {
+  if (!APP.user) { openAuthModal(); return; }
+  const loadout = currentLoadoutData.find(l => l.code === code);
+  if (!loadout) return showToast('方案数据错误', 'error');
+  
+  // 检查是否已收藏
+  const { data: exist } = await sb.from('user_loadout_favorites')
+    .select('id').eq('user_id', APP.user.id).eq('loadout_name', name).maybeSingle();
+  if (exist) {
+    showToast('该方案已经在你的仓库中了', 'info');
+    return;
+  }
+  
+  const { error } = await sb.from('user_loadout_favorites').insert({
+    user_id: APP.user.id,
+    loadout_name: name,
+    loadout_data: loadout
+  });
+  if (error) { showToast('保存失败', 'error'); return; }
+  
+  // 按钮动画反馈
+  const btn = document.getElementById('copyHomeworkBtn');
+  if (btn) {
+    btn.innerHTML = '<i class="fas fa-check-circle mr-2"></i>已抄到仓库';
+    btn.style.background = '#2ecc71';
+    btn.style.color = 'white';
+    btn.disabled = true;
+    setTimeout(() => {
+      btn.innerHTML = '<i class="fas fa-graduation-cap mr-2"></i>📋 抄作业（一键保存到我的仓库）';
+      btn.style.background = 'linear-gradient(135deg, #FFD700, #FFA500)';
+      btn.style.color = '#3D2B1F';
+      btn.disabled = false;
+    }, 2000);
+  }
+  showToast('✅ 已保存到我的配装仓库', 'success');
+}
+
+
+
+
 // 增强版模式切换（修复按钮状态与视图同步）
 function switchBudgetMode(mode) {
   if (APP.currentTab !== 'budgetLoadout') return;
