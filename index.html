@@ -6791,6 +6791,13 @@ window.addEventListener('scroll', () => {
     <div class="space-y-3">
       <input type="text" placeholder="标题（必填）" id="pubTitle" class="w-full">
       <textarea placeholder="内容描述..." id="pubDesc" class="w-full" rows="3"></textarea>
+
+<div class="text-xs mt-1 flex justify-between" style="color: var(--muted);">
+  <span id="descCharCount">0 字</span>
+  <span>建议 10-500 字</span>
+</div>
+
+
       <div class="flex gap-2">
   <select id="pubType" class="flex-1" onchange="onTypeChange()">
     <option value="normal">图文帖</option>
@@ -11828,7 +11835,7 @@ if (post.post_type === 'vote' && post.vote_options) {
 
     // ========== 替换开始 ==========
   div.innerHTML = `
-        <div class="post-card">
+        <div class="post-card" style="${isTop ? 'border-top: 4px solid #FFD700; box-shadow: 0 0 20px rgba(255,215,0,0.2);' : ''}">
       <div class="post-header">
         <div style="position: relative; display: inline-block;">
           <img src="${post.profiles?.avatar_url || dicebearUrl('u')}" class="post-avatar" onclick="event.stopPropagation(); viewUserProfile('${post.user_id}')">
@@ -12625,7 +12632,16 @@ async function loadComments(pid) {
   const { data } = await sb.from('comments').select('*, profiles(username, avatar_url)').eq('post_id', pid).order('created_at', { ascending: true });
   const list = $('commentsList');
   list.innerHTML = '';
-  if (!data || !data.length) { list.innerHTML = '<p class="text-center py-4" style="color:var(--muted)">暂无评论</p>'; return; }
+  if (!data || !data.length) { 
+  list.innerHTML = `
+    <div class="text-center py-8">
+      <div class="text-4xl mb-3 opacity-30">💬</div>
+      <p class="text-sm font-bold" style="color:var(--accent);">还没有人发表战术见解</p>
+      <p class="text-xs mt-1" style="color:var(--muted);">快来抢沙发，分享你的作战经验！</p>
+    </div>
+  `; 
+  return; 
+}
   // 构建评论树
   const map = {}, roots = [];
   data.forEach(c => { c.children = []; map[c.id] = c; });
@@ -21859,6 +21875,19 @@ if (bgInput) {
   initBGM();
   initAuth();
 initToolbox();
+
+
+ // ✅ 发帖字数统计 - 插入在这里
+  const pubDesc = document.getElementById('pubDesc');
+  if (pubDesc) {
+    pubDesc.addEventListener('input', function() {
+      const count = this.value.length;
+      const countEl = document.getElementById('descCharCount');
+      if (countEl) countEl.textContent = count + ' 字';
+    });
+  }
+
+
 // 增加备用延迟渲染，防止容器未就绪
   setTimeout(() => {
     if ($('#toolboxBar') && $('#toolboxBar').children.length === 0) {
@@ -23608,6 +23637,14 @@ document.addEventListener('DOMContentLoaded', () => {
   }, 500);
 });
 const DAILY_PUZZLE_KEY = 'delta_daily_puzzle';
+
+
+
+
+
+
+
+
 
 // 获取今天的日期字符串（YYYY-MM-DD）
 function getTodayStr() {
@@ -28808,6 +28845,23 @@ window.shareLootItem = function(name, price, unit, trend) {
     });
   }
 };
+
+
+
+// ✅ 自动根据时间切换主题 - 插入在这里
+function autoThemeByTime() {
+  const hour = new Date().getHours();
+  const currentPref = localStorage.getItem('themePref') || 'system';
+  if (currentPref === 'system' || !localStorage.getItem('themePref')) {
+    if (hour >= 19 || hour < 7) {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    } else {
+      document.documentElement.setAttribute('data-theme', 'light');
+    }
+  }
+}
+autoThemeByTime();
+setInterval(autoThemeByTime, 3600000);
 
 
 
