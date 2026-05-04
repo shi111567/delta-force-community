@@ -5974,8 +5974,28 @@ window.addEventListener('scroll', () => {
     <button class="tactical-tool-btn" data-tool="text"><i class="fas fa-font"></i> 文字</button>
     <button class="tactical-tool-btn" data-tool="erase"><i class="fas fa-eraser"></i> 橡皮</button><button class="tactical-tool-btn" onclick="uploadTacticalBackground()"><i class="fas fa-upload"></i> 上传底图</button>
 
+
+
+
+
 <button class="tactical-tool-btn" onclick="saveBlueprint()"><i class="fas fa-save"></i> 保存蓝图</button>
 <button class="tactical-tool-btn" onclick="loadBlueprint()"><i class="fas fa-folder-open"></i> 加载蓝图</button>
+
+
+
+<!-- ✅ 预设地图下拉菜单 - 插入在这里 -->
+<div class="filter-dropdown relative" id="presetMapDropdown">
+  <button class="tactical-tool-btn" onclick="toggleFilterDropdown('presetMapDropdown')">
+    <i class="fas fa-map"></i> 预设地图 <i class="fas fa-chevron-down text-xs ml-1"></i>
+  </button>
+  <div class="filter-menu hidden absolute bottom-full left-0 mb-2" style="min-width:110px;">
+    <button class="filter-option" onclick="loadPresetMap('dam');toggleFilterDropdown('presetMapDropdown')">🏭 大坝</button>
+    <button class="filter-option" onclick="loadPresetMap('space');toggleFilterDropdown('presetMapDropdown')">🚀 航天</button>
+    <button class="filter-option" onclick="loadPresetMap('valley');toggleFilterDropdown('presetMapDropdown')">🏹 长弓</button>
+  </div>
+</div>
+
+
 
 <button class="tactical-tool-btn" data-tool="coordinate" id="coordinateModeBtn" onclick="toggleCoordinateMode()"><i class="fas fa-map-pin"></i> 坐标</button>
 
@@ -6669,6 +6689,13 @@ window.addEventListener('scroll', () => {
   <button class="text-xs btn-ghost px-2 py-1" onclick="exportAllFavoritesAsImage()">
     <i class="fas fa-camera mr-1"></i>导出仓库卡片
   </button>
+
+
+<button class="text-xs btn-ghost px-2 py-1" onclick="exportAllFavoritesAsText()">
+  <i class="fas fa-file-export mr-1"></i>导出文本
+</button>
+
+
 </h3>
 <div id="myLoadoutFavoritesGrid" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
 
@@ -7639,7 +7666,13 @@ window.addEventListener('scroll', () => {
   </div>
 </div>
 
-<div id="loadoutHistoryContainer" style="display:none; margin-bottom:12px;"></div>
+<div id="loadoutHistoryContainer" style="display:none; margin-bottom:12px;">
+  <div class="flex items-center justify-between mb-2">
+    <span class="text-xs font-bold" style="color:var(--muted);"><i class="fas fa-history mr-1"></i>最近浏览</span>
+    <button class="text-xs underline" style="color:var(--accent);" onclick="clearLoadoutHistory()">清空</button>
+  </div>
+  <div id="loadoutHistoryTags" class="flex gap-2 overflow-x-auto pb-1" style="scrollbar-width:none;"></div>
+</div>
 
 <!-- 搜索栏 -->
 <div class="relative mb-4">
@@ -7830,6 +7863,11 @@ window.addEventListener('scroll', () => {
             <th class="px-3 py-3 text-center cursor-pointer" onclick="sortWeaponTable('fireRate')">射速 <i class="fas fa-sort text-xs"></i></th>
             <th class="px-3 py-3 text-center cursor-pointer" onclick="sortWeaponTable('accuracy')">精准 <i class="fas fa-sort text-xs"></i></th>
             <th class="px-3 py-3 text-center cursor-pointer" onclick="sortWeaponTable('range')">射程 <i class="fas fa-sort text-xs"></i></th>
+
+
+            <th class="px-3 py-3 text-center cursor-pointer" onclick="sortWeaponTable('attachments')">热门配件 <i class="fas fa-sort text-xs"></i></th>
+
+
             <th class="px-3 py-3 text-center">操作</th>
           </tr>
         </thead>
@@ -7920,6 +7958,9 @@ window.addEventListener('scroll', () => {
       <button class="loot-cat-chip" data-cat="gold">🟡 金色</button>
       <button class="loot-cat-chip" data-cat="purple">🟣 紫色</button>
       <button class="loot-cat-chip" data-cat="blue">🔵 蓝色</button>
+
+      <button class="loot-cat-chip" data-cat="watchlist">⭐ 关注</button>
+
     </div>
     <!-- 价格趋势说明 -->
     <div class="flex items-center justify-between mb-2 text-xs" style="color: var(--muted);">
@@ -15853,6 +15894,18 @@ async function toggleFavoriteLoadout(loadoutName) {
     .eq('loadout_name', loadoutName)
     .maybeSingle();
   
+
+// ✅ 同步到localStorage（插入在这里）
+  let favs = JSON.parse(localStorage.getItem('loadout_favorites') || '[]');
+  const isFav = favs.includes(loadoutName);
+  if (isFav) {
+    favs = favs.filter(f => f !== loadoutName);
+  } else {
+    favs.push(loadoutName);
+  }
+  localStorage.setItem('loadout_favorites', JSON.stringify(favs));
+
+
   if (existing) {
     // 取消收藏
     const { error } = await sb
@@ -15886,6 +15939,11 @@ async function toggleFavoriteLoadout(loadoutName) {
     showToast('已添加到我的战术仓库', 'success');
   }
 }
+
+
+
+
+
 
 // 加载用户收藏状态（页面加载时调用）
 async function loadUserFavoriteStatus() {
@@ -16012,10 +16070,44 @@ function getOpColor(opClass) {
   return map[opClass] || '#9b59b6';
 }
 
+
+
+
 function renderLoadoutList() {
     const container = document.getElementById('loadoutListContainer');
-    if (!container) return;
     
+    // ✅ 渲染配装浏览历史 - 插入在这里
+    const historyContainer = document.getElementById('loadoutHistoryContainer');
+    if (historyContainer) {
+      const history = JSON.parse(localStorage.getItem('loadout_history') || '[]');
+      if (history.length > 0) {
+        historyContainer.style.display = 'block';
+        historyContainer.innerHTML = `
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-bold" style="color:var(--muted);"><i class="fas fa-history mr-1"></i>最近浏览</span>
+            <button class="text-xs underline" style="color:var(--accent);" onclick="clearLoadoutHistory()">清空</button>
+          </div>
+          <div class="flex gap-2 overflow-x-auto pb-1" style="scrollbar-width:none; -webkit-overflow-scrolling:touch;">
+            ${history.map(h => `
+              <div class="flex items-center gap-1 px-3 py-1.5 rounded-full cursor-pointer hover:bg-white/10 text-xs flex-shrink-0"
+                   style="background:var(--surface); border:1px solid var(--border); white-space:nowrap;"
+                   onclick="showLoadoutDetail('${h.code}')">
+                <i class="fas fa-gun" style="color:var(--accent);"></i>
+                <span>${h.name}</span>
+              </div>
+            `).join('')}
+          </div>
+        `;
+      } else {
+        historyContainer.style.display = 'none';
+      }
+    }
+
+    
+
+
+
+
     // 1. 更新枪械下拉选项（保留原有功能）
     updateWeaponDropdownOptions();
     
@@ -16323,6 +16415,15 @@ function renderWeaponTable() {
             </div>
           </div>
         </td>
+
+        <td class="px-3 py-3 text-center" onclick="event.stopPropagation(); copyAttachment('${w.name}')" title="点击复制配件">
+          <span class="text-xs cursor-pointer hover:underline" style="color:#2ecc71;">
+            ${WEAPON_ATTACHMENTS[w.name] || WEAPON_ATTACHMENTS['default']}
+          </span>
+        </td>
+
+
+
        <td class="px-3 py-2 text-center">
   <button class="text-xs px-3 py-1.5 rounded-full transition-all" style="background: var(--accent); color: white;" onclick="event.stopPropagation(); addWeaponToCompare('${w.name}')" title="加入对比">
     <i class="fas fa-plus-circle mr-1"></i>对比
@@ -16603,6 +16704,11 @@ function renderCompareView() {
 bodyHtml += `<tr class="border-b" style="border-color: var(--border);">`;
 bodyHtml += `<td class="px-3 py-3 font-medium text-sm">标签</td>`;  // 左侧「标签」文字也稍大
 weapons.forEach(w => {
+
+        
+
+
+
   bodyHtml += `<td class="px-3 py-3 text-center">`;
   bodyHtml += `<div class="flex flex-wrap gap-1.5 justify-center">`;
   w.tags.slice(0, 3).forEach(t => {
@@ -24509,10 +24615,12 @@ if (loadMoreBtn) {
   </span>
   <div class="flex gap-1">
     <button class="favorite-loadout-btn text-xs px-3 py-1.5 rounded-full transition-all" 
-            style="background: var(--surface); color: var(--muted); border: 1px solid var(--border);"
+            style="background: var(--surface); color: ${JSON.parse(localStorage.getItem('loadout_favorites') || '[]').includes(item.name) ? '#f1c40f' : 'var(--muted)'}; border: 1px solid var(--border);"
             onclick="event.stopPropagation(); toggleFavoriteLoadout('${item.name.replace(/'/g, "\\'")}')"
             data-name="${item.name.replace(/'/g, "\\'")}">
-      <i class="far fa-bookmark"></i> <span>收藏</span>
+          ${JSON.parse(localStorage.getItem('loadout_favorites') || '[]').includes(item.name) 
+      ? `<i class="fas fa-bookmark"></i> <span>已收藏</span>` 
+      : `<i class="far fa-bookmark"></i> <span>收藏</span>`}
     </button>
 
 
@@ -24973,6 +25081,18 @@ window.showAIDetail = function(planName) {
     const calibration = plan.totalPrice < 30 ? '极限预算方案，优先拉满后坐力控制，其余点数投入人机工效。' :
                        plan.totalPrice < 60 ? '均衡配置，可根据手感微调枪口制退器，建议保证75以上人机工效。' :
                        '豪华配置，建议满改。枪口选用钛金制退器，拉满水平后坐，其余点散布，打造激光枪。';
+
+
+
+  // 保存浏览历史（showLoadoutDetail 函数内）
+  let history = JSON.parse(localStorage.getItem('loadout_history') || '[]');
+  history = history.filter(h => h.code !== code);
+  history.unshift({ name: loadoutData.weapon || loadoutData.name, code: code });
+  if (history.length > 8) history.pop();
+  localStorage.setItem('loadout_history', JSON.stringify(history));
+
+
+
 
     // 创建弹窗HTML
     let modalHTML = `
@@ -26321,7 +26441,17 @@ function renderLootList() {
   const container = document.getElementById('lootPriceList');
   if (!container) return;
   const searchTerm = document.getElementById('lootSearchInputModal')?.value.toLowerCase() || '';
+
+
+// 每次渲染前同步关注列表
+lootWatchlist = JSON.parse(localStorage.getItem('loot_watchlist') || '[]');
+
   let filtered = lootPrices.filter(item => {
+
+
+    if (currentLootCat === 'watchlist' && !lootWatchlist.includes(item.name)) return false;
+
+
     if (currentLootCat !== 'all' && item.tier !== currentLootCat) return false;
     if (searchTerm && !item.name.toLowerCase().includes(searchTerm)) return false;
     return true;
@@ -26349,6 +26479,15 @@ function renderLootList() {
         </div>
         <div class="loot-item-right">
           <div class="loot-item-price">${item.price}<span class="loot-item-unit">${item.unit}</span></div>
+
+<i class="fas fa-star text-xs cursor-pointer ml-2" 
+   style="color: ${JSON.parse(localStorage.getItem('loot_watchlist') || '[]').includes(item.name) ? '#f1c40f' : '#555'};"
+   onclick="event.stopPropagation(); toggleLootWatch('${item.name}')"
+   id="loot-star-${item.name.replace(/[^a-zA-Z\u4e00-\u9fa5]/g, '')}"
+   title="关注此物资"></i>
+
+
+
           <div class="loot-item-trend ${trendClass}">${trendIcon} ${item.change_percent > 0 ? '+' + item.change_percent + '%' : (item.change_percent < 0 ? item.change_percent + '%' : '稳定')}</div>
         </div>
       </div>
@@ -28865,6 +29004,42 @@ setInterval(autoThemeByTime, 3600000);
 
 
 
+function clearLoadoutHistory() {
+  localStorage.removeItem('loadout_history');
+  const container = document.getElementById('loadoutHistoryContainer');
+  if (container) container.style.display = 'none';
+  showToast('🧹 浏览历史已清空', 'success');
+}
+
+
+
+function copyAttachment(weaponName) {
+  const attachment = WEAPON_ATTACHMENTS[weaponName] || WEAPON_ATTACHMENTS['default'];
+  navigator.clipboard?.writeText(attachment).then(() => {
+    showToast(`✅ ${weaponName} 配件已复制`, 'success');
+  }).catch(() => showToast('复制失败', 'error'));
+}
+
+
+
+function exportAllFavoritesAsText() {
+  const favs = JSON.parse(localStorage.getItem('loadout_favorites') || '[]');
+  if (favs.length === 0) { showToast('暂无收藏方案', 'warning'); return; }
+  let text = '【三角洲墨辰电竞 · 我的配装仓库】\n\n';
+  favs.forEach((name, i) => {
+    const loadout = BUDGET_LOADOUTS.find(l => l.name === name);
+    if (loadout) {
+      text += `${i+1}. ${name}\n`;
+      text += `   武器：${loadout.weapons?.map(w=>w.name).join(' + ') || '未配置'}\n`;
+      text += `   价格：${loadout.totalPrice}万\n`;
+      text += `   改枪码：${loadout.weapons?.[0]?.code || '暂无'}\n\n`;
+    }
+  });
+  navigator.clipboard?.writeText(text).then(() => showToast('✅ 已复制到剪贴板', 'success'));
+}
+
+</script>    ← 文件最后一个 script 结束标签
+
 </script>
 <script>
   window.addEventListener('load', function() {
@@ -31271,6 +31446,51 @@ function copyPostLink(postId) {
     showToast('✅ 帖子链接已复制', 'success');
   });
 }
+
+
+window.loadPresetMap = function(type) {
+  if (!tacCtx) {
+    const canvas = document.getElementById('tacticalCanvas');
+    if (canvas) tacCtx = canvas.getContext('2d');
+  }
+  if (!tacCtx) return;
+  
+  const colors = {
+    dam: { bg: '#2a3a2a', grid: '#3a5a3a', name: '零号大坝' },
+    space: { bg: '#1a1a2e', grid: '#2a2a3e', name: '航天基地' },
+    valley: { bg: '#2a2a1a', grid: '#3a3a2a', name: '长弓溪谷' }
+  };
+  const c = colors[type];
+  tacCtx.fillStyle = c.bg;
+  tacCtx.fillRect(0, 0, 800, 500);
+  tacCtx.strokeStyle = c.grid;
+  tacCtx.lineWidth = 0.5;
+  for (let i = 0; i <= 800; i += 40) { tacCtx.beginPath(); tacCtx.moveTo(i,0); tacCtx.lineTo(i,500); tacCtx.stroke(); }
+  for (let i = 0; i <= 500; i += 40) { tacCtx.beginPath(); tacCtx.moveTo(0,i); tacCtx.lineTo(800,i); tacCtx.stroke(); }
+  showToast(`✅ 已加载 ${c.name} 战术地图`, 'success');
+};
+
+
+
+let lootWatchlist = JSON.parse(localStorage.getItem('loot_watchlist') || '[]');
+
+function toggleLootWatch(name) {
+  const idx = lootWatchlist.indexOf(name);
+  if (idx === -1) {
+    lootWatchlist.push(name);
+    showToast(`🌟 已关注 ${name}`, 'success');
+  } else {
+    lootWatchlist.splice(idx, 1);
+    showToast(`已取消关注 ${name}`, 'info');
+  }
+  localStorage.setItem('loot_watchlist', JSON.stringify(lootWatchlist));
+  renderLootList();
+}
+
+
+
+
+
 
 
 
