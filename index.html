@@ -14330,6 +14330,55 @@ loadNewbieTasks();
   // 加载邀请人数
   loadInviteCount();
 
+
+
+  // ========== 更新个人统计数据（修复后） ==========
+  const profile = APP.profile;
+  if (profile) {
+    // 基础统计
+    const statPosts = document.getElementById('statPosts');
+    const statLikes = document.getElementById('statLikes');
+    const statFollowers = document.getElementById('statFollowers');
+    const statFollowing = document.getElementById('statFollowing');
+    
+    if (statPosts) statPosts.textContent = profile.posts_count || 0;
+    if (statLikes) statLikes.textContent = profile.likes_received || 0;
+    if (statFollowers) statFollowers.textContent = profile.followers_count || 0;
+    if (statFollowing) statFollowing.textContent = profile.following_count || 0;
+    
+    // 用户名
+    const profileName = document.getElementById('profileName');
+    if (profileName) {
+      const nicknameClass = getCosmeticClass(profile.equipped_nickname_effect, 'nickname');
+      profileName.innerHTML = `<span class="${nicknameClass}">${profile.username || '干员_0000'}</span>`;
+    }
+    
+    // 等级和经验
+    const profileLevel = document.getElementById('profileLevel');
+    const profileExpBar = document.getElementById('profileExpBar');
+    const profileExpText = document.getElementById('profileExpText');
+    
+    if (profileLevel) profileLevel.textContent = 'Lv.' + (profile.level || 1);
+    if (profileExpBar) profileExpBar.style.width = ((profile.exp || 0) / 100 * 100) + '%';
+    if (profileExpText) profileExpText.textContent = (profile.exp || 0) + '/100 EXP';
+    
+    // 头像
+    const profileAvatar = document.getElementById('profileAvatar');
+    if (profileAvatar) {
+      profileAvatar.src = profile.avatar_url || dicebearUrl(profile.username || 'default');
+    }
+  }
+  // ========== 统计更新结束 ==========
+
+
+
+// 更新导航栏头像
+const navAvatar = document.getElementById('navAvatarImg');
+if (navAvatar && profile.avatar_url) {
+  navAvatar.src = profile.avatar_url;
+}
+
+
   // ----- 新增：贡献数据面板（获赞、帮助人数、推荐数、命名数）-----
   const statsContainer = document.getElementById('profileStatsGrid');
   if (statsContainer) {
