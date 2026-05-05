@@ -6969,6 +6969,15 @@ window.addEventListener('scroll', () => {
         <input type="hidden" id="pubTacticalCode" value="">
         <input type="hidden" id="pubTacticalType" value="">
       </div>
+
+
+<!-- 智能标签推荐 -->
+<div id="suggestedTagsContainer" style="margin-bottom: 8px; display: none;">
+  <span style="font-size: 12px; color: var(--muted);">💡 推荐标签：</span>
+  <div id="suggestedTagsList" style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px;"></div>
+</div>
+
+
         <input type="text" placeholder="例：战术分享,新手攻略" id="pubTags" class="w-full">
       </div>
       <div>
@@ -12456,6 +12465,73 @@ function attachLastBlueprint() {
   document.getElementById('attachPreview').innerHTML = `<i class="fas fa-save"></i> 蓝图已附加`;
   showToast('蓝图已附加', 'success');
 }
+
+
+
+// ========== 发帖智能标签推荐 ==========
+const TAG_KEYWORDS = [
+  { keyword: '配装', tags: ['配装分享', '武器推荐', '改枪码'] },
+  { keyword: '跑刀', tags: ['跑刀', '穷鬼套餐', '零号大坝'] },
+  { keyword: '大坝', tags: ['零号大坝', '地图攻略', '撤离点'] },
+  { keyword: '航天', tags: ['航天基地', '地图攻略', '撤离点'] },
+  { keyword: '三角洲', tags: ['三角洲行动', '新闻', '更新'] },
+  { keyword: '新手', tags: ['新手攻略', '入门', '保姆级'] },
+  { keyword: '狙击', tags: ['狙击点位', '远距离', '架枪'] },
+  { keyword: '平民', tags: ['平民配装', '性价比', '卡战备'] },
+  { keyword: '猛攻', tags: ['猛攻流', '高伤害', '绝密'] },
+  { keyword: '暗区', tags: ['暗区突围', '物资', '集装箱'] },
+];
+
+// 在页面加载完成后绑定事件
+document.addEventListener('DOMContentLoaded', () => {
+  const titleInput = document.getElementById('pubTitle');
+  const tagsInput = document.getElementById('pubTags');
+  const suggestContainer = document.getElementById('suggestedTagsContainer');
+  const suggestList = document.getElementById('suggestedTagsList');
+
+  if (!titleInput || !tagsInput) return;
+
+  titleInput.addEventListener('input', () => {
+    const val = titleInput.value.toLowerCase();
+    if (val.length < 2) {
+      suggestContainer.style.display = 'none';
+      return;
+    }
+    const matchedTags = [];
+    TAG_KEYWORDS.forEach(item => {
+      if (val.includes(item.keyword)) {
+        matchedTags.push(...item.tags);
+      }
+    });
+    const uniqueTags = [...new Set(matchedTags)].slice(0, 6);
+    if (uniqueTags.length === 0) {
+      suggestContainer.style.display = 'none';
+      return;
+    }
+    suggestContainer.style.display = 'block';
+    suggestList.innerHTML = uniqueTags.map(tag => `
+      <span onclick="addSuggestedTag('${tag}')" style="padding: 4px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 20px; font-size: 12px; cursor: pointer; transition: 0.2s; user-select: none;"
+        onmouseover="this.style.background='var(--accent)';this.style.color='white'" 
+        onmouseout="this.style.background='var(--surface)';this.style.color=''">
+        + ${tag}
+      </span>
+    `).join('');
+  });
+
+  // 添加标签到输入框
+  window.addSuggestedTag = function(tag) {
+    const current = tagsInput.value.split(/[,，]/).map(t => t.trim()).filter(Boolean);
+    if (!current.includes(tag)) {
+      current.push(tag);
+      tagsInput.value = current.join(', ');
+    }
+  };
+});
+
+
+
+
+
 
 // 上传媒体文件
 async function publishPost() {
