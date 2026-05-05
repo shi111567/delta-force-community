@@ -4757,6 +4757,41 @@ body {
   }
 }
 
+
+
+
+/* 配装弹窗手机优化 */
+@media (max-width: 640px) {
+  #loadoutModal .modal-content {
+    max-width: 100% !important;
+    width: 100% !important;
+    padding: 12px 10px !important;
+    border-radius: 16px 16px 0 0 !important;
+    margin-top: 20px;
+  }
+  /* 高级筛选面板折叠后背景 */
+  #loadoutAdvancedFilters {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 12px;
+    margin-bottom: 14px;
+  }
+  /* 默认在手机上隐藏筛选面板 */
+  #loadoutAdvancedFilters {
+    display: none;
+  }
+  /* 列表高度自适应 */
+  #loadoutListContainer {
+    max-height: 60vh !important;
+  }
+}
+
+
+
+
+
+
 /* ===== 三角洲万象猜 · 专属动效 ===== */
 #quizCurrentClue {
   transition: all 0.2s ease;
@@ -7768,89 +7803,84 @@ window.addEventListener('scroll', () => {
 </div>
 
 <!-- 搜索栏 -->
-<div class="relative mb-4">
-  <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-sm" style="color: var(--accent); z-index: 1;"></i>
-  <input type="text" id="loadoutSearchInput" placeholder="搜索枪械、兵种或配件..." class="w-full pl-11 pr-4 py-3 rounded-xl text-sm" style="background: var(--surface); border: 2px solid var(--border); color: var(--text); transition: all 0.25s;" oninput="applyLoadoutFilters()">
+<!-- 🔍 搜索与筛选切换行（始终显示） -->
+<div class="flex items-center gap-2 mb-3">
+  <div class="relative flex-1">
+    <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-sm" style="color: var(--accent); z-index: 1;"></i>
+    <input type="text" id="loadoutSearchInput" placeholder="搜索枪械、兵种或配件..." class="w-full pl-11 pr-4 py-3 rounded-xl text-sm" style="background: var(--surface); border: 2px solid var(--border); color: var(--text); transition: all 0.25s;" oninput="applyLoadoutFilters()">
+  </div>
+  <button class="btn-ghost text-sm px-3 py-3 rounded-xl flex items-center gap-1" onclick="toggleLoadoutFilters()">
+    <i class="fas fa-sliders-h"></i>
+    <span class="hidden sm:inline">筛选</span>
+    <i class="fas fa-chevron-down transition-transform ml-1" id="loadoutFilterToggleIcon"></i>
+  </button>
 </div>
 
-
-<!-- 改枪码快速定位栏 -->
-<div class="mt-3 mb-4">
+<!-- 🧩 高级筛选面板（默认在手机上折叠） -->
+<div id="loadoutAdvancedFilters" class="loadout-advanced-filters">
+  <!-- 改枪码快速定位 -->
+  <div class="mb-4">
     <div class="flex items-center gap-2">
-        <div class="relative flex-1">
-            <i class="fas fa-bolt absolute left-4 top-1/2 -translate-y-1/2 text-sm" style="color: var(--accent);"></i>
-            <input type="text" id="loadoutQuickCodeInput" placeholder="粘贴改枪码，秒定位配装" class="w-full pl-11 pr-4 py-2.5 rounded-xl text-sm" style="background: var(--surface); border: 2px solid var(--border); color: var(--text); transition: all 0.25s;">
-        </div>
-        <button class="btn-warm text-sm px-5 py-2.5 rounded-xl font-bold flex items-center gap-1.5 hover:shadow-lg transition-all duration-200" onclick="quickLocateLoadoutByCode()" style="background: linear-gradient(135deg, var(--accent), var(--accent2));">
-            <i class="fas fa-bolt"></i> 定位
-        </button>
-    </div>
-    <p class="text-[10px] mt-1.5 pl-2" style="color: var(--muted);"><i class="fas fa-info-circle mr-1"></i>支持模糊匹配，如输入 "6IMVF" 可找到对应武器配装</p>
-</div>
-
-
-
-<!-- 下拉筛选栏（三列） -->
-<div class="grid grid-cols-3 gap-2 mb-4">
-  <!-- 兵种下拉 -->
-  <div class="filter-dropdown" id="classDropdown">
-    <button class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 hover:border-[var(--accent)]" style="background: var(--surface); border: 2px solid var(--border); color: var(--text);" onclick="toggleFilterDropdown('classDropdown')">
-      <span class="flex items-center gap-1.5">
-        <i class="fas fa-shield-halved text-xs" style="color: var(--accent);"></i>
-        <span id="currentClassLabel">全部兵种</span>
-      </span>
-      <i class="fas fa-chevron-down text-[10px] transition-transform" style="color: var(--muted);"></i>
-    </button>
-    <div class="filter-menu hidden" style="min-width: 100%;">
-      <button class="filter-option active" data-class="all" onclick="selectClassFilter('all')"><i class="fas fa-globe"></i>全部兵种</button>
-      <button class="filter-option" data-class="突击" onclick="selectClassFilter('突击')"><i class="fas fa-crosshairs"></i>突击</button>
-      <button class="filter-option" data-class="侦察" onclick="selectClassFilter('侦察')"><i class="fas fa-eye"></i>侦察</button>
-      <button class="filter-option" data-class="支援" onclick="selectClassFilter('支援')"><i class="fas fa-shield"></i>支援</button>
-      <button class="filter-option" data-class="工程" onclick="selectClassFilter('工程')"><i class="fas fa-wrench"></i>工程</button>
+      <div class="relative flex-1">
+        <i class="fas fa-bolt absolute left-4 top-1/2 -translate-y-1/2 text-sm" style="color: var(--accent);"></i>
+        <input type="text" id="loadoutQuickCodeInput" placeholder="粘贴改枪码，秒定位配装" class="w-full pl-11 pr-4 py-2.5 rounded-xl text-sm" style="background: var(--surface); border: 2px solid var(--border); color: var(--text);">
+      </div>
+      <button class="btn-warm text-sm px-5 py-2.5 rounded-xl font-bold flex items-center gap-1.5" onclick="quickLocateLoadoutByCode()" style="background: linear-gradient(135deg, var(--accent), var(--accent2));">
+        <i class="fas fa-bolt"></i> 定位
+      </button>
     </div>
   </div>
 
-  <!-- 玩法下拉 -->
-  <div class="filter-dropdown" id="playstyleDropdown">
-    <button class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 hover:border-[var(--accent)]" style="background: var(--surface); border: 2px solid var(--border); color: var(--text);" onclick="toggleFilterDropdown('playstyleDropdown')">
-      <span class="flex items-center gap-1.5">
-        <i class="fas fa-bullseye text-xs" style="color: var(--accent);"></i>
-        <span id="currentPlaystyleLabel">全部玩法</span>
-      </span>
-      <i class="fas fa-chevron-down text-[10px] transition-transform" style="color: var(--muted);"></i>
-    </button>
-    <div class="filter-menu hidden" style="min-width: 100%;">
-      <button class="filter-option active" data-playstyle="all" onclick="selectPlaystyleFilter('all')"><i class="fas fa-infinity"></i>全部玩法</button>
-      <button class="filter-option" data-playstyle="近战" onclick="selectPlaystyleFilter('近战')"><i class="fas fa-fist-raised"></i>近战/跑刀</button>
-      <button class="filter-option" data-playstyle="中距离" onclick="selectPlaystyleFilter('中距离')"><i class="fas fa-arrows-alt-h"></i>中距离/压枪</button>
-      <button class="filter-option" data-playstyle="远程" onclick="selectPlaystyleFilter('远程')"><i class="fas fa-sniper"></i>远程/架点</button>
-      <button class="filter-option" data-playstyle="猛攻" onclick="selectPlaystyleFilter('猛攻')"><i class="fas fa-skull"></i>猛攻/高伤</button>
-      <button class="filter-option" data-playstyle="新手" onclick="selectPlaystyleFilter('新手')"><i class="fas fa-graduation-cap"></i>新手友好</button>
+  <!-- 下拉筛选栏（三列自适应） -->
+  <div class="grid grid-cols-3 sm:grid-cols-3 gap-2 mb-4">
+    <!-- 兵种下拉 -->
+    <div class="filter-dropdown" id="classDropdown">
+      <button class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 hover:border-[var(--accent)]" style="background: var(--surface); border: 2px solid var(--border); color: var(--text);" onclick="toggleFilterDropdown('classDropdown')">
+        <span class="flex items-center gap-1.5"><i class="fas fa-shield-halved text-xs" style="color: var(--accent);"></i><span id="currentClassLabel">全部兵种</span></span>
+        <i class="fas fa-chevron-down text-[10px] transition-transform" style="color: var(--muted);"></i>
+      </button>
+      <div class="filter-menu hidden" style="min-width: 100%;">
+        <button class="filter-option active" data-class="all" onclick="selectClassFilter('all')"><i class="fas fa-globe"></i>全部兵种</button>
+        <button class="filter-option" data-class="突击" onclick="selectClassFilter('突击')"><i class="fas fa-crosshairs"></i>突击</button>
+        <button class="filter-option" data-class="侦察" onclick="selectClassFilter('侦察')"><i class="fas fa-eye"></i>侦察</button>
+        <button class="filter-option" data-class="支援" onclick="selectClassFilter('支援')"><i class="fas fa-shield"></i>支援</button>
+        <button class="filter-option" data-class="工程" onclick="selectClassFilter('工程')"><i class="fas fa-wrench"></i>工程</button>
+      </div>
+    </div>
+
+    <!-- 玩法下拉 -->
+    <div class="filter-dropdown" id="playstyleDropdown">
+      <button class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 hover:border-[var(--accent)]" style="background: var(--surface); border: 2px solid var(--border); color: var(--text);" onclick="toggleFilterDropdown('playstyleDropdown')">
+        <span class="flex items-center gap-1.5"><i class="fas fa-bullseye text-xs" style="color: var(--accent);"></i><span id="currentPlaystyleLabel">全部玩法</span></span>
+        <i class="fas fa-chevron-down text-[10px] transition-transform" style="color: var(--muted);"></i>
+      </button>
+      <div class="filter-menu hidden" style="min-width: 100%;">
+        <button class="filter-option active" data-playstyle="all" onclick="selectPlaystyleFilter('all')"><i class="fas fa-infinity"></i>全部玩法</button>
+        <button class="filter-option" data-playstyle="近战" onclick="selectPlaystyleFilter('近战')"><i class="fas fa-fist-raised"></i>近战/跑刀</button>
+        <button class="filter-option" data-playstyle="中距离" onclick="selectPlaystyleFilter('中距离')"><i class="fas fa-arrows-alt-h"></i>中距离/压枪</button>
+        <button class="filter-option" data-playstyle="远程" onclick="selectPlaystyleFilter('远程')"><i class="fas fa-sniper"></i>远程/架点</button>
+        <button class="filter-option" data-playstyle="猛攻" onclick="selectPlaystyleFilter('猛攻')"><i class="fas fa-skull"></i>猛攻/高伤</button>
+        <button class="filter-option" data-playstyle="新手" onclick="selectPlaystyleFilter('新手')"><i class="fas fa-graduation-cap"></i>新手友好</button>
+      </div>
+    </div>
+
+    <!-- 枪械下拉 -->
+    <div class="filter-dropdown" id="weaponDropdown">
+      <button class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 hover:border-[var(--accent)]" style="background: var(--surface); border: 2px solid var(--border); color: var(--text);" onclick="toggleFilterDropdown('weaponDropdown')">
+        <span class="flex items-center gap-1.5"><i class="fas fa-gun text-xs" style="color: var(--accent);"></i><span id="currentWeaponLabel">全部枪械</span></span>
+        <i class="fas fa-chevron-down text-[10px] transition-transform" style="color: var(--muted);"></i>
+      </button>
+      <div class="filter-menu hidden" id="weaponFilterMenu" style="min-width: 100%; max-height: 250px; overflow-y: auto;">
+        <button class="filter-option active" data-weapon="all" onclick="selectWeaponFilter('all')"><i class="fas fa-list"></i>全部枪械</button>
+        <!-- 动态生成其他枪械选项 -->
+      </div>
     </div>
   </div>
 
-  <!-- 枪械下拉 -->
-  <div class="filter-dropdown" id="weaponDropdown">
-    <button class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 hover:border-[var(--accent)]" style="background: var(--surface); border: 2px solid var(--border); color: var(--text);" onclick="toggleFilterDropdown('weaponDropdown')">
-      <span class="flex items-center gap-1.5">
-        <i class="fas fa-gun text-xs" style="color: var(--accent);"></i>
-        <span id="currentWeaponLabel">全部枪械</span>
-      </span>
-      <i class="fas fa-chevron-down text-[10px] transition-transform" style="color: var(--muted);"></i>
-    </button>
-    <div class="filter-menu hidden" id="weaponFilterMenu" style="min-width: 100%; max-height: 250px; overflow-y: auto;">
-      <button class="filter-option active" data-weapon="all" onclick="selectWeaponFilter('all')"><i class="fas fa-list"></i>全部枪械</button>
-      <!-- 动态生成其他枪械选项 -->
-    </div>
-  </div>
-</div>
-  <!-- 价格排序/筛选 -->
-  <div class="filter-dropdown" id="priceDropdown" style="grid-column: span 3; margin-top: 4px;">
+  <!-- 价格排序 -->
+  <div class="filter-dropdown" id="priceDropdown" style="grid-column: 1 / -1; margin-top: 4px;">
     <button class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 hover:border-[var(--accent)]" style="background: var(--surface); border: 2px solid var(--border); color: var(--text);" onclick="toggleFilterDropdown('priceDropdown')">
-      <span class="flex items-center gap-1.5">
-        <i class="fas fa-coins text-xs" style="color: var(--accent);"></i>
-        <span id="currentPriceLabel">价格排序</span>
-      </span>
+      <span class="flex items-center gap-1.5"><i class="fas fa-coins text-xs" style="color: var(--accent);"></i><span id="currentPriceLabel">价格排序</span></span>
       <i class="fas fa-chevron-down text-[10px] transition-transform" style="color: var(--muted);"></i>
     </button>
     <div class="filter-menu hidden" style="min-width: 100%;">
@@ -7859,15 +7889,16 @@ window.addEventListener('scroll', () => {
       <button class="filter-option" data-price="high" onclick="selectPriceFilter('high')"><i class="fas fa-arrow-down"></i>价格从高到低</button>
     </div>
   </div>
-<!-- 当前筛选结果标签（可选） -->
-<div class="flex items-center justify-between mb-2">
-  <span class="text-xs" style="color: var(--muted);"><span id="loadoutResultCount">0</span> 个配装方案</span>
-  <button class="btn-ghost text-xs px-4 py-1.5 rounded-full flex items-center gap-1" 
-          style="border:1px solid var(--accent); color:var(--accent);" 
-          onclick="resetAllLoadoutFilters()">
-    <i class="fas fa-undo-alt"></i> 清空筛选
-  </button>
+
+  <!-- 当前筛选结果标签 -->
+  <div class="flex items-center justify-between mb-2">
+    <span class="text-xs" style="color: var(--muted);"><span id="loadoutResultCount">0</span> 个配装方案</span>
+    <button class="btn-ghost text-xs px-4 py-1.5 rounded-full flex items-center gap-1" style="border:1px solid var(--accent); color:var(--accent);" onclick="resetAllLoadoutFilters()">
+      <i class="fas fa-undo-alt"></i> 清空筛选
+    </button>
+  </div>
 </div>
+
 
 
 
@@ -14881,6 +14912,7 @@ function showRingMenu(callback) {
   const canvas = document.createElement('canvas');
   canvas.width = 360;
   canvas.height = 360;
+canvas.style.touchAction = 'none';   // ← 新增这一行
   canvas.style.cssText = 'border-radius:50%;';
   overlay.appendChild(canvas);
   
@@ -14891,15 +14923,27 @@ function showRingMenu(callback) {
 
   // 获取鼠标在 canvas 上的角度
   function getAngle(e) {
-    const rect = canvas.getBoundingClientRect();
-    const x = (e.clientX || e.touches?.[0]?.clientX) - rect.left - rect.width / 2;
-    const y = (e.clientY || e.touches?.[0]?.clientY) - rect.top - rect.height / 2;
-    const dist = Math.sqrt(x * x + y * y);
-    if (dist < innerR || dist > outerR) return -1; // 不在环形内
-    let angle = Math.atan2(y, x) * 180 / Math.PI + 90;
-    if (angle < 0) angle += 360;
-    return Math.floor(angle / 90); // 4个选项，每个占90°
+  const rect = canvas.getBoundingClientRect();
+  // 兼容触摸事件和鼠标事件
+  let clientX, clientY;
+  if (e.touches && e.touches.length > 0) {
+    clientX = e.touches[0].clientX;
+    clientY = e.touches[0].clientY;
+  } else if (e.changedTouches && e.changedTouches.length > 0) {
+    clientX = e.changedTouches[0].clientX;
+    clientY = e.changedTouches[0].clientY;
+  } else {
+    clientX = e.clientX;
+    clientY = e.clientY;
   }
+  const x = clientX - rect.left - rect.width / 2;
+  const y = clientY - rect.top - rect.height / 2;
+  const dist = Math.sqrt(x * x + y * y);
+  if (dist < innerR || dist > outerR) return -1;
+  let angle = Math.atan2(y, x) * 180 / Math.PI + 90;
+  if (angle < 0) angle += 360;
+  return Math.floor(angle / 90);
+}
 
   // 绘制转盘
   function draw() {
@@ -14983,6 +15027,7 @@ function showRingMenu(callback) {
   };
 
   canvas.addEventListener('click', confirm);
+
   canvas.addEventListener('touchend', e => {
     e.preventDefault();
     confirm(e);
@@ -30650,7 +30695,19 @@ function exportAllFavoritesAsText() {
 
 
 
-
+/* 保证个人中心头像在手机上不变形 */
+#profileAvatarWrapper {
+  display: inline-block;
+  width: 80px;        /* 固定宽度 */
+  height: 80px;       /* 固定高度 */
+  max-width: 100%;
+}
+#profileAvatar {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;  /* 图片裁剪不变形 */
+  border-radius: 50%; /* 圆形头像 */
+}
 
 
 
@@ -32699,6 +32756,34 @@ window.toggleLootWatch = function(name) {
 </script>
 
 <script>
+
+
+
+
+
+
+function toggleLoadoutFilters() {
+  const panel = document.getElementById('loadoutAdvancedFilters');
+  const icon = document.getElementById('loadoutFilterToggleIcon');
+  if (!panel) return;
+  const isHidden = panel.style.display === 'none';
+  panel.style.display = isHidden ? 'block' : 'none';
+  if (icon) {
+    icon.style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)';
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
 // ========== 通用点击波纹（丝滑反馈） ==========
 document.addEventListener('click', function(e) {
   const target = e.target.closest('button, .btn-ghost, .btn-warm, .post-action-btn, .tool-item, .map-select-btn, .diff-select-btn, .filter-chip, .tactical-tool-btn');
