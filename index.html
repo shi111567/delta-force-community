@@ -6475,33 +6475,34 @@ window.addEventListener('scroll', () => {
 
   <!-- 个人主页 -->
   <div id="profileTab" style="display:none">
-    <div class="card-base p-6 max-w-2xl mx-auto">
-      <div class="flex items-center gap-5 mb-4">
+<div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap;">
+  <!-- 左侧：头像 + 名字 + 等级 -->
+  <div style="display: flex; align-items: center; gap: 12px;">
+    <div class="story-ring">
+      <div class="avatar-wrapper" id="profileAvatarWrapper">
+        <div class="frame-glow"></div>
+        <img src="" alt="头像" class="w-20 h-20 object-cover" id="profileAvatar" style="position: relative; z-index: 2;">
+      </div>
+    </div>
+    <div>
+      <h2 class="font-display text-2xl" id="profileName">干员_0000</h2>
+      <div class="flex items-center gap-2 mt-1">
+        <span class="badge badge-gold" id="profileLevel">Lv.1</span>
+      </div>
+      <div class="exp-bar mt-2 w-48"><div class="exp-fill" id="profileExpBar" style="width:0%"></div></div>
+      <span class="text-xs mt-1 block" style="color:var(--muted)" id="profileExpText">0/100 EXP</span>
+    </div>
+  </div>
 
-
-
-        <div class="story-ring">
-  <div class="avatar-wrapper" id="profileAvatarWrapper">
-    <div class="frame-glow"></div>
-    <img src="" alt="头像" class="w-20 h-20 object-cover" id="profileAvatar" style="position: relative; z-index: 2;">
-    <!-- 挂件将由JS动态添加 -->
+  <!-- 右侧：编辑 + 装扮按钮（手机端自动换行到下一行） -->
+  <div style="display: flex; gap: 8px; flex-shrink: 0;">
+    <button class="btn-warm text-sm" onclick="openModal('editProfileModal')">编辑</button>
+    <button class="btn-ghost text-sm cosmetics-btn" onclick="openCosmeticsModal()"><i class="fas fa-vest mr-1"></i>装扮</button>
   </div>
 </div>
 
 
 
-
-        <div class="flex-1">
-          <h2 class="font-display text-2xl" id="profileName">干员_0000</h2>
-          <div class="flex items-center gap-2 mt-1">
-            <span class="badge badge-gold" id="profileLevel">Lv.1</span>
-          </div>
-          <div class="exp-bar mt-2 w-48"><div class="exp-fill" id="profileExpBar" style="width:0%"></div></div>
-          <span class="text-xs mt-1 block" style="color:var(--muted)" id="profileExpText">0/100 EXP</span>
-        </div>
-         <button class="btn-warm text-sm mt-2 sm:mt-0" onclick="openModal('editProfileModal')">编辑</button>
-<button class="btn-ghost text-sm ml-2 cosmetics-btn" onclick="openCosmeticsModal()"><i class="fas fa-vest mr-1"></i>装扮</button>
-      </div>
       <div class="grid grid-cols-4 gap-4 text-center mb-4">
         <div><div class="font-bold text-lg" id="statPosts">0</div><div class="text-xs" style="color:var(--muted)">发帖</div></div>
         <div><div class="font-bold text-lg" id="statLikes">0</div><div class="text-xs" style="color:var(--muted)">获赞</div></div>
@@ -10195,7 +10196,7 @@ function updateBJTime() {
   const h = String(bj.getHours()).padStart(2,'0');
   const m = String(bj.getMinutes()).padStart(2,'0');
   const s = String(bj.getSeconds()).padStart(2,'0');
-  $('bjTime').textContent = `北京时间 ${h}:${m}:${s}`;
+  $('bjTime').textContent = ` ${h}:${m}:${s}`;
 }
 setInterval(updateBJTime, 1000); updateBJTime();
 
@@ -30707,6 +30708,24 @@ function exportAllFavoritesAsText() {
   border-radius: 50%; /* 圆形头像 */
 }
 
+
+
+@media (max-width: 640px) {
+  /* 个人中心头部按钮组在手机上占满宽度 */
+  #profileTab .btn-warm,
+  #profileTab .cosmetics-btn {
+    flex: 1 1 auto;
+    min-width: 100px;
+    font-size: 14px;
+  }
+  /* 经验条和文字可以稍微缩小 */
+  #profileExpBar {
+    width: 120px !important;
+  }
+  #profileExpText {
+    font-size: 11px;
+  }
+}
 
 
 
