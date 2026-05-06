@@ -2470,32 +2470,32 @@ transition: max-width 0.3s ease;
   }
 }
  :root {
-  --bg: #F5F6F8; /* 微软风浅灰白，比纯白更柔和 */
---card: rgba(255, 255, 255, 0.95);
---surface: #FFFFFF;
---text: #1a1a2e;
---muted: #6B7280;
---accent: #E85D2C; /* 稍微降低饱和度，更耐看 */
---accent2: #FF4757;
---gold: #F59E0B;
---border: rgba(0, 0, 0, 0.06);
---glow: rgba(232, 93, 44, 0.12);
---shadow: rgba(0, 0, 0, 0.06);
+  --bg: #F0EDE5; /* 沙漠迷彩底色，暖沙色 */
+  --card: rgba(255, 252, 247, 0.95);
+  --surface: #FCFAF5;
+  --text: #1C1C1E;
+  --muted: #6B5E4F;
+  --accent: #C7512E; /* 军事橙红，比纯橙更沉稳 */
+  --accent2: #8B3A1A; /* 深棕红 */
+  --gold: #D4A017;
+  --border: rgba(0, 0, 0, 0.08);
+  --glow: rgba(199, 81, 46, 0.12);
+  --shadow: rgba(0, 0, 0, 0.06);
 }
 
 [data-theme="dark"] {
-  --bg: #0B090A;
-  --card: rgba(28, 18, 13, 0.95);
-  --surface: #1C120D;
-  --text: #F5E6D3;
-  --muted: #A0897A;
-  --accent: #FF8C5A;
-  --accent2: #FF6B8A;
-  --gold: #FFD700;
-  --border: rgba(255, 140, 90, 0.15);
-  --glow: rgba(255, 140, 90, 0.25);
-  --shadow: rgba(0, 0, 0, 0.5);
+  --bg: #1A1814;
+  --card: rgba(28, 24, 18, 0.95);
+  --surface: #242018;
+  --text: #EDE5D8;
+  --muted: #8B7B6B;
+  --accent: #E87850;
+  --accent2: #C7512E;
+  --border: rgba(199, 81, 46, 0.15);
 }
+
+
+
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
     font-family: 'Noto Sans SC', sans-serif; background: var(--bg);
@@ -4995,6 +4995,22 @@ body {
     min-height: 32px;
   }
 }
+
+
+
+
+/* 军事分割线 */
+.section-divider {
+  height: 2px;
+  background: repeating-linear-gradient(90deg, var(--accent) 0px, var(--accent) 4px, transparent 4px, transparent 12px);
+  margin: 24px 0;
+  opacity: 0.3;
+}
+
+
+
+
+
 
 
 
