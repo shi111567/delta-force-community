@@ -2578,8 +2578,8 @@ pointer-events: auto !important;
 .tool-icon {
   width: 56px;
   height: 56px;
-  border-radius: 20px;
-  background: linear-gradient(145deg, var(--card), var(--surface));
+  background: linear-gradient(145deg, rgba(199,81,46,0.06) 0%, rgba(199,81,46,0.02) 100%);
+  border: 1px solid rgba(199,81,46,0.08);
   box-shadow: 0 8px 16px var(--shadow), 0 0 0 1.5px var(--border);
   display: flex;
   align-items: center;
@@ -3774,25 +3774,24 @@ pointer-events: auto !important;
 
 
 /* ===== 沉浸式背景光效 ===== */
+/* 极淡底部压暗层（仅亮色模式，让粒子可见） */
 body::before {
   content: '';
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: radial-gradient(circle at 50% 30%, var(--glow) 0%, transparent 70%);
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: linear-gradient(
+    180deg,
+    transparent 60%,
+    rgba(180, 170, 160, 0.06) 100%
+  );
   pointer-events: none;
   z-index: 0;
-  opacity: 0.3;
-  transition: opacity 0.5s;
+  opacity: 0.7;
 }
-
 
 [data-theme="dark"] body::before {
-  opacity: 0.5;
+  opacity: 0;
 }
-
 
 
 
@@ -5065,6 +5064,7 @@ body {
 </div>
 <!-- Canvas 粒子背景 -->
 <canvas id="particle-canvas"></canvas>
+<canvas id="atmosphere-canvas" style="position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:-1;"></canvas>
 
 
 
@@ -10235,6 +10235,123 @@ function clearHistory() {
   renderHistoryList();
   showToast('历史记录已清空', 'info');
 }
+
+
+
+
+
+// ==================== 战场氛围系统 · 日夜双模清晰版 ====================
+(function initAtmosphere() {
+  const canvas = document.getElementById('atmosphere-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  let W, H;
+  function resize() {
+    W = canvas.width = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  const isWinter = new Date().getMonth() >= 10 || new Date().getMonth() <= 2;
+
+  // 薄雾（大团柔和光晕）
+  const mist = [];
+  for (let i = 0; i < 25; i++) {
+    mist.push({
+      x: Math.random() * W, y: Math.random() * H,
+      r: 100 + Math.random() * 200, sx: 0.05 + Math.random() * 0.2, sy: 0.02 + Math.random() * 0.06,
+      o: 0.02 + Math.random() * 0.05, pulse: Math.random() * 6.28,
+    });
+  }
+
+  // 雨/雪
+  const drops = [];
+  const N = isWinter ? 80 : 120;
+  for (let i = 0; i < N; i++) {
+    drops.push({
+      x: Math.random() * W * 1.5, y: Math.random() * H * 1.2,
+      len: isWinter ? 2 + Math.random() * 4 : 8 + Math.random() * 18,
+      spd: isWinter ? 1 + Math.random() * 3 : 12 + Math.random() * 22,
+      w: isWinter ? 1.5 + Math.random() * 3 : 0.5 + Math.random() * 1.5,
+      o: isWinter ? 0.35 + Math.random() * 0.45 : 0.12 + Math.random() * 0.25,
+      wind: isWinter ? 0.1 + Math.random() * 0.3 : -0.1 + Math.random() * 0.3,
+      wob: Math.random(),
+      type: isWinter ? 'snow' : 'rain',
+    });
+  }
+
+  // 浮尘/萤火虫
+  const sparks = [];
+  for (let i = 0; i < 40; i++) {
+    sparks.push({
+      x: Math.random() * W, y: Math.random() * H,
+      r: 1 + Math.random() * 3, sx: -0.3 + Math.random() * 0.6, sy: -0.2 + Math.random() * 0.5,
+      o: 0.06 + Math.random() * 0.2, tw: Math.random() * 6.28, ts: 0.01 + Math.random() * 0.04,
+      warm: Math.random() > 0.4,
+    });
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+    const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const t = Date.now() / 1000;
+
+    // 薄雾
+    mist.forEach(p => {
+      p.x += p.sx; p.y += p.sy;
+      if (p.x > W + p.r) p.x = -p.r;
+      if (p.y > H + p.r) p.y = -p.r;
+      const a = Math.max(0, p.o + Math.sin(t * 0.3 + p.pulse) * 0.01);
+      const c = dark ? `200,180,160` : `80,65,50`;
+      const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r);
+      g.addColorStop(0, `rgba(${c},${a})`); g.addColorStop(1, 'transparent');
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2); ctx.fill();
+    });
+
+    // 雨/雪
+    drops.forEach(d => {
+      d.y += d.spd; d.x += d.wind + Math.sin(d.y * 0.008 + d.wob) * 0.3;
+      if (d.y > H + 80) { d.y = -80; d.x = Math.random() * W * 1.5; }
+      if (d.type === 'snow') {
+        const c = dark ? `255,255,255` : `60,60,70`;
+        ctx.fillStyle = `rgba(${c},${d.o})`;
+        ctx.shadowColor = dark ? 'rgba(255,255,255,0.4)' : 'rgba(40,40,50,0.3)';
+        ctx.shadowBlur = 6; ctx.beginPath(); ctx.arc(d.x, d.y, d.w, 0, Math.PI*2); ctx.fill(); ctx.shadowBlur = 0;
+      } else {
+        const c = dark ? `220,200,180` : `40,35,30`;
+        const ex = d.x + 3, ey = d.y + d.len;
+        const g = ctx.createLinearGradient(d.x, d.y, ex, ey);
+        g.addColorStop(0, `rgba(${c},0)`); g.addColorStop(0.5, `rgba(${c},${d.o})`); g.addColorStop(1, `rgba(${c},${d.o*1.5})`);
+        ctx.strokeStyle = g; ctx.lineWidth = d.w; ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(d.x, d.y); ctx.lineTo(ex, ey); ctx.stroke();
+      }
+    });
+
+    // 浮尘/萤火虫
+    sparks.forEach(p => {
+      p.x += p.sx; p.y += p.sy;
+      if (p.x > W + 10) p.x = -10; if (p.x < -10) p.x = W + 10;
+      if (p.y > H + 10) p.y = -10; if (p.y < -10) p.y = H + 10;
+      const a = Math.max(0, p.o + Math.sin(t * p.ts * 10 + p.tw) * 0.05);
+      const c = dark
+        ? (p.warm ? `255,200,140` : `180,200,220`)
+        : (p.warm ? `140,100,60` : `80,90,110`);
+      const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r * 3);
+      g.addColorStop(0, `rgba(${c},${a})`); g.addColorStop(1, 'transparent');
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(p.x, p.y, p.r * 3, 0, Math.PI*2); ctx.fill();
+    });
+
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+
+
+
+
+
 // ==================== 粒子背景 ====================
 (function initParticles() {
   const canvas = $('particle-canvas'), ctx = canvas.getContext('2d');
