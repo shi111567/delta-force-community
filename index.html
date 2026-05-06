@@ -2376,19 +2376,22 @@ transition: max-width 0.3s ease;
 
 /* 卡片内容区 */
 .post-title {
-  font-size: 20px;
-  font-weight: 800;
-  margin-bottom: 8px;
-  line-height: 1.4;
-  color: var(--text);
-  letter-spacing: -0.01em;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 3; /* 最多显示3行，给足空间 */
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  word-break: break-word;
 }
 .post-description {
-  font-size: 14px;
-  color: var(--muted);
-  margin-bottom: 12px;
-  line-height: 1.6;
-  opacity: 0.9;
+  font-size: 13px;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2; /* 描述最多2行 */
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 /* 卡片标签区 */
 .post-tags {
@@ -2467,17 +2470,17 @@ transition: max-width 0.3s ease;
   }
 }
  :root {
-  --bg: #F8F9FA; /* 更柔和的背景 */
-  --card: rgba(255, 255, 255, 0.9);
-  --surface: #FFFFFF;
-  --text: #212529;
-  --muted: #6C757D;
-  --accent: #FF6B35; /* 保持活力橙色 */
-  --accent2: #FF4757;
-  --gold: #FFD700;
-  --border: rgba(0, 0, 0, 0.05);
-  --glow: rgba(255, 107, 53, 0.15);
-  --shadow: rgba(0, 0, 0, 0.08);
+  --bg: #F5F6F8; /* 微软风浅灰白，比纯白更柔和 */
+--card: rgba(255, 255, 255, 0.95);
+--surface: #FFFFFF;
+--text: #1a1a2e;
+--muted: #6B7280;
+--accent: #E85D2C; /* 稍微降低饱和度，更耐看 */
+--accent2: #FF4757;
+--gold: #F59E0B;
+--border: rgba(0, 0, 0, 0.06);
+--glow: rgba(232, 93, 44, 0.12);
+--shadow: rgba(0, 0, 0, 0.06);
 }
 
 [data-theme="dark"] {
@@ -2709,10 +2712,10 @@ pointer-events: auto !important;
   }
 
   /* 瀑布流 */
-  .masonry { column-count: 3; column-gap: 16px; }
-  @media (max-width: 1024px) { .masonry { column-count: 2; } }
-  @media (max-width: 640px) { .masonry { column-count: 1; } }
-  .masonry-item { break-inside: avoid; margin-bottom: 16px; }
+  .masonry { column-count: 4; column-gap: 12px; }
+@media (max-width: 1200px) { .masonry { column-count: 3; } }
+@media (max-width: 768px) { .masonry { column-count: 2; column-gap: 8px; } }
+.masonry-item { break-inside: avoid; margin-bottom: 10px; }
 
   /* Story 环 */
   .story-ring {
@@ -5026,7 +5029,7 @@ body {
 
 <!-- 顶部导航栏 -->
 <nav class="top-nav" id="topNav">
-  <div class="max-w-7xl mx-auto px-2 sm:px-4 h-14 flex items-center justify-between">
+  <div class="max-w-[1500px] mx-auto px-3 sm:px-8 h-14 flex items-center justify-between">
 
 
     <!-- 左侧 Logo -->
@@ -5116,7 +5119,7 @@ window.addEventListener('scroll', () => {
 
 
 <!-- 主内容区 -->
-<main class="relative z-10 pt-16 pb-20 max-w-7xl mx-auto px-4" id="mainContent">
+<main class="relative z-10 pt-16 pb-20 max-w-[1500px] mx-auto px-3 sm:px-8" id="mainContent">
 
 <!-- 轮播图区域（已禁用）
 <section id="bannerSection" class="mb-6 rounded-2xl overflow-hidden" style="display:none">
@@ -5351,6 +5354,9 @@ window.addEventListener('scroll', () => {
 </div>
 
 <!-- ==================== 战术控制台 · 全新布局 ==================== -->
+
+<div class="section-block" style="background: var(--surface); border-radius: 24px; padding: 20px; margin-bottom: 24px;">
+
 <div class="tactical-console">
   
   <!-- 顶部标题栏 -->
@@ -5540,12 +5546,36 @@ window.addEventListener('scroll', () => {
   </div>
 </div>
 <!-- ==================== 战术控制台结束 ==================== -->
-
+</div>
   <!-- 置顶帖 -->
     <div id="topPostArea" class="mb-4"></div>
 
+
+
+
+
+<div class="section-block" style="background: var(--card); border-radius: 24px; padding: 20px; margin-bottom: 24px;">
+  <div class="section-header" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+    <h3 style="font-weight: 800; font-size: 18px; display: flex; align-items: center; gap: 8px;">
+      <i class="fas fa-newspaper" style="color: var(--accent);"></i>战术情报流
+    </h3>
+    <div style="display: flex; gap: 8px; align-items: center;">
+      <input type="text" id="homeSearchInput" placeholder="搜索..." style="padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border); background: var(--bg); color: var(--text); font-size: 13px; width: 160px;">
+      <button onclick="performHomeSearch()" style="background: var(--accent); color: #fff; border: none; border-radius: 20px; padding: 6px 14px; font-size: 13px; cursor: pointer;"><i class="fas fa-search"></i></button>
+    </div>
+  </div>
+
+
+
+
+
     <!-- 瀑布流帖子列表 -->
     <div class="masonry" id="postsGrid"></div>
+
+</div>
+
+
+
 <!-- 加载更多指示器 -->
 <div id="loadMoreIndicator" class="text-center py-6 hidden" style="color: var(--muted);">
   <i class="fas fa-spinner fa-pulse mr-2"></i><span>加载中...</span>
@@ -12028,20 +12058,23 @@ function createPostCard(post, idx, isTop = false) {
 
 const mediaHTML = (() => {
   const urls = post.media_urls || [];
-  if (urls.length === 0) return '';
-  const firstUrl = urls[0];
-  const isVideo = firstUrl.match(/\.(mp4|webm|mov)$/i);
-  const mediaEl = isVideo
-    ? `<video src="${firstUrl}" class="w-full rounded-lg cursor-pointer object-cover" style="max-height:300px" preload="metadata" onclick="openVideoLightbox('${firstUrl}', '${post.id}')"></video>`
-    : `<img src="${firstUrl}" alt="" class="w-full rounded-lg cursor-pointer object-cover" style="max-height:320px" onclick="openLightbox('${firstUrl}', '${post.id}')">`;
-
-  const badge = urls.length > 1
-    ? `<div class="media-count-badge" onclick="event.stopPropagation(); openLightbox('${firstUrl}', '${post.id}')"><i class="far fa-images"></i> +${urls.length - 1}</div>`
-    : '';
-
-  return `<div class="post-media relative">${mediaEl}${badge}</div>`;
+  if (urls.length > 0) {
+    const firstUrl = urls[0];
+    const isVideo = firstUrl.match(/\.(mp4|webm|mov)$/i);
+    return isVideo
+      ? `<div class="post-cover-wrap"><video src="${firstUrl}" class="post-cover" preload="metadata" onclick="openVideoLightbox('${firstUrl}', '${post.id}')"></video></div>`
+      : `<div class="post-cover-wrap"><img src="${firstUrl}" alt="" class="post-cover" onclick="openLightbox('${firstUrl}', '${post.id}')"></div>`;
+  }
+  // 没有配图时，根据兵种生成默认封面
+  const opColors = { '突击': '#e74c3c', '工程': '#2ecc71', '侦察': '#3498db', '支援': '#f1c40f', '全能': '#9b59b6' };
+  const color = opColors[post.operator_class] || '#444';
+  return `<div class="post-cover-wrap default-cover" style="background: linear-gradient(135deg, ${color}40, ${color}10);">
+    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center;">
+      <i class="fas fa-crosshairs" style="font-size: 32px; color: ${color}; opacity: 0.6;"></i>
+      <div style="font-size: 12px; color: ${color}; margin-top: 4px; font-weight: 700;">${post.operator_class || '全能'}·战术帖</div>
+    </div>
+  </div>`;
 })();
-
 
 
   const topBadge = isTop ? `<span class="badge badge-gold text-xs"><i class="fas fa-trophy mr-1"></i>今日榜首</span>` : '';
@@ -30854,6 +30887,30 @@ function exportAllFavoritesAsText() {
     font-size: 11px;
   }
 }
+
+
+/* ========== 帖子卡片封面图样式 ========== */
+.post-cover-wrap {
+  position: relative;
+  width: 100%;
+  height: 160px;
+  border-radius: 16px;
+  overflow: hidden;
+  background: var(--surface);
+  margin-bottom: 10px;
+}
+.post-cover {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.default-cover {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+
 
 
 
