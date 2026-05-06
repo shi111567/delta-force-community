@@ -245,67 +245,119 @@ tailwind.config = {
 
 // ==================== 发现页增强功能 ====================
 
+
+async function loadDiscoverTopics() {
+  const container = document.getElementById('discoverTopicCloud');
+  if (!container) return;
+
+  // 从最近 7 天的帖子里统计标签频率
+  const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString();
+  const { data: posts } = await sb.from('posts')
+    .select('tags')
+    .gte('created_at', weekAgo)
+    .limit(100);
+
+  const tagCount = {};
+  (posts || []).forEach(p => {
+    (p.tags || []).forEach(tag => {
+      if (tag && tag.trim()) {
+        tagCount[tag] = (tagCount[tag] || 0) + 1;
+      }
+    });
+  });
+
+  // 按出现次数排序，取前 10 个
+  const sorted = Object.entries(tagCount)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10)
+    .map(([tag]) => tag);
+
+  const DISCOVER_TOPICS = sorted.length ? sorted : ['三角洲行动', '战术研讨', '新手攻略', '武器评测', '护航员'];
+
+  container.innerHTML = DISCOVER_TOPICS.map(t => `
+    <span class="topic-tag" onclick="selectDiscoverTopic('${t}')">
+      <i class="fas fa-hashtag"></i>${t}
+    </span>
+  `).join('');
+}
+
+
+
+
 // 1. 轮播公告
 let discoverSwiper = null;
 async function loadDiscoverBanners() {
   const wrapper = document.getElementById('discoverBannerWrapper');
   const container = document.getElementById('discoverBannerContainer');
+  const emptyEl = document.getElementById('discoverBannerEmpty');
   if (!wrapper || !container) return;
 
-  // 模拟公告数据（可替换为真实数据库查询）
-  const banners = [
-    { image: 'https://picsum.photos/800/300?random=1', title: 'S9赛季火热开启', link: '#' },
-    { image: 'https://picsum.photos/800/300?random=2', title: '护航员招募计划', link: '#' },
-    { image: 'https://picsum.photos/800/300?random=3', title: '周末双倍经验', link: '#' }
-  ];
+  // 从发现模块专属表读取数据
+  const { data: banners } = await sb
+    .from('discover_banners')
+    .select('image_url, title, link')
+    .eq('active', true)
+    .order('sort_order', { ascending: true })
+    .order('created_at', { ascending: false });
+
+  if (!banners || banners.length === 0) {
+    if (emptyEl) emptyEl.classList.remove('hidden');
+    if (discoverSwiper) { discoverSwiper.destroy(); discoverSwiper = null; }
+    return;
+  }
+
+  if (emptyEl) emptyEl.classList.add('hidden');
 
   // 渲染轮播项
   wrapper.innerHTML = banners.map(b => `
     <div class="swiper-slide">
-      <img src="${b.image}" class="w-full h-full object-cover" alt="${b.title}">
-      <div class="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/70 to-transparent">
-        <h4 class="text-white font-bold">${b.title}</h4>
-      </div>
+      <img src="${b.image_url}" class="w-full h-full object-cover discover-banner-img" alt="${b.title || ''}">
+      ${b.link ? `<a href="${b.link}" target="_blank" class="absolute inset-0 z-10"></a>` : ''}
+      ${b.title ? `
+        <div class="absolute bottom-0 left-0 right-0 p-5 bg-gradient-to-t from-black/80 via-black/30 to-transparent">
+          <h4 class="text-white font-bold text-lg tracking-wide discover-banner-title">${b.title}</h4>
+        </div>
+      ` : ''}
     </div>
   `).join('');
 
-  // 定义一个函数用于初始化 Swiper
-  const initSwiper = () => {
-    if (discoverSwiper) discoverSwiper.destroy();
-    discoverSwiper = new Swiper('#discoverBannerSwiper', {
-      loop: true,
-      autoplay: { delay: 3000 },
-      pagination: { el: '.swiper-pagination', clickable: true },
-    });
-    console.log('✅ 发现页轮播初始化成功');
-  };
-
-  // 如果容器已经有宽度，直接初始化
-  if (container.offsetWidth > 0) {
-    initSwiper();
-    return;
+  // 销毁旧实例
+  if (discoverSwiper) {
+    discoverSwiper.destroy(true, true);
+    discoverSwiper = null;
   }
 
-  // 否则使用 ResizeObserver 等待宽度出现
-  console.log('⏳ 等待发现页轮播容器获得宽度...');
-  let timeoutId = setTimeout(() => {
-    console.warn('⚠️ 等待轮播容器超时，强制初始化');
-    observer.disconnect();
-    initSwiper();
-  }, 2000); // 最多等2秒
-
-  const observer = new ResizeObserver((entries) => {
-    for (const entry of entries) {
-      if (entry.contentRect.width > 0) {
-        clearTimeout(timeoutId);
-        observer.disconnect();
-        initSwiper();
-        break;
-      }
+  // 初始化：使用 fade 效果 + 自动轮播（区别于首页的 slide）
+  const initDiscoverSwiper = () => {
+        if (container.offsetWidth === 0 || container.offsetHeight === 0) {
+      setTimeout(initDiscoverSwiper, 100);
+      return;
     }
-  });
-  observer.observe(container);
+    discoverSwiper = new Swiper('#discoverBannerSwiper', {
+      loop: banners.length > 1,
+      effect: 'fade',                    // ← 淡入淡出，区别于首页的 slide
+      fadeEffect: { crossFade: true },
+      autoplay: { 
+        delay: 4000, 
+        disableOnInteraction: false,
+        pauseOnMouseEnter: true          // 鼠标悬停暂停，增强体验
+      },
+      pagination: { 
+        el: '.swiper-pagination', 
+        clickable: true,
+        dynamicBullets: true             // 动态分页器
+      },
+      speed: 1000,                       // 过渡动画1秒，更优雅
+      grabCursor: true,
+    });
+  };
+
+  initDiscoverSwiper();
 }
+
+
+
+ 
 // 2. 数据看板
 async function loadDiscoverStats() {
   // 在线人数（复用全局在线计数）
@@ -328,20 +380,19 @@ async function loadDiscoverStats() {
 async function loadRisingRank() {
   const container = document.getElementById('risingRank');
   if (!container) return;
-  
-  // 获取本周热门帖子，按热度排序
+
   const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString();
   const { data } = await sb.from('posts')
     .select('title, hot_score, upvotes')
     .gte('created_at', weekAgo)
     .order('hot_score', { ascending: false })
     .limit(5);
-  
+
   if (!data || data.length === 0) {
     container.innerHTML = '<div class="text-center py-4 text-xs" style="color:var(--muted);">暂无数据</div>';
     return;
   }
-  
+
   container.innerHTML = data.map((item, i) => `
     <div class="flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 transition-all">
       <span class="text-lg font-bold w-6 text-center" style="color: ${i === 0 ? '#FFD700' : i === 1 ? '#C0C0C0' : i === 2 ? '#CD7F32' : 'var(--muted)'};">${i+1}</span>
@@ -369,10 +420,7 @@ function loadDiscoverTopics() {
     </span>
   `).join('');
 }
-function refreshDiscoverTopics() {
-  loadDiscoverTopics();
-  showToast('话题已刷新', 'success');
-}
+
 function selectDiscoverTopic(topic) {
   APP.filters.topic = topic;
   if (document.getElementById('currentTopicLabel')) {
@@ -476,6 +524,11 @@ async function loadDiscoverVideos() {
 function refreshDiscoverVideos() {
   loadDiscoverVideos();
   showToast('视频列表已刷新', 'success');
+}
+
+function refreshDiscoverTopics() {
+  loadDiscoverTopics();
+  showToast('话题已刷新', 'success');
 }
 
 // 辅助：横向拖拽滚动（如果还没有定义）
@@ -5647,116 +5700,95 @@ window.addEventListener('scroll', () => {
 
   <!-- 发现 Tab（增强版） -->
 <div id="discoverTab" style="display:none">
-  <!-- 顶部轮播公告 -->
+  <!-- 情报中心标题栏（军事化） -->
+  <div class="intel-command-bar">
+    <div class="intel-status-dot"></div>
+    <h2 class="intel-command-title">📡 战地情报中心</h2>
+    <span class="intel-update-time" id="intelUpdateTime">更新于现在</span>
+  </div>
+
+  <!-- 轮播公告区（修复后） -->
   <div class="mb-6">
-    <div class="relative rounded-2xl overflow-hidden" id="discoverBannerContainer" style="height: 160px;">
-      <div class="absolute inset-0 bg-gradient-to-r from-orange-500/20 to-red-500/20"></div>
-<div class="relative w-full" style="height: 160px;">
-  <canvas id="topicRadarChartV2" width="600" height="160" style="width:100%; height:100%; display:block;"></canvas>
-</div>
+    <div class="relative rounded-2xl overflow-hidden" id="discoverBannerContainer" style="height: 180px; border: 1.5px solid var(--border); box-shadow: 0 8px 20px var(--shadow);">
       <div class="swiper-container h-full" id="discoverBannerSwiper">
         <div class="swiper-wrapper" id="discoverBannerWrapper"></div>
         <div class="swiper-pagination"></div>
       </div>
+      <!-- 无内容占位 -->
+      <div id="discoverBannerEmpty" class="absolute inset-0 flex items-center justify-center bg-surface hidden">
+        <p class="text-sm text-muted"><i class="fas fa-satellite-dish mr-2"></i>暂无战场公告</p>
+      </div>
     </div>
   </div>
 
-  <!-- 数据看板（三卡片） -->
-  <div class="grid grid-cols-3 gap-3 mb-6">
-    <div class="card-base p-4 text-center group hover:scale-[1.02] transition-all duration-300">
-      <i class="fas fa-users text-2xl mb-2" style="color: var(--accent);"></i>
-      <div class="text-2xl font-bold" id="discoverOnlineCount">0</div>
-      <div class="text-xs" style="color: var(--muted);">在线干员</div>
+  <!-- 核心数据看板（三指标） -->
+  <div class="intel-stats-row">
+    <div class="intel-stat-card">
+      <i class="fas fa-users intel-stat-icon"></i>
+      <span class="intel-stat-value" id="discoverOnlineCount">0</span>
+      <span class="intel-stat-label">在线干员</span>
     </div>
-    <div class="card-base p-4 text-center group hover:scale-[1.02] transition-all duration-300">
-      <i class="fas fa-pen-fancy text-2xl mb-2" style="color: #2ecc71;"></i>
-      <div class="text-2xl font-bold" id="discoverPostToday">0</div>
-      <div class="text-xs" style="color: var(--muted);">今日发帖</div>
+    <div class="intel-stat-card">
+      <i class="fas fa-pen-fancy intel-stat-icon"></i>
+      <span class="intel-stat-value" id="discoverPostToday">0</span>
+      <span class="intel-stat-label">今日发帖</span>
     </div>
-    <div class="card-base p-4 text-center group hover:scale-[1.02] transition-all duration-300">
-      <i class="fas fa-trophy text-2xl mb-2" style="color: #FFD700;"></i>
-      <div class="text-2xl font-bold" id="discoverHotScore">0</div>
-      <div class="text-xs" style="color: var(--muted);">热度指数</div>
-    </div>
-  </div>
-
-  <!-- 双榜争霸 + 热度飙升榜（三段自适应） -->
-  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-    <!-- 贡献榜 -->
-    <div class="card-base p-5">
-      <h3 class="font-bold text-lg mb-3 flex items-center gap-2">
-        <i class="fas fa-fire" style="color: #FF4757"></i> 本周贡献榜
-        <span class="text-xs ml-auto px-2 py-0.5 rounded-full" style="background: var(--surface);">🏆 TOP10</span>
-      </h3>
-      <div id="contributeRank" class="space-y-1"></div>
-    </div>
-    <!-- 红人榜 -->
-    <div class="card-base p-5">
-      <h3 class="font-bold text-lg mb-3 flex items-center gap-2">
-        <i class="fas fa-star" style="color: #FFD700"></i> 红人榜
-        <span class="text-xs ml-auto px-2 py-0.5 rounded-full" style="background: var(--surface);">👑 粉丝TOP10</span>
-      </h3>
-      <div id="starRank" class="space-y-1"></div>
-    </div>
-    <!-- 热度飙升榜（新增） -->
-    <div class="card-base p-5 md:col-span-2 lg:col-span-1">
-      <h3 class="font-bold text-lg mb-3 flex items-center gap-2">
-        <i class="fas fa-chart-line" style="color: #3498db"></i> 热度飙升榜
-        <span class="text-xs ml-auto px-2 py-0.5 rounded-full" style="background: var(--surface);">🔥 实时</span>
-      </h3>
-      <div id="risingRank" class="space-y-1"></div>
+    <div class="intel-stat-card">
+      <i class="fas fa-fire intel-stat-icon"></i>
+      <span class="intel-stat-value" id="discoverHotScore">0</span>
+      <span class="intel-stat-label">热度指数</span>
     </div>
   </div>
 
-
-
-  <!-- 热门话题云（增强版） -->
-  <div class="card-base p-5 mb-6">
-    <div class="flex items-center justify-between mb-4">
-      <h3 class="font-bold text-lg flex items-center gap-2">
-        <i class="fas fa-cloud" style="color: var(--accent);"></i> 热门话题
-      </h3>
-      <button class="text-xs btn-ghost px-3 py-1" onclick="refreshDiscoverTopics()">
-        <i class="fas fa-sync-alt mr-1"></i>换一批
-      </button>
-<i class="fas fa-chevron-up topic-section-icon" id="topicSectionIcon"></i>
+  <!-- 双榜争霸 + 飙升榜 -->
+  <div class="intel-rank-grid">
+    <div class="intel-rank-panel">
+      <h3 class="panel-header"><i class="fas fa-fire text-red-400"></i> 本周贡献榜</h3>
+      <div id="contributeRank" class="rank-list"></div>
     </div>
-    <div id="discoverTopicCloud" class="flex flex-wrap gap-3 justify-center"></div>
-  </div>
-
-  <!-- 精选护航员（横向滑动） -->
-  <div class="mb-6">
-    <div class="flex items-center justify-between mb-3">
-      <h3 class="font-bold text-lg flex items-center gap-2">
-        <i class="fas fa-shield-halved" style="color: var(--accent);"></i> 精选护航员
-      </h3>
-      <span class="text-xs" style="color: var(--muted);">
-        <span id="escortOnlineCount">0</span> 人在线
-      </span>
+    <div class="intel-rank-panel">
+      <h3 class="panel-header"><i class="fas fa-star text-amber-400"></i> 红人榜</h3>
+      <div id="starRank" class="rank-list"></div>
     </div>
-    <div class="flex gap-3 overflow-x-auto pb-2" id="discoverEscortBar" style="scrollbar-width: none;">
-      <!-- 动态渲染 -->
+    <div class="intel-rank-panel">
+      <h3 class="panel-header"><i class="fas fa-chart-line text-blue-400"></i> 飙升榜</h3>
+      <div id="risingRank" class="rank-list"></div>
     </div>
   </div>
 
-  <!-- 战术视频流（瀑布流） -->
-  <div>
-    <div class="flex items-center justify-between mb-3">
-      <h3 class="font-bold text-lg flex items-center gap-2">
-        <i class="fas fa-play-circle" style="color: var(--accent);"></i> 护航高光时刻
-      </h3>
-      <button class="text-xs btn-ghost px-3 py-1" onclick="refreshDiscoverVideos()">
-        <i class="fas fa-sync-alt mr-1"></i>刷新
-      </button>
-<i class="fas fa-chevron-up squad-section-icon" id="squadSectionIcon"></i>
+  <!-- 热门话题云 -->
+  <div class="intel-section">
+    <div class="section-header-bar">
+      <h3><i class="fas fa-cloud"></i> 实时话题</h3>
+      <button class="text-xs btn-ghost" onclick="refreshDiscoverTopics()"><i class="fas fa-sync-alt mr-1"></i>换一批</button>
     </div>
-    <div class="masonry" id="discoverVideoGrid"></div>
-    <div id="discoverVideoEmpty" class="text-center py-8 hidden" style="color: var(--muted);">
-      <i class="fas fa-video text-3xl mb-2 opacity-30"></i>
-      <p>暂无护航视频</p>
+    <div id="discoverTopicCloud" class="topic-cloud"></div>
+  </div>
+
+  <!-- 护航员横向滚动 -->
+  <div class="intel-section">
+    <div class="section-header-bar">
+      <h3><i class="fas fa-shield-halved"></i> 在线护航员</h3>
+      <span class="text-xs text-muted"><span id="escortOnlineCount">0</span> 人在线</span>
+    </div>
+    <div class="escort-h-scroll no-scrollbar" id="discoverEscortBar"></div>
+  </div>
+
+  <!-- 战术视频流（真实数据） -->
+  <div class="intel-section">
+    <div class="section-header-bar">
+      <h3><i class="fas fa-play-circle"></i> 护航高光时刻</h3>
+      <button class="text-xs btn-ghost" onclick="refreshDiscoverVideos()"><i class="fas fa-sync-alt mr-1"></i>刷新</button>
+    </div>
+    <div class="video-masonry" id="discoverVideoGrid"></div>
+    <div id="discoverVideoEmpty" class="hidden text-center py-8">
+      <i class="fas fa-video text-3xl opacity-30 mb-2 block"></i>
+      <p class="text-sm text-muted">暂无护航视频</p>
     </div>
   </div>
 </div>
+
+
 
        <!-- ==================== 关注 Tab（增强版 · 军事化重构） ==================== -->
 <div id="followingTab" style="display:none">
@@ -7772,16 +7804,32 @@ window.addEventListener('scroll', () => {
 
 
         <h3 class="font-bold mb-2">首页轮播管理</h3>
-        <div class="space-y-2">
-          <input type="text" placeholder="引导标题（如：热门推荐）" id="homeBannerGuideTitle" class="w-full" value="热门推荐">
-<input type="file" id="homeBannerFile" accept="image/*" class="w-full text-sm">
-          <input type="text" placeholder="标题（可选）" id="homeBannerTitle" class="w-full">
-          <input type="text" placeholder="描述（可选）" id="homeBannerDesc" class="w-full">
-          <input type="text" placeholder="跳转链接（可选）" id="homeBannerLink" class="w-full">
-          <button class="btn-warm text-sm w-full" onclick="uploadHomeBanner()">上传轮播图</button>
-        </div>
-        <div id="homeBannerList" class="mt-3 space-y-2 max-h-60 overflow-y-auto"></div>
-      </div>
+        <!-- 轮播管理（首页/发现页切换） -->
+<div class="mb-4 p-3 rounded-xl" style="background: var(--surface); border: 1px solid var(--border);">
+  <h3 class="font-bold mb-2">轮播管理</h3>
+  
+  <!-- 切换按钮 -->
+  <div class="flex gap-2 mb-3">
+    <button id="bannerTabHome" class="filter-chip active" onclick="switchBannerTab('home')">首页轮播</button>
+    <button id="bannerTabDiscover" class="filter-chip" onclick="switchBannerTab('discover')">发现页轮播</button>
+  </div>
+  
+  <!-- 表单（根据当前tab动态切换action） -->
+  <div class="space-y-2">
+    <input type="file" id="bannerFile" accept="image/*" class="w-full text-sm">
+    <input type="text" placeholder="标题（可选）" id="bannerTitle" class="w-full">
+    <input type="text" placeholder="描述（可选）" id="bannerDesc" class="w-full">
+    <input type="text" placeholder="跳转链接（可选）" id="bannerLink" class="w-full">
+    <button class="btn-warm text-sm w-full" onclick="uploadBannerForCurrentTab()">上传</button>
+  </div>
+  
+  <!-- 列表容器（根据当前tab显示不同列表） -->
+  <div id="bannerListContainer" class="mt-3 space-y-2 max-h-60 overflow-y-auto"></div>
+</div>
+
+
+
+
         <h3 class="font-bold mb-2">修改管理员密码</h3>
         <input type="password" placeholder="新密码" id="newAdminPwd" class="w-full mb-2">
         <button class="btn-warm text-sm" onclick="changeAdminPwd()">修改密码</button>
@@ -11003,6 +11051,7 @@ loadSiteLogoFromStorage();
     loadDiscoverTopics();
     loadDiscoverEscorts();
     loadDiscoverVideos();
+    setTimeout(() => loadDiscoverBanners(), 200);
   } else if (tab === 'following') {
     loadFollowingPosts();
   } else if (tab === 'profile') {
@@ -20744,7 +20793,13 @@ async function loadAdminData() {
     </div>`;
   });
   loadAdminLogoPreview();
-loadAdminHomeBannerList(); // 新增：加载首页轮播管理列表
+
+
+  // 默认激活首页轮播标签
+  document.getElementById('bannerTabHome').classList.add('active');
+  document.getElementById('bannerTabDiscover').classList.remove('active');
+
+loadBannerListForCurrentTab(); // 加载当前选中tab的列表
   document.getElementById('adminLogoPanel').style.display = 'block';
 
   // 显示 LOGO 管理面板（仅管理员可见）
@@ -20752,7 +20807,6 @@ loadAdminHomeBannerList(); // 新增：加载首页轮播管理列表
   if (logoPanel) {
     logoPanel.style.display = 'block';
   }
-
 }
 
 async function uploadBanner() {
@@ -20974,6 +21028,14 @@ async function loadSiteLogo() {
 // ==================== 网站LOGO（固定文件名） ====================
 
 
+async function loadAdminLogoPreview() {
+  const { data: { publicUrl } } = sb.storage.from('posts').getPublicUrl('site/logo.png');
+  const preview = document.getElementById('adminLogoPreview');
+  if (preview) {
+    preview.src = publicUrl + '?t=' + Date.now();
+    preview.onerror = () => { preview.style.display = 'none'; };
+  }
+}
 
 function loadSiteLogoFromStorage() {
   const { data: { publicUrl } } = sb.storage.from('posts').getPublicUrl('site/logo.png');
@@ -20984,9 +21046,6 @@ function loadSiteLogoFromStorage() {
     logoImg.onerror = () => { logoImg.style.display = 'none'; };
   }
 }
-
-
-
 
 window.uploadSiteLogo = async function() {
   if (!APP.isAdmin) { showToast('无权限', 'error'); return; }
@@ -27340,7 +27399,7 @@ async function loadHomeBanners() {
     const isHomeVisible = homeTab && homeTab.style.display !== 'none';
     
     if (!isHomeVisible) {
-      console.warn('首页Tab未显示，等待切换后再加载轮播');
+      
       // 监听首页显示事件（通过 MutationObserver 或直接在 switchTab 中触发）
       const observer = new MutationObserver((mutations) => {
         mutations.forEach(mut => {
@@ -27356,7 +27415,7 @@ async function loadHomeBanners() {
       // 超时强制加载
       setTimeout(() => {
         observer.disconnect();
-        console.error('首页轮播加载超时');
+        
       }, 5000);
       return;
     }
@@ -27479,6 +27538,110 @@ async function loadHomeBanners() {
   }, 150);
 }
 
+
+
+// ==================== 整合轮播管理 ====================
+let currentBannerTab = 'home'; // 'home' 或 'discover'
+
+window.switchBannerTab = function(tab) {
+  currentBannerTab = tab;
+  // 更新按钮激活样式
+  document.getElementById('bannerTabHome').classList.toggle('active', tab === 'home');
+  document.getElementById('bannerTabDiscover').classList.toggle('active', tab === 'discover');
+  // 刷新列表
+  loadBannerListForCurrentTab();
+};
+
+window.uploadBannerForCurrentTab = async function() {
+  if (!APP.isAdmin) { showToast('无权限', 'error'); return; }
+  const file = document.getElementById('bannerFile').files[0];
+  if (!file) { showToast('请选择图片', 'warning'); return; }
+  
+  const title = document.getElementById('bannerTitle').value.trim();
+  const desc = document.getElementById('bannerDesc').value.trim();
+  const link = document.getElementById('bannerLink').value.trim();
+  
+  const btn = event.target;
+  btn.disabled = true;
+  btn.textContent = '上传中...';
+  
+  try {
+    const ext = file.name.split('.').pop();
+    const folder = currentBannerTab === 'discover' ? 'discover_banners' : 'home_banners';
+    const path = `${folder}/${Date.now()}_${Math.random().toString(36).substr(2,6)}.${ext}`;
+    const { error: uploadError } = await sb.storage.from('posts').upload(path, file);
+    if (uploadError) throw uploadError;
+    const { data: { publicUrl } } = sb.storage.from('posts').getPublicUrl(path);
+    
+    const table = currentBannerTab === 'discover' ? 'discover_banners' : 'home_banners';
+    await sb.from(table).insert({
+      image_url: publicUrl,
+      title: title || null,
+      description: desc || null,
+      link: link || null
+    });
+    
+    showToast('轮播图已上传', 'success');
+    // 清空表单
+    document.getElementById('bannerFile').value = '';
+    document.getElementById('bannerTitle').value = '';
+    document.getElementById('bannerDesc').value = '';
+    document.getElementById('bannerLink').value = '';
+    // 刷新列表和相应模块
+    loadBannerListForCurrentTab();
+    if (currentBannerTab === 'home') loadHomeBanners();
+    else loadDiscoverBanners();
+  } catch (e) {
+    showToast('上传失败: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '上传';
+  }
+};
+
+async function loadBannerListForCurrentTab() {
+  const container = document.getElementById('bannerListContainer');
+  if (!container) return;
+  const table = currentBannerTab === 'discover' ? 'discover_banners' : 'home_banners';
+  const { data } = await sb.from(table).select('*').order('sort_order', { ascending: true }).order('created_at', { ascending: false });
+  container.innerHTML = (data || []).map(b => `
+    <div class="flex items-center gap-2 p-2 rounded-lg" style="background: var(--surface);">
+      <img src="${b.image_url}" class="w-10 h-10 object-cover rounded cursor-pointer" onclick="openLightbox('${b.image_url}')">
+      <div class="flex-1 min-w-0">
+        <div class="text-xs font-medium truncate">${b.title || '无标题'}</div>
+      </div>
+      <button class="text-xs px-2 py-1 rounded ${b.active ? 'text-green-400' : 'text-gray-400'}" 
+              onclick="toggleBannerActive('${b.id}', ${!b.active})">
+        ${b.active ? '显示' : '隐藏'}
+      </button>
+      <button class="text-xs text-red-400" onclick="deleteBannerItem('${b.id}')"><i class="fas fa-trash"></i></button>
+    </div>
+  `).join('') || '<p class="text-xs text-center py-2" style="color:var(--muted);">暂无轮播图</p>';
+}
+
+window.toggleBannerActive = async function(id, active) {
+  if (!APP.isAdmin) return;
+  const table = currentBannerTab === 'discover' ? 'discover_banners' : 'home_banners';
+  await sb.from(table).update({ active }).eq('id', id);
+  loadBannerListForCurrentTab();
+  if (currentBannerTab === 'home') loadHomeBanners();
+  else loadDiscoverBanners();
+};
+
+window.deleteBannerItem = async function(id) {
+  if (!APP.isAdmin) return;
+  if (!confirm('确定删除吗？')) return;
+  const table = currentBannerTab === 'discover' ? 'discover_banners' : 'home_banners';
+  await sb.from(table).delete().eq('id', id);
+  showToast('已删除');
+  loadBannerListForCurrentTab();
+  if (currentBannerTab === 'home') loadHomeBanners();
+  else loadDiscoverBanners();
+};
+
+
+
+
 // 管理员上传首页轮播图
 async function uploadHomeBanner() {
 const guideTitle = document.getElementById('homeBannerGuideTitle').value.trim() || '热门推荐';
@@ -27521,7 +27684,7 @@ const guideTitle = document.getElementById('homeBannerGuideTitle').value.trim() 
        setTimeout(() => {
       loadHomeBanners();
     }, 50);      // 刷新首页轮播
-    loadAdminHomeBannerList();    // 刷新管理列表
+    loadBannerListForCurrentTab(); // 加载当前选中tab的列表
   } catch (e) {
     showToast('上传失败: ' + e.message, 'error');
   } finally {
@@ -27569,7 +27732,7 @@ async function loadAdminHomeBannerList() {
 async function toggleHomeBannerActive(id, active) {
   if (!APP.isAdmin) return;
   await sb.from('home_banners').update({ active }).eq('id', id);
-  loadAdminHomeBannerList();
+  loadBannerListForCurrentTab(); // 加载当前选中tab的列表
   loadHomeBanners();
 }
 
@@ -27579,7 +27742,7 @@ async function deleteHomeBanner(id) {
   if (!confirm('确定删除这张轮播图吗？')) return;
   await sb.from('home_banners').delete().eq('id', id);
   showToast('已删除');
-  loadAdminHomeBannerList();
+  loadBannerListForCurrentTab(); // 加载当前选中tab的列表
   loadHomeBanners();
 }
 
@@ -31133,6 +31296,160 @@ function exportAllFavoritesAsText() {
   align-items: center;
   justify-content: center;
 }
+
+
+
+
+/* ========== 发现模块（情报中心）军事化样式 ========== */
+
+.intel-command-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 0 10px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 20px;
+}
+.intel-status-dot {
+  width: 10px; height: 10px;
+  background: #2ecc71;
+  border-radius: 50%;
+  box-shadow: 0 0 8px #2ecc71;
+  animation: pulseLive 2s infinite;
+}
+.intel-command-title {
+  font-family: 'ZCOOL QingKe HuangYou', sans-serif;
+  font-size: 1.5rem;
+  letter-spacing: 2px;
+  color: var(--accent);
+  margin: 0;
+}
+.intel-update-time { margin-left: auto; font-size: 0.75rem; color: var(--muted); }
+
+.intel-stats-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.intel-stat-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 18px 10px;
+  text-align: center;
+  transition: transform 0.2s;
+}
+.intel-stat-card:hover { transform: translateY(-3px); box-shadow: 0 8px 18px var(--shadow); }
+.intel-stat-icon { font-size: 1.6rem; color: var(--accent); margin-bottom: 6px; display: block; }
+.intel-stat-value { font-size: 1.8rem; font-weight: 800; color: var(--text); }
+.intel-stat-label { font-size: 0.75rem; color: var(--muted); }
+
+.intel-rank-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+@media (max-width: 768px) { .intel-rank-grid { grid-template-columns: 1fr; } }
+
+.intel-rank-panel {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 16px;
+}
+.panel-header {
+  font-weight: 700;
+  font-size: 0.95rem;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.intel-section {
+  margin-bottom: 28px;
+}
+.section-header-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.section-header-bar h3 {
+  font-weight: 700;
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.topic-cloud {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.topic-cloud .topic-tag {
+  padding: 6px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 30px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text);
+  transition: all 0.2s;
+}
+.topic-cloud .topic-tag:hover {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+}
+
+.video-masonry {
+  column-count: 3;
+  column-gap: 12px;
+}
+@media (max-width: 1024px) { .video-masonry { column-count: 2; } }
+@media (max-width: 640px) { .video-masonry { column-count: 1; } }
+
+
+
+
+
+
+/* ========== 发现模块轮播动画（fade + 图片缩放） ========== */
+.discover-banner-img {
+  transition: transform 8s ease;
+}
+.swiper-slide-active .discover-banner-img {
+  transform: scale(1.05);          /* 当前图片缓慢放大，营造沉浸感 */
+}
+.discover-banner-title {
+  transform: translateY(0);
+  opacity: 1;
+  transition: transform 0.6s ease 0.3s, opacity 0.6s ease 0.3s;
+}
+.swiper-slide:not(.swiper-slide-active) .discover-banner-title {
+  transform: translateY(10px);    /* 非激活页面的标题做淡出位移 */
+  opacity: 0;
+}
+
+/* 自定义分页器样式（区别于首页） */
+#discoverBannerContainer .swiper-pagination-bullet {
+  width: 10px;
+  height: 10px;
+  background: rgba(255,255,255,0.5);
+  opacity: 0.6;
+  transition: all 0.3s;
+}
+#discoverBannerContainer .swiper-pagination-bullet-active {
+  width: 28px;
+  border-radius: 8px;
+  background: #fff;
+  opacity: 1;
+}
+
 
 
 
