@@ -3766,6 +3766,10 @@ pointer-events: auto !important;
 .card-enter {
   animation: cardSlideIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
+
+
+
+
 /* ===== 沉浸式背景光效 ===== */
 body::before {
   content: '';
@@ -3780,9 +3784,35 @@ body::before {
   opacity: 0.3;
   transition: opacity 0.5s;
 }
+
+
 [data-theme="dark"] body::before {
   opacity: 0.5;
 }
+
+
+
+
+
+
+
+
+/* 新增：战术网格暗纹 */
+body::after {
+  content: '';
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-image: 
+    linear-gradient(rgba(199, 81, 46, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(199, 81, 46, 0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+  z-index: -1;
+}
+
+
+
+
 /* ===== 话题气泡栏 ===== */
 .topic-bubble {
   display: flex;
