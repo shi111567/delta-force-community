@@ -5083,7 +5083,11 @@ body {
 
     <!-- 左侧 Logo -->
     <div class="flex items-center gap-1 sm:gap-3">
-      <span class="font-display text-base sm:text-xl md:text-2xl truncate" style="background:linear-gradient(135deg,#FF6B35,#FF4757);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">三角洲墨辰电竞</span>
+      <!-- LOGO + 网站名称（点击返回首页） -->
+<div class="flex items-center gap-2 cursor-pointer" onclick="switchTab('home')" id="siteLogoContainer">
+  <img id="siteLogoImg" src="" alt="LOGO" class="w-7 h-7 sm:w-8 sm:h-8 rounded-full object-cover border border-white/20" style="display:none;">
+  <span class="font-display text-base sm:text-xl md:text-2xl truncate" style="background:linear-gradient(135deg,#FF6B35,#FF4757);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">三角洲墨辰电竞</span>
+</div>
     </div>
     
     <!-- 中间导航（桌面端） -->
@@ -7748,6 +7752,23 @@ window.addEventListener('scroll', () => {
       <div>
 
       <div>
+
+      <!-- LOGO管理 -->
+      <div class="mb-4 p-3 rounded-xl" style="background: var(--surface); border: 1px solid var(--border);">
+        <h3 class="font-bold mb-2">网站LOGO管理</h3>
+        <div class="flex items-center gap-3 mb-2">
+          <img id="adminLogoPreview" src="" alt="当前LOGO" class="w-10 h-10 rounded-full object-cover border" style="background: var(--bg);">
+          <span class="text-xs" style="color: var(--muted);">当前LOGO（建议40x40px正方形）</span>
+        </div>
+        <div class="flex gap-2">
+          <input type="file" id="adminLogoFile" accept="image/*" class="flex-1 text-sm">
+          <button class="btn-warm text-sm px-4" onclick="uploadSiteLogo()">上传</button>
+          <button class="btn-ghost text-sm px-3" onclick="deleteSiteLogo()" style="color: #e74c3c; border-color: #e74c3c;">删除</button>
+        </div>
+      </div>
+
+
+
         <h3 class="font-bold mb-2">首页轮播管理</h3>
         <div class="space-y-2">
           <input type="text" placeholder="引导标题（如：热门推荐）" id="homeBannerGuideTitle" class="w-full" value="热门推荐">
@@ -10445,6 +10466,11 @@ async function afterAuthSuccess() {
   updateUserPointsUI();
 if (APP.currentTab === 'escort') {
   loadEscortVideos(true);
+  loadSiteLogo();
+
+
+
+
 
   // 清理可能残留的匹配队列记录
   sb.from('duel_queue').delete().eq('user_id', APP.user.id).then(() => {});
@@ -20712,6 +20738,7 @@ async function loadAdminData() {
       </div>
     </div>`;
   });
+  loadAdminLogoPreview();
 loadAdminHomeBannerList(); // 新增：加载首页轮播管理列表
 }
 
@@ -20885,6 +20912,104 @@ window.deleteNotification = async function(notifId) {
     showToast('删除失败', 'error');
   }
 };
+
+
+
+
+// ==================== 网站LOGO管理 ====================
+
+// 加载LOGO
+async function loadSiteLogo() {
+  const { data } = await sb.from('site_settings').select('value').eq('key', 'site_logo').single();
+  const logoUrl = data?.value || '';
+  const logoImg = document.getElementById('siteLogoImg');
+  if (logoImg && logoUrl) {
+    logoImg.src = logoUrl;
+    logoImg.style.display = 'block';
+  } else if (logoImg) {
+    logoImg.style.display = 'none';
+  }
+}
+
+// 管理员上传LOGO
+window.uploadSiteLogo = async function() {
+  if (!APP.isAdmin) { showToast('无权限', 'error'); return; }
+  
+  const file = document.getElementById('adminLogoFile').files[0];
+  if (!file) { showToast('请选择图片', 'warning'); return; }
+  
+  // 验证文件类型
+  if (!file.type.startsWith('image/')) { showToast('只支持图片格式', 'warning'); return; }
+  
+  // 验证文件大小（最大2MB）
+  if (file.size > 2 * 1024 * 1024) { showToast('图片不能超过2MB', 'warning'); return; }
+  
+  const btn = event.target;
+  btn.disabled = true;
+  btn.textContent = '上传中...';
+  
+  try {
+    const ext = file.name.split('.').pop();
+    const path = `site/logo_${Date.now()}.${ext}`;
+    
+    const { error: uploadError } = await sb.storage.from('posts').upload(path, file, {
+      cacheControl: '3600',
+      contentType: file.type
+    });
+    
+    if (uploadError) throw uploadError;
+    
+    const { data: { publicUrl } } = sb.storage.from('posts').getPublicUrl(path);
+    
+    // 更新数据库
+    const { error: updateError } = await sb.from('site_settings').upsert({
+  key: 'site_logo',
+  value: publicUrl,
+  updated_at: new Date().toISOString()
+}, { onConflict: 'key' });  // ← 必须有这个参数
+    
+    if (updateError) throw updateError;
+    
+    // 更新预览和管理图标
+    document.getElementById('adminLogoPreview').src = publicUrl;
+    document.getElementById('siteLogoImg').src = publicUrl;
+    document.getElementById('siteLogoImg').style.display = 'block';
+    
+    showToast('LOGO已更新', 'success');
+    document.getElementById('adminLogoFile').value = '';
+  } catch (e) {
+    showToast('上传失败: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '上传';
+  }
+};
+
+// 删除LOGO
+window.deleteSiteLogo = async function() {
+  if (!APP.isAdmin) { showToast('无权限', 'error'); return; }
+  if (!confirm('确定删除LOGO吗？')) return;
+  
+  await sb.from('site_settings').update({ value: '', updated_at: new Date().toISOString() }).eq('key', 'site_logo');
+  
+  document.getElementById('adminLogoPreview').src = '';
+  document.getElementById('siteLogoImg').style.display = 'none';
+  showToast('LOGO已删除', 'info');
+};
+
+// 加载管理员后台的LOGO预览
+async function loadAdminLogoPreview() {
+  const { data } = await sb.from('site_settings').select('value').eq('key', 'site_logo').single();
+  const preview = document.getElementById('adminLogoPreview');
+  if (preview && data?.value) {
+    preview.src = data.value;
+  }
+}
+
+
+
+
+
 // ==================== 实时在线计数 ====================
 let onlineChannel = null;
 
