@@ -7670,8 +7670,7 @@ window.addEventListener('scroll', () => {
   </div>
 </div>
 
-<!-- 登录/注册弹窗 -->
-<!-- 登录/注册弹窗 -->
+
 <!-- 登录/注册弹窗 (增强版) -->
 <div class="modal-overlay" id="authModal">
   <div class="modal-content" style="max-width:420px">
@@ -7721,7 +7720,7 @@ window.addEventListener('scroll', () => {
 
 <!-- 管理员弹窗（完整版：需密码验证） -->
 <div class="modal-overlay" id="adminModal">
-  <div class="modal-content" style="max-width:600px">
+  <div class="modal-content" style="max-width: 95%; width: 1200px; max-height: 90vh; overflow-y: auto;">
     <div class="flex justify-between items-center mb-4">
       <h2 class="font-display text-xl">管理后台</h2>
       <button onclick="closeModal('adminModal')" class="w-8 h-8 rounded-full flex items-center justify-center" style="background:var(--surface)"><i class="fas fa-times"></i></button>
@@ -7732,133 +7731,124 @@ window.addEventListener('scroll', () => {
       <button class="btn-warm w-full py-2" onclick="adminLogin()">验证</button>
     </div>
 
-<!-- 数据仪表盘按钮 -->
-<div class="flex items-center gap-2 mb-4">
-  <button class="btn-ghost text-sm px-3 py-1" onclick="toggleAdminView('dashboard')" id="adminDashboardBtn">📊 数据仪表盘</button>
-  <button class="btn-ghost text-sm px-3 py-1" onclick="toggleAdminView('main')" id="adminMainBtn">⚙ 管理面板</button>
-</div>
-<!-- 仪表盘视图 -->
-<div id="adminDashboardView" style="display:none;" class="space-y-4">
-  <div class="grid grid-cols-3 gap-4">
-    <div class="card-base p-4 text-center">
-      <div class="text-2xl font-bold" style="color:var(--accent)" id="adminStatUsers">0</div>
-      <div class="text-xs" style="color:var(--muted)">总用户</div>
+    <!-- 数据仪表盘按钮 -->
+    <div class="flex items-center gap-2 mb-4">
+      <button class="btn-ghost text-sm px-3 py-1" onclick="toggleAdminView('dashboard')" id="adminDashboardBtn">📊 数据仪表盘</button>
+      <button class="btn-ghost text-sm px-3 py-1" onclick="toggleAdminView('main')" id="adminMainBtn">⚙ 管理面板</button>
     </div>
-    <div class="card-base p-4 text-center">
-      <div class="text-2xl font-bold" style="color:#2ecc71" id="adminStatPosts">0</div>
-      <div class="text-xs" style="color:var(--muted)">总帖子</div>
-    </div>
-    <div class="card-base p-4 text-center">
-      <div class="text-2xl font-bold" style="color:#f1c40f" id="adminStatEscorts">0</div>
-      <div class="text-xs" style="color:var(--muted)">护航员</div>
-    </div>
-  </div>
-  <div class="card-base p-4">
-    <h3 class="font-bold mb-2">近7天新增用户</h3>
-    <canvas id="adminChartDaily" height="200"></canvas>
-  </div>
-</div>
 
-
+    <!-- 仪表盘视图 -->
+    <div id="adminDashboardView" style="display:none;" class="space-y-4">
+      <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <div class="card-base p-4 text-center">
+          <div class="text-2xl font-bold" style="color:var(--accent)" id="adminStatUsers">0</div>
+          <div class="text-xs" style="color:var(--muted)">总用户</div>
+        </div>
+        <div class="card-base p-4 text-center">
+          <div class="text-2xl font-bold" style="color:#2ecc71" id="adminStatPosts">0</div>
+          <div class="text-xs" style="color:var(--muted)">总帖子</div>
+        </div>
+        <div class="card-base p-4 text-center">
+          <div class="text-2xl font-bold" style="color:#f1c40f" id="adminStatEscorts">0</div>
+          <div class="text-xs" style="color:var(--muted)">护航员</div>
+        </div>
+      </div>
+      <div class="card-base p-4">
+        <h3 class="font-bold mb-2">近7天新增用户</h3>
+        <canvas id="adminChartDaily" height="200"></canvas>
+      </div>
+    </div>
 
     <!-- 管理面板（验证后显示） -->
-    <div id="adminPanel" style="display:none" class="space-y-4">
-      <div>
-
-
-<div class="flex items-center gap-3 p-3 rounded-xl" style="background:var(--surface); border: 1px solid var(--border);">
-    <span class="text-sm font-bold">🎭 管理员模拟身份：</span>
-    <button id="toggleAdminModeBtn" class="btn-ghost text-sm px-4 py-1" 
-            onclick="window.adminEscortMode = !window.adminEscortMode; 
-                     this.textContent = (window.adminEscortMode ? '🔹 当前：护航员身份' : '🔹 当前：普通用户身份'); 
-                     showToast(window.adminEscortMode ? '已切换为护航员身份（盲盒奖池变化）' : '已切换为普通用户身份', 'info');">
-        🔹 当前：普通用户身份
-    </button>
-</div>
-        <h3 class="font-bold mb-2">宣传二维码管理</h3>
-        <input type="file" id="adminBannerFile" accept="image/*" class="w-full text-sm mb-2">
-        <input type="text" placeholder="链接地址（可选）" id="adminBannerLink" class="w-full mb-2">
-        <button class="btn-warm text-sm" onclick="uploadBanner()">上传宣传图</button>
-        <div id="adminBannerList" class="mt-2 space-y-2"></div>
-      </div>
-      <div>
-
-      <div>
-
-      <!-- LOGO管理 -->
-
-
-            <div class="mb-4 p-3 rounded-xl" style="background: var(--surface); border: 1px solid var(--border);" id="adminLogoPanel">
-        <h3 class="font-bold mb-2">网站LOGO管理</h3>
-        <div class="flex items-center gap-3 mb-2">
-          <img id="adminLogoPreview" src="" alt="当前LOGO" class="w-10 h-10 rounded-full object-cover border" style="background: var(--bg);">
-          <span class="text-xs" style="color: var(--muted);">当前LOGO（40x40px）</span>
+    <div id="adminPanel" style="display:none" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <!-- 左列：模拟身份 + 宣传二维码 + 网站LOGO -->
+      <div class="space-y-4">
+        <div class="flex items-center gap-3 p-3 rounded-xl" style="background:var(--surface); border: 1px solid var(--border);">
+          <span class="text-sm font-bold">🎭 管理员模拟身份：</span>
+          <button id="toggleAdminModeBtn" class="btn-ghost text-sm px-4 py-1" 
+                  onclick="window.adminEscortMode = !window.adminEscortMode; 
+                           this.textContent = (window.adminEscortMode ? '🔹 当前：护航员身份' : '🔹 当前：普通用户身份'); 
+                           showToast(window.adminEscortMode ? '已切换为护航员身份（盲盒奖池变化）' : '已切换为普通用户身份', 'info');">
+              🔹 当前：普通用户身份
+          </button>
         </div>
-        <div class="flex gap-2">
-          <input type="file" id="adminLogoFile" accept="image/*" class="flex-1 text-sm">
-          <button class="btn-warm text-sm px-4" onclick="uploadSiteLogo()">上传</button>
-          <button class="btn-ghost text-sm px-3" onclick="deleteSiteLogo()">删除</button>
+
+        <div>
+          <h3 class="font-bold mb-2">宣传二维码管理</h3>
+          <input type="file" id="adminBannerFile" accept="image/*" class="w-full text-sm mb-2">
+          <input type="text" placeholder="链接地址（可选）" id="adminBannerLink" class="w-full mb-2">
+          <button class="btn-warm text-sm" onclick="uploadBanner()">上传宣传图</button>
+          <div id="adminBannerList" class="mt-2 space-y-2"></div>
+        </div>
+
+        <div id="adminLogoPanel" class="p-3 rounded-xl" style="background: var(--surface); border: 1px solid var(--border);">
+          <h3 class="font-bold mb-2">网站LOGO管理</h3>
+          <div class="flex items-center gap-3 mb-2">
+            <img id="adminLogoPreview" src="" alt="当前LOGO" class="w-10 h-10 rounded-full object-cover border" style="background: var(--bg);">
+            <span class="text-xs" style="color: var(--muted);">当前LOGO（40x40px）</span>
+          </div>
+          <div class="flex gap-2">
+            <input type="file" id="adminLogoFile" accept="image/*" class="flex-1 text-sm">
+            <button class="btn-warm text-sm px-4" onclick="uploadSiteLogo()">上传</button>
+            <button class="btn-ghost text-sm px-3" onclick="deleteSiteLogo()">删除</button>
+          </div>
         </div>
       </div>
 
-
-
-        <h3 class="font-bold mb-2">首页轮播管理</h3>
-        <!-- 轮播管理（首页/发现页切换） -->
-<div class="mb-4 p-3 rounded-xl" style="background: var(--surface); border: 1px solid var(--border);">
-  <h3 class="font-bold mb-2">轮播管理</h3>
-  
-  <!-- 切换按钮 -->
-  <div class="flex gap-2 mb-3">
-    <button id="bannerTabHome" class="filter-chip active" onclick="switchBannerTab('home')">首页轮播</button>
-    <button id="bannerTabDiscover" class="filter-chip" onclick="switchBannerTab('discover')">发现页轮播</button>
-  </div>
-  
-  <!-- 表单（根据当前tab动态切换action） -->
-  <div class="space-y-2">
-    <input type="file" id="bannerFile" accept="image/*" class="w-full text-sm">
-    <input type="text" placeholder="标题（可选）" id="bannerTitle" class="w-full">
-    <input type="text" placeholder="描述（可选）" id="bannerDesc" class="w-full">
-    <input type="text" placeholder="跳转链接（可选）" id="bannerLink" class="w-full">
-    <button class="btn-warm text-sm w-full" onclick="uploadBannerForCurrentTab()">上传</button>
-  </div>
-  
-  <!-- 列表容器（根据当前tab显示不同列表） -->
-  <div id="bannerListContainer" class="mt-3 space-y-2 max-h-60 overflow-y-auto"></div>
-</div>
-
-
-
-
-        <h3 class="font-bold mb-2">修改管理员密码</h3>
-        <input type="password" placeholder="新密码" id="newAdminPwd" class="w-full mb-2">
-        <button class="btn-warm text-sm" onclick="changeAdminPwd()">修改密码</button>
-      </div>
-      <div>
-        <h3 class="font-bold mb-2">举报列表</h3>
-        <div id="adminReports" class="space-y-2 max-h-60 overflow-y-auto"></div>
-      </div>
-      <!-- 授予勋章区域（带搜索） -->
-      <div>
-        <h3 class="font-bold mb-2">授予勋章</h3>
-        <div class="flex gap-2 mb-2">
-          <input type="text" id="searchUserInput" placeholder="输入用户名搜索" class="flex-1 p-2 rounded">
-          <button class="btn-ghost text-sm whitespace-nowrap" onclick="searchUserForBadge()"><i class="fas fa-search mr-1"></i>搜索</button>
+      <!-- 右列：首页轮播管理 + 修改密码 + 举报列表 + 授予勋章 -->
+      <div class="space-y-4">
+        <div class="p-3 rounded-xl" style="background: var(--surface); border: 1px solid var(--border);">
+          <h3 class="font-bold mb-2">轮播管理</h3>
+          <div class="flex gap-2 mb-3">
+            <button id="bannerTabHome" class="filter-chip active" onclick="switchBannerTab('home')">首页轮播</button>
+            <button id="bannerTabDiscover" class="filter-chip" onclick="switchBannerTab('discover')">发现页轮播</button>
+          </div>
+          <div class="space-y-2">
+            <input type="file" id="bannerFile" accept="image/*" class="w-full text-sm">
+            <input type="text" placeholder="标题（可选）" id="bannerTitle" class="w-full">
+            <input type="text" placeholder="描述（可选）" id="bannerDesc" class="w-full">
+            <input type="text" placeholder="跳转链接（可选）" id="bannerLink" class="w-full">
+            <button class="btn-warm text-sm w-full" onclick="uploadBannerForCurrentTab()">上传</button>
+          </div>
+          <div id="bannerListContainer" class="mt-3 space-y-2 max-h-60 overflow-y-auto"></div>
         </div>
-        <select id="searchUserResult" class="w-full mb-2 p-2 rounded" size="1" onchange="onUserSelected()">
-          <option value="">-- 请先搜索用户 --</option>
-        </select>
-        <input type="text" id="grantUserId" placeholder="用户ID" class="w-full mb-2 p-2 rounded" readonly>
-        <select id="grantBadgeId" class="w-full mb-2 p-2 rounded">
-          <option value="badge_elite">⭐ 精英干员</option>
-          <option value="badge_hero">🏅 战场英雄</option>
-          <option value="badge_legend">👑 传奇战神</option>
-        </select>
-        <button class="btn-warm text-sm" onclick="grantBadge()">授予勋章</button>
+
+        <div>
+          <h3 class="font-bold mb-2">修改管理员密码</h3>
+          <input type="password" placeholder="新密码" id="newAdminPwd" class="w-full mb-2">
+          <button class="btn-warm text-sm" onclick="changeAdminPwd()">修改密码</button>
+        </div>
+
+        <div>
+          <h3 class="font-bold mb-2">举报列表</h3>
+          <div id="adminReports" class="space-y-2 max-h-60 overflow-y-auto"></div>
+        </div>
+
+        <div>
+          <h3 class="font-bold mb-2">授予勋章</h3>
+          <div class="flex gap-2 mb-2">
+            <input type="text" id="searchUserInput" placeholder="输入用户名搜索" class="flex-1 p-2 rounded" style="background:var(--bg); border:1px solid var(--border);">
+            <button class="btn-ghost text-sm whitespace-nowrap" onclick="searchUserForBadge()"><i class="fas fa-search mr-1"></i>搜索</button>
+          </div>
+          <select id="searchUserResult" class="w-full mb-2 p-2 rounded" style="background:var(--bg); border:1px solid var(--border);" size="1" onchange="onUserSelected()">
+            <option value="">-- 请先搜索用户 --</option>
+          </select>
+          <input type="text" id="grantUserId" placeholder="用户ID" class="w-full mb-2 p-2 rounded" readonly style="background:var(--bg); border:1px solid var(--border);">
+          <select id="grantBadgeId" class="w-full mb-2 p-2 rounded" style="background:var(--bg); border:1px solid var(--border);">
+            <option value="badge_elite">⭐ 精英干员</option>
+            <option value="badge_hero">🏅 战场英雄</option>
+            <option value="badge_legend">👑 传奇战神</option>
+          </select>
+          <button class="btn-warm text-sm" onclick="grantBadge()">授予勋章</button>
+        </div>
       </div>
     </div>
   </div>
 </div>
+
+
+
+
 <!-- 每日任务弹窗 -->
 <div class="modal-overlay" id="dailyTasksModal">
   <div class="modal-content" style="max-width:420px">
@@ -10185,11 +10175,16 @@ function openModal(id) {
 function closeModal(id) {
   const modal = document.getElementById(id);
   if (!modal) return;
-  if (modal.hasAttribute('data-temp')) {
-    modal.remove();
-  } else {
-    modal.style.display = 'none';
-    modal.classList.remove('active');
+  const content = modal.querySelector('.modal-content');
+  if (content) {
+    content.style.animation = 'modalSlideOut 0.2s ease forwards';
+    setTimeout(() => {
+      if (modal.hasAttribute('data-temp')) modal.remove();
+      else {
+        modal.style.display = 'none';
+        modal.classList.remove('active');
+      }
+    }, 200);
   }
 }
 
@@ -31476,6 +31471,74 @@ function exportAllFavoritesAsText() {
 
 
 
+/* ========== 全局交互增强 ========== */
+/* 所有可点击元素增加轻微缩放反馈 */
+button, .btn-warm, .btn-ghost, .tool-item, .card-base, .post-card, .filter-chip, .tactical-tool-btn,
+.escort-filter-btn, .map-select-btn, .diff-select-btn, .console-btn {
+  transition: transform 0.15s ease, box-shadow 0.2s ease, background 0.2s ease !important;
+}
+button:active, .btn-warm:active, .btn-ghost:active, .tool-item:active, .card-base:active, .filter-chip:active {
+  transform: scale(0.93) !important;
+}
+/* 工具图标点击弹跳 */
+.tool-icon:active i {
+  animation: iconPop 0.3s ease;
+}
+@keyframes iconPop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.3); }
+  100% { transform: scale(1); }
+}
+
+/* 弹窗出现：由小变大 + 淡入 */
+.modal-overlay.active .modal-content {
+  animation: modalSlideIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+}
+@keyframes modalSlideIn {
+  from { opacity: 0; transform: scale(0.7) translateY(20px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* 弹窗关闭：缩小 + 淡出 */
+.modal-overlay:not(.active) .modal-content {
+  animation: modalSlideOut 0.2s ease forwards;
+}
+@keyframes modalSlideOut {
+  from { opacity: 1; transform: scale(1); }
+  to { opacity: 0; transform: scale(0.8); }
+}
+
+/* 列表项淡入 */
+.masonry-item, .escort-video-card, .rank-item, .following-rank-item {
+  animation: fadeInUp 0.35s ease backwards;
+}
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(15px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* 输入框聚焦光晕 */
+input:focus, textarea:focus, select:focus {
+  box-shadow: 0 0 0 3px var(--glow) !important;
+  transition: box-shadow 0.2s ease !important;
+}
+
+/* Toast消息弹性 */
+.toast, .global-toast {
+  animation: toastBounce 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+}
+@keyframes toastBounce {
+  0% { transform: translateX(-50%) translateY(20px); opacity: 0; }
+  60% { transform: translateX(-50%) translateY(-5px); opacity: 1; }
+  100% { transform: translateX(-50%) translateY(0); opacity: 1; }
+}
+
+/* 下拉菜单滑入 */
+.filter-menu:not(.hidden) {
+  animation: slideDown 0.2s ease;
+}
+
+
 
 
 
@@ -31699,6 +31762,34 @@ function exportAllFavoritesAsText() {
 
   </div>
 </div>
+
+
+
+// 给所有动态添加的列表项增加入场动画延迟
+function addListEntryAnimation(containerSelector, itemSelector, baseDelay = 0.03) {
+  const container = document.querySelector(containerSelector);
+  if (!container) return;
+  const items = container.querySelectorAll(itemSelector);
+  items.forEach((el, i) => {
+    el.style.animation = `fadeInUp 0.4s ease ${i * baseDelay}s backwards`;
+  });
+}
+
+// 在渲染函数后调用（示例）
+// 如在 loadPosts 成功后：
+// addListEntryAnimation('#postsGrid', '.masonry-item');
+// 在 loadEscortVideos 后：
+// addListEntryAnimation('#escortVideoGrid', '.escort-video-card');
+// 依此类推...
+
+// 为所有工具按钮增加触摸震动（移动端）
+document.querySelectorAll('.tool-item, .btn-warm, .btn-ghost').forEach(el => {
+  el.addEventListener('click', () => {
+    if (navigator.vibrate) navigator.vibrate(10);
+  });
+});
+
+
 
 <script>
 
@@ -33882,22 +33973,18 @@ window.activateDynamicBg = async function(rewardId) {
 
 
 
-<!-- 弹窗终极可见性保障 -->
+<!-- 弹窗终极可见性保障（精简版，兼容动画） -->
 <style>
-  /* 所有弹窗均提升到最高层，并且有可见背景 */
+  /* 所有弹窗均提升到最高层，并且有可见背景（保留） */
   .modal-overlay {
     z-index: 100000 !important;
     background-color: rgba(0,0,0,0.75) !important;
   }
-  /* 确保弹窗内容可见 */
-  .modal-overlay .modal-content {
-    transform: scale(1) !important;
-    opacity: 1 !important;
-  }
+  /* 注意：不再强制 modal-content 的 transform 和 opacity，让动画正常运行 */
 </style>
 
 <script>
-  // 将所有 modal-overlay 移动到 body 末尾，避免被任何父级裁剪
+  // 将所有 modal-overlay 移动到 body 末尾，避免被父级裁剪（保留）
   document.querySelectorAll('.modal-overlay').forEach(function(modal) {
     document.body.appendChild(modal);
   });
