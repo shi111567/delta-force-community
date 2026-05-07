@@ -10162,27 +10162,36 @@ function hideWeaponTooltip() {
 
 // ==================== 弹窗控制 ====================
 function openModal(id) {
-  const modal = $(id);
-  if (!modal) {
-    console.error(`❌ 弹窗 ${id} 不存在，请检查 HTML`);
-    return;
-  }
+  // 强制清除所有之前动态创建的临时弹窗
+  document.querySelectorAll('.modal-overlay[data-temp="true"]').forEach(function(el) {
+    el.remove();
+  });
+
+  var modal = document.getElementById(id);
+  if (!modal) return;
+
+  modal.style.display = 'flex';
+  modal.style.opacity = '1';
+  modal.style.pointerEvents = 'auto';
+  modal.style.zIndex = '99999';
   modal.classList.add('active');
+  var content = modal.querySelector('.modal-content');
+  if (content) {
+    content.style.transform = 'scale(1)';
+    content.style.opacity = '1';
+  }
 }
 
 function closeModal(id) {
   const modal = document.getElementById(id);
   if (!modal) return;
-  modal.style.opacity = '0';
-  setTimeout(() => {
+  if (modal.hasAttribute('data-temp')) {
+    modal.remove();
+  } else {
+    modal.style.display = 'none';
     modal.classList.remove('active');
-    modal.style.opacity = '';
-  }, 200);
-  if (id === 'commentsModal') {
-    document.getElementById('commentsModal')?.classList.remove('immersive');
   }
 }
-
 
 
 // 生成随机昵称后缀
@@ -16748,20 +16757,18 @@ case 'budgetLoadout':
   openDailyTasksModal();
   break;
     case 'loadout':
-      openModal('loadoutModal');
-      break;
-   case 'weapon':
-  openModal('weaponModal');
-  setTimeout(() => {
-    if (typeof initWeaponModal === 'function') {
-      initWeaponModal();
-    }
-  }, 100);
+  fetchGunsmithCodes();
+  openModal('loadoutModal');
   break;
-    case 'stats':
-      if (!APP.user) { openAuthModal(); showToast('请先登录查看战绩'); return; }
-      showStatsModal();
-      break;
+case 'weapon':
+  openModal('weaponModal');
+  setTimeout(() => { if (typeof initWeaponModal === 'function') initWeaponModal(); }, 50);
+  break;
+   case 'stats':
+  if (!APP.user) { openAuthModal(); showToast('请先登录查看战绩'); return; }
+  showStatsModal();        // 只负责生成内容
+  openModal('statsModal'); // 然后打开弹窗
+  break;
     case 'damage':
       openDamageCalculatorModal();
       break;
@@ -17130,9 +17137,11 @@ function copyLoadoutCode(code, btn) {
 function closeModalWithAnimation(overlay) {
   const content = overlay.querySelector('.modal-content');
   if (content) {
-    content.style.animation = 'modalPopOut 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) forwards';
+    content.style.animation = 'modalPopOut 0.2s ease forwards';
     overlay.style.opacity = '0';
-    setTimeout(() => overlay.remove(), 250);
+    setTimeout(() => {
+      overlay.remove();  // 关键：从DOM中删除
+    }, 250);
   } else {
     overlay.remove();
   }
@@ -17145,14 +17154,16 @@ window.showLoadoutDetail = showLoadoutDetail;
   if (!loadoutData) return;
   const modal = document.createElement('div');
   modal.className = 'modal-overlay active';
+
+modal.setAttribute('data-temp', 'true');
   modal.style.zIndex = '10000';
-  modal.onclick = (e) => { if (e.target === modal) closeModalWithAnimation(modal); };
+  modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
   const opColor = getOpColor(loadoutData.class);
   modal.innerHTML = `
     <div class="modal-content active" style="max-width:550px; max-height:85vh; overflow-y:auto; border-radius:24px;">
       <div class="flex justify-between items-center mb-4">
         <h2 class="font-display text-xl"><i class="fas fa-gun" style="color:var(--accent);"></i> ${loadoutData.weapon || '配装详情'}</h2>
-        <button class="w-8 h-8 rounded-full flex items-center justify-center" style="background:var(--surface);" onclick="closeModalWithAnimation(this.closest('.modal-overlay'))"><i class="fas fa-times"></i></button>
+        <button class="w-8 h-8 rounded-full flex items-center justify-center" style="background:var(--surface);" onclick="this.closest('.modal-overlay').remove()"><i class="fas fa-times"></i></button>
       </div>
       <div class="space-y-4">
         <div class="p-4 rounded-xl" style="background:var(--surface); border:1px solid var(--border);">
@@ -17909,30 +17920,8 @@ function initWeaponModal() {
   hideAttachmentPanel();
 }
 
-// 覆盖原有的 openModal 对 weaponModal 的初始化
-const originalOpenModalWeapon = openModal;
-openModal = function(id) {
-  if (id === 'weaponModal') {
-    if (typeof originalOpenModalWeapon === 'function') {
-      originalOpenModalWeapon(id);
-    } else {
-      document.getElementById(id)?.classList.add('active');
-    }
-    // 强制初始化完整表格
-    setTimeout(() => {
-      if (typeof initWeaponModal === 'function') {
-        initWeaponModal();
-      }
-    }, 50);
-  } else {
-    if (typeof originalOpenModalWeapon === 'function') {
-      originalOpenModalWeapon(id);
-    } else {
-      document.getElementById(id)?.classList.add('active');
-    }
-  }
-};
-function filterWeaponTable() { renderWeaponTable(); }
+function filterWeaponTable() { renderWeaponTable();
+ }
 function sortWeaponTable(field) {
   if (weaponSortField === field) weaponSortAsc = !weaponSortAsc;
   else { weaponSortField = field; weaponSortAsc = false; }
@@ -18192,7 +18181,7 @@ function showStatsModal() {
     </style>
   `;
 
-  openModal('statsModal');
+  
   
   // 绑定按钮事件
   setTimeout(() => {
@@ -18277,28 +18266,56 @@ function showStatsModal() {
 // ==================== 修改 openModal 以自动初始化弹窗 ====================
 const originalOpenModal = openModal;
 openModal = function(id) {
-  // 确保原始函数存在且可调用
-  if (typeof originalOpenModal === 'function') {
-    // 在打开前初始化对应弹窗数据
-           if (id === 'loadoutModal') { 
-  fetchGunsmithCodes(); 
-  resetAllLoadoutFilters();
-  if (typeof bindLoadoutFilters === 'function') bindLoadoutFilters();
-  renderLoadoutHistory();  // 新增
-}
-    if (id === 'weaponModal' && typeof renderWeaponTable === 'function') {
+  const modal = $(id);
+  if (!modal) {
+    console.error('❌ 弹窗 ' + id + ' 不存在，请检查 HTML');
+    return;
+  }
+  
+  // 在打开前初始化对应弹窗数据 (保留原有功能)
+  if (id === 'loadoutModal') { 
+    fetchGunsmithCodes(); 
+    resetAllLoadoutFilters();
+    if (typeof bindLoadoutFilters === 'function') bindLoadoutFilters();
+  }
+  if (id === 'weaponModal') {
+    if (typeof initWeaponModal === 'function') {
+      initWeaponModal();
+    } else if (typeof renderWeaponTable === 'function') {
       renderWeaponTable();
     }
-    if (id === 'dailyTasksModal' && typeof loadDailyTasks === 'function') {
-      loadDailyTasks();
-    }
-    originalOpenModal(id);
-  } else {
-    console.error('originalOpenModal 不存在，使用默认打开逻辑');
-    const modal = $(id);
-    if (modal) modal.classList.add('active');
+  }
+ 
+  if (id === 'dailyTasksModal' && typeof loadDailyTasks === 'function') {
+    loadDailyTasks();
+  }
+  if (id === 'lootPriceModal' && typeof loadLootPrices === 'function') {
+    loadLootPrices();
+  }
+  if (id === 'seasonTaskModal' && typeof loadSeasonTasks === 'function') {
+    loadSeasonTasks();
+  }
+  if (id === 'ttkRankModal' && typeof loadTTKRank === 'function') {
+    loadTTKRank();
+  }
+
+  // 强制显示弹窗（直接设置内联样式与类，不再依赖可能失效的 originalOpenModal）
+  modal.style.display = 'flex';
+  modal.style.opacity = '1';
+  modal.style.pointerEvents = 'auto';
+  modal.style.zIndex = '99999';
+  modal.classList.add('active');
+  
+  // 保证内部内容也可以看到
+  var content = modal.querySelector('.modal-content');
+  if (content) {
+    content.style.transform = 'scale(1)';
+    content.style.opacity = '1';
   }
 };
+
+
+
 function bindLoadoutFilters() {
   // 兵种筛选
   document.querySelectorAll('#classFilterContainer .filter-chip').forEach(btn => {
@@ -30552,7 +30569,14 @@ function exportAllFavoritesAsText() {
 </div>
 
 
-
+.modal-overlay {
+  z-index: 100000 !important;
+  background-color: rgba(0, 0, 0, 0.75) !important;
+}
+.modal-overlay .modal-content {
+  position: relative;
+  z-index: 100001;
+}
 
 
 
@@ -31797,6 +31821,12 @@ window.shareSupplyResult = function(itemName, quality) {
       document.getElementById('supplyOpenBtn').textContent = '今日次数已用完';
     }
   }
+
+
+
+
+
+
 
   openModal('supplyBoxModal');
   // 清理可能残留的匹配队列记录
@@ -33849,6 +33879,30 @@ window.activateDynamicBg = async function(rewardId) {
 </script>
 
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+
+
+
+<!-- 弹窗终极可见性保障 -->
+<style>
+  /* 所有弹窗均提升到最高层，并且有可见背景 */
+  .modal-overlay {
+    z-index: 100000 !important;
+    background-color: rgba(0,0,0,0.75) !important;
+  }
+  /* 确保弹窗内容可见 */
+  .modal-overlay .modal-content {
+    transform: scale(1) !important;
+    opacity: 1 !important;
+  }
+</style>
+
+<script>
+  // 将所有 modal-overlay 移动到 body 末尾，避免被任何父级裁剪
+  document.querySelectorAll('.modal-overlay').forEach(function(modal) {
+    document.body.appendChild(modal);
+  });
+</script>
+
 
 </body>
 </html>
