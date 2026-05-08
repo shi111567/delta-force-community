@@ -6530,23 +6530,95 @@ window.addEventListener('scroll', () => {
   </div>
   <button onclick="$('escortGuideBanner').style.display='none'; localStorage.setItem('escortGuideClosed', 'true');" class="text-xs" style="color: var(--muted);"><i class="fas fa-times"></i></button>
 </div>
+
+
 <div id="escortTab" style="display:none">
 
+  <!-- ========== 护航指挥部状态栏 ========== -->
+  <div class="escort-command-bar">
+    <div class="escort-command-scanline"></div>
+    <div class="escort-command-particles" id="escortParticles"></div>
+    <div class="escort-command-content">
+      <div class="escort-command-left">
+        <div class="escort-command-icon">
+          <i class="fas fa-shield-halved"></i>
+        </div>
+        <div class="escort-command-text">
+          <h2 class="escort-command-title">护航指挥部</h2>
+          <p class="escort-command-subtitle">认证护航员 · 战场支援系统</p>
+        </div>
+      </div>
+      <div class="escort-command-right">
+        <div class="escort-stat-card">
+          <span class="escort-stat-value" id="escortTotalVideosNew">0</span>
+          <span class="escort-stat-label">任务视频</span>
+        </div>
+        <div class="escort-stat-divider"></div>
+        <div class="escort-stat-card">
+          <span class="escort-stat-value" id="escortPassedCountNew">0</span>
+          <span class="escort-stat-label">已通过</span>
+        </div>
+        <div class="escort-stat-divider"></div>
+        <div class="escort-stat-card">
+          <span class="escort-stat-value" id="escortPendingCountNew">0</span>
+          <span class="escort-stat-label">待审核</span>
+        </div>
+        <button class="escort-refresh-btn" onclick="loadEscortVideos(true)">
+          <i class="fas fa-sync-alt"></i> 刷新情报
+        </button>
+      </div>
+    </div>
+  </div>
 
-<!-- ========== 护航员专属激励面板（仅护航员可见） ========== -->
-<div id="escortInspirePanel" class="card-base p-4 mb-4" style="display:none; background: linear-gradient(135deg, rgba(255,215,0,0.1) 0%, rgba(255,107,53,0.05) 100%); border: 2px solid #FFD700;">
-  <div class="flex items-center justify-between mb-3">
-    <h3 class="font-display text-base flex items-center gap-2">
-      <i class="fas fa-shield-halved" style="color: #FFD700;"></i> 护航员激励中心
-    </h3>
-    <span class="text-xs px-3 py-1 rounded-full" style="background: #FFD700; color: #3D2B1F;">专属特权</span>
+ 
+  <!-- ========== 护航员专属激励面板（仅护航员可见） ========== -->
+  <div id="escortInspirePanelNew" class="escort-inspire-panel" style="display:none;">
+    <div id="escortPrivilegesNew" class="escort-privileges-grid"></div>
   </div>
-  
-  <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-center" id="escortPrivileges">
-    <!-- 动态生成内容 -->
+
+
+  <!-- ========== 上传行动命令 ========== -->
+  <div class="escort-upload-command" onclick="openModal('escortUploadModal')">
+    <div class="escort-upload-glow"></div>
+    <div class="escort-upload-content">
+      <i class="fas fa-cloud-upload-alt"></i>
+      <span>提交护航录像，接受最高指挥部审核</span>
+      <i class="fas fa-chevron-right"></i>
+    </div>
   </div>
+
+  <!-- ========== 快速分类筛选 ========== -->
+  <div class="escort-filter-bar">
+    <div class="escort-filter-scroll" id="escortFilterBarNew">
+      <button class="escort-filter-chip active" data-filter="all">全部</button>
+      <button class="escort-filter-chip" data-filter="pending">待审核</button>
+      <button class="escort-filter-chip" data-filter="passed">已通过</button>
+      <button class="escort-filter-chip" data-filter="突击">突击</button>
+      <button class="escort-filter-chip" data-filter="工程">工程</button>
+      <button class="escort-filter-chip" data-filter="侦察">侦察</button>
+      <button class="escort-filter-chip" data-filter="支援">支援</button>
+      <button class="escort-filter-chip" data-filter="全能">全能</button>
+    </div>
+  </div>
+
+  <!-- ========== 视频作战地图（瀑布流） ========== -->
+  <div class="escort-masonry" id="escortVideoGridNew"></div>
+
+  <!-- ========== 空状态：侦察雷达 ========== -->
+  <div class="escort-empty-radar" id="escortEmptyNew" style="display:none;">
+    <div class="radar-sweep"></div>
+    <div class="radar-core"></div>
+    <p>📡 雷达未发现护航视频</p>
+    <p class="radar-sub">上传你的第一个护航录像吧</p>
+  </div>
+
+  <!-- ========== 加载更多触发器 ========== -->
+  <div class="escort-load-more" id="escortLoadMoreNew" style="display:none;">
+    <div class="escort-loading-spinner"></div>
+    <span>正在搜索更多作战记录...</span>
+  </div>
+
 </div>
-
 
   <!-- 顶部统计卡片 -->
   <div class="grid grid-cols-3 gap-3 mb-4">
@@ -6564,30 +6636,7 @@ window.addEventListener('scroll', () => {
     </div>
   </div>
   
-  <!-- 分类快速筛选 -->
-  <div class="flex gap-2 mb-4 overflow-x-auto pb-2" id="escortFilterBar">
-
-  <button onclick="useBroadcast()" id="broadcastBtn" class="btn-warm text-xs px-3 py-1" style="display:none;"><i class="fas fa-bullhorn mr-1"></i>发送广播</button>
-
-
-    <button class="escort-filter-btn active" data-filter="all">全部</button>
-    <button class="escort-filter-btn" data-filter="pending">待审核</button>
-    <button class="escort-filter-btn" data-filter="passed">已通过</button>
-    <button class="escort-filter-btn" data-filter="突击">突击</button>
-    <button class="escort-filter-btn" data-filter="工程">工程</button>
-    <button class="escort-filter-btn" data-filter="侦察">侦察</button>
-    <button class="escort-filter-btn" data-filter="支援">支援</button>
-  </div>
-  
-  <!-- 上传入口 -->
-  <div class="card-base p-4 mb-4 flex items-center justify-between">
-    <div>
-      <h3 class="font-bold"><i class="fas fa-upload mr-2" style="color: var(--accent);"></i>提交考核视频</h3>
-      <p class="text-xs" style="color: var(--muted);">上传护航录像，等待考官审核</p>
-    </div>
-    <button class="btn-warm" onclick="openModal('escortUploadModal')"><i class="fas fa-plus mr-1"></i>上传视频</button>
-  </div>
-  
+    
   <!-- 视频卡片瀑布流 -->
   <div class="masonry" id="escortVideoGrid"></div>
   <div id="escortEmpty" class="text-center py-16 hidden" style="color: var(--muted);">
@@ -12021,6 +12070,8 @@ $('homeSearchInput')?.addEventListener('blur', function() {
 
 
 $('homeSearchInput')?.addEventListener('input', showSearchSuggestions);
+
+
 document.addEventListener('click', (e) => {
   if (!e.target.closest('#homeSearchInput') && !e.target.closest('#homeSearchSuggestions')) {
     $('homeSearchSuggestions')?.classList.add('hidden');
@@ -14811,18 +14862,16 @@ if (localStorage.getItem('escortGuideClosed') === 'true') {
 }
 // 护航筛选按钮事件
 document.addEventListener('click', (e) => {
-  if (e.target.classList.contains('escort-filter-btn')) {
+  if (e.target.classList.contains('escort-filter-chip')) {
     const filter = e.target.dataset.filter;
     escortState.filter = filter;
-    
-    // 更新按钮激活状态
-    qsa('.escort-filter-btn').forEach(btn => btn.classList.remove('active'));
+    qsa('.escort-filter-chip').forEach(btn => btn.classList.remove('active'));
     e.target.classList.add('active');
-    
-    // 重新加载
     loadEscortVideos(true);
   }
 });
+
+
   const editBtn = qs('#editProfileModal') ? null : null;
 });
 let lastScrollY = window.scrollY;
@@ -16122,21 +16171,21 @@ async function loadEscortVideos(reset = true) {
   
   if (data && data.length > 0) {
     data.forEach(video => {
-      const card = createEscortVideoCard(video);
-      $('escortVideoGrid').appendChild(card);
+      const card = createEscortVideoCardNew(video);
+      $('escortVideoGridNew').appendChild(card);
     });
-    $('escortEmpty').classList.add('hidden');
+    $('escortEmptyNew').classList.add('hidden');
   } else if (reset) {
-    $('escortEmpty').classList.remove('hidden');
+    $('escortEmptyNew').classList.remove('hidden');
   }
   
   // 更新统计
   if (reset && count !== null) {
     const { data: stats } = await sb.from('escort_videos').select('status');
     if (stats) {
-      $('escortTotalVideos').textContent = stats.length;
-      $('escortPassedCount').textContent = stats.filter(v => v.status === 'passed').length;
-      $('escortPendingCount').textContent = stats.filter(v => v.status === 'pending').length;
+      $('escortTotalVideosNew').textContent = stats.length;
+$('escortPassedCountNew').textContent = stats.filter(v => v.status === 'passed').length;
+$('escortPendingCountNew').textContent = stats.filter(v => v.status === 'pending').length;
     }
   }
   
@@ -16148,6 +16197,69 @@ async function loadEscortVideos(reset = true) {
   
   escortState.loading = false;
 }
+
+
+
+
+// ========== 护航模块V3 渲染引擎 ==========
+function createEscortVideoCardNew(video) {
+  const div = document.createElement('div');
+  div.className = 'escort-video-card-new masonry-item';
+  div.onclick = () => viewEscortVideo(video.id);
+
+  // 审核状态标签样式
+  const statusMap = {
+    pending: { text: '待审核', class: 'escort-badge-pending' },
+    reviewing: { text: '审核中', class: 'escort-badge-reviewing' },
+    passed: { text: '已通过', class: 'escort-badge-passed' },
+    rejected: { text: '未通过', class: 'escort-badge-pending' }
+  };
+  const status = statusMap[video.status] || statusMap.pending;
+  const duration = video.duration ? `${Math.floor(video.duration / 60)}:${String(video.duration % 60).padStart(2, '0')}` : '';
+
+  div.innerHTML = `
+    <div class="escort-video-thumb-new" onclick="openVideoLightbox('${video.video_url}'); event.stopPropagation();">
+      ${video.thumbnail_url
+        ? `<img src="${video.thumbnail_url}" alt="视频封面">`
+        : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#9a9;"><i class="fas fa-video fa-3x"></i></div>`
+      }
+      <div class="escort-play-overlay"><i class="fas fa-play-circle"></i></div>
+      <span class="escort-badge-new ${status.class}">${status.text}</span>
+      ${duration ? `<span class="escort-duration-new">${duration}</span>` : ''}
+    </div>
+    <div class="escort-card-info">
+      <div class="escort-card-title">${video.title}</div>
+      <div class="escort-card-meta">
+        <img src="${video.profiles?.avatar_url || dicebearUrl(video.profiles?.username || 'u')}" alt="">
+        <span>${video.profiles?.username || '干员'}</span>
+      </div>
+      <div class="escort-card-stats">
+        <span><i class="far fa-eye"></i> ${video.views || 0}</span>
+        <span><i class="far fa-heart"></i> ${video.likes || 0}</span>
+      </div>
+    </div>
+  `;
+  return div;
+}
+
+
+function spawnEscortParticles() {
+  const container = document.getElementById('escortParticles');
+  if (!container) return;
+  container.innerHTML = '';
+  for (let i = 0; i < 15; i++) {
+    const particle = document.createElement('div');
+    particle.className = 'escort-particle';
+    particle.style.left = Math.random() * 100 + '%';
+    particle.style.top = Math.random() * 100 + '%';
+    particle.style.animationDelay = Math.random() * 3 + 's';
+    particle.style.animationDuration = (2 + Math.random() * 4) + 's';
+    container.appendChild(particle);
+  }
+}
+
+
+
 
 function createEscortVideoCard(video) {
   const div = document.createElement('div');
@@ -29810,13 +29922,21 @@ function renderProfilePrivilegeCard() {
 
 
 
+
+
+
+
+// ========== 渲染护航员专属特权面板 ==========
 async function renderEscortInspirePanel() {
-  const panel = document.getElementById('escortInspirePanel');
-  const container = document.getElementById('escortPrivileges');
+  const panel = document.getElementById('escortInspirePanelNew');
+  const container = document.getElementById('escortPrivilegesNew');
   if (!panel || !container) return;
 
   const canSee = APP.profile?.is_escort || APP.isAdmin;
-  if (!canSee) { panel.style.display = 'none'; return; }
+  if (!canSee) {
+    panel.style.display = 'none';
+    return;
+  }
   panel.style.display = 'block';
 
   const now = new Date();
@@ -29824,162 +29944,63 @@ async function renderEscortInspirePanel() {
   const ptsData = await sb.from('user_points').select('points').eq('user_id', APP.user.id).maybeSingle();
   const points = ptsData?.data?.points || 0;
   const luckyVal = profile.lucky_value || 0;
-  const rewards = await getUserPendingRewards();
-const pendingCount = rewards.filter(r => !r.used).length;
-
-  // 广播卡片
-  let broadcastHtml = '';
-  if (profile.broadcast_until && new Date(profile.broadcast_until) > now) {
-    const daysLeft = Math.ceil((new Date(profile.broadcast_until) - now) / (1000 * 60 * 60 * 24));
-    broadcastHtml = `<div class="p-2 rounded-xl" style="background: rgba(255,215,0,0.15);">
-      <i class="fas fa-bullhorn text-xl" style="color: #FFD700;"></i>
-      <p class="text-xs font-bold mt-1">广播权限</p>
-      <p class="text-xs" style="color: var(--muted);">剩余 ${daysLeft} 天</p>
-      <button class="btn-warm text-xs w-full mt-1 py-1" onclick="useBroadcast()">📢 发送广播</button>
-    </div>`;
-  } else {
-    broadcastHtml = `<div class="p-2 rounded-xl" style="background: rgba(100,100,100,0.1);">
-      <i class="fas fa-bullhorn text-xl" style="color: var(--muted);"></i>
-      <p class="text-xs font-bold mt-1">广播权限</p>
-      <p class="text-xs" style="color: var(--muted);">暂无</p>
-    </div>`;
-  }
-
-  // 推荐位卡片
-  let featuredHtml = '';
-  if (profile.is_featured_escort && profile.featured_expires_at && new Date(profile.featured_expires_at) > now) {
-    const hoursLeft = Math.ceil((new Date(profile.featured_expires_at) - now) / (1000 * 60 * 60));
-    featuredHtml = `<div class="p-2 rounded-xl" style="background: rgba(255,107,53,0.15);">
-      <i class="fas fa-fire text-xl" style="color: #FF6B35;"></i>
-      <p class="text-xs font-bold mt-1">首页推荐中</p>
-      <p class="text-xs" style="color: var(--muted);">${hoursLeft > 24 ? Math.ceil(hoursLeft/24) + '天' : hoursLeft + '小时'}后结束</p>
-    </div>`;
-  } else {
-    featuredHtml = `<div class="p-2 rounded-xl" style="background: rgba(100,100,100,0.1);">
-      <i class="fas fa-fire text-xl" style="color: var(--muted);"></i>
-      <p class="text-xs font-bold mt-1">推荐位</p>
-      <p class="text-xs" style="color: var(--muted);">暂未推荐</p>
-    </div>`;
-  }
-
-  // 待使用券
-  const pendingHtml = pendingCount > 0 ?
-    `<div class="p-2 rounded-xl cursor-pointer" style="background: rgba(46,204,113,0.1);" onclick="switchTab('profile')">
-      <i class="fas fa-gift text-xl" style="color: #2ecc71;"></i>
-      <p class="text-xs font-bold mt-1">待使用权益</p>
-      <p class="text-xs" style="color: var(--muted);">${pendingCount} 张</p>
-    </div>` :
-    `<div class="p-2 rounded-xl" style="background: rgba(100,100,100,0.1);">
-      <i class="fas fa-gift text-xl" style="color: var(--muted);"></i>
-      <p class="text-xs font-bold mt-1">待使用</p>
-      <p class="text-xs" style="color: var(--muted);">无</p>
-    </div>`;
-
-  // 积分/幸运值
-  const pointsHtml = `<div class="p-2 rounded-xl" style="background: rgba(46,204,113,0.1);">
-    <i class="fas fa-coins text-xl" style="color: #2ecc71;"></i>
-    <p class="text-xs font-bold mt-1">积分 / 幸运值</p>
-    <p class="text-xs" style="color: var(--muted);">${points}分 / ${luckyVal}</p>
-    <button class="btn-ghost text-xs w-full mt-1 py-1" onclick="openMutualAidModal()">🎲 去抽盲盒</button>
-  </div>`;
-
-  container.innerHTML = featuredHtml + broadcastHtml + pendingHtml + pointsHtml;
-}
-
-
-
-
-// ========== 渲染护航员专属特权面板 ==========
-async function renderEscortInspirePanel() {
-  const panel = document.getElementById('escortInspirePanel');
-  const container = document.getElementById('escortPrivileges');
-  if (!panel || !container) return;
-
-  // 默认先显示，后面若不符合条件再隐藏
-  panel.style.display = 'block';
-
-  // 护航员或管理员可见
-  const canSee = APP.profile?.is_escort || APP.isAdmin;
-  if (!canSee) {
-    panel.style.display = 'none';
-    return;
-  }
-
-  const now = new Date();
-  const profile = APP.profile;
-  const points = (await sb.from('user_points').select('points').eq('user_id', APP.user.id).maybeSingle()).data?.points || 0;
-  const luckyVal = profile.lucky_value || 0;
   const pendingCount = await getPendingRewardCount();
 
-  // ---------- 广播权限卡片 ----------
-  let broadcastHtml = '';
-  if (profile.broadcast_until && new Date(profile.broadcast_until) > now) {
-    const daysLeft = Math.ceil((new Date(profile.broadcast_until) - now) / (1000 * 60 * 60 * 24));
-    broadcastHtml = `
-      <div class="p-2 rounded-xl" style="background: rgba(255,215,0,0.15);">
-        <i class="fas fa-bullhorn text-xl" style="color: #FFD700;"></i>
-        <p class="text-xs font-bold mt-1">广播权限</p>
-        <p class="text-xs" style="color: var(--muted);">剩余 ${daysLeft} 天</p>
-        <button class="btn-warm text-xs w-full mt-1 py-1" onclick="useBroadcast()">📢 发送广播</button>
-      </div>`;
-  } else {
-    broadcastHtml = `
-      <div class="p-2 rounded-xl" style="background: rgba(100,100,100,0.1);">
-        <i class="fas fa-bullhorn text-xl" style="color: var(--muted);"></i>
-        <p class="text-xs font-bold mt-1">广播权限</p>
-        <p class="text-xs" style="color: var(--muted);">暂无</p>
-      </div>`;
+    // 清除旧内容
+  container.innerHTML = '';
+
+  function createCard(icon, title, desc, actionHTML = '') {
+    return `
+      <div class="escort-privilege-card">
+        <div class="escort-privilege-icon"><i class="fas ${icon}"></i></div>
+        <div class="escort-privilege-info">
+          <div class="escort-privilege-title">${title}</div>
+          ${desc ? `<div class="escort-privilege-desc">${desc}</div>` : ''}
+          ${actionHTML ? `<div class="escort-privilege-action">${actionHTML}</div>` : ''}
+        </div>
+      </div>
+    `;
   }
 
-  // ---------- 推荐位卡片 ----------
-  let featuredHtml = '';
+  let cardsHTML = '';
+
+  // 1. 推荐位
   if (profile.is_featured_escort && profile.featured_expires_at && new Date(profile.featured_expires_at) > now) {
-    const hoursLeft = Math.ceil((new Date(profile.featured_expires_at) - now) / (1000 * 60 * 60));
-    featuredHtml = `
-      <div class="p-2 rounded-xl" style="background: rgba(255,107,53,0.15);">
-        <i class="fas fa-fire text-xl" style="color: #FF6B35;"></i>
-        <p class="text-xs font-bold mt-1">首页推荐中</p>
-        <p class="text-xs" style="color: var(--muted);">${hoursLeft > 24 ? Math.ceil(hoursLeft/24) + '天' : hoursLeft + '小时'}后结束</p>
-      </div>`;
+    const hoursLeft = Math.ceil((new Date(profile.featured_expires_at) - now) / 3600000);
+    cardsHTML += createCard('fa-fire', '首页推荐中', `${hoursLeft > 24 ? Math.ceil(hoursLeft/24) + '天' : hoursLeft + '小时'}后结束`);
   } else {
-    featuredHtml = `
-      <div class="p-2 rounded-xl" style="background: rgba(100,100,100,0.1);">
-        <i class="fas fa-fire text-xl" style="color: var(--muted);"></i>
-        <p class="text-xs font-bold mt-1">推荐位</p>
-        <p class="text-xs" style="color: var(--muted);">暂未推荐</p>
-      </div>`;
+    cardsHTML += createCard('fa-fire', '首页推荐位', '暂未推荐');
   }
 
-  // ---------- 待使用权益卡片 ----------
-  let pendingHtml = '';
+  // 2. 广播权限
+  if (profile.broadcast_until && new Date(profile.broadcast_until) > now) {
+    const daysLeft = Math.ceil((new Date(profile.broadcast_until) - now) / 86400000);
+    cardsHTML += createCard('fa-bullhorn', '广播权限', `剩余 ${daysLeft} 天`,
+      `<button onclick="useBroadcast()">📢 发送广播</button>`
+    );
+  } else {
+    cardsHTML += createCard('fa-bullhorn', '广播权限', '暂无');
+  }
+
+  // 3. 待使用权益
   if (pendingCount > 0) {
-    pendingHtml = `
-      <div class="p-2 rounded-xl cursor-pointer" style="background: rgba(46,204,113,0.1);" onclick="switchTab('profile')">
-        <i class="fas fa-gift text-xl" style="color: #2ecc71;"></i>
-        <p class="text-xs font-bold mt-1">待使用权益</p>
-        <p class="text-xs" style="color: var(--muted);">${pendingCount} 张</p>
-      </div>`;
+    cardsHTML += createCard('fa-gift', '待使用权益', `${pendingCount} 张`,
+      `<button onclick="switchTab('profile')">查看详情</button>`
+    );
   } else {
-    pendingHtml = `
-      <div class="p-2 rounded-xl" style="background: rgba(100,100,100,0.1);">
-        <i class="fas fa-gift text-xl" style="color: var(--muted);"></i>
-        <p class="text-xs font-bold mt-1">待使用</p>
-        <p class="text-xs" style="color: var(--muted);">无</p>
-      </div>`;
+    cardsHTML += createCard('fa-gift', '待使用权益', '无');
   }
 
-  // ---------- 积分 / 幸运值卡片 ----------
-  const pointsHtml = `
-    <div class="p-2 rounded-xl" style="background: rgba(46,204,113,0.1);">
-      <i class="fas fa-coins text-xl" style="color: #2ecc71;"></i>
-      <p class="text-xs font-bold mt-1">积分 / 幸运值</p>
-      <p class="text-xs" style="color: var(--muted);">${points}分 / ${luckyVal}</p>
-      <button class="btn-ghost text-xs w-full mt-1 py-1" onclick="openMutualAidModal()">🎲 去抽盲盒</button>
-    </div>
-  `;
+  // 4. 积分 / 幸运值
+  cardsHTML += createCard('fa-coins', '积分 / 幸运值', `${points}分 / ${luckyVal}`,
+    `<button onclick="openMutualAidModal()">🎲 去抽盲盒</button>`
+  );
 
-  container.innerHTML = featuredHtml + broadcastHtml + pendingHtml + pointsHtml;
+  container.innerHTML = cardsHTML;
 }
+
+
+
 
 function useBroadcast() {
   if ((!APP.profile?.broadcast_until || new Date(APP.profile.broadcast_until) <= new Date()) && !APP.isAdmin) {
@@ -31865,6 +31886,276 @@ input:focus, textarea:focus, select:focus {
   .status-content-v2 { gap: 10px; }
   .feed-card-v2 { padding: 14px; }
 }
+
+
+
+
+/* ========== 护航模块V3 · 军事化终极样式 ========== */
+.escort-command-bar {
+  position: relative;
+  background: linear-gradient(160deg, rgba(10,15,8,0.96) 0%, rgba(20,25,15,0.94) 100%);
+  border: 1px solid rgba(100,180,100,0.25);
+  border-radius: 28px;
+  padding: 32px 30px;
+  margin-bottom: 28px;
+  overflow: hidden;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.03);
+  backdrop-filter: blur(20px);
+}
+.escort-command-scanline {
+  position: absolute; top: 0; left: -100%; width: 200%; height: 1.5px;
+  background: linear-gradient(90deg, transparent, rgba(0,255,100,0.7), transparent);
+  animation: escortScan 4s linear infinite;
+}
+@keyframes escortScan {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(100%); }
+}
+.escort-command-particles { position: absolute; inset: 0; pointer-events: none; }
+.escort-particle {
+  position: absolute; width: 2px; height: 2px;
+  background: #8f8; border-radius: 50%;
+  animation: escortParticleFloat 3s ease-in-out infinite;
+}
+@keyframes escortParticleFloat {
+  0%, 100% { opacity: 0.2; transform: translateY(0); }
+  50% { opacity: 0.9; transform: translateY(-25px); }
+}
+.escort-command-content { position: relative; z-index: 2; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px; }
+.escort-command-left { display: flex; align-items: center; gap: 18px; }
+.escort-command-icon {
+  width: 56px; height: 56px; border-radius: 50%;
+  background: linear-gradient(135deg, rgba(0,200,100,0.25), rgba(0,150,50,0.15));
+  border: 2px solid rgba(0,200,100,0.6);
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 0 25px rgba(0,200,100,0.3);
+  animation: shieldPulse 3s ease-in-out infinite;
+}
+.escort-command-icon i { font-size: 26px; color: #0f8; filter: drop-shadow(0 0 8px #0f8); }
+@keyframes shieldPulse {
+  0%, 100% { box-shadow: 0 0 20px rgba(0,200,100,0.3); }
+  50% { box-shadow: 0 0 35px rgba(0,255,100,0.6); }
+}
+.escort-command-title {
+  font-family: 'ZCOOL QingKe HuangYou', sans-serif; font-size: 1.7rem; letter-spacing: 3px;
+  color: #cfc; margin: 0; text-shadow: 0 0 10px rgba(100,255,100,0.3);
+}
+.escort-command-subtitle { font-size: 0.8rem; color: #9a9; margin: 2px 0 0; letter-spacing: 1px; }
+.escort-command-right { display: flex; align-items: center; gap: 20px; }
+.escort-stat-card { text-align: center; }
+.escort-stat-value { font-size: 2rem; font-weight: 900; color: #0f8; line-height: 1; }
+.escort-stat-label { font-size: 0.7rem; color: #9a9; text-transform: uppercase; letter-spacing: 1px; }
+.escort-stat-divider { width: 1px; height: 36px; background: linear-gradient(180deg, transparent, rgba(0,200,100,0.3), transparent); }
+.escort-refresh-btn {
+  padding: 10px 22px; border-radius: 30px;
+  background: rgba(0,200,100,0.1); border: 1.5px solid rgba(0,200,100,0.4);
+  color: #cfc; font-weight: 600; font-size: 0.85rem; cursor: pointer;
+  transition: all 0.3s;
+}
+.escort-refresh-btn:hover { background: #0f8; color: #000; box-shadow: 0 8px 25px rgba(0,255,100,0.4); transform: translateY(-2px); }
+
+/* 上传命令条 */
+.escort-upload-command {
+  position: relative; overflow: hidden;
+  background: linear-gradient(135deg, rgba(0,180,80,0.15), rgba(0,120,40,0.1));
+  border: 2px dashed rgba(0,255,100,0.4);
+  border-radius: 24px; padding: 20px 24px; margin-bottom: 24px;
+  cursor: pointer; transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.escort-upload-glow { position: absolute; inset: 0; background: radial-gradient(ellipse at center, rgba(0,255,100,0.1) 0%, transparent 70%); opacity: 0; transition: opacity 0.4s; }
+.escort-upload-command:hover .escort-upload-glow { opacity: 1; }
+.escort-upload-command:hover { transform: translateY(-3px); border-style: solid; box-shadow: 0 15px 35px rgba(0,255,100,0.15); }
+.escort-upload-content { position: relative; z-index: 2; display: flex; align-items: center; gap: 14px; color: #cfc; font-weight: 500; }
+.escort-upload-content i:first-child { font-size: 24px; color: #0f8; }
+.escort-upload-content i:last-child { margin-left: auto; opacity: 0.5; }
+
+/* 筛选栏 */
+.escort-filter-bar { margin-bottom: 20px; }
+.escort-filter-scroll { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
+.escort-filter-scroll::-webkit-scrollbar { display: none; }
+.escort-filter-chip {
+  padding: 10px 22px; border-radius: 30px; white-space: nowrap;
+  background: rgba(100,255,100,0.05); border: 1.5px solid rgba(100,200,100,0.25);
+  color: #9a9; font-weight: 500; font-size: 0.8rem; cursor: pointer;
+  transition: all 0.3s;
+}
+.escort-filter-chip.active {
+  background: #0f8; color: #000; border-color: #0f8;
+  box-shadow: 0 4px 15px rgba(0,255,100,0.35);
+}
+
+/* 视频卡片 */
+.escort-masonry { column-count: 3; column-gap: 16px; }
+@media (max-width: 1024px) { .escort-masonry { column-count: 2; } }
+@media (max-width: 640px) { .escort-masonry { column-count: 1; } }
+.escort-video-card-new {
+  break-inside: avoid; margin-bottom: 16px;
+  background: linear-gradient(160deg, rgba(20,25,15,0.9), rgba(10,15,5,0.95));
+  border: 1px solid rgba(100,200,100,0.15); border-radius: 18px;
+  overflow: hidden; transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  cursor: pointer;
+}
+.escort-video-card-new:hover { transform: translateY(-5px); border-color: #0f8; box-shadow: 0 20px 40px rgba(0,0,0,0.5), 0 0 25px rgba(0,255,100,0.15); }
+.escort-video-thumb-new {
+  position: relative; height: 160px; background: #1a1f1a;
+  display: flex; align-items: center; justify-content: center;
+}
+.escort-video-thumb-new img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.6s; }
+.escort-video-card-new:hover .escort-video-thumb-new img { transform: scale(1.05); }
+.escort-play-overlay {
+  position: absolute; inset: 0; background: rgba(0,0,0,0.4);
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; transition: opacity 0.3s;
+}
+.escort-video-card-new:hover .escort-play-overlay { opacity: 1; }
+.escort-play-overlay i { font-size: 42px; color: #fff; filter: drop-shadow(0 0 15px rgba(0,255,100,0.5)); }
+.escort-badge-new {
+  position: absolute; top: 10px; left: 10px; padding: 4px 12px; border-radius: 20px;
+  font-size: 11px; font-weight: 700; backdrop-filter: blur(8px);
+}
+.escort-badge-passed { background: rgba(0,255,100,0.8); color: #000; }
+.escort-badge-pending { background: rgba(255,200,0,0.8); color: #000; }
+.escort-badge-reviewing { background: rgba(255,150,0,0.8); color: #000; }
+.escort-duration-new {
+  position: absolute; bottom: 8px; right: 8px; background: rgba(0,0,0,0.7);
+  color: #fff; padding: 2px 8px; border-radius: 12px; font-size: 11px;
+}
+.escort-card-info { padding: 14px; }
+.escort-card-title { font-weight: 700; font-size: 0.95rem; color: #cfc; margin-bottom: 6px; line-height: 1.3; }
+.escort-card-meta { display: flex; align-items: center; gap: 10px; font-size: 0.75rem; color: #9a9; }
+.escort-card-meta img { width: 22px; height: 22px; border-radius: 50%; border: 1px solid #0f8; }
+.escort-card-stats { display: flex; gap: 14px; margin-top: 8px; font-size: 0.8rem; color: #9a9; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 8px; }
+
+/* 雷达空状态 */
+.escort-empty-radar {
+  text-align: center; padding: 60px 20px; position: relative;
+}
+.radar-sweep {
+  width: 100px; height: 100px; margin: 0 auto 20px;
+  border: 2px solid rgba(0,200,100,0.3); border-radius: 50%;
+  position: relative; animation: radarSpin 4s linear infinite;
+}
+.radar-sweep::before {
+  content: ''; position: absolute; top: 50%; left: 50%; width: 2px; height: 50%;
+  background: linear-gradient(180deg, #0f8, transparent); transform-origin: top;
+}
+.radar-core {
+  width: 8px; height: 8px; background: #0f8; border-radius: 50%;
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  box-shadow: 0 0 15px #0f8;
+}
+@keyframes radarSpin { to { transform: rotate(360deg); } }
+
+/* 加载更多 */
+.escort-load-more {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 20px; color: #9a9;
+}
+.escort-loading-spinner {
+  width: 20px; height: 20px; border: 3px solid rgba(100,200,100,0.2);
+  border-top-color: #0f8; border-radius: 50%; animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+
+
+
+/* ========== 护航激励面板V3 · 高级军事化样式 ========== */
+.escort-inspire-panel {
+  background: linear-gradient(160deg, rgba(10,25,15,0.95) 0%, rgba(5,15,8,0.97) 100%);
+  border: 1px solid rgba(0,255,100,0.25);
+  border-radius: 24px;
+  padding: 24px;
+  margin-bottom: 24px;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.6), inset 0 1px 0 rgba(0,255,100,0.08);
+  backdrop-filter: blur(15px);
+  position: relative;
+  overflow: hidden;
+}
+.escort-inspire-panel::before {
+  content: '';
+  position: absolute;
+  top: 0; left: -100%;
+  width: 200%; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(0,255,100,0.6), transparent);
+  animation: inspireScan 4s linear infinite;
+}
+@keyframes inspireScan {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(100%); }
+}
+.escort-privileges-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 14px;
+}
+
+/* 单个特权卡片 */
+.escort-privilege-card {
+  background: rgba(0,30,15,0.6);
+  border: 1px solid rgba(0,255,100,0.2);
+  border-radius: 18px;
+  padding: 18px 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  position: relative;
+  overflow: hidden;
+}
+.escort-privilege-card:hover {
+  transform: translateY(-4px);
+  border-color: #0f8;
+  box-shadow: 0 12px 30px rgba(0,255,100,0.15);
+}
+.escort-privilege-icon {
+  width: 44px; height: 44px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(0,255,100,0.2), rgba(0,200,100,0.1));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px;
+  color: #0f8;
+  flex-shrink: 0;
+  border: 1px solid rgba(0,255,100,0.4);
+}
+.escort-privilege-info {
+  flex: 1; min-width: 0;
+}
+.escort-privilege-title {
+  font-weight: 700; font-size: 0.9rem; color: #cfc;
+  margin-bottom: 4px;
+}
+.escort-privilege-desc {
+  font-size: 0.75rem; color: #9a9;
+}
+.escort-privilege-action {
+  margin-top: 8px;
+}
+.escort-privilege-action button {
+  padding: 6px 16px;
+  border-radius: 20px;
+  background: rgba(0,255,100,0.15);
+  border: 1px solid rgba(0,255,100,0.4);
+  color: #cfc;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.escort-privilege-action button:hover {
+  background: #0f8;
+  color: #000;
+  box-shadow: 0 0 15px rgba(0,255,100,0.4);
+}
+
+/* 移动端适配 */
+@media (max-width: 640px) {
+  .escort-privileges-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+
 
 
 
