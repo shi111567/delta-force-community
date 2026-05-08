@@ -14617,9 +14617,17 @@ if (navAvatar && profile.avatar_url) {
 
   // ========== 新增：统计数字点击事件 ==========
   ['posts', 'likes', 'followers', 'following'].forEach(type => {
-    const el = document.getElementById('stat' + type.charAt(0).toUpperCase() + type.slice(1) + 'New');
-    if (el) el.parentElement.onclick = () => showUserStatDetail(type);
-  });
+  const el = document.getElementById('stat' + type.charAt(0).toUpperCase() + type.slice(1) + 'New');
+  if (el) {
+    const cell = el.closest('.stat-cell'); // 找到统计卡片容器
+    if (cell) {
+      cell.style.cursor = 'pointer';
+      const handler = () => showUserStatDetail(type);
+      cell.addEventListener('click', handler);
+      cell.addEventListener('touchend', handler);
+    }
+  }
+});
 
   // ========== 新增：经验条进度更新 ==========
   if ($('profileExpBarNew')) {
@@ -32232,6 +32240,42 @@ display: flex; flex-direction: column; gap: 20px;
 .stat-cell:hover {
   transform: translateY(-2px);
   box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+}
+
+
+@media (max-width: 768px) {
+  .profile-archive {
+    gap: 16px;
+  }
+  .profile-header-card {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  .profile-avatar-ring {
+    width: 80px;
+    height: 80px;
+  }
+  .profile-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+  .stat-cell {
+    padding: 12px 6px;
+  }
+  .stat-number {
+    font-size: 1.4rem;
+  }
+  .profile-welfare-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .profile-checkin {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .profile-header-actions {
+    margin-top: 12px;
+  }
 }
 
 
