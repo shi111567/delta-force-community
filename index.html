@@ -2753,7 +2753,7 @@ pointer-events: auto !important;
 
   /* 进度条 */
   .exp-bar { height: 8px; border-radius: 4px; background: var(--surface); overflow: hidden; }
-  .exp-fill { height: 100%; border-radius: 4px; background: linear-gradient(90deg, #FF6B35, #FFD700); transition: width 0.6s; }
+.exp-fill { height: 100%; border-radius: 4px; background: linear-gradient(90deg, #FF6B35, #FFD700); transition: width 0.6s; }
 
   /* 筛选按钮 */
   .filter-btn {
@@ -6633,67 +6633,7 @@ window.addEventListener('scroll', () => {
     <div class="grid grid-cols-3 gap-3 mb-4">
   </div>
 
-  <!-- 个人主页 -->
-  <div id="profileTab" style="display:none">
-<div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap;">
-  <!-- 左侧：头像 + 名字 + 等级 -->
-  <div style="display: flex; align-items: center; gap: 12px;">
-    <div class="story-ring">
-      <div class="avatar-wrapper" id="profileAvatarWrapper">
-        <div class="frame-glow"></div>
-        <img src="" alt="头像" class="w-20 h-20 object-cover" id="profileAvatar" style="position: relative; z-index: 2;">
-      </div>
-    </div>
-    <div>
-      <h2 class="font-display text-2xl" id="profileName">干员_0000</h2>
-      <div class="flex items-center gap-2 mt-1">
-        <span class="badge badge-gold" id="profileLevel">Lv.1</span>
-      </div>
-      <div class="exp-bar mt-2 w-48"><div class="exp-fill" id="profileExpBar" style="width:0%"></div></div>
-      <span class="text-xs mt-1 block" style="color:var(--muted)" id="profileExpText">0/100 EXP</span>
-    </div>
-  </div>
-
-  <!-- 右侧：编辑 + 装扮按钮（手机端自动换行到下一行） -->
-  <div style="display: flex; gap: 8px; flex-shrink: 0;">
-    <button class="btn-warm text-sm" onclick="openModal('editProfileModal')">编辑</button>
-    <button class="btn-ghost text-sm cosmetics-btn" onclick="openCosmeticsModal()"><i class="fas fa-vest mr-1"></i>装扮</button>
-  </div>
-</div>
-
-
-
-      <div class="grid grid-cols-4 gap-4 text-center mb-4">
-        <div><div class="font-bold text-lg" id="statPosts">0</div><div class="text-xs" style="color:var(--muted)">发帖</div></div>
-        <div><div class="font-bold text-lg" id="statLikes">0</div><div class="text-xs" style="color:var(--muted)">获赞</div></div>
-        <div><div class="font-bold text-lg" id="statFollowers">0</div><div class="text-xs" style="color:var(--muted)">粉丝</div></div>
-        <div><div class="font-bold text-lg" id="statFollowing">0</div><div class="text-xs" style="color:var(--muted)">关注</div></div>
-      </div>
-      <!-- 精灵 -->
-      <div class="card-base p-4 mb-4 flex items-center gap-4">
-        <div class="spirit-flame" id="spiritContainer">
-          <svg viewBox="0 0 40 50" width="40" height="50"><ellipse cx="20" cy="38" rx="8" ry="6" fill="#FF6B35"/><ellipse cx="20" cy="30" rx="12" ry="12" fill="#FFD700" opacity="0.8"/><ellipse cx="20" cy="22" rx="8" ry="10" fill="#FFAB91" opacity="0.6"/><ellipse cx="16" cy="18" rx="4" ry="8" fill="#FF4757" opacity="0.4"/><ellipse cx="24" cy="18" rx="4" ry="8" fill="#FF6B8A" opacity="0.4"/><circle cx="17" cy="28" r="2" fill="#3D2B1F"/><circle cx="23" cy="28" r="2" fill="#3D2B1F"/><path d="M18 33 Q20 35 22 33" stroke="#3D2B1F" stroke-width="1" fill="none"/></svg>
-        </div>
-        <div>
-          <div class="font-bold" id="spiritName">小火人</div>
-          <div class="text-xs" style="color:var(--muted)" id="spiritStage">幼年 · 成长值 0</div>
-        </div>
-        <button class="btn-ghost text-xs ml-auto" onclick="event.stopPropagation(); interactSpirit()">
-  <i class="fas fa-hand-sparkles mr-1"></i>互动
-</button>
-      </div>
-      <!-- 勋章墙 -->
-      <div class="mb-4">
-        <h3 class="font-bold mb-2"><i class="fas fa-award mr-1" style="color:#FFD700"></i>成就勋章</h3>
-        <div class="flex flex-wrap gap-2" id="achievementsWall"></div>
-      </div>
-      <!-- 签到 -->
-      <div class="flex items-center gap-3 mb-4">
-        <button class="btn-warm" onclick="checkIn()" id="checkinBtn"><i class="fas fa-calendar-check mr-1"></i>每日签到</button>
-        <span class="text-sm" style="color:var(--muted)" id="checkinStreak">连续签到 0 天</span>
-      </div>
-
-
+  
 <!-- 签到日历弹窗 -->
 <div class="modal-overlay" id="checkinCalendarModal">
   <div class="modal-content" style="max-width: 400px;">
@@ -6713,228 +6653,141 @@ window.addEventListener('scroll', () => {
   </div>
 </div>
 
-<!-- 原有签到按钮下方，添加 -->
-<button class="text-xs underline mt-1" style="color: var(--accent);" onclick="openCheckinCalendarModal()">
-  <i class="fas fa-calendar-alt mr-1"></i>签到日历（看积分）
-</button>
 
-      <!-- 管理员入口 -->
 
-<div id="adminVerifyEntry" style="display:none;">
-  <button class="btn-ghost text-sm" onclick="openVerifyModal()"><i class="fas fa-qrcode mr-1"></i>核销查询</button>
-</div>
-
-      <div id="adminEntry">
-        <button class="btn-ghost text-sm" onclick="openModal('adminModal')"><i class="fas fa-shield-halved mr-1"></i>管理后台</button>
+  <!-- 个人主页 -->
+  <div id="profileTab" style="display:none">
+  <div class="profile-archive">
+    <!-- 头部卡片 -->
+    <div class="profile-header-card">
+      <div class="profile-avatar-ring">
+        <img src="" alt="头像" id="profileAvatarNew">
       </div>
-      <!-- 我的帖子折叠面板 -->
-<div class="card-base p-3 mb-3 cursor-pointer" onclick="toggleSection('myPosts')">
-  <div class="flex items-center justify-between">
-    <h3 class="font-bold text-sm">我的帖子</h3>
-    <i class="fas fa-chevron-down transition-transform" id="myPostsIcon"></i>
-  </div>
-</div>
-<div id="myPostsBody" style="display: none;">
-  <div id="myPostsGrid" class="masonry"></div>
-</div>
-
-
-<!-- 新人7日任务 -->
-<div id="newbieTaskCard" class="card-base p-4 mb-4" style="display:none;">
-  <h3 class="font-bold text-sm mb-3 flex items-center gap-2"><i class="fas fa-calendar-check" style="color: #2ecc71;"></i>新人7日任务</h3>
-  <div class="space-y-2" id="newbieTaskList">
-    <div class="flex items-center justify-between text-xs">
-      <span><i class="far fa-circle mr-1" id="taskPostIcon"></i> 发表一篇帖子</span>
-      <span style="color: var(--accent);">+10积分</span>
-    </div>
-    <div class="flex items-center justify-between text-xs">
-      <span><i class="far fa-circle mr-1" id="taskCommentIcon"></i> 发表一条评论</span>
-      <span style="color: var(--accent);">+10积分</span>
-    </div>
-    <div class="flex items-center justify-between text-xs">
-      <span><i class="far fa-circle mr-1" id="taskInviteIcon"></i> 邀请1位战友</span>
-      <span style="color: var(--accent);">+30积分+勋章</span>
-    </div>
-  </div>
-</div>
-
-
-<!-- 我的福利总览 -->
-<div class="card-base p-4 mb-4" style="background: linear-gradient(135deg, rgba(255,215,0,0.08) 0%, rgba(255,107,53,0.04) 100%);">
-  <h3 class="font-bold text-sm mb-3 flex items-center gap-2">
-    <i class="fas fa-gift" style="color: #FFD700;"></i> 我的福利
-  </h3>
-  <div class="grid grid-cols-3 gap-3 text-center">
-    <div class="cursor-pointer" onclick="openPointsShopModal()">
-      <div class="text-xl font-bold" style="color: #FFD700;" id="profileMyPoints">0</div>
-      <div class="text-xs" style="color: var(--muted);">当前积分</div>
-    </div>
-    <div class="cursor-pointer" onclick="scrollToPendingRewards()">
-      <div class="text-xl font-bold" style="color: #3498db;" id="profilePendingCount">0</div>
-      <div class="text-xs" style="color: var(--muted);">待使用券</div>
-    </div>
-    <div class="cursor-pointer" onclick="showPointsLogModal()">
-      <div class="text-xl font-bold" style="color: #2ecc71;" id="profileTotalEarned">0</div>
-      <div class="text-xs" style="color: var(--muted);">累计获得</div>
-    </div>
-  </div>
-</div>
-
-
-
-<!-- 待使用权益折叠面板 -->
-<div class="card-base p-3 mb-3 cursor-pointer" onclick="toggleSection('pendingRewards')">
-  <div class="flex items-center justify-between">
-    <h3 class="font-bold text-sm flex items-center gap-2"><i class="fas fa-gift mr-1" style="color: #FFD700;"></i>待使用权益</h3>
-    <i class="fas fa-chevron-down transition-transform" id="pendingRewardsIcon"></i>
-  </div>
-</div>
-<div id="pendingRewardsBody" style="display: none;">
-  <div id="profilePendingRewards" class="mb-4"></div>
-</div>
-
-
-<!-- 幸运值进度条 -->
-<div class="card-base p-4 mb-4" id="profileLuckyCard">
-
-<p class="text-[10px] mt-2" style="color: var(--muted);">发帖、被回复、被点赞均可增加幸运值；每升5级送普通盲盒，10级送超级盲盒</p>
-
-
-
-  <div class="flex items-center justify-between mb-2">
-    <span class="text-sm font-bold"><i class="fas fa-star" style="color: #FFD700;"></i> 幸运值</span>
-    <span class="text-sm font-bold" id="profileLuckyText">0/100</span>
-  </div>
-  <div class="exp-bar h-2"><div class="exp-fill" id="profileLuckyBar" style="width:0%; background: linear-gradient(90deg, #FFD700, #FFA500);"></div></div>
-    <p class="text-[10px] mt-2" style="color: var(--muted);">普通盲盒+3，超级盲盒+10，满100必出金色传说</p>
-</div>
-
-      <!-- 特权状态卡片（护航员/管理员可见） -->
-      <div class="card-base p-4 mb-4" id="profilePrivilegeCard" style="display:none;">
-        <h3 class="font-bold text-sm mb-2 flex items-center gap-2">
-          <i class="fas fa-crown" style="color: #FFD700;"></i> 我的特权
-        </h3>
-        <div id="profilePrivilegeList" class="space-y-2"></div>
+      <div class="profile-info">
+        <h2 class="profile-display-name" id="profileNameNew">干员_0000</h2>
+        <div class="profile-level-badge">
+          <span id="profileLevelNew">Lv.1</span>
+        </div>
+        <div class="profile-exp-wrapper">
+          <div class="exp-bar"><div class="exp-fill" id="profileExpBarNew" style="width:0%"></div></div>
+          <span class="exp-text" id="profileExpTextNew">0/100 EXP</span>
+        </div>
       </div>
-
-
-<!-- 动态背景状态卡片 -->
-<div class="card-base p-4 mb-4" id="profileBgCard" style="display:none;">
-  <div class="flex items-center gap-3 mb-2">
-    <img id="profileBgPreview" src="" class="w-16 h-10 rounded object-cover">
-    <div class="flex-1">
-      <div class="text-sm font-bold">动态背景</div>
-      <div class="text-xs" id="profileBgStatus" style="color: var(--muted);"></div>
-    </div>
-  </div>
-  <div class="flex gap-2">
-    <button class="btn-ghost text-xs flex-1 py-1" onclick="activateDynamicBg()">更换背景</button>
-    <button class="btn-ghost text-xs flex-1 py-1" onclick="deactivateDynamicBg()">关闭</button>
-  </div>
-</div>
-
-
-
-<!-- 积分明细入口 -->
-<div class="card-base p-4 mb-4 flex items-center justify-between cursor-pointer group hover:shadow-xl transition-all" 
-     style="background: linear-gradient(135deg, rgba(46,204,113,0.1) 0%, rgba(39,174,96,0.05) 100%); border-left: 6px solid #2ecc71;"
-     onclick="showPointsLogModal()">
-  <div class="flex items-center gap-4">
-    <div class="w-12 h-12 rounded-full flex items-center justify-center" style="background: linear-gradient(135deg, #2ecc71, #27ae60);">
-      <i class="fas fa-list-ul text-white text-xl"></i>
-    </div>
-    <div>
-      <h3 class="font-display text-base flex items-center gap-2">
-        积分明细
-        <span class="text-xs px-2 py-0.5 rounded-full" style="background: #2ecc71; color: white;">记录</span>
-      </h3>
-      <p class="text-xs" style="color: var(--muted);">查看积分获取与消费记录</p>
-    </div>
-  </div>
-  <i class="fas fa-chevron-right text-lg group-hover:translate-x-1 transition-transform" style="color: var(--accent);"></i>
-</div>
-
-
-
-
-
-
-<!-- 积分商城入口卡片 -->
-<div class="card-base p-4 mb-4 flex items-center justify-between cursor-pointer group hover:shadow-xl transition-all" 
-     style="background: linear-gradient(135deg, rgba(255,215,0,0.1) 0%, rgba(255,107,53,0.05) 100%); border-left: 6px solid #FFD700;"
-     onclick="openPointsShopModal()">
-  <div class="flex items-center gap-4">
-    <div class="w-12 h-12 rounded-full flex items-center justify-center" style="background: linear-gradient(135deg, #FFD700, #FF6B35);">
-      <i class="fas fa-store text-white text-xl"></i>
-    </div>
-    <div>
-      <h3 class="font-display text-base flex items-center gap-2">
-        积分商城
-        <span class="text-xs px-2 py-0.5 rounded-full" style="background: #FFD700; color: #1a1a2e;">兑换</span>
-      </h3>
-      <p class="text-xs" style="color: var(--muted);">置顶权·命名权·头像框·专属勋章</p>
-    </div>
-  </div>
-  <i class="fas fa-chevron-right text-lg group-hover:translate-x-1 transition-transform" style="color: var(--accent);"></i>
-</div>
-
-<!-- 邀请战友卡片 -->
-<div class="card-base p-4 mb-4 flex items-center justify-between cursor-pointer group hover:shadow-xl transition-all" 
-     style="background: linear-gradient(135deg, rgba(52,152,219,0.1) 0%, rgba(41,128,185,0.05) 100%); border-left: 6px solid #3498db;"
-     onclick="copyInviteCode()">
-  <div class="flex items-center gap-4">
-    <div class="w-12 h-12 rounded-full flex items-center justify-center" style="background: linear-gradient(135deg, #3498db, #2980b9);">
-      <i class="fas fa-user-plus text-white text-xl"></i>
-    </div>
-    <div>
-      <h3 class="font-display text-base flex items-center gap-2">
-        邀请战友
-        <span class="text-xs px-2 py-0.5 rounded-full" style="background: #3498db; color: white;">赚积分</span>
-      </h3>
-      <div class="flex items-center gap-2 mt-1" id="inviteCountContainer">
-        <span class="text-xs font-bold" style="color: #3498db;"><i class="fas fa-users mr-1"></i>已邀请 <span id="profileInviteCount">0</span> 人</span>
+      <div class="profile-header-actions">
+        <button class="btn-warm text-sm" onclick="openModal('editProfileModal')">编辑资料</button>
+        <button class="btn-ghost text-sm" onclick="openCosmeticsModal()"><i class="fas fa-vest mr-1"></i>装扮</button>
       </div>
-      <p class="text-xs" style="color: var(--muted);">每邀请1人得5积分，满3人送盲盒</p>
     </div>
+
+    <!-- 统计数据 -->
+    <div class="profile-stats-grid">
+  <div class="stat-cell" onclick="showUserStatDetail('posts')">
+    <span class="stat-number" id="statPostsNew">0</span>
+    <span class="stat-label">发帖</span>
   </div>
-  <i class="fas fa-copy text-lg group-hover:scale-110 transition-transform" style="color: #3498db;"></i>
-</div>
-
-
-
-
-      <!-- 我的收藏 -->
-      <h3 class="font-bold mt-4 mb-2">我的收藏</h3>
-      <div id="myFavoritesGrid" class="masonry"></div>
-<button class="btn-ghost w-full py-2 mt-2" onclick="openMyOrdersModal()">
-  <i class="fas fa-clipboard-list mr-2"></i>我的护航订单
-</button>
-
-
-
-
-
-
-
-<!-- 配装仓库折叠面板 -->
-<div class="card-base p-3 mb-3 cursor-pointer" onclick="toggleSection('loadoutWarehouse')">
-  <div class="flex items-center justify-between">
-    <h3 class="font-bold text-sm flex items-center gap-2"><i class="fas fa-box" style="color: var(--accent);"></i>我的配装仓库</h3>
-    <i class="fas fa-chevron-down transition-transform" id="loadoutWarehouseIcon"></i>
+  <div class="stat-cell" onclick="showUserStatDetail('likes')">
+    <span class="stat-number" id="statLikesNew">0</span>
+    <span class="stat-label">获赞</span>
+  </div>
+  <div class="stat-cell" onclick="showUserStatDetail('followers')">
+    <span class="stat-number" id="statFollowersNew">0</span>
+    <span class="stat-label">粉丝</span>
+  </div>
+  <div class="stat-cell" onclick="showUserStatDetail('following')">
+    <span class="stat-number" id="statFollowingNew">0</span>
+    <span class="stat-label">关注</span>
   </div>
 </div>
-<div id="loadoutWarehouseBody" style="display: none;">
-  <div class="flex items-center gap-2 mb-2">
-    <button class="text-xs btn-ghost px-2 py-1" onclick="event.stopPropagation(); exportAllFavoritesAsImage()"><i class="fas fa-camera mr-1"></i>导出卡片</button>
-    <button class="text-xs btn-ghost px-2 py-1" onclick="event.stopPropagation(); exportAllFavoritesAsText()"><i class="fas fa-file-export mr-1"></i>导出文本</button>
-  </div>
-  <div id="myLoadoutFavoritesGrid" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
-</div>
 
+    <!-- 精灵 -->
+    <div class="profile-spirit-card">
+      <div class="spirit-flame" id="spiritContainerNew">
+        <svg viewBox="0 0 40 50" width="40" height="50"><ellipse cx="20" cy="38" rx="8" ry="6" fill="#FF6B35"/><ellipse cx="20" cy="30" rx="12" ry="12" fill="#FFD700" opacity="0.8"/><ellipse cx="20" cy="22" rx="8" ry="10" fill="#FFAB91" opacity="0.6"/><ellipse cx="16" cy="18" rx="4" ry="8" fill="#FF4757" opacity="0.4"/><ellipse cx="24" cy="18" rx="4" ry="8" fill="#FF6B8A" opacity="0.4"/><circle cx="17" cy="28" r="2" fill="#3D2B1F"/><circle cx="23" cy="28" r="2" fill="#3D2B1F"/><path d="M18 33 Q20 35 22 33" stroke="#3D2B1F" stroke-width="1" fill="none"/></svg>
+      </div>
+      <div class="spirit-info">
+        <div class="spirit-name" id="spiritNameNew">小火人</div>
+        <div class="spirit-stage" id="spiritStageNew">幼年 · 成长值 0</div>
+      </div>
+      <button class="spirit-interact-btn" onclick="event.stopPropagation(); interactSpirit()"><i class="fas fa-hand-sparkles mr-1"></i>互动</button>
+    </div>
 
+    <!-- 勋章墙 -->
+    <div class="profile-section">
+      <div class="section-header" onclick="toggleSection('achievements')">
+        <h3><i class="fas fa-award"></i> 成就勋章</h3>
+        <i class="fas fa-chevron-down toggle-icon" id="achievementsIcon"></i>
+      </div>
+      <div class="section-body" id="achievementsBody">
+        <div class="badge-wall" id="achievementsWallNew"></div>
+      </div>
+    </div>
+
+    <!-- 签到 -->
+    <div class="profile-checkin">
+      <button class="btn-warm" onclick="checkIn()" id="checkinBtnNew"><i class="fas fa-calendar-check mr-1"></i>每日签到</button>
+      <span class="checkin-streak" id="checkinStreakNew">连续签到 0 天</span>
+      <button class="text-xs underline" style="color: var(--accent);" onclick="openCheckinCalendarModal()">签到日历</button>
+    </div>
+
+    <!-- 管理员入口 -->
+    <div id="adminEntry"><button class="btn-ghost text-sm" onclick="openModal('adminModal')"><i class="fas fa-shield-halved mr-1"></i>管理后台</button></div>
+
+    <!-- 我的帖子 -->
+    <div class="profile-section">
+      <div class="section-header" onclick="toggleSection('myPosts')">
+        <h3><i class="fas fa-pen"></i> 我的帖子</h3>
+        <i class="fas fa-chevron-down toggle-icon" id="myPostsIcon"></i>
+      </div>
+      <div class="section-body" id="myPostsBody" style="display:none;">
+        <div id="myPostsGridNew" class="masonry"></div>
+      </div>
+    </div>
+
+    <!-- 我的收藏 -->
+    <div class="profile-section">
+      <div class="section-header" onclick="toggleSection('myFavorites')">
+        <h3><i class="fas fa-heart"></i> 我的收藏</h3>
+        <i class="fas fa-chevron-down toggle-icon" id="myFavoritesIcon"></i>
+      </div>
+      <div class="section-body" id="myFavoritesBody" style="display:none;">
+        <div id="myFavoritesGridNew" class="masonry"></div>
+      </div>
+    </div>
+
+    <!-- 福利卡片 -->
+    <div class="profile-welfare-grid">
+      <div class="welfare-card" onclick="openPointsShopModal()">
+        <i class="fas fa-store"></i>
+        <span>积分商城</span>
+      </div>
+      <div class="welfare-card" onclick="showPointsLogModal()">
+        <i class="fas fa-list-ul"></i>
+        <span>积分明细</span>
+      </div>
+      <div class="welfare-card" onclick="copyInviteCode()">
+        <i class="fas fa-user-plus"></i>
+        <span>邀请战友</span>
+      </div>
+      <div class="welfare-card" onclick="openMyOrdersModal()">
+        <i class="fas fa-clipboard-list"></i>
+        <span>护航订单</span>
+      </div>
+    </div>
+
+    <!-- 配装仓库 -->
+    <div class="profile-section">
+      <div class="section-header" onclick="toggleSection('loadoutWarehouse')">
+        <h3><i class="fas fa-box"></i> 我的配装仓库</h3>
+        <i class="fas fa-chevron-down toggle-icon" id="loadoutWarehouseIcon"></i>
+      </div>
+      <div class="section-body" id="loadoutWarehouseBody" style="display:none;">
+        <div id="myLoadoutFavoritesGrid" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
+      </div>
     </div>
   </div>
 </main>
+
+
 <!-- 阅读历史抽屉 -->
 <div id="historyDrawerOverlay" class="modal-overlay" style="z-index:1002;" onclick="closeHistoryDrawer()">
   <div class="modal-content" style="max-width:380px; margin-left:auto; margin-right:0; height:100%; max-height:100%; border-radius:20px 0 0 20px;" onclick="event.stopPropagation()">
@@ -10197,7 +10050,6 @@ function hideWeaponTooltip() {
 
 // ==================== 弹窗控制 ====================
 function openModal(id) {
-  // 强制清除所有之前动态创建的临时弹窗
   document.querySelectorAll('.modal-overlay[data-temp="true"]').forEach(function(el) {
     el.remove();
   });
@@ -10205,10 +10057,17 @@ function openModal(id) {
   var modal = document.getElementById(id);
   if (!modal) return;
 
-  modal.style.display = 'flex';
-  modal.style.opacity = '1';
-  modal.style.pointerEvents = 'auto';
-  modal.style.zIndex = '99999';
+  modal.style.cssText = `
+    display: flex !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    z-index: 99999 !important;
+  `;
   modal.classList.add('active');
   var content = modal.querySelector('.modal-content');
   if (content) {
@@ -10217,20 +10076,13 @@ function openModal(id) {
   }
 }
 
+
+
 function closeModal(id) {
   const modal = document.getElementById(id);
   if (!modal) return;
-  const content = modal.querySelector('.modal-content');
-  if (content) {
-    content.style.animation = 'modalSlideOut 0.2s ease forwards';
-    setTimeout(() => {
-      if (modal.hasAttribute('data-temp')) modal.remove();
-      else {
-        modal.style.display = 'none';
-        modal.classList.remove('active');
-      }
-    }, 200);
-  }
+  modal.style.cssText = 'display: none !important;';
+  modal.classList.remove('active');
 }
 
 
@@ -12196,23 +12048,39 @@ if (APP.filters.topic && APP.filters.topic !== 'all') {
   
   if ($('postsSkeleton')) $('postsSkeleton').style.display = 'none';
   APP.loading = false;
-}async function loadTopPost() {
-  const yesterday = new Date(Date.now() - 86400000).toISOString();
-   const { data } = await sb.from('posts')
-  .select('*, profiles(username, avatar_url, level, display_badge, badges)')
-  .eq('is_top_today', true)
-  .gt('pin_expires_at', new Date().toISOString())  // 只显示未过期的置顶
-  .limit(1);
-  const area = $('topPostArea');
-  if (data && data.length) {
-    area.innerHTML = '';
-    const card = createPostCard(data[0], 0, true);
-    area.appendChild(card);
-  } else {
-    area.innerHTML = '';
-  }
 }
 
+async function loadTopPost() {
+  const area = $('topPostArea');
+  if (!area) return;
+
+  // 清除旧内容
+  area.innerHTML = '';
+
+  // 查询置顶且未过期的帖子（pin_expires_at 大于当前时间）
+  const now = new Date().toISOString();
+  const { data } = await sb.from('posts')
+    .select('*, profiles!user_id(username, avatar_url, level)')
+    .eq('is_top_today', true)
+    .gt('pin_expires_at', now)
+    .limit(1);
+
+  if (!data || data.length === 0) {
+    area.innerHTML = '';
+    return;
+  }
+
+  const post = data[0];
+  // 使用原来的卡片创建函数，确保类名是 'post-card'
+  const card = createPostCard(post, 0, true);
+  
+  // **关键修复：强制显示**
+  card.style.display = 'block';
+  card.style.visibility = 'visible';
+  card.style.opacity = '1';
+
+  area.appendChild(card);
+}
 
 
 function getEscortBadgeHtml(profile) {
@@ -14579,7 +14447,7 @@ function renderProfile() {
 
     
   // 头像区域（不再重置整个容器，只更新图片）
-const avatarImg = document.getElementById('profileAvatar');
+const avatarImg = document.getElementById('profileAvatarNew');
 if (avatarImg) {
   avatarImg.src = APP.profile.avatar_url || dicebearUrl('default');
   avatarImg.onclick = () => openLightbox(avatarImg.src);
@@ -14611,7 +14479,7 @@ if (avatarWrapper) {
 
 // ========== 设置昵称特效 ==========
   
-  const nameEl = $('profileName');
+  const nameEl = $('profileNameNew');
 if (nameEl) {
   const nicknameClass = getCosmeticClass(APP.profile?.equipped_nickname_effect, 'nickname');
   nameEl.innerHTML = `<span class="${nicknameClass}">${APP.profile.username}</span>`;
@@ -14626,7 +14494,7 @@ if (nameEl) {
   });
 
   // 勋章墙（系统成就 + 自定义）
-  const wall = $('achievementsWall');
+  const wall = $('achievementsWallNew');
   wall.innerHTML = '';
   const sysBadges = [
     { id:'first_post', name:'初出茅庐', icon:'fa-flag', cls:'badge-bronze' },
@@ -14673,10 +14541,10 @@ loadNewbieTasks();
   const profile = APP.profile;
   if (profile) {
     // 基础统计
-    const statPosts = document.getElementById('statPosts');
-    const statLikes = document.getElementById('statLikes');
-    const statFollowers = document.getElementById('statFollowers');
-    const statFollowing = document.getElementById('statFollowing');
+    const statPosts = document.getElementById('statPostsNew');
+    const statLikes = document.getElementById('statLikesNew');
+    const statFollowers = document.getElementById('statFollowersNew');
+    const statFollowing = document.getElementById('statFollowingNew');
     
     if (statPosts) statPosts.textContent = profile.posts_count || 0;
     if (statLikes) statLikes.textContent = profile.likes_received || 0;
@@ -14684,23 +14552,23 @@ loadNewbieTasks();
     if (statFollowing) statFollowing.textContent = profile.following_count || 0;
     
     // 用户名
-    const profileName = document.getElementById('profileName');
+    const profileName = document.getElementById('profileNameNew');
     if (profileName) {
       const nicknameClass = getCosmeticClass(profile.equipped_nickname_effect, 'nickname');
       profileName.innerHTML = `<span class="${nicknameClass}">${profile.username || '干员_0000'}</span>`;
     }
     
     // 等级和经验
-    const profileLevel = document.getElementById('profileLevel');
-    const profileExpBar = document.getElementById('profileExpBar');
-    const profileExpText = document.getElementById('profileExpText');
+    const profileLevel = document.getElementById('profileLevelNew');
+    const profileExpBar = document.getElementById('profileExpBarNew');
+    const profileExpText = document.getElementById('profileExpTextNew');
     
     if (profileLevel) profileLevel.textContent = 'Lv.' + (profile.level || 1);
     if (profileExpBar) profileExpBar.style.width = ((profile.exp || 0) / 100 * 100) + '%';
     if (profileExpText) profileExpText.textContent = (profile.exp || 0) + '/100 EXP';
     
     // 头像
-    const profileAvatar = document.getElementById('profileAvatar');
+    const profileAvatar = document.getElementById('profileAvatarNew');
     if (profileAvatar) {
       profileAvatar.src = profile.avatar_url || dicebearUrl(profile.username || 'default');
     }
@@ -14739,14 +14607,148 @@ if (navAvatar && profile.avatar_url) {
     });
   }
 
-  // 新增：积分商城入口按钮
+  
+
+  // 新增：积分商城入口按钮（只保留一个）
   const shopBtn = document.getElementById('profileShopBtn');
   if (shopBtn) {
     shopBtn.onclick = () => openPointsShopModal();
   }
+
+  // ========== 新增：统计数字点击事件 ==========
+  ['posts', 'likes', 'followers', 'following'].forEach(type => {
+    const el = document.getElementById('stat' + type.charAt(0).toUpperCase() + type.slice(1) + 'New');
+    if (el) el.parentElement.onclick = () => showUserStatDetail(type);
+  });
+
+  // ========== 新增：经验条进度更新 ==========
+  if ($('profileExpBarNew')) {
+    const expForThisLevel = (profile.level || 1) * 100;
+    const percent = Math.min(100, ((profile.exp || 0) / expForThisLevel) * 100);
+    $('profileExpBarNew').style.width = percent + '%';
+    $('profileExpTextNew').textContent = `${profile.exp || 0}/${expForThisLevel} EXP`;
+  }
+
+}   // ← 只有这一个函数结束大括号
+
+
+
+
+
+
+
+async function showUserStatDetail(type) {
+  if (!APP.user) { openAuthModal(); return; }
+  const currentUserId = APP.user.id; // 当前登录用户自己的ID
+  const profile = APP.profile;
+
+  let title = '', modalContent = '';
+
+  switch (type) {
+    case 'posts':
+      title = '我的全部帖子';
+      // 从数据库获取当前用户所有帖子
+      const { data: posts } = await sb.from('posts').select('id, title, created_at').eq('user_id', currentUserId).order('created_at', { ascending: false }).limit(50);
+      if (!posts || posts.length === 0) {
+        modalContent = '<p class="text-center py-4" style="color:var(--muted);">你还没有任何帖子</p>';
+      } else {
+        modalContent = `<div class="space-y-2 max-h-96 overflow-y-auto">` +
+          posts.map(p => `<div class="p-2 rounded-lg cursor-pointer hover:bg-black/5" style="background:var(--surface);" onclick="openComments('${p.id}')">${p.title} <span class="text-xs" style="color:var(--muted);">${timeAgo(p.created_at)}</span></div>`).join('') +
+          `</div>`;
+      }
+      break;
+
+    case 'likes':
+      title = '谁赞了我的帖子';
+      // 查询所有用户点赞的我的帖子（需要votes表和posts关联）
+      // 第一步：获取当前用户的所有帖子ID
+const { data: myPosts } = await sb.from('posts')
+  .select('id')
+  .eq('user_id', currentUserId);
+
+const postIds = (myPosts || []).map(p => p.id);
+
+if (postIds.length === 0) {
+  modalContent = '<p class="text-center py-4" style="color:var(--muted);">你还没有帖子，自然也没有人赞过</p>';
+} else {
+  const { data: votesData } = await sb.from('votes')
+    .select('post_id, vote_type, created_at, profiles!user_id(username, avatar_url), posts!post_id(title)')
+    .eq('vote_type', 'up')
+    .in('post_id', postIds)   // 使用 in 查询
+    .order('created_at', { ascending: false })
+    .limit(30);
+
+  if (!votesData || votesData.length === 0) {
+    modalContent = '<p class="text-center py-4" style="color:var(--muted);">暂时没有人赞你的帖子</p>';
+  } else {
+    modalContent = `<div class="space-y-2 max-h-96 overflow-y-auto">` +
+      votesData.map(v => `<div class="p-2 rounded-lg flex items-center gap-2" style="background:var(--surface);" onclick="openComments('${v.post_id}')"><img src="${v.profiles?.avatar_url || dicebearUrl(v.profiles?.username)}" class="w-6 h-6 rounded-full"><span class="text-sm">${v.profiles?.username || '干员'} 赞了帖子《${v.posts?.title || '未知'}》</span><span class="text-xs ml-auto" style="color:var(--muted);">${timeAgo(v.created_at)}</span></div>`).join('') +
+      `</div>`;
+  }
+}
+      break;
+
+    case 'followers':
+      title = '我的粉丝';
+      const { data: followers } = await sb.from('follows')
+        .select('follower_id, profiles!follower_id(username, avatar_url, level)')
+        .eq('followed_id', currentUserId)
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (!followers || followers.length === 0) {
+        modalContent = '<p class="text-center py-4" style="color:var(--muted);">还没有粉丝</p>';
+      } else {
+        modalContent = `<div class="space-y-2 max-h-96 overflow-y-auto">` +
+          followers.map(f => `<div class="p-2 rounded-lg flex items-center gap-2" style="background:var(--surface);" onclick="viewUserProfile('${f.follower_id}')"><img src="${f.profiles?.avatar_url || dicebearUrl(f.profiles?.username)}" class="w-6 h-6 rounded-full"><span class="text-sm">${f.profiles?.username || '干员'}</span><span class="text-xs ml-auto">Lv.${f.profiles?.level || 1}</span></div>`).join('') +
+          `</div>`;
+      }
+      break;
+
+    case 'following':
+      title = '我关注的人';
+      const { data: followings } = await sb.from('follows')
+        .select('followed_id, profiles!followed_id(username, avatar_url, level)')
+        .eq('follower_id', currentUserId)
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (!followings || followings.length === 0) {
+        modalContent = '<p class="text-center py-4" style="color:var(--muted);">还没有关注任何人</p>';
+      } else {
+        modalContent = `<div class="space-y-2 max-h-96 overflow-y-auto">` +
+          followings.map(f => `<div class="p-2 rounded-lg flex items-center gap-2" style="background:var(--surface);" onclick="viewUserProfile('${f.followed_id}')"><img src="${f.profiles?.avatar_url || dicebearUrl(f.profiles?.username)}" class="w-6 h-6 rounded-full"><span class="text-sm">${f.profiles?.username || '干员'}</span><span class="text-xs ml-auto">Lv.${f.profiles?.level || 1}</span></div>`).join('') +
+          `</div>`;
+      }
+      break;
+  }
+
+  // 显示模态框
+  showStatModal(title, modalContent);
 }
 
+function showStatModal(title, content) {
+  // 移除旧弹窗
+  const old = document.getElementById('statDetailModal');
+  if (old) old.remove();
 
+  const modal = document.createElement('div');
+  modal.id = 'statDetailModal';
+  modal.className = 'modal-overlay active';
+  modal.style.zIndex = '10000';
+  modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+
+  modal.innerHTML = `
+    <div class="modal-content active" style="max-width:480px; max-height:80vh; overflow-y:auto;">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="font-display text-xl">${title}</h2>
+        <button onclick="this.closest('.modal-overlay').remove()" class="w-8 h-8 rounded-full flex items-center justify-center" style="background:var(--surface);"><i class="fas fa-times"></i></button>
+      </div>
+      ${content}
+    </div>
+  `;
+  document.body.appendChild(modal);
+}
 
 async function loadNewbieTasks() {
   if (!APP.user) return;
@@ -14970,12 +14972,12 @@ async function openCheckinCalendarModal() {
 async function loadCheckinStatus() {
   const { data } = await sb.from('checkins').select('*').eq('user_id', APP.user.id).order('checkin_date', { ascending: false }).limit(1);
   if (data && data.length) {
-    $('checkinStreak').textContent = `连续签到 ${data[0].streak || 1} 天`;
+    $('checkinStreakNew').textContent = `连续签到 ${data[0].streak || 1} 天`;
     const today = new Date().toISOString().split('T')[0];
     if (data[0].checkin_date === today) {
-      $('checkinBtn').textContent = '今日已签到';
-      $('checkinBtn').disabled = true;
-      $('checkinBtn').style.opacity = '0.6';
+      $('checkinBtnNew').textContent = '今日已签到';
+      $('checkinBtnNew').disabled = true;
+      $('checkinBtnNew').style.opacity = '0.6';
     }
   }
 }
@@ -15209,8 +15211,8 @@ async function checkAchievement(achId, condition) {
 // ==================== 精灵系统 ====================
 async function loadSpirit() {
   const { data } = await sb.from('spirits').select('*').eq('owner_id', APP.user.id).single();
-  const container = $('spiritContainer');
-  const stageEl = $('spiritStage');
+  const container = $('spiritContainerNew');
+  const stageEl = $('spiritStageNew');
   if (!data) {
     // 创建精灵
     await sb.from('spirits').insert({ owner_id: APP.user.id, stage: '幼年', growth: 0 });
@@ -15256,9 +15258,9 @@ async function interactSpirit() {
     const newGrowth = Math.min(200, (data.growth || 0) + growth);
     await sb.from('spirits').update({ growth: newGrowth, last_interaction: new Date().toISOString() }).eq('owner_id', APP.user.id);
     
-    const stageEl = document.getElementById('spiritStage');
+    const stageEl = document.getElementById('spiritStageNew');
     if (stageEl) stageEl.textContent = `${data.stage || '幼年'} · 成长值 ${newGrowth}`;
-    const container = document.getElementById('spiritContainer');
+    const container = document.getElementById('spiritContainerNew');
     if (container) container.classList.remove('gray');
 
     APP.spiritInteractCount++;
@@ -17335,7 +17337,7 @@ window.showLoadoutDetail = showLoadoutDetail;
   modal.className = 'modal-overlay active';
 
 modal.setAttribute('data-temp', 'true');
-  modal.style.zIndex = '10000';
+  modal.style.zIndex = '99999';
   modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
   const opColor = getOpColor(loadoutData.class);
   modal.innerHTML = `
@@ -20778,7 +20780,7 @@ async function loadMyPosts() {  // ← 加上 async
     .order('created_at', { ascending: false })
     .limit(10);
     
-  const grid = $('myPostsGrid');
+  const grid = $('myPostsGridNew');
   grid.innerHTML = '';
   
   (data||[]).forEach((p) => {
@@ -20810,7 +20812,7 @@ async function loadMyPosts() {  // ← 加上 async
 
 async function loadMyFavorites() {
   const { data } = await sb.from('favorites').select('post_id, posts(title, upvotes, comments_count)').eq('user_id', APP.user.id).order('created_at', { ascending: false }).limit(10);
-  const grid = $('myFavoritesGrid');
+  const grid = $('myFavoritesGridNew');
   grid.innerHTML = '';
   APP.myFavSet = new Set();
   (data||[]).forEach(f => {
@@ -29482,19 +29484,27 @@ function scrollToPendingRewards() {
 async function updateWelfareOverview() {
   if (!APP.user) return;
   
-  // 当前积分
-  const { data: pointsData } = await sb.from('user_points').select('points').eq('user_id', APP.user.id).maybeSingle();
-  const myPoints = pointsData?.points || 0;
-  document.getElementById('profileMyPoints').textContent = myPoints;
+  // 当前积分（如果元素存在才更新）
+  const myPointsEl = document.getElementById('profileMyPoints');
+  if (myPointsEl) {
+    const { data: pointsData } = await sb.from('user_points').select('points').eq('user_id', APP.user.id).maybeSingle();
+    myPointsEl.textContent = pointsData?.points || 0;
+  }
   
-  // 待使用券数量
-  const rewards = await getUserPendingRewards();
-  const pendingCount = rewards.filter(r => !r.used).length;
-  document.getElementById('profilePendingCount').textContent = pendingCount;
+  // 待使用券（如果元素存在才更新）
+  const pendingEl = document.getElementById('profilePendingCount');
+  if (pendingEl) {
+    const rewards = await getUserPendingRewards();
+    const pendingCount = rewards.filter(r => !r.used).length;
+    pendingEl.textContent = pendingCount;
+  }
   
-  // 累计获得积分
-  const { count } = await sb.from('points_log').select('*', { count: 'exact', head: true }).eq('user_id', APP.user.id).gt('amount', 0);
-  document.getElementById('profileTotalEarned').textContent = count || 0;
+  // 累计获得（如果元素存在才更新）
+  const earnedEl = document.getElementById('profileTotalEarned');
+  if (earnedEl) {
+    const { count } = await sb.from('points_log').select('*', { count: 'exact', head: true }).eq('user_id', APP.user.id).gt('amount', 0);
+    earnedEl.textContent = count || 0;
+  }
 }
 
 // ==================== 服务凭证弹窗（可截图） ====================
@@ -32143,6 +32153,87 @@ input:focus, textarea:focus, select:focus {
 
 
 
+/* ========== 干员档案室 ========== */
+.profile-archive { 
+display: flex; flex-direction: column; gap: 20px;
+ position: relative;      /* 添加这一行 */
+  z-index: 1;              /* 添加这一行，值要低 */
+ }
+.profile-header-card {
+  background: linear-gradient(160deg, rgba(20,12,8,0.95), rgba(15,10,5,0.9));
+  border: 1px solid rgba(255,140,80,0.2); border-radius: 24px; padding: 28px;
+  display: flex; align-items: center; gap: 24px; flex-wrap: wrap;
+
+  position: relative;      /* 添加这一行 */
+  z-index: 1;  
+}
+.profile-avatar-ring {
+  width: 100px; height: 100px; border-radius: 50%; padding: 4px;
+  background: linear-gradient(135deg, #FF6B35, #FFD700); flex-shrink: 0;
+}
+.profile-avatar-ring img {
+  width: 100%; height: 100%; border-radius: 50%; object-fit: cover; border: 4px solid var(--bg);
+}
+.profile-info { flex: 1; min-width: 200px; }
+.profile-display-name { font-size: 1.8rem; font-weight: 800; margin: 0; }
+.profile-level-badge span {
+  padding: 4px 14px; border-radius: 20px; background: var(--accent); color: #fff; font-weight: 700;
+}
+.profile-exp-wrapper { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
+.exp-text { font-size: 0.8rem; color: var(--muted); white-space: nowrap; }
+.profile-header-actions { display: flex; gap: 8px; flex-shrink: 0; }
+
+.profile-stats-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; margin-top: 4px; }
+.stat-cell { background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 16px; padding: 16px 8px; text-align: center; }
+.stat-number { display: block; font-size: 1.8rem; font-weight: 800; color: var(--accent); }
+.stat-label { font-size: 0.75rem; color: var(--muted); }
+
+.profile-spirit-card { display: flex; align-items: center; gap: 16px; background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 20px; padding: 16px; }
+.spirit-interact-btn { margin-left: auto; }
+
+.profile-section { margin-top: 4px; }
+.section-header { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; background: rgba(255,255,255,0.02); border-radius: 14px; cursor: pointer; user-select: none; }
+.section-body { padding: 10px 0; }
+.badge-wall { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.profile-checkin { display: flex; align-items: center; gap: 12px; margin-top: 8px; }
+.profile-welfare-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; margin-top: 4px; }
+.welfare-card { background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 16px; padding: 16px; text-align: center; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.welfare-card i { font-size: 24px; color: var(--accent); }
+
+@media (max-width: 640px) {
+  .profile-stats-grid { grid-template-columns: repeat(2,1fr); }
+  .profile-welfare-grid { grid-template-columns: repeat(2,1fr); }
+}
+
+
+/* ========== 个人主页经验条修复 ========== */
+.profile-exp-wrapper .exp-bar {
+  height: 8px;
+  background: var(--surface);
+  border-radius: 4px;
+  overflow: hidden;
+  flex: 1;
+}
+.profile-exp-wrapper .exp-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #FF6B35, #FFD700);
+  border-radius: 4px;
+  transition: width 0.6s;
+}
+
+
+
+
+.stat-cell {
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.stat-cell:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+}
+
 
 </style>
 
@@ -34194,7 +34285,7 @@ window.toggleLootWatch = function(name) {
 
 
 
-// ==================== 生成分享卡片 ====================
+
 // ==================== 生成分享卡片 ====================
 async function generateShareCard(postId) {
   if (!postId) return;
@@ -34396,7 +34487,7 @@ window.useGroupReward = async function(type, sampleId) {
     if (idx !== -1) rewards[idx] = target;
     await updateRewards(rewards);
     showToast('请在“我的帖子”中选择要置顶的帖子', 'info');
-    var el = document.getElementById('myPostsGrid');
+    var el = document.getElementById('myPostsGridNew');
     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
     renderPendingRewardsInProfile();
     return;
