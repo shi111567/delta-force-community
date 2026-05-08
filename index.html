@@ -5814,116 +5814,103 @@ window.addEventListener('scroll', () => {
 
 
 
-       <!-- ==================== 关注 Tab（增强版 · 军事化重构） ==================== -->
+       <!-- ==================== 关注 Tab（重构版） ==================== -->
 <div id="followingTab" style="display:none">
 
-  <!-- 顶部战场状态栏 -->
-  <div class="following-hero-bar">
-    <div class="following-hero-left">
-      <i class="fas fa-satellite-dish"></i>
-      <span class="following-hero-title">战术关注网络</span>
-    </div>
-    <div class="following-hero-right">
-      <span class="following-stat-badge" id="followingCountDisplay">0</span>
-      <span class="following-stat-label">已关注干员</span>
-      <span class="following-divider">|</span>
-      <span class="following-stat-badge" id="followingTodayPosts">0</span>
-      <span class="following-stat-label">今日动态</span>
+  <!-- 顶部全宽动态指挥状态栏 -->
+  <div class="command-status-bar-v2">
+    <div class="status-scan-line"></div>
+    <div class="status-particles" id="statusParticles"></div>
+    <div class="status-content-v2">
+      <div class="status-left-v2">
+        <div class="status-icon-ring">
+          <i class="fas fa-satellite-dish"></i>
+        </div>
+        <div class="status-text-group">
+          <h2 class="status-title-v2">战术关注网络</h2>
+          <p class="status-subtitle">实时监控已关注干员动态</p>
+        </div>
+      </div>
+      <div class="status-right-v2">
+        <div class="stat-block">
+          <span class="stat-value-v2" id="followingCountDisplay">0</span>
+          <span class="stat-label-v2">已关注</span>
+        </div>
+        <div class="stat-divider-v2"></div>
+        <div class="stat-block">
+          <span class="stat-value-v2" id="followingTodayPosts">0</span>
+          <span class="stat-label-v2">今日动态</span>
+        </div>
+        <div class="stat-divider-v2"></div>
+        <div class="stat-block">
+          <button class="refresh-btn-v2" onclick="loadFollowingPosts()">
+            <i class="fas fa-sync-alt"></i> 刷新情报
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 
-  <!-- 关注用户的 Story 环（横向滑动） -->
-  <div class="following-section" id="followingStorySection">
-    <div class="following-section-header">
-      <div class="following-header-title">
-        <i class="fas fa-circle-user"></i>
-        <span>关注干员 · 最新动态</span>
-      </div>
-      <span class="following-header-hint"><i class="fas fa-chevron-right"></i> 滑动查看</span>
-    </div>
-    <div class="following-stories-wrapper" id="followingStoriesContainer">
-      <!-- 动态渲染 -->
-    </div>
+  <!-- 关注干员动态环 -->
+  <div class="stories-war-zone-v2" id="followingStoriesContainer">
+    <!-- 动态渲染 -->
   </div>
 
-  <!-- 智能推荐关注（你可能想关注） -->
-  <div class="following-section" id="followingRecommendSection">
-    <div class="following-section-header">
-      <div class="following-header-title">
-        <i class="fas fa-crosshairs" style="color: #FFD700;"></i>
-        <span>推荐关注 · 高价值目标</span>
-      </div>
-      <button class="following-refresh-btn" onclick="loadFollowingRecommendations()">
-        <i class="fas fa-sync-alt"></i>
-      </button>
+  <!-- 推荐关注高价值目标 -->
+  <div class="section-header-v2">
+    <div class="header-left">
+      <div class="header-icon"><i class="fas fa-crosshairs"></i></div>
+      <h3>高价值目标</h3>
+      <span class="header-badge">推荐关注</span>
     </div>
-    <div class="following-recommend-grid" id="followingRecommendGrid">
-      <!-- 动态渲染 -->
-    </div>
+    <button class="header-action" onclick="loadFollowingRecommendationsV2()">
+      <i class="fas fa-redo-alt"></i> 换一批
+    </button>
+  </div>
+  <div class="recommend-black-site-v2" id="followingRecommendGrid">
+    <!-- 动态渲染 -->
   </div>
 
-  <!-- 关注用户活跃榜 -->
-  <div class="following-section">
-    <div class="following-section-header">
-      <div class="following-header-title">
-        <i class="fas fa-trophy" style="color: #FFD700;"></i>
-        <span>关注干员 · 火力排行榜</span>
-      </div>
-      <span class="following-header-hint"><i class="fas fa-fire"></i> 近7天活跃度</span>
+  <!-- 实时战报流 -->
+  <div class="section-header-v2">
+    <div class="header-left">
+      <div class="header-icon"><i class="fas fa-newspaper"></i></div>
+      <h3>实时战报</h3>
     </div>
-    <div class="following-rank-list" id="followingRankList">
-      <!-- 动态渲染 -->
-    </div>
-  </div>
-
-  <!-- 关注话题聚合 -->
-  <div class="following-section">
-    <div class="following-section-header">
-      <div class="following-header-title">
-        <i class="fas fa-hashtag" style="color: var(--accent);"></i>
-        <span>关注圈 · 热门话题</span>
-      </div>
-    </div>
-    <div class="following-topic-cloud" id="followingTopicCloud">
-      <!-- 动态渲染 -->
+    <div class="feed-filters-v2">
+      <button class="filter-chip-v2 active" data-filter="all" onclick="filterFollowingFeedV2('all', this)">全部</button>
+      <button class="filter-chip-v2" data-filter="post" onclick="filterFollowingFeedV2('post', this)">图文</button>
+      <button class="filter-chip-v2" data-filter="video" onclick="filterFollowingFeedV2('video', this)">视频</button>
+      <button class="filter-chip-v2" data-filter="vote" onclick="filterFollowingFeedV2('vote', this)">投票</button>
     </div>
   </div>
-
-  <!-- 关注动态时间线（瀑布流） -->
-  <div class="following-section">
-    <div class="following-section-header">
-      <div class="following-header-title">
-        <i class="fas fa-newspaper"></i>
-        <span>实时战报 · 关注流</span>
-      </div>
-      <div class="following-feed-actions">
-        <button class="following-filter-chip active" data-filter="all" onclick="filterFollowingFeed('all')">全部</button>
-        <button class="following-filter-chip" data-filter="post" onclick="filterFollowingFeed('post')">图文</button>
-        <button class="following-filter-chip" data-filter="video" onclick="filterFollowingFeed('video')">视频</button>
-        <button class="following-filter-chip" data-filter="vote" onclick="filterFollowingFeed('vote')">投票</button>
-      </div>
-    </div>
-    <div class="following-feed-container" id="followingFeedContainer">
-      <!-- 动态渲染瀑布流 -->
-    </div>
-    <div class="following-feed-loading" id="followingFeedLoading" style="display:none;">
-      <i class="fas fa-spinner fa-pulse"></i> 加载更多战报...
-    </div>
+  <div class="feed-war-log-v2" id="followingFeedContainer"></div>
+  
+  <!-- 加载更多 -->
+  <div class="feed-loading-v2" id="followingFeedLoading" style="display:none;">
+    <div class="loading-spinner"></div>
+    <span>正在截获更多战报...</span>
   </div>
 
-  <!-- 空状态（未关注任何人） -->
-  <div id="followingEmptyState" class="following-empty-state" style="display:none;">
-    <div class="following-empty-graphic">
-      <i class="fas fa-user-astronaut"></i>
+  <!-- 空状态：全息投影 -->
+  <div class="following-empty-state-v2" id="followingEmptyState" style="display:none;">
+    <div class="hologram-ring">
+      <div class="hologram-core"></div>
+      <div class="hologram-orbit"></div>
+      <div class="hologram-orbit orbit-2"></div>
     </div>
     <h3>侦察卫星未捕获目标</h3>
     <p>你还没有关注任何干员，前往首页发现更多战友</p>
-    <button class="following-cta-btn" onclick="switchTab('discover')">
+    <button class="btn-cta-v2" onclick="switchTab('discover')">
       <i class="fas fa-compass"></i> 探索战场
     </button>
   </div>
 
 </div>
+<!-- ==================== 关注 Tab 结束 ==================== -->
+
+
+
 
   <!-- 搜索 Tab（发现页） -->
   <div id="searchTab" style="display:none">
@@ -11039,7 +11026,22 @@ loadSiteLogoFromStorage();
     if (homeSearch) homeSearch.value = '';
     document.querySelectorAll('.filter-menu').forEach(m => m.classList.add('hidden'));
 
-    // ===== 修复：延迟确保DOM渲染完毕后再加载轮播和护航员 =====
+  
+
+ 
+  // ===== 新增：确保雷达图在情报中心展开时正常显示 =====
+  setTimeout(() => {
+    const body = document.getElementById('intelConsoleBody');
+    if (body && body.style.display !== 'none') {
+      if (typeof renderTopicRadarV2 === 'function') {
+        renderTopicRadarV2();
+      }
+    }
+  }, 300);
+  // ===== 新增结束 =====
+
+
+  // ===== 修复：延迟确保DOM渲染完毕后再加载轮播和护航员 =====
     setTimeout(() => {
       loadHomeBanners();
       loadOnlineEscorts();   // ← 之前这里可能没调用
@@ -11057,20 +11059,9 @@ loadSiteLogoFromStorage();
     if (hotPanel) hotPanel.style.display = 'none';
     const aiPanel = document.getElementById('aiLoadoutPanel');
     if (aiPanel) aiPanel.style.display = 'none';
+  } 
 
-
- 
-  // ===== 新增：确保雷达图在情报中心展开时正常显示 =====
-  setTimeout(() => {
-    const body = document.getElementById('intelConsoleBody');
-    if (body && body.style.display !== 'none') {
-      if (typeof renderTopicRadarV2 === 'function') {
-        renderTopicRadarV2();
-      }
-    }
-  }, 300);
-  // ===== 新增结束 =====
-  } else if (tab === 'discover') {
+else if (tab === 'discover') {
     loadRanks();
     loadRisingRank();
     loadDiscoverBanners();
@@ -15600,6 +15591,243 @@ function getCosmeticClass(id, type) {
 
 
 
+// ========== 关注模块V2 渲染逻辑 ==========
+let followingStateV2 = {
+  feedFilter: 'all',
+  feedPage: 1,
+  feedAllLoaded: false,
+  feedLoading: false,
+};
+
+async function loadFollowingPosts() {
+  renderFollowingTabV2();
+}
+
+async function renderFollowingTabV2() {
+  if (!APP.user) {
+    document.getElementById('followingEmptyState').style.display = 'block';
+    document.getElementById('followingFeedContainer').innerHTML = '';
+    return;
+  }
+  await loadFollowingIds();
+  if (APP.followedIds.length === 0) {
+    document.getElementById('followingEmptyState').style.display = 'block';
+    document.getElementById('followingFeedContainer').innerHTML = '';
+    document.getElementById('followingRecommendGrid').innerHTML = '';
+    loadFollowingRecommendationsV2();
+    updateFollowingStatsV2();
+    spawnStatusParticles();
+    return;
+  }
+  document.getElementById('followingEmptyState').style.display = 'none';
+  updateFollowingStatsV2();
+  spawnStatusParticles();
+  await Promise.all([
+    loadFollowingStoriesV2(),
+    loadFollowingRecommendationsV2(),
+    loadFollowingFeedV2(true)
+  ]);
+}
+
+function spawnStatusParticles() {
+  const container = document.getElementById('statusParticles');
+  if (!container) return;
+  container.innerHTML = '';
+  for (let i = 0; i < 15; i++) {
+    const particle = document.createElement('div');
+    particle.className = 'status-particle';
+    particle.style.left = Math.random() * 100 + '%';
+    particle.style.top = Math.random() * 100 + '%';
+    particle.style.animationDelay = Math.random() * 3 + 's';
+    particle.style.animationDuration = (2 + Math.random() * 4) + 's';
+    container.appendChild(particle);
+  }
+}
+
+async function updateFollowingStatsV2() {
+  const countEl = document.getElementById('followingCountDisplay');
+  if (countEl) countEl.textContent = APP.followedIds.length;
+  const today = new Date().toLocaleDateString('en-CA');
+  const { count } = await sb.from('posts')
+    .select('*', { count: 'exact', head: true })
+    .in('user_id', APP.followedIds)
+    .gte('created_at', today);
+  const todayPostsEl = document.getElementById('followingTodayPosts');
+  if (todayPostsEl) todayPostsEl.textContent = count || 0;
+}
+
+async function loadFollowingStoriesV2() {
+  const container = document.getElementById('followingStoriesContainer');
+  if (!container) return;
+  const { data: profiles } = await sb.from('profiles')
+    .select('id, username, avatar_url, last_active_at')
+    .in('id', APP.followedIds)
+    .order('last_active_at', { ascending: false })
+    .limit(10);
+  if (!profiles || profiles.length === 0) {
+    container.innerHTML = '<div class="text-center py-4" style="color:var(--muted);">暂无动态</div>';
+    return;
+  }
+  container.innerHTML = profiles.map(p => `
+    <div class="story-card-v2" onclick="viewUserProfile('${p.id}')">
+      <div class="story-avatar-ring-v2">
+        <img src="${p.avatar_url || dicebearUrl(p.username)}" alt="${p.username}">
+      </div>
+      <span class="story-name-v2">${p.username}</span>
+      <span class="story-time-v2">${timeAgo(p.last_active_at || new Date())}</span>
+    </div>
+  `).join('');
+}
+
+async function loadFollowingRecommendationsV2() {
+  const container = document.getElementById('followingRecommendGrid');
+  if (!container) return;
+  const excludeIds = [...APP.followedIds, APP.user.id];
+  let query = sb.from('profiles')
+    .select('id, username, avatar_url, followers_count, level')
+    .order('followers_count', { ascending: false })
+    .limit(6);
+  if (excludeIds.length > 0) query = query.filter('id', 'not.in', `(${excludeIds.join(',')})`);
+  const { data, error } = await query;
+  if (error || !data || data.length === 0) {
+    container.innerHTML = '<div class="text-center py-6" style="color:var(--muted);">暂无推荐目标</div>';
+    return;
+  }
+  container.innerHTML = data.map(u => `
+    <div class="recommend-card-glass-v2" onclick="viewUserProfile('${u.id}')">
+      <img src="${u.avatar_url || dicebearUrl(u.username)}" class="rec-avatar-v2" alt="${u.username}">
+      <div class="rec-info-v2">
+        <div class="rec-name-v2">${u.username}</div>
+        <div class="rec-stats-v2">Lv.${u.level || 1} · ${u.followers_count || 0} 粉丝</div>
+      </div>
+      <button class="rec-follow-btn-v2" onclick="event.stopPropagation(); quickFollowV2('${u.id}', this)">
+        <i class="fas fa-user-plus"></i> 关注
+      </button>
+    </div>
+  `).join('');
+}
+
+async function quickFollowV2(userId, btn) {
+  if (!APP.user) { openAuthModal(); return; }
+  await followUser(userId);
+  if (APP.followedIds.includes(userId)) {
+    btn.innerHTML = '<i class="fas fa-check"></i> 已关注';
+    btn.classList.add('followed');
+    btn.disabled = true;
+    updateFollowingStatsV2();
+    loadFollowingStoriesV2();
+  }
+}
+
+async function loadFollowingFeedV2(reset = false) {
+  if (followingStateV2.feedLoading) return;
+  if (!reset && followingStateV2.feedAllLoaded) return;
+  followingStateV2.feedLoading = true;
+  const container = document.getElementById('followingFeedContainer');
+  const loadingEl = document.getElementById('followingFeedLoading');
+  if (reset) {
+    followingStateV2.feedPage = 1;
+    followingStateV2.feedAllLoaded = false;
+    container.innerHTML = '';
+  }
+  loadingEl.style.display = 'flex';
+  let query = sb.from('posts')
+    .select('*, profiles!user_id(username, avatar_url)')
+    .in('user_id', APP.followedIds)
+    .neq('post_type', 'story')
+    .order('created_at', { ascending: false })
+    .range((followingStateV2.feedPage - 1) * 10, followingStateV2.feedPage * 10 - 1);
+  if (followingStateV2.feedFilter === 'post') query = query.eq('post_type', 'normal');
+  else if (followingStateV2.feedFilter === 'video') query = query.not('media_urls', 'eq', '{}');
+  else if (followingStateV2.feedFilter === 'vote') query = query.eq('post_type', 'vote');
+  const { data, error } = await query;
+  loadingEl.style.display = 'none';
+  if (error || !data || data.length === 0) {
+    if (reset) container.innerHTML = '<div class="text-center py-10" style="color:var(--muted);">关注用户暂无动态</div>';
+    followingStateV2.feedAllLoaded = true;
+    followingStateV2.feedLoading = false;
+    return;
+  }
+  data.forEach(post => {
+    const card = createFeedCardV2(post);
+    container.appendChild(card);
+  });
+  if (data.length < 10) followingStateV2.feedAllLoaded = true;
+  followingStateV2.feedPage++;
+  followingStateV2.feedLoading = false;
+}
+
+function createFeedCardV2(post) {
+  const div = document.createElement('div');
+  div.className = 'feed-card-v2';
+  div.onclick = () => openComments(post.id);
+  const user = post.profiles || {};
+  const firstMedia = (post.media_urls && post.media_urls.length > 0) ? post.media_urls[0] : null;
+  const isVideo = firstMedia && firstMedia.match(/\.(mp4|webm|mov)$/i);
+  const typeLabel = post.post_type === 'vote' ? '🗳️ 投票' : (post.post_type === 'qa' ? '❓ 问答' : '📝 图文');
+  div.innerHTML = `
+    <div class="feed-card-header-v2">
+      <img src="${user.avatar_url || dicebearUrl(user.username || 'u')}" class="feed-card-avatar-v2">
+      <span class="feed-card-author-v2">${user.username || '干员'}</span>
+      <span class="feed-card-time-v2">${timeAgo(post.created_at)}</span>
+    </div>
+    <div class="feed-card-title-v2">${post.title}</div>
+    ${post.description ? `<div class="feed-card-desc-v2">${post.description}</div>` : ''}
+    ${firstMedia && !isVideo ? `<img src="${firstMedia}" class="feed-card-media-v2" loading="lazy">` : ''}
+    ${firstMedia && isVideo ? `<video src="${firstMedia}" class="feed-card-media-v2" preload="metadata" muted></video>` : ''}
+    <div class="feed-card-footer-v2">
+      <span><i class="far fa-thumbs-up"></i> ${post.upvotes || 0}</span>
+      <span><i class="far fa-comment"></i> ${post.comments_count || 0}</span>
+      <span><i class="far fa-heart"></i> ${post.favorites_count || 0}</span>
+      <span>${typeLabel}</span>
+    </div>
+  `;
+  return div;
+}
+
+function filterFollowingFeedV2(filter, btn) {
+  followingStateV2.feedFilter = filter;
+  document.querySelectorAll('.filter-chip-v2').forEach(c => c.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  loadFollowingFeedV2(true);
+}
+
+// 无限滚动监听
+let followingScrollObserverV2 = null;
+function setupFollowingInfiniteScrollV2() {
+  if (followingScrollObserverV2) followingScrollObserverV2.disconnect();
+  const sentinel = document.createElement('div');
+  sentinel.id = 'followingFeedSentinelV2';
+  sentinel.style.height = '10px';
+  const container = document.getElementById('followingFeedContainer');
+  if (container) container.after(sentinel);
+  followingScrollObserverV2 = new IntersectionObserver((entries) => {
+    if (entries[0].isIntersecting && !followingStateV2.feedLoading && !followingStateV2.feedAllLoaded) {
+      loadFollowingFeedV2();
+    }
+  }, { rootMargin: '200px' });
+  if (sentinel) followingScrollObserverV2.observe(sentinel);
+}
+
+// 在每次打开关注页时激活
+(function() {
+  const origSwitchTab = switchTab;
+  switchTab = function(tab) {
+    origSwitchTab(tab);
+    if (tab === 'following') {
+      setTimeout(() => {
+        renderFollowingTabV2();
+        setupFollowingInfiniteScrollV2();
+      }, 100);
+    }
+  };
+})();
+
+
+
+
+
+
 // ==================== 关注系统 ====================
 async function loadFollowingIds() {
   if (!APP.user) return;
@@ -15658,18 +15886,7 @@ async function followUser(userId) {
 renderProfile();
   loadPosts(true);
 }
-async function loadFollowingPosts() {
-if (!APP.followedIds.length) {
-    $('followingGrid').innerHTML = '';
-    $('emptyFollowing').style.display = 'block';
-    return;
-  }
-  $('emptyFollowing').style.display = 'none';
-  const { data } = await sb.from('posts').select('*, profiles!user_id(username, avatar_url, level, equipped_frame, equipped_pendant, equipped_nickname_effect, is_escort, escort_level)').in('user_id', APP.followedIds).neq('post_type','story').order('created_at', { ascending: false }).limit(20);
-  const grid = $('followingGrid');
-  grid.innerHTML = '';
-  (data||[]).forEach((p, i) => grid.appendChild(createPostCard(p, i)));
-}
+
 
 // ==================== 关注模块 · 军事化增强版逻辑 ====================
 let followingState = {
@@ -15684,103 +15901,6 @@ let followingState = {
   feedData: []
 };
 
-// 渲染整个关注页面
-async function renderFollowingTab() {
-  if (!APP.user) {
-    const emptyState = document.getElementById('followingEmptyState');
-    if (emptyState) emptyState.style.display = 'block';
-    return;
-  }
-  await loadFollowingIds();
-  
-  if (APP.followedIds.length === 0) {
-    // 显示空状态引导，同时保留推荐关注、火力榜、话题云模块（用占位内容填充）
-    const emptyState = document.getElementById('followingEmptyState');
-    const storySection = document.getElementById('followingStorySection');
-    const rankContainer = document.getElementById('followingRankList');
-    const topicContainer = document.getElementById('followingTopicCloud');
-    const feedSection = document.querySelector('#followingTab .following-section:last-of-type');
-    const recSection = document.getElementById('followingRecommendSection');
-    
-    if (emptyState) emptyState.style.display = 'block';
-    if (storySection) storySection.style.display = 'none';
-    if (rankContainer) rankContainer.innerHTML = '<div class="text-center py-4" style="color:var(--muted);">关注干员后解锁火力榜</div>';
-    if (topicContainer) topicContainer.innerHTML = '<div class="text-center py-2" style="color:var(--muted);">关注干员后查看热门话题</div>';
-    if (feedSection) feedSection.style.display = 'none';
-    if (recSection) recSection.style.display = 'block';
-    
-    loadFollowingRecommendations();
-    updateFollowingStats();
-    return;
-  }
-  
-  // 有关注用户时的正常显示逻辑
-  const emptyState = document.getElementById('followingEmptyState');
-  if (emptyState) emptyState.style.display = 'none';
-  document.querySelectorAll('#followingTab .following-section').forEach(s => s.style.display = 'block');
-  
-  updateFollowingStats();
-  await Promise.all([
-    loadFollowingStories(),
-    loadFollowingRank(),
-    loadFollowingTopicCloud(),
-    loadFollowingFeed(true)
-  ]);
-  loadFollowingRecommendations(); // 推荐不阻塞
-}
-// 更新统计数字
-async function updateFollowingStats() {
-  const countEl = document.getElementById('followingCountDisplay');
-  if (countEl) countEl.textContent = APP.followedIds.length;
-  
-  const today = new Date().toISOString().split('T')[0];
-  const { count } = await sb.from('posts')
-    .select('*', { count: 'exact', head: true })
-    .in('user_id', APP.followedIds)
-    .gte('created_at', today);
-  const todayPostsEl = document.getElementById('followingTodayPosts');
-  if (todayPostsEl) todayPostsEl.textContent = count || 0;
-}
-
-// 加载关注用户的 Story 环（最新动态）
-async function loadFollowingStories() {
-  const container = document.getElementById('followingStoriesContainer');
-  if (!container) return;
-  container.innerHTML = '<div class="text-center py-4" style="color:var(--muted);"><i class="fas fa-spinner fa-pulse"></i> 扫描战场...</div>';
-  
-  const { data: profiles } = await sb.from('profiles')
-    .select('id, username, avatar_url, last_active_at')
-    .in('id', APP.followedIds)
-    .order('last_active_at', { ascending: false })
-    .limit(10);
-  
-  if (!profiles || profiles.length === 0) {
-    container.innerHTML = '<div class="text-center py-4" style="color:var(--muted);">暂无动态</div>';
-    return;
-  }
-  
-  const storiesHtml = await Promise.all(profiles.map(async (p) => {
-    const { data: latestPost } = await sb.from('posts')
-      .select('created_at, post_type')
-      .eq('user_id', p.id)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    const hasNew = latestPost && (new Date() - new Date(latestPost.created_at)) < 86400000;
-    return `
-      <div class="following-story-item" onclick="viewUserProfile('${p.id}')">
-        <div class="following-story-avatar-wrapper">
-          <img src="${p.avatar_url || dicebearUrl(p.username)}" class="following-story-avatar">
-          ${hasNew ? '<span class="online-dot"></span>' : ''}
-          ${hasNew ? '<span class="following-story-badge"><i class="fas fa-plus"></i></span>' : ''}
-        </div>
-        <span class="following-story-name">${p.username}</span>
-        <span class="following-story-time">${latestPost ? timeAgo(latestPost.created_at) : '近期无动态'}</span>
-      </div>
-    `;
-  }));
-  container.innerHTML = storiesHtml.join('');
-}
 
 // 加载关注用户排行榜（按近7天发帖数+获赞数）
 async function loadFollowingRank() {
@@ -15867,60 +15987,6 @@ async function loadFollowingTopicCloud() {
   `).join('');
 }
 
-// 加载推荐关注
-async function loadFollowingRecommendations() {
-  const container = document.getElementById('followingRecommendGrid');
-  if (!container) return;
-  container.innerHTML = '<div class="col-span-2 text-center py-4" style="color:var(--muted);">扫描高价值目标...</div>';
-  
-  // 构建要排除的用户ID数组
-  const excludeIds = APP.followedIds.concat(APP.user ? APP.user.id : []);
-  
-  let query = sb.from('profiles')
-    .select('id, username, avatar_url, followers_count, level')
-    .order('followers_count', { ascending: false })
-    .limit(4);
-  
-  // 排除当前用户和已关注用户
-  if (excludeIds.length > 0) {
-    // 正确语法：直接传递数组或使用 .in() 的否定形式，Supabase 会自动处理 UUID 格式
-    // 方法一：使用 .not('id', 'in', excludeIds) （较新版本支持）
-    // 方法二：使用 .filter() 自定义条件
-    // 这里采用最可靠的自定义过滤方式
-    query = query.filter('id', 'not.in', `(${excludeIds.join(',')})`);
-  }
-  
-  const { data: allUsers, error } = await query;
-  
-  if (error) {
-    console.error('推荐关注查询失败:', error);
-    container.innerHTML = '<div class="col-span-2 text-center py-4" style="color:var(--muted);">加载失败，请刷新</div>';
-    return;
-  }
-  
-  if (!allUsers || allUsers.length === 0) {
-    container.innerHTML = '<div class="col-span-2 text-center py-4" style="color:var(--muted);">暂无推荐</div>';
-    return;
-  }
-  
-  container.innerHTML = allUsers.map(u => `
-    <div class="following-recommend-card" onclick="viewUserProfile('${u.id}')">
-      <img src="${u.avatar_url || dicebearUrl(u.username)}" class="following-recommend-avatar">
-      <div class="following-recommend-info">
-        <div class="following-recommend-name">
-          ${u.username}
-          <span class="following-recommend-badge">Lv.${u.level}</span>
-        </div>
-        <div class="following-recommend-stats">
-          <span><i class="fas fa-users"></i> ${u.followers_count || 0}</span>
-        </div>
-      </div>
-      <button class="following-recommend-btn" onclick="event.stopPropagation(); followUser('${u.id}')">
-        <i class="fas fa-user-plus"></i> 关注
-      </button>
-    </div>
-  `).join('');
-}
 // 加载关注动态流
 async function loadFollowingFeed(reset = false) {
   if (followingState.feedLoading) return;
@@ -16008,43 +16074,10 @@ function filterFollowingFeed(filter) {
   loadFollowingFeed(true);
 }
 
-// 滚动加载更多
-function setupFollowingInfiniteScroll() {
-  const feedContainer = document.getElementById('followingFeedContainer');
-  if (!feedContainer) return;
-  
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting && !followingState.feedLoading && !followingState.feedAllLoaded) {
-        loadFollowingFeed();
-      }
-    });
-  }, { rootMargin: '200px' });
-  
-  const sentinel = document.createElement('div');
-  sentinel.id = 'followingFeedSentinel';
-  sentinel.style.height = '10px';
-  feedContainer.parentNode.appendChild(sentinel);
-  observer.observe(sentinel);
-}
 
-// 覆盖原有的 loadFollowingPosts 以接入新系统
-const originalLoadFollowingPosts = loadFollowingPosts;
-loadFollowingPosts = function() {
-  renderFollowingTab();
-};
 
-// 修改 switchTab 中对 following 的处理
-const originalSwitchTab = switchTab;
-switchTab = function(tab) {
-  originalSwitchTab(tab);
-  if (tab === 'following') {
-    setTimeout(() => {
-      renderFollowingTab();
-      setupFollowingInfiniteScroll();
-    }, 50);
-  }
-};
+
+
 // ==================== 护航专区 ====================
 async function loadEscortVideos(reset = true) {
   if (escortState.loading) return;
@@ -31649,6 +31682,190 @@ input:focus, textarea:focus, select:focus {
     opacity: 1 !important;
     visibility: visible !important;
 }
+
+
+
+
+
+
+/* ========== 关注页 V2 样式（完整版） ========== */
+.command-status-bar-v2 {
+  position: relative;
+  background: linear-gradient(160deg, rgba(15,12,10,0.95) 0%, rgba(25,18,12,0.92) 50%, rgba(18,13,8,0.95) 100%);
+  border: 1px solid rgba(200,140,80,0.18);
+  border-radius: 28px;
+  padding: 28px 30px;
+  margin-bottom: 28px;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  overflow: hidden;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.03), inset 0 -1px 0 rgba(0,0,0,0.3);
+}
+.status-scan-line {
+  position: absolute;
+  top: 0; left: -100%;
+  width: 200%; height: 1.5px;
+  background: linear-gradient(90deg, transparent 0%, rgba(255,140,60,0.6) 20%, rgba(255,200,100,0.9) 50%, rgba(255,140,60,0.6) 80%, transparent 100%);
+  animation: scanSweep 4s linear infinite;
+}
+@keyframes scanSweep {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(100%); }
+}
+.status-particles { position: absolute; inset: 0; pointer-events: none; }
+.status-particle {
+  position: absolute; width: 2px; height: 2px;
+  background: #FFB347; border-radius: 50%;
+  animation: particleFloat 3s ease-in-out infinite;
+}
+@keyframes particleFloat {
+  0%, 100% { opacity: 0.2; transform: translateY(0); }
+  50% { opacity: 0.9; transform: translateY(-30px); }
+}
+.status-content-v2 { display: flex; justify-content: space-between; align-items: center; position: relative; z-index: 2; flex-wrap: wrap; gap: 16px; }
+.status-left-v2 { display: flex; align-items: center; gap: 16px; }
+.status-icon-ring {
+  width: 50px; height: 50px; border-radius: 50%;
+  background: linear-gradient(135deg, rgba(255,107,53,0.2), rgba(255,71,87,0.1));
+  border: 2px solid rgba(255,107,53,0.4);
+  display: flex; align-items: center; justify-content: center;
+  animation: iconPulse 2.5s ease-in-out infinite;
+}
+.status-icon-ring i { font-size: 22px; color: var(--accent); filter: drop-shadow(0 0 10px var(--accent)); }
+@keyframes iconPulse {
+  0%, 100% { box-shadow: 0 0 15px rgba(255,107,53,0.3); }
+  50% { box-shadow: 0 0 30px rgba(255,107,53,0.6); transform: scale(1.05); }
+}
+.status-title-v2 {
+  font-family: 'ZCOOL QingKe HuangYou', sans-serif;
+  font-size: 1.6rem; letter-spacing: 2px;
+  color: var(--text); margin: 0;
+  text-shadow: 0 1px 3px rgba(255,140,60,0.2);  /* 清晰不模糊 */
+  -webkit-font-smoothing: antialiased;
+}
+.status-subtitle { font-size: 0.75rem; color: var(--muted); margin: 2px 0 0 0; letter-spacing: 1px; }
+.status-right-v2 { display: flex; align-items: center; gap: 20px; }
+.stat-block { text-align: center; }
+.stat-value-v2 { font-size: 2rem; font-weight: 900; color: var(--accent); line-height: 1; }
+.stat-label-v2 { font-size: 0.7rem; color: var(--muted); letter-spacing: 1.5px; text-transform: uppercase; }
+.stat-divider-v2 { width: 1px; height: 36px; background: linear-gradient(180deg, transparent, rgba(255,140,80,0.3), transparent); }
+.refresh-btn-v2 {
+  padding: 10px 20px; border-radius: 30px;
+  background: rgba(255,107,53,0.1); border: 1.5px solid rgba(255,107,53,0.3);
+  color: var(--accent); font-weight: 600; font-size: 0.85rem; cursor: pointer; transition: all 0.3s;
+}
+.refresh-btn-v2:hover { background: var(--accent); color: #fff; box-shadow: 0 8px 24px rgba(255,107,53,0.35); transform: translateY(-2px); }
+
+.stories-war-zone-v2 { display: flex; gap: 18px; overflow-x: auto; padding: 8px 4px 24px; margin-bottom: 24px; scrollbar-width: none; }
+.stories-war-zone-v2::-webkit-scrollbar { display: none; }
+.story-card-v2 { flex-shrink: 0; display: flex; flex-direction: column; align-items: center; gap: 8px; cursor: pointer; transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1); }
+.story-card-v2:hover { transform: translateY(-8px); }
+.story-avatar-ring-v2 {
+  width: 68px; height: 68px; border-radius: 50%; padding: 3px;
+  background: linear-gradient(135deg, #FF6B35, #FFD700, #FF4757);
+  animation: storyRingRotate 4s linear infinite;
+}
+@keyframes storyRingRotate { 0% { filter: hue-rotate(0deg); } 100% { filter: hue-rotate(360deg); } }
+.story-avatar-ring-v2 img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; border: 3px solid var(--bg); }
+.story-name-v2 { font-size: 0.8rem; font-weight: 600; color: var(--text); max-width: 80px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.story-time-v2 { font-size: 0.65rem; color: var(--muted); }
+
+.section-header-v2 { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.header-left { display: flex; align-items: center; gap: 10px; }
+.header-icon {
+  width: 32px; height: 32px; border-radius: 10px;
+  background: linear-gradient(135deg, rgba(255,107,53,0.2), rgba(255,71,87,0.1));
+  display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,107,53,0.3);
+}
+.header-icon i { color: var(--accent); font-size: 14px; }
+.section-header-v2 h3 { font-weight: 700; font-size: 1rem; color: var(--text); margin: 0; }
+.header-badge { font-size: 0.7rem; padding: 3px 10px; border-radius: 20px; background: rgba(255,107,53,0.15); color: var(--accent); border: 1px solid rgba(255,107,53,0.25); }
+.header-action { background: transparent; border: 1px solid var(--border); border-radius: 20px; padding: 6px 14px; font-size: 0.75rem; color: var(--muted); cursor: pointer; transition: all 0.25s; }
+.header-action:hover { border-color: var(--accent); color: var(--accent); }
+
+.recommend-black-site-v2 { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; margin-bottom: 28px; }
+.recommend-card-glass-v2 {
+  background: linear-gradient(160deg, rgba(20,15,10,0.8), rgba(15,10,5,0.9));
+  border: 1px solid rgba(200,140,80,0.12); border-radius: 20px; padding: 12px;
+  transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1); cursor: pointer;
+  display: flex; align-items: center; gap: 14px; position: relative; overflow: hidden;
+}
+.recommend-card-glass-v2::before {
+  content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+  background: radial-gradient(ellipse at 20% 0%, rgba(255,107,53,0.08), transparent 70%);
+  opacity: 0; transition: opacity 0.4s;
+}
+.recommend-card-glass-v2:hover::before { opacity: 1; }
+.recommend-card-glass-v2:hover { transform: translateY(-4px); border-color: rgba(255,107,53,0.4); box-shadow: 0 16px 40px rgba(0,0,0,0.4), 0 0 30px rgba(255,107,53,0.1); }
+.rec-avatar-v2 { width: 40px !important; height: 40px !important; border-radius: 50%; object-fit: cover; border: 2px solid rgba(255,107,53,0.4); flex-shrink: 0; }
+.rec-info-v2 { flex: 1; min-width: 0; }
+.rec-name-v2 { font-weight: 700; font-size: 0.9rem; color: var(--text); }
+.rec-stats-v2 { font-size: 0.7rem; color: var(--muted); margin-top: 2px; }
+.rec-follow-btn-v2 {
+  padding: 8px 16px; border-radius: 20px;
+  background: linear-gradient(135deg, #FF6B35, #FF4757); color: #fff; border: none;
+  font-weight: 600; font-size: 0.75rem; cursor: pointer; transition: all 0.3s; flex-shrink: 0;
+}
+.rec-follow-btn-v2:hover { transform: scale(1.05); box-shadow: 0 6px 20px rgba(255,107,53,0.4); }
+.rec-follow-btn-v2.followed { background: transparent; border: 1.5px solid var(--accent); color: var(--accent); }
+
+.feed-filters-v2 { display: flex; gap: 8px; flex-wrap: wrap; }
+.filter-chip-v2 {
+  padding: 8px 18px; border-radius: 25px;
+  background: transparent; border: 1.5px solid var(--border); color: var(--muted);
+  font-weight: 500; font-size: 0.8rem; cursor: pointer; transition: all 0.3s;
+}
+.filter-chip-v2.active { background: var(--accent); color: #fff; border-color: var(--accent); box-shadow: 0 4px 15px rgba(255,107,53,0.3); }
+.filter-chip-v2:hover:not(.active) { border-color: var(--accent); color: var(--accent); }
+
+.feed-war-log-v2 { display: flex; flex-direction: column; gap: 14px; }
+.feed-card-v2 {
+  background: linear-gradient(160deg, rgba(20,15,10,0.8), rgba(15,10,5,0.9));
+  border: 1px solid rgba(200,140,80,0.1); border-radius: 20px; padding: 20px;
+  transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1); cursor: pointer;
+}
+.feed-card-v2:hover { transform: translateY(-3px); border-color: rgba(255,107,53,0.35); box-shadow: 0 12px 30px rgba(0,0,0,0.3); }
+.feed-card-header-v2 { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.feed-card-avatar-v2 { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 2px solid rgba(255,107,53,0.3); }
+.feed-card-author-v2 { font-weight: 600; font-size: 0.85rem; color: var(--text); }
+.feed-card-time-v2 { font-size: 0.7rem; color: var(--muted); margin-left: auto; }
+.feed-card-title-v2 { font-weight: 700; font-size: 0.95rem; color: var(--text); margin-bottom: 8px; line-height: 1.4; }
+.feed-card-desc-v2 { font-size: 0.8rem; color: var(--muted); margin-bottom: 10px; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.feed-card-media-v2 { width: 100%; max-height: 200px; object-fit: cover; border-radius: 12px; margin-bottom: 10px; }
+.feed-card-footer-v2 { display: flex; gap: 16px; font-size: 0.78rem; color: var(--muted); border-top: 1px solid rgba(255,255,255,0.05); padding-top: 10px; }
+.feed-card-footer-v2 span { display: flex; align-items: center; gap: 4px; }
+.feed-card-footer-v2 i { font-size: 0.85rem; }
+
+.feed-loading-v2 { text-align: center; padding: 24px; color: var(--muted); display: flex; align-items: center; justify-content: center; gap: 10px; }
+.loading-spinner { width: 20px; height: 20px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.following-empty-state-v2 { text-align: center; padding: 80px 20px; }
+.hologram-ring { width: 120px; height: 120px; margin: 0 auto 28px; position: relative; display: flex; align-items: center; justify-content: center; }
+.hologram-core { width: 40px; height: 40px; background: radial-gradient(circle, rgba(255,107,53,0.8), transparent); border-radius: 50%; animation: corePulse 2s ease-in-out infinite; }
+@keyframes corePulse { 0%, 100% { transform: scale(1); opacity: 0.6; } 50% { transform: scale(1.3); opacity: 1; } }
+.hologram-orbit { position: absolute; inset: 0; border: 2px solid rgba(255,107,53,0.2); border-radius: 50%; animation: orbitSpin 4s linear infinite; }
+.hologram-orbit.orbit-2 { inset: 15px; border-color: rgba(255,215,0,0.15); animation-duration: 6s; animation-direction: reverse; }
+@keyframes orbitSpin { to { transform: rotate(360deg); } }
+.following-empty-state-v2 h3 { font-size: 1.3rem; color: var(--text); margin: 0 0 8px; }
+.following-empty-state-v2 p { font-size: 0.9rem; color: var(--muted); margin: 0 0 20px; }
+.btn-cta-v2 { padding: 12px 28px; border-radius: 30px; background: linear-gradient(135deg, #FF6B35, #FF4757); color: #fff; border: none; font-weight: 700; font-size: 0.9rem; cursor: pointer; transition: all 0.3s; display: inline-flex; align-items: center; gap: 8px; }
+.btn-cta-v2:hover { transform: translateY(-3px); box-shadow: 0 12px 30px rgba(255,107,53,0.4); }
+
+@media (max-width: 768px) {
+  .command-status-bar-v2 { padding: 20px 16px; border-radius: 22px; }
+  .status-title-v2 { font-size: 1.2rem; }
+  .stat-value-v2 { font-size: 1.4rem; }
+  .recommend-black-site-v2 { grid-template-columns: 1fr; }
+  .stories-war-zone-v2 { gap: 12px; }
+  .story-avatar-ring-v2 { width: 56px; height: 56px; }
+}
+@media (max-width: 480px) {
+  .command-status-bar-v2 { padding: 14px 12px; }
+  .status-content-v2 { gap: 10px; }
+  .feed-card-v2 { padding: 14px; }
+}
+
 
 
 </style>
