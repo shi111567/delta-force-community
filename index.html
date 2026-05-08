@@ -2768,10 +2768,34 @@ pointer-events: auto !important;
   }
 
   /* 瀑布流 */
-  .masonry { column-count: 4; column-gap: 12px; }
+  .masonry {
+  column-count: 4;
+  column-gap: 12px;
+}
 @media (max-width: 1200px) { .masonry { column-count: 3; } }
 @media (max-width: 768px) { .masonry { column-count: 2; column-gap: 8px; } }
-.masonry-item { break-inside: avoid; margin-bottom: 10px; }
+
+.masonry-item {
+  break-inside: avoid-column;   /* 防止卡片被拆成两半 */
+  margin-bottom: 12px;
+  /* 移除任何内联的 width/minHeight，让内容自然撑开 */
+}
+
+.post-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  padding: 20px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  word-wrap: break-word;
+  overflow: hidden;   /* 圆角配合溢出隐藏，保证内部元素不会超出圆角 */
+}
+
+.post-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 30px var(--glow);
+  /* 不再使用 scale，避免溢出父容器 */
+}
 
   /* Story 环 */
   .story-ring {
@@ -12096,6 +12120,24 @@ if (APP.filters.topic && APP.filters.topic !== 'all') {
   if (error) { 
     console.error('加载帖子失败:', error); 
     APP.loading = false; 
+
+  // 确保瀑布流容器可见
+  setTimeout(function() {
+      var grid = document.getElementById('postsGrid');
+      if (grid) {
+          grid.style.opacity = '1';
+          grid.style.visibility = 'visible';
+          var items = grid.querySelectorAll('.masonry-item');
+          items.forEach(function(item) {
+              item.style.opacity = '1';
+              item.style.visibility = 'visible';
+              item.style.backgroundColor = 'var(--card)';
+          });
+      }
+  }, 50);
+
+
+
     if ($('postsSkeleton')) $('postsSkeleton').style.display = 'none';
     return; 
   }
@@ -12504,7 +12546,16 @@ div.setAttribute('data-media-urls', JSON.stringify(post.media_urls || []));
     }
   }
 
-
+  // ===== 以下已注释，防止布局问题 =====
+  // div.style.display = 'block';
+  // div.style.opacity = '1';
+  // div.style.visibility = 'visible';
+  // div.style.minHeight = '80px';
+  // var innerCard = div.querySelector('.post-card');
+  // if (innerCard) {
+  //     innerCard.style.backgroundColor = 'var(--card, #ffffff)';
+  //     innerCard.style.color = 'var(--text, #333333)';
+  // }
 
   return div;
 }
@@ -13178,7 +13229,10 @@ localStorage.setItem('readPosts', JSON.stringify(readPosts));
   setTimeout(() => $('commentInput')?.focus(), 100);
 }
 async function loadComments(pid) {
-  const { data } = await sb.from('comments').select('*, profiles(username, avatar_url)').eq('post_id', pid).order('created_at', { ascending: true });
+  const { data } = await sb.from('comments')
+  .select('*, profiles(username, avatar_url, equipped_nickname_effect, equipped_frame, equipped_pendant)')
+  .eq('post_id', pid)
+  .order('created_at', { ascending: true });
   const list = $('commentsList');
   list.innerHTML = '';
   if (!data || !data.length) { 
@@ -13202,7 +13256,7 @@ async function loadComments(pid) {
       <div class="p-2 rounded-lg" style="margin-left:${depth*20}px;background:var(--surface)">
         <div class="flex items-center gap-2 mb-1">
           <img src="${c.profiles?.avatar_url || dicebearUrl('c')}" class="w-6 h-6 rounded-full">
-          <span class="${nicknameClass}">${post.profiles?.username || '干员'}</span>
+          <span class="${getCosmeticClass(c.profiles?.equipped_nickname_effect, 'nickname') || ''}">${c.profiles?.username || '干员'}</span>
           <span class="text-xs" style="color:var(--muted)">${timeAgo(c.created_at)}</span>
         </div>
         ${c.content ? `<p class="text-sm mb-1">${mentions ? `<span style="color:var(--accent)">${mentions}</span> ` : ''}${c.content}</p>` : ''}
@@ -30564,14 +30618,7 @@ function exportAllFavoritesAsText() {
 </div>
 
 
-.modal-overlay {
-  z-index: 100000 !important;
-  background-color: rgba(0, 0, 0, 0.75) !important;
-}
-.modal-overlay .modal-content {
-  position: relative;
-  z-index: 100001;
-}
+
 
 
 
@@ -30584,7 +30631,14 @@ function exportAllFavoritesAsText() {
 
 
 
-
+.modal-overlay {
+  z-index: 100000 !important;
+  background-color: rgba(0, 0, 0, 0.75) !important;
+}
+.modal-overlay .modal-content {
+  position: relative;
+  z-index: 100001;
+}
 
 
 
@@ -31539,7 +31593,11 @@ input:focus, textarea:focus, select:focus {
 }
 
 
-
+/* 保底：帖子区域永不透明 */
+#postsGrid, #postsGrid .masonry-item, #postsGrid .post-card {
+    opacity: 1 !important;
+    visibility: visible !important;
+}
 
 
 </style>
@@ -31765,29 +31823,6 @@ input:focus, textarea:focus, select:focus {
 
 
 
-// 给所有动态添加的列表项增加入场动画延迟
-function addListEntryAnimation(containerSelector, itemSelector, baseDelay = 0.03) {
-  const container = document.querySelector(containerSelector);
-  if (!container) return;
-  const items = container.querySelectorAll(itemSelector);
-  items.forEach((el, i) => {
-    el.style.animation = `fadeInUp 0.4s ease ${i * baseDelay}s backwards`;
-  });
-}
-
-// 在渲染函数后调用（示例）
-// 如在 loadPosts 成功后：
-// addListEntryAnimation('#postsGrid', '.masonry-item');
-// 在 loadEscortVideos 后：
-// addListEntryAnimation('#escortVideoGrid', '.escort-video-card');
-// 依此类推...
-
-// 为所有工具按钮增加触摸震动（移动端）
-document.querySelectorAll('.tool-item, .btn-warm, .btn-ghost').forEach(el => {
-  el.addEventListener('click', () => {
-    if (navigator.vibrate) navigator.vibrate(10);
-  });
-});
 
 
 
@@ -33973,22 +34008,7 @@ window.activateDynamicBg = async function(rewardId) {
 
 
 
-<!-- 弹窗终极可见性保障（精简版，兼容动画） -->
-<style>
-  /* 所有弹窗均提升到最高层，并且有可见背景（保留） */
-  .modal-overlay {
-    z-index: 100000 !important;
-    background-color: rgba(0,0,0,0.75) !important;
-  }
-  /* 注意：不再强制 modal-content 的 transform 和 opacity，让动画正常运行 */
-</style>
 
-<script>
-  // 将所有 modal-overlay 移动到 body 末尾，避免被父级裁剪（保留）
-  document.querySelectorAll('.modal-overlay').forEach(function(modal) {
-    document.body.appendChild(modal);
-  });
-</script>
 
 
 </body>
