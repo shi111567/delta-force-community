@@ -22931,6 +22931,57 @@ async function searchMusicByKeyword(keyword) {
 
 
 
+// ==================== 稳定免费音乐 API ====================
+const MUSIC_API = [
+  {
+    name: 'Sanyue',
+    search: (keyword) => `https://api.music.imsyy.top/search?keywords=${encodeURIComponent(keyword)}&limit=30`,
+    parseSearch: (raw) => {
+      const data = JSON.parse(raw);
+      if (data.result && data.result.songs) {
+        return data.result.songs.map(song => ({
+          id: song.id,
+          name: song.name,
+          artist: (song.artists || [])[0]?.name || '未知',
+          url: '',
+        }));
+      }
+      return [];
+    },
+    songUrl: (id) => `https://api.music.imsyy.top/song/url?id=${id}`,
+    parseUrl: (raw) => {
+      const data = JSON.parse(raw);
+      return data.data?.[0]?.url || null;
+    },
+    lyric: (id) => `https://api.music.imsyy.top/lyric?id=${id}`,
+    parseLyric: (raw) => {
+      const data = JSON.parse(raw);
+      return data.lrc?.lyric || null;
+    }
+  }
+];
+
+// 通用请求函数（解决 CORS 问题）
+async function fetchWithRetry(url, retries = 1, timeoutMs = 5000) {
+  for (let i = 0; i <= retries; i++) {
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), timeoutMs);
+      const resp = await fetch(url, {
+        signal: controller.signal,
+        headers: { 'Accept': 'application/json' }
+      });
+      clearTimeout(timeout);
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      return await resp.text();
+    } catch (err) {
+      if (i === retries) throw err;
+      await new Promise(r => setTimeout(r, 1000));
+    }
+  }
+}
+
+
 // ===== 搜索音乐 =====
 // ==================== 音乐搜索（增强版：支持 CORS 代理自动回退） ====================
 
