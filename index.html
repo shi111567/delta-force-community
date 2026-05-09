@@ -5577,23 +5577,39 @@ window.addEventListener('scroll', () => {
 
   <!-- 第三行：两列（组队大厅 + 社区战术流） -->
   <div class="console-row console-row-2">
-    <!-- 组队大厅 -->
-    <div class="console-card" id="squadConsoleCard">
-      <div class="card-header" onclick="toggleSquadModuleNew()">
-        <div class="card-title">
-          <i class="fas fa-users"></i>
-          <span>组队大厅</span>
-          <span class="card-badge" id="squadCountBadge">0</span>
-        </div>
-        <div class="card-header-actions">
-          <button class="console-icon-btn" onclick="event.stopPropagation(); loadSquads()"><i class="fas fa-sync-alt"></i></button>
-          <i class="fas fa-chevron-up toggle-arrow" id="squadToggleArrow"></i>
-        </div>
-      </div>
-      <div class="card-body" id="squadConsoleBody">
-        <div id="squadListContainer" class="squad-list-container">点击「发布组队」开始招募</div>
-      </div>
+ <!-- 组队大厅 V4 修复版 -->
+<div class="console-card" id="squadConsoleCard">
+  <div class="card-header" onclick="toggleSquadModuleNew()">
+    <div class="card-title">
+      <i class="fas fa-users"></i>
+      <span>组队大厅</span>
+      <span class="card-badge" id="squadCountBadge">0</span>
+      <!-- 快捷键按钮 -->
+      <button class="shortcut-help-btn-squad" onclick="event.stopPropagation();var p=document.getElementById('shortcutPanel');p.style.display=(p.style.display==='none'||p.style.display==='')?'flex':'none';" title="组队快捷键" style="margin-left:8px;">
+  <i class="fas fa-keyboard"></i>
+</button>
     </div>
+    <div class="card-header-actions">
+      <button class="console-icon-btn" onclick="event.stopPropagation(); loadSquads()"><i class="fas fa-sync-alt"></i></button>
+      <i class="fas fa-chevron-up toggle-arrow" id="squadToggleArrow"></i>
+    </div>
+  </div>
+  <div class="card-body" id="squadConsoleBody">
+    <!-- 快速操作栏 -->
+    <div style="display:flex; gap:8px; margin-bottom:12px;">
+      <button onclick="openSquadModal()" style="flex:1; padding:10px; background:var(--accent); color:#fff; border:none; border-radius:14px; font-weight:bold; font-size:0.8rem; cursor:pointer;">
+        <i class="fas fa-plus-circle mr-1"></i> 发布招募
+      </button>
+      <button onclick="loadSquads()" style="padding:10px 16px; background:rgba(255,107,53,0.1); border:1px solid rgba(255,107,53,0.3); color:var(--accent); border-radius:14px; font-size:0.8rem; cursor:pointer;">
+        <i class="fas fa-sync-alt"></i>
+      </button>
+    </div>
+    <!-- 队伍列表容器 -->
+    <div id="squadListContainer" class="squad-list-container">点击「发布组队」开始招募</div>
+  </div>
+</div>
+
+
 
     <!-- 社区战术流 -->
     <div class="console-card">
@@ -6833,6 +6849,23 @@ window.addEventListener('scroll', () => {
       </div>
     </div>
   </div>
+
+
+
+<!-- 快捷键提示面板 -->
+<div id="shortcutPanel" class="shortcut-panel" style="display:none;">
+  <div class="shortcut-panel-content">
+    <h3><i class="fas fa-keyboard"></i> 战术频道快捷键</h3>
+    <div class="shortcut-grid">
+      <div class="shortcut-item"><kbd>T</kbd> <span>按住说话</span></div>
+      <div class="shortcut-item"><kbd>Y</kbd> <span>切换麦克风</span></div>
+      <div class="shortcut-item"><kbd>Ctrl+Enter</kbd> <span>发送消息</span></div>
+    </div>
+    <button onclick="document.getElementById('shortcutPanel').style.display='none'">关闭</button>
+  </div>
+</div>
+
+
 </main>
 
 
@@ -7402,62 +7435,119 @@ window.addEventListener('scroll', () => {
 </div>
 <!-- 组队招募弹窗（增强版·地图分类） -->
 <div class="modal-overlay" id="squadModal">
-  <div class="modal-content" style="max-width:480px">
+  <div class="modal-content squad-modal-content" style="max-width:520px; background: linear-gradient(160deg, #1a120b 0%, #0f0906 100%); border: 1px solid rgba(255,140,80,0.3); border-radius: 28px; padding: 24px 20px; box-shadow: 0 30px 60px rgba(0,0,0,0.7);">
     <div class="flex justify-between items-center mb-4">
-      <h2 class="font-display text-xl"><i class="fas fa-users mr-2" style="color:var(--accent);"></i>发布组队</h2>
-      <button onclick="closeModal('squadModal')" class="w-8 h-8 rounded-full flex items-center justify-center" style="background:var(--surface)"><i class="fas fa-times"></i></button>
+      <h2 class="font-display text-xl" style="display: flex; align-items: center; gap: 8px;">
+        <span class="squad-icon-header"><i class="fas fa-users"></i></span> 发布作战招募
+      </h2>
+      <button onclick="closeModal('squadModal')" class="w-8 h-8 rounded-full flex items-center justify-center" style="background:var(--surface); border:1px solid var(--border);"><i class="fas fa-times"></i></button>
     </div>
-    <div class="space-y-3">
-      <!-- 地图选择（快速标签） -->
+
+    <div class="space-y-4">
+      <!-- 地图选择（图片+名称） -->
       <div>
-        <label class="text-sm font-bold block mb-2">选择地图</label>
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2" id="squadMapOptions">
-          <button type="button" class="map-select-btn active" data-map="大坝">🏭 大坝</button>
-          <button type="button" class="map-select-btn" data-map="航天基地">🚀 航天基地</button>
-          <button type="button" class="map-select-btn" data-map="长弓溪谷">🏹 长弓溪谷</button>
-          <button type="button" class="map-select-btn" data-map="巴克什">🏛️ 巴克什</button>
-        </div>
+        <label class="text-sm font-bold block mb-2" style="color:var(--accent);">🗺️ 作战地图</label>
+
+
+
+        <div class="grid grid-cols-2 gap-2" id="squadMapCards">
+  <div class="map-card active" data-map="大坝" onclick="selectSquadMap(this)">
+    <div class="map-thumb" style="background:linear-gradient(135deg, #2a3a2a, #3a5a3a); display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:12px; color:#ffd700;">零号大坝</div>
+    <span>🏭 零号大坝</span>
+  </div>
+  <div class="map-card" data-map="航天基地" onclick="selectSquadMap(this)">
+    <div class="map-thumb" style="background:linear-gradient(135deg, #1a1a2e, #2a2a4e); display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:12px; color:#ffd700;">航天基地</div>
+    <span>🚀 航天基地</span>
+  </div>
+  <div class="map-card" data-map="长弓溪谷" onclick="selectSquadMap(this)">
+    <div class="map-thumb" style="background:linear-gradient(135deg, #2a2a1a, #3a3a2a); display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:12px; color:#ffd700;">长弓溪谷</div>
+    <span>🏹 长弓溪谷</span>
+  </div>
+  <div class="map-card" data-map="巴克什" onclick="selectSquadMap(this)">
+    <div class="map-thumb" style="background:linear-gradient(135deg, #1a1218, #2a1a2a); display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:12px; color:#ffd700;">巴克什</div>
+    <span>🏛️ 巴克什</span>
+  </div>
+</div>
         <input type="hidden" id="squadMap" value="大坝">
       </div>
+
       <!-- 难度选择 -->
       <div>
-        <label class="text-sm font-bold block mb-2">难度</label>
-        <div class="flex gap-2" id="squadDifficultyOptions">
-          <button type="button" class="diff-select-btn active" data-diff="普通">普通</button>
-          <button type="button" class="diff-select-btn" data-diff="机密">机密</button>
-          <button type="button" class="diff-select-btn" data-diff="绝密">绝密</button>
+        <label class="text-sm font-bold block mb-2" style="color:var(--accent);">⚔️ 作战难度</label>
+        <div class="flex gap-2" id="squadDifficultyOptionsNew">
+          <div class="diff-card active" data-diff="普通" onclick="selectSquadDiff(this,'普通')">
+            <span>🟢 普通</span>
+            <small>20w门槛</small>
+          </div>
+          <div class="diff-card" data-diff="机密" onclick="selectSquadDiff(this,'机密')">
+            <span>🟡 机密</span>
+            <small>40w门槛</small>
+          </div>
+          <div class="diff-card" data-diff="绝密" onclick="selectSquadDiff(this,'绝密')">
+            <span>🔴 绝密</span>
+            <small>60w门槛</small>
+          </div>
         </div>
         <input type="hidden" id="squadDifficulty" value="普通">
       </div>
-<!-- 组队标题 -->
-<input type="text" id="squadTitle" placeholder="输入组队标题，例如：来枪硬的" class="w-full" autocomplete="off">
-      <!-- 需求兵种 -->
-      <select id="squadNeedOp" class="w-full">
-        <option value="">需求兵种（选填）</option>
-        <option value="突击">突击</option>
-        <option value="工程">工程</option>
-        <option value="侦察">侦察</option>
-        <option value="支援">支援</option>
-      </select>
-      <!-- 语音频道 -->
-      <input type="text" id="squadVoice" placeholder="语音频道号（选填）" class="w-full">
-      <!-- 备注 -->
-      <textarea id="squadNote" placeholder="备注（例如：来枪硬的，心态好）" class="w-full" rows="2"></textarea>
-      <!-- 仅限麦克风 -->
-<!-- 需要审核 -->
-<div class="flex items-center gap-2 mt-2">
-  <input type="checkbox" id="squadNeedApproval" checked> 
-  <label for="squadNeedApproval" class="text-sm">需要队长审核</label>
-</div>
-      <div class="flex items-center gap-2">
-        <input type="checkbox" id="squadMicOnly" checked> 
-        <label for="squadMicOnly" class="text-sm">仅限有麦克风</label>
+
+      <!-- 标题 -->
+      <input type="text" id="squadTitle" placeholder="给队伍起个响亮的名字..." class="w-full" style="background:var(--surface); border:1px solid var(--border); color:var(--text); padding:12px; border-radius:14px;">
+
+      <!-- 预期收益（滑块） -->
+      <div>
+        <label class="text-sm font-bold block mb-2" style="color:var(--accent);">💰 预期人均收益（万哈夫币）</label>
+        <div class="flex items-center gap-2">
+          <input type="range" id="squadExpectedGain" min="10" max="200" value="50" step="10" oninput="document.getElementById('gainVal').textContent = this.value" style="flex:1;">
+          <span class="font-bold" id="gainVal" style="color:var(--accent);">50</span>万
+        </div>
       </div>
-      <button class="btn-warm w-full py-2" onclick="publishSquad()"><i class="fas fa-bullhorn mr-1"></i>发布招募</button>
+
+      <!-- 需求兵种 -->
+      <select id="squadNeedOp" style="background:var(--surface); border:1px solid var(--border); color:var(--text); padding:12px; border-radius:14px; width:100%;">
+        <option value="">🎖️ 需求兵种（选填）</option>
+        <option value="突击">⚔️ 突击</option>
+        <option value="工程">🔧 工程</option>
+        <option value="侦察">👁️ 侦察</option>
+        <option value="支援">❤️ 支援</option>
+        <option value="全能">🌟 全能</option>
+      </select>
+
+      <!-- 语音频道快捷选择 -->
+      <div>
+        <label class="text-sm font-bold block mb-2" style="color:var(--accent);">🎤 语音频道</label>
+        <div class="flex gap-2 flex-wrap" id="voiceChannelTags">
+          <button class="voice-chip active" data-channel="开黑啦" onclick="selectVoiceChannel(this)">开黑啦</button>
+          <button class="voice-chip" data-channel="Discord" onclick="selectVoiceChannel(this)">Discord</button>
+          <button class="voice-chip" data-channel="QQ群" onclick="selectVoiceChannel(this)">QQ群</button>
+          <button class="voice-chip" data-channel="游戏内置" onclick="selectVoiceChannel(this)">游戏内置</button>
+        </div>
+        <input type="text" id="squadVoice" placeholder="或直接输入频道号" class="w-full mt-2" style="background:var(--surface); border:1px solid var(--border); color:var(--text); padding:10px; border-radius:14px;">
+      </div>
+
+      <!-- 备注 -->
+      <textarea id="squadNote" placeholder="战术备注（例如：来枪硬的，心态好）" class="w-full" rows="2" style="background:var(--surface); border:1px solid var(--border); color:var(--text); padding:12px; border-radius:14px;"></textarea>
+
+      <!-- 选项 -->
+      <div class="flex items-center gap-4">
+        <label class="flex items-center gap-1 text-sm cursor-pointer">
+          <input type="checkbox" id="squadMicOnly" checked> 仅限有麦克风
+        </label>
+        <label class="flex items-center gap-1 text-sm cursor-pointer">
+          <input type="checkbox" id="squadNeedApproval" checked> 需要队长审核
+        </label>
+      </div>
+
+      <!-- 发布按钮 -->
+      <button class="btn-warm w-full py-3 text-base font-bold" onclick="publishSquad()" style="background: linear-gradient(135deg, #FF6B35, #FF4757); border: none; border-radius: 16px;">
+        <i class="fas fa-bullhorn mr-2"></i>发布招募令
+      </button>
       <p class="text-xs text-center" style="color:var(--muted);">招募信息将在「组队大厅」展示2小时</p>
     </div>
   </div>
 </div>
+
+
 
 <!-- ===== 护航预约弹窗 ===== -->
 <div class="modal-overlay" id="escortBookingModal">
@@ -10519,6 +10609,11 @@ loadSiteLogoFromStorage();
 
  // 初始化手势密码
   await loadGesturePassword();
+
+
+
+
+
 }
 
 
@@ -19213,221 +19308,235 @@ async function loadSquads() {
   }
   resetSquadForm();  // ← 先清空表单
   openModal('squadModal');
-  setTimeout(() => bindSquadModalEvents(), 50);
-}
-
-function bindSquadModalEvents() {
-  // 地图按钮点击
-  document.querySelectorAll('#squadMapOptions .map-select-btn').forEach(btn => {
-    btn.removeEventListener('click', btn._mapHandler); // 防止重复绑定
-    const handler = function() {
-      document.querySelectorAll('#squadMapOptions .map-select-btn').forEach(b => b.classList.remove('active'));
-      this.classList.add('active');
-      const mapInput = $('#squadMap');
-      if (mapInput) mapInput.value = this.dataset.map;
-    };
-    btn._mapHandler = handler;
-    btn.addEventListener('click', handler);
-  });
   
-  // 难度按钮点击
-  document.querySelectorAll('#squadDifficultyOptions .diff-select-btn').forEach(btn => {
-    btn.removeEventListener('click', btn._diffHandler);
-    const handler = function() {
-      document.querySelectorAll('#squadDifficultyOptions .diff-select-btn').forEach(b => b.classList.remove('active'));
-      this.classList.add('active');
-      const diffInput = $('#squadDifficulty');
-      if (diffInput) diffInput.value = this.dataset.diff;
-    };
-    btn._diffHandler = handler;
-    btn.addEventListener('click', handler);
-  });
 }
 
-async function publishSquad() {
-  // 1. 登录检查
-  if (!APP.user) {
-    showToast('请先登录后再发布组队');
-    openAuthModal();
-    return;
-  }
 
-  // 2. 获取表单元素
-  const titleEl = $('squadTitle');
-  const needOpEl = $('squadNeedOp');
-  const voiceEl = $('squadVoice');
-  const noteEl = $('squadNote');
-  const micEl = $('squadMicOnly');
+// ========== WebRTC 真实语音通话 ==========
+let localStream = null;                 // 本地麦克风流
+const peerConnections = {};            // 存储所有对等连接，key 为对方 userId
+let currentSquadId = null;             // 当前活跃的队伍ID
+let signalingChannel = null;           // Supabase 实时频道，用于信令
 
-  // 3. 获取值
-  const title = titleEl?.value?.trim() || '';
-  // 从表单中获取当前选中的地图和难度
-const activeMapBtn = document.querySelector('#squadMapOptions .map-select-btn.active');
-const activeDiffBtn = document.querySelector('#squadDifficultyOptions .diff-select-btn.active');
-const map = activeMapBtn?.dataset.map || '大坝';
-const difficulty = activeDiffBtn?.dataset.diff || '普通';
-  const needOp = needOpEl?.value?.trim() || '';
-  const voice = voiceEl?.value?.trim() || '';
-  const note = noteEl?.value?.trim() || '';
-  const micOnly = micEl?.checked ?? true;
-const needApprovalEl = $('squadNeedApproval');
-const needApproval = needApprovalEl?.checked ?? true;
-
-  // 4. 表单验证
-  const errors = [];
-
-  // 验证标题
-  if (!title) {
-    errors.push('请输入组队标题');
-    if (titleEl) titleEl.classList.add('border-red-500');
-  } else if (title.length < 4) {
-    errors.push('组队标题至少4个字符');
-    if (titleEl) titleEl.classList.add('border-red-500');
-  } else if (title.length > 30) {
-    errors.push('组队标题不能超过30个字符');
-    if (titleEl) titleEl.classList.add('border-red-500');
-  } else {
-    if (titleEl) titleEl.classList.remove('border-red-500');
-  }
-
-    // 验证地图
-  if (!map) {
-    errors.push('请选择作战地图');
-  }
-
-  // 验证难度
-  if (!difficulty) {
-    errors.push('请选择作战难度');
-  }
-
-  // 显示验证错误
-  if (errors.length > 0) {
-    showToast(errors[0], 'error');
-    return;
-  }
-
-  // 5. 防止重复提交
-  const btn = event?.target;
-  if (btn && btn.disabled) return;
-  if (btn) {
-    btn.disabled = true;
-    btn.textContent = '发布中...';
-  }
-
+// 请求麦克风权限
+async function getLocalStream() {
+  if (localStream) return localStream;
   try {
-    showToast('正在发布组队信息...', 'info');
-
-    // 6. 设置过期时间（2小时）
-    const expiresAt = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString();
-
-    // 7. 构建组队数据
-   const squadData = {
-  creator_id: APP.user.id,
-  map: map,                 // ✅ 使用从激活按钮读取的值
-  difficulty: difficulty,   // ✅ 使用从激活按钮读取的值
-  need_op: needOp || null,
-  voice_channel: voice || null,
-  note: note || null,
-  mic_only: micOnly,
-  members: [APP.user.id],
-  max_members: 3,
-need_approval: needApproval, 
-  expires_at: expiresAt
-};
-
-    // 8. 插入数据库
-    const { data, error } = await sb.from('squads').insert(squadData);
-
-    if (error) {
-      console.error('组队发布失败:', error);
-      showToast('发布失败: ' + error.message, 'error');
-      return;
-    }
-
-    // 9. 成功反馈
-    showToast('⚡ 组队信息已发布！等待战友响应 ⚡', 'success');
-
-    // 全屏动画效果
-    const flash = document.createElement('div');
-    flash.style.cssText = `
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      background: linear-gradient(135deg, #FF6B35, #F7931E);
-      color: white;
-      font-size: 24px;
-      font-weight: 800;
-      padding: 20px 40px;
-      border-radius: 60px;
-      z-index: 10000;
-      box-shadow: 0 0 60px rgba(255, 107, 53, 0.6);
-      animation: commandFlash 1.2s ease-out forwards;
-      pointer-events: none;
-      font-family: 'ZCOOL QingKe HuangYou', sans-serif;
-      letter-spacing: 4px;
-    `;
-    flash.textContent = '🎯 战友招募令已发出 🎯';
-    document.body.appendChild(flash);
-    setTimeout(() => flash.remove(), 1200);
-
-    // 10. 重置表单并关闭弹窗
-    closeModal('squadModal');
-    resetSquadForm();
-
-    // 11. 刷新组队列表
-    loadSquads();
-
-  } catch (err) {
-    console.error('发布组队异常:', err);
-    showToast('发布失败，请稍后重试', 'error');
-  } finally {
-    if (btn) {
-      btn.disabled = false;
-      btn.textContent = '发布招募';
-    }
+    localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+    return localStream;
+  } catch (e) {
+    console.error('麦克风访问失败', e);
+    showToast('❌ 无法访问麦克风，请检查权限（需要HTTPS或localhost）', 'error');
+    return null;
   }
 }
-// 重置组队表单
-function resetSquadForm() {
-  const titleEl = $('squadTitle');
-  const needOpEl = $('squadNeedOp');
-  const voiceEl = $('squadVoice');
-  const noteEl = $('squadNote');
-  const micEl = $('squadMicOnly');
 
-  // 清空输入框
-  if (titleEl) titleEl.value = '';
-  if (needOpEl) needOpEl.value = '';
-  if (voiceEl) voiceEl.value = '';
-  if (noteEl) noteEl.value = '';
-  if (micEl) micEl.checked = true;
-
-  // 重置选中状态变量
-  selectedMap = '大坝';
-  selectedDifficulty = '普通';
-
-  // 重置地图按钮样式
-  document.querySelectorAll('#squadMapOptions .map-select-btn').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.map === '大坝');
-  });
-
-  // 重置难度按钮样式
-  document.querySelectorAll('#squadDifficultyOptions .diff-select-btn').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.diff === '普通');
-  });
-
-  // 移除标题输入框的错误红框
-  if (titleEl) titleEl.classList.remove('border-red-500');
+// 停止本地流
+function stopLocalStream() {
+  if (localStream) {
+    localStream.getTracks().forEach(track => track.stop());
+    localStream = null;
+  }
 }
-// 切换组队大厅总折叠栏
-function toggleSquadSection() {
-  const body = document.getElementById('squadSectionBody');
-  const icon = document.getElementById('squadSectionIcon');
-  if (!body || !icon) return;
+
+// 创建 PeerConnection
+function createPeerConnection(userId, squadId) {
+  const configuration = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+  const pc = new RTCPeerConnection(configuration);
   
-  body.classList.toggle('expanded');
-  icon.classList.toggle('rotated');
+  // 添加本地流
+  if (localStream) {
+    localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+  }
+
+  // 收到远端流 → 播放
+  pc.ontrack = (event) => {
+    const audio = new Audio();
+    audio.srcObject = event.streams[0];
+    audio.play().catch(() => {});
+    // 可选：将该 audio 元素保存，以便后续管理
+  };
+
+  // 本地 ICE 候选
+  pc.onicecandidate = (event) => {
+    if (event.candidate && signalingChannel) {
+      signalingChannel.send({
+        type: 'broadcast',
+        event: 'signal',
+        payload: { type: 'candidate', candidate: event.candidate, to: userId, squadId }
+      });
+    }
+  };
+
+  // 连接状态变化
+  pc.onconnectionstatechange = () => {
+    if (pc.connectionState === 'failed' || pc.connectionState === 'disconnected') {
+      closePeerConnection(userId);
+    }
+  };
+
+  return pc;
+}
+
+// 关闭单个连接
+function closePeerConnection(userId) {
+  const pc = peerConnections[userId];
+  if (pc) {
+    pc.close();
+    delete peerConnections[userId];
+  }
+}
+
+// 发起 Offer
+async function createOffer(userId, squadId) {
+  const pc = peerConnections[userId];
+  if (!pc) return;
+  const offer = await pc.createOffer();
+  await pc.setLocalDescription(offer);
+  signalingChannel.send({
+    type: 'broadcast',
+    event: 'signal',
+    payload: { type: 'offer', sdp: pc.localDescription, from: APP.user.id, to: userId, squadId }
+  });
+}
+
+// 处理 Offer
+async function handleOffer(fromUserId, sdp, squadId) {
+  let pc = peerConnections[fromUserId];
+  if (!pc) {
+    pc = createPeerConnection(fromUserId, squadId);
+    peerConnections[fromUserId] = pc;
+  }
+  await pc.setRemoteDescription(new RTCSessionDescription(sdp));
+  const answer = await pc.createAnswer();
+  await pc.setLocalDescription(answer);
+  signalingChannel.send({
+    type: 'broadcast',
+    event: 'signal',
+    payload: { type: 'answer', sdp: pc.localDescription, from: APP.user.id, to: fromUserId, squadId }
+  });
+}
+
+// 处理 Answer
+async function handleAnswer(fromUserId, sdp) {
+  const pc = peerConnections[fromUserId];
+  if (pc) {
+    await pc.setRemoteDescription(new RTCSessionDescription(sdp));
+  }
+}
+
+// 处理 ICE 候选
+function handleCandidate(fromUserId, candidate) {
+  const pc = peerConnections[fromUserId];
+  if (pc) {
+    pc.addIceCandidate(new RTCIceCandidate(candidate)).catch(console.warn);
+  }
+}
+
+// 初始化信令频道
+async function initSignaling(squadId) {
+  if (signalingChannel) {
+    await signalingChannel.unsubscribe();
+    sb.removeChannel(signalingChannel);
+  }
+  signalingChannel = sb.channel(`webrtc_${squadId}`, {
+    config: { broadcast: { self: true } }
+  });
+  
+  signalingChannel.on('broadcast', { event: 'signal' }, (payload) => {
+    const { type, sdp, candidate, from, to, squadId: sigSquad } = payload.payload;
+    if (sigSquad !== squadId || to !== APP.user.id) return; // 只处理发给自己的
+    switch (type) {
+      case 'offer': handleOffer(from, sdp, squadId); break;
+      case 'answer': handleAnswer(from, sdp); break;
+      case 'candidate': handleCandidate(from, candidate); break;
+    }
+  });
+
+  signalingChannel.on('broadcast', { event: 'new_member' }, (payload) => {
+    const { userId } = payload.payload;
+    if (userId !== APP.user.id && !peerConnections[userId]) {
+      const pc = createPeerConnection(userId, squadId);
+      peerConnections[userId] = pc;
+      createOffer(userId, squadId);
+    }
+  });
+
+  await signalingChannel.subscribe();
+  // 通知新成员自己上线
+  signalingChannel.send({
+    type: 'broadcast',
+    event: 'new_member',
+    payload: { userId: APP.user.id }
+  });
+}
+
+// 销毁信令并关闭所有连接
+async function leaveSignaling(squadId) {
+  if (signalingChannel) {
+    signalingChannel.send({
+      type: 'broadcast',
+      event: 'leave',
+      payload: { userId: APP.user.id }
+    });
+    await signalingChannel.unsubscribe();
+    sb.removeChannel(signalingChannel);
+    signalingChannel = null;
+  }
+  Object.keys(peerConnections).forEach(userId => closePeerConnection(userId));
+}
+
+// ========== 真开麦 / 闭麦 ==========
+async function toggleRealMic(squadId, btn) {
+  if (!APP.user) { showToast('请先登录'); return; }
+  
+  const isActive = btn.classList.contains('active');
+  if (isActive) {
+    // 闭麦
+    stopLocalStream();
+    await leaveSignaling(squadId);
+    btn.classList.remove('active');
+    btn.innerHTML = '<i class="fas fa-microphone"></i> 开麦';
+    showToast('🔇 麦克风已关闭', 'info');
+  } else {
+    // 开麦
+    const stream = await getLocalStream();
+    if (!stream) return;
+    currentSquadId = squadId;
+    btn.classList.add('active');
+    btn.innerHTML = '<i class="fas fa-microphone-slash"></i> 闭麦';
+    await initSignaling(squadId);
+    // 初始化自己对新成员的连接在 new_member 事件中处理
+    showToast('🎤 麦克风已打开，正在加入语音', 'success');
+  }
+}
+
+
+
+// ✅ 绝对单选的地图选择
+function selectSquadMap(el) {
+  // 移除所有地图卡片的 active 类
+  document.querySelectorAll('.map-card').forEach(c => c.classList.remove('active'));
+  // 为当前点击的卡片添加 active 类
+  el.classList.add('active');
+  // 将选中的地图值写入隐藏域，供 publishSquad 读取
+  document.getElementById('squadMap').value = el.dataset.map;
+}
+
+// ✅ 绝对单选的难度选择
+function selectSquadDiff(el) {
+  document.querySelectorAll('.diff-card').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('squadDifficulty').value = el.dataset.diff;
+}
+
+// ✅ 绝对单选的语音频道
+function selectVoiceChannel(el) {
+  // 同步移除所有 voice-chip 的 active 状态
+  document.querySelectorAll('.voice-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  // 将频道名称填入 id="squadVoice" 的输入框，同时也可以更新隐藏域（但 squadVoice 本身就是文本框）
+  document.getElementById('squadVoice').value = el.dataset.channel;
 }
 
 // 切换热门话题折叠
@@ -19518,6 +19627,71 @@ async function deleteSquad(squadId) {
   loadSquads();
 }
 
+
+// 快捷键面板打开/关闭
+function toggleShortcutPanel() {
+  var p = document.getElementById('shortcutPanel');
+  if (!p) return;
+  p.style.display = (p.style.display === 'none' || p.style.display === '') ? 'flex' : 'none';
+}
+
+function closeShortcutPanel() {
+  const panel = document.getElementById('shortcutPanel');
+  if (panel) panel.style.display = 'none';
+}
+
+// 全局键盘监听（仅当组队大厅可见时生效）
+document.addEventListener('keydown', function(e) {
+  const squadSection = document.getElementById('squadConCardV4');
+  if (!squadSection || squadSection.style.display === 'none') return;
+
+  if (e.key === 'T' || e.key === 't') {
+    e.preventDefault();
+    const firstMicBtn = document.querySelector('.squad-voice-btn[id^="micBtn-"]');
+    if (firstMicBtn) {
+      const squadId = firstMicBtn.id.replace('micBtn-', '');
+      simulatePTT(squadId);
+    }
+  } else if (e.key === 'Y' || e.key === 'y') {
+    e.preventDefault();
+    const firstMicBtn = document.querySelector('.squad-voice-btn[id^="micBtn-"]');
+    if (firstMicBtn) toggleSquadMic(firstMicBtn.id.replace('micBtn-', ''), firstMicBtn);
+  } else if (e.ctrlKey && e.key === 'Enter') {
+    e.preventDefault();
+    const visibleInput = document.querySelector('.squad-chat-box:not(.hidden) [id^="msgInput-"]');
+    if (visibleInput) {
+      const squadId = visibleInput.id.replace('msgInput-', '');
+      sendSquadMessage(squadId);
+    }
+  } else if (e.key === 'Escape') {
+    closeShortcutPanel();
+    // 清空当前聚焦的输入框
+    const activeInput = document.activeElement;
+    if (activeInput && activeInput.tagName === 'INPUT') activeInput.value = '';
+  } else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+    e.preventDefault();
+    // 切换队伍焦点（简单实现：高亮第一个队伍卡片）
+    const cards = document.querySelectorAll('.squad-item-v4');
+    if (cards.length) {
+      cards.forEach(c => c.style.borderColor = '');
+      const index = e.key === 'ArrowUp' ? cards.length - 1 : 0;
+      cards[index].style.borderColor = 'var(--accent)';
+    }
+  }
+});
+
+
+
+
+
+// 切换聊天框显示
+function toggleSquadChat(squadId) {
+  const chatBox = document.getElementById('chatBox-' + squadId);
+  if (chatBox) chatBox.classList.toggle('hidden');
+}
+
+
+
 // ==================== 队伍聊天功能 ====================
 async function sendSquadMessage(squadId) {
   if (!APP.user) {
@@ -19542,18 +19716,21 @@ async function sendSquadMessage(squadId) {
   input.value = '';
   loadSquadMessages(squadId);
 }
-let squadVoiceRecorder = null;
-let squadVoiceChunks = [];
+
+
+let squadMediaRecorder = null;
+let squadAudioChunks = [];
+let currentSquadStream = null;
 
 async function startSquadVoice(squadId) {
   if (!APP.user) { openAuthModal(); return; }
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    squadVoiceRecorder = new MediaRecorder(stream);
-    squadVoiceChunks = [];
-    squadVoiceRecorder.ondataavailable = e => squadVoiceChunks.push(e.data);
-    squadVoiceRecorder.onstop = async () => {
-      const blob = new Blob(squadVoiceChunks, { type: 'audio/webm' });
+    squadMediaRecorder = new MediaRecorder(stream);
+    squadAudioChunks = [];
+    squadMediaRecorder.ondataavailable = e => squadAudioChunks.push(e.data);
+    squadMediaRecorder.onstop = async () => {
+      const blob = new Blob(squadAudioChunks, { type: 'audio/webm' });
       const path = `${APP.user.id}/squad_voice_${Date.now()}.webm`;
       const { error } = await sb.storage.from('voices').upload(path, blob);
       if (!error) {
@@ -19567,12 +19744,22 @@ async function startSquadVoice(squadId) {
       }
       stream.getTracks().forEach(t => t.stop());
     };
-    squadVoiceRecorder.start();
-    showToast('🎤 录音中...再次点击语音按钮结束', 'info');
+    squadMediaRecorder.start();
+    showToast('🎤 正在录音...', 'info');
   } catch (e) {
     showToast('无法访问麦克风', 'error');
   }
 }
+
+function stopSquadVoice() {
+  if (squadMediaRecorder && squadMediaRecorder.state === 'recording') {
+    squadMediaRecorder.stop();
+    showToast('✅ 语音消息已发送', 'success');
+  }
+}
+
+
+
 
 function stopSquadVoice() {
   if (squadVoiceRecorder && squadVoiceRecorder.state === 'recording') {
@@ -19592,6 +19779,8 @@ async function loadSquadMessages(squadId) {
     container.innerHTML = '<div class="text-center" style="color:var(--muted);">暂无消息</div>';
     return;
   }
+
+
   container.innerHTML = data.map(m => {
   const user = m.profiles || { username: '未知' };
   if (m.content && m.content.startsWith('[语音消息]')) {
@@ -19603,6 +19792,10 @@ async function loadSquadMessages(squadId) {
 }).join('');
   container.scrollTop = container.scrollHeight;
 }
+
+
+
+
 // ==================== 排行榜 ====================
 // ==================== 战术板 ====================
 let tacCanvas, tacCtx, tacPainting = false, tacTool = 'pen', tacColor = '#FF6B35', tacSize = 5;
@@ -23530,25 +23723,86 @@ async function searchMusic() {
 function renderMusicSearchResults(data) {
   const container = document.getElementById('musicSearchResults');
   if (!container) return;
-  container.innerHTML = data.map((item, index) => `
-    <div class="flex items-center justify-between p-3 rounded-xl mb-2 hover:bg-white/5 transition-all border border-[var(--border)]" style="background: var(--surface);">
-      <div class="flex items-center gap-3 flex-1 min-w-0">
-        <span class="text-xs font-bold w-6 text-center" style="color: var(--muted);">${index + 1}</span>
-        <div class="min-w-0">
-          <p class="text-sm font-bold truncate">${item.name}</p>
-          <p class="text-xs" style="color: var(--muted);">${item.artist}</p>
+
+
+
+ container.innerHTML = data.map(s => {
+    const creator = s.creator || {};
+    const members = s.members || [];
+    const isFull = members.length >= (s.max_members || 3);
+    const isJoined = APP.user && members.includes(APP.user.id);
+    const isCreator = APP.user && creator.id === APP.user.id;
+    const cardId = 'squad-' + s.id;
+
+    return `
+    <div class="squad-item-v4 squad-card-collapsible" id="${cardId}">
+      <div class="squad-header-v4 flex items-center gap-2" onclick="toggleSquadCard('${cardId}')">
+        <img src="${creator.avatar_url || dicebearUrl(creator.username || 'default')}" class="w-8 h-8 rounded-full border-2" style="border-color: var(--accent);">
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-1">
+            <span class="text-sm font-bold truncate">${creator.username || '干员'}</span>
+            <span class="squad-map-tag text-xs"><i class="fas fa-map-marker-alt mr-1"></i>${s.map}</span>
+            <span class="squad-diff-tag diff-${s.difficulty} text-xs">${s.difficulty}</span>
+          </div>
+          <div class="text-xs" style="color:var(--muted);">${timeAgo(s.created_at)} · ${s.note ? s.note.substring(0,25) : '快速组队'}</div>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="tag-pill text-xs"><i class="fas fa-user"></i> ${members.length}/${s.max_members || 3}</span>
+          <i class="fas fa-chevron-down squad-expand-icon" id="icon-${cardId}"></i>
         </div>
       </div>
-      <div class="flex items-center gap-1 ml-2">
-        <button class="btn-warm text-xs px-3 py-1.5 rounded-full" onclick="event.stopPropagation(); playNeteaseSong('${item.name.replace(/'/g, "\\'")}', '${item.id}')">
-          <i class="fas fa-play mr-1"></i>播放
-        </button>
-        <button class="btn-ghost text-xs px-3 py-1.5 rounded-full" onclick="event.stopPropagation(); addToPlaylist('${item.name.replace(/'/g, "\\'")}', '${item.id}')">
-          <i class="fas fa-plus mr-1"></i>添加
-        </button>
+      <div class="squad-card-body-v4" id="body-${cardId}">
+        <!-- 快捷语音栏 -->
+        <div class="squad-voice-bar" id="voiceBar-${s.id}">
+          <div class="flex items-center gap-2">
+            
+            <button class="squad-voice-btn" onmousedown="startSquadVoice('${s.id}')" onmouseup="stopSquadVoice()" ontouchstart="startSquadVoice('${s.id}')" ontouchend="stopSquadVoice()">
+  <i class="fas fa-microphone"></i> 按住说话
+</button>
+            <span class="text-xs" style="color:var(--muted);">语音频道：${s.voice_channel || '未设置'}</span>
+          </div>
+          <div class="voice-level-bar" id="voiceLevel-${s.id}" style="display:none;">
+            <div class="voice-level-fill" id="voiceFill-${s.id}"></div>
+          </div>
+        </div>
+        <!-- 成员标签 -->
+        <div class="flex flex-wrap gap-1 mt-2">
+          ${s.need_op ? `<span class="tag-pill"><i class="fas fa-user-tag mr-1"></i>需求: ${s.need_op}</span>` : ''}
+          ${s.mic_only ? '<span class="tag-pill"><i class="fas fa-microphone"></i> 需麦克风</span>' : ''}
+        </div>
+        <!-- 成员头像堆叠 -->
+        <div class="flex items-center mt-2">
+          <div class="squad-member-avatars">
+            ${members.slice(0,5).map(uid => `<img src="${dicebearUrl(uid)}" class="w-6 h-6 rounded-full border-2" style="border-color:var(--bg); margin-left: -8px;" title="${uid}">`).join('')}
+          </div>
+          <span class="text-xs ml-2" style="color:var(--muted);">${members.length}人</span>
+        </div>
+        <!-- 操作按钮 -->
+        <div class="flex gap-2 justify-end mt-3">
+          ${!APP.user ? '<button class="btn-ghost text-xs px-3 py-1" onclick="openAuthModal()">登录后加入</button>' :
+            isCreator ? '<button class="btn-ghost text-xs px-3 py-1" onclick="deleteSquad(\'' + s.id + '\')"><i class="fas fa-trash"></i> 解散</button>' :
+            isJoined ? '<button class="btn-ghost text-xs px-3 py-1" onclick="leaveSquad(\'' + s.id + '\')"><i class="fas fa-sign-out-alt"></i> 退出</button>' :
+            isFull ? '<button class="btn-ghost text-xs px-3 py-1" disabled style="opacity:0.5;">队伍已满</button>' :
+            '<button class="btn-warm text-xs px-3 py-1" onclick="joinSquad(\'' + s.id + '\')"><i class="fas fa-hand-fist"></i> 加入</button>'
+          }
+        </div>
+        <!-- 聊天区域折叠入口 -->
+        <div class="mt-2 pt-2 border-t" style="border-color:var(--border);">
+          <button class="text-xs font-bold text-accent" onclick="toggleSquadChat('${s.id}')"><i class="fas fa-comments mr-1"></i>战术文字</button>
+          <div class="squad-chat-box hidden" id="chatBox-${s.id}" style="margin-top:6px;">
+            <div class="squad-messages max-h-32 overflow-y-auto text-xs p-1 rounded" style="background:var(--surface);" id="msg-${s.id}">
+              <div class="text-center" style="color:var(--muted);">暂无消息</div>
+            </div>
+            <div class="flex gap-1 mt-1">
+              <input type="text" placeholder="发送消息..." class="flex-1 text-xs p-1.5 rounded" id="msgInput-${s.id}" style="background:var(--card); border:1px solid var(--border);">
+              <button class="btn-ghost text-xs px-2" onclick="sendSquadMessage('${s.id}')"><i class="fas fa-paper-plane"></i></button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
-  `).join('');
+  `;
+}).join('');
 }
 
 
@@ -31060,6 +31314,75 @@ function copyAttachment(weaponName) {
 }
 
 
+async function publishSquad() {
+  if (!APP.user) {
+    showToast('请先登录', 'error');
+    openAuthModal();
+    return;
+  }
+  const title = document.getElementById('squadTitle')?.value.trim();
+  const map = document.getElementById('squadMap')?.value || '大坝';
+  const difficulty = document.getElementById('squadDifficulty')?.value || '普通';
+  const needOp = document.getElementById('squadNeedOp')?.value || '';
+  const voice = document.getElementById('squadVoice')?.value || '';
+  const note = document.getElementById('squadNote')?.value || '';
+  const micOnly = document.getElementById('squadMicOnly')?.checked ?? true;
+  const needApproval = document.getElementById('squadNeedApproval')?.checked ?? true;
+  const gain = document.getElementById('squadExpectedGain')?.value || 0;
+
+  if (!title || title.length < 4) { showToast('标题至少4个字'); return; }
+  if (!map) { showToast('请选择地图'); return; }
+  if (!difficulty) { showToast('请选择难度'); return; }
+
+  const btn = event?.target;
+  if (btn) btn.disabled = true;
+  try {
+    const expiresAt = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString();
+    const squadData = {
+      creator_id: APP.user.id,
+      map, difficulty,
+      need_op: needOp || null,
+      voice_channel: voice || null,
+      note: gain ? `[预期${gain}w] ` + note : note,
+      mic_only: micOnly,
+      members: [APP.user.id],
+      max_members: 3,
+      need_approval: needApproval,
+      expires_at: expiresAt
+    };
+    const { error } = await sb.from('squads').insert(squadData);
+    if (error) throw error;
+    showToast('⚡ 组队信息已发布！', 'success');
+    closeModal('squadModal');
+    resetSquadForm(); // 确保这个函数存在
+    loadSquads();
+  } catch (e) {
+    console.error(e);
+    showToast('发布失败: ' + (e.message || ''));
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+
+function resetSquadForm() {
+  ['squadTitle','squadNeedOp','squadVoice','squadNote'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  const mic = document.getElementById('squadMicOnly');
+  if (mic) mic.checked = true;
+  const approval = document.getElementById('squadNeedApproval');
+  if (approval) approval.checked = true;
+  // 重置地图和难度卡片样式
+  document.querySelectorAll('.map-card, .diff-card').forEach(c => c.classList.remove('active'));
+  document.querySelector('.map-card[data-map="大坝"]')?.classList.add('active');
+  document.querySelector('.diff-card[data-diff="普通"]')?.classList.add('active');
+  document.getElementById('squadMap').value = '大坝';
+  document.getElementById('squadDifficulty').value = '普通';
+}
+
+
 
 function exportAllFavoritesAsText() {
   const favs = JSON.parse(localStorage.getItem('loadout_favorites') || '[]');
@@ -31784,6 +32107,15 @@ function exportAllFavoritesAsText() {
 @keyframes pendantBounce {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-5px); }
+}
+
+
+.squad-item-v4 .text-xs {
+  max-width: 100%;
+  overflow-wrap: break-word;
+}
+.squad-card-body-v4 .flex-wrap {
+  gap: 4px;
 }
 
 
@@ -32961,6 +33293,278 @@ html[data-time="night"] body::after {
 
 
 
+
+/* ===== 组队弹窗·军事化 ===== */
+.squad-modal-content {
+  font-family: 'Noto Sans SC', sans-serif;
+}
+.squad-icon-header {
+  width: 36px; height: 36px; background: rgba(255,107,53,0.2);
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 12px; color: var(--accent); font-size: 1.2rem;
+}
+.map-card, .diff-card {
+  background: rgba(255,255,255,0.03);
+  border: 1.5px solid rgba(255,140,80,0.15);
+  border-radius: 16px;
+  padding: 10px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 0.85rem;
+  color: var(--text);
+}
+.map-card.active, .diff-card.active {
+  border-color: var(--accent);
+  background: rgba(255,107,53,0.1);
+  box-shadow: 0 0 12px rgba(255,107,53,0.15);
+}
+.map-card:hover, .diff-card:hover {
+  border-color: var(--accent);
+}
+.map-thumb {
+  width: 100%; height: 40px; object-fit: cover; border-radius: 10px; margin-bottom: 6px;
+  background: #1a1a1a;
+}
+.voice-chip {
+  padding: 6px 14px; border-radius: 20px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: 0.2s;
+}
+.voice-chip.active {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+
+
+
+/* ===== 组队弹窗亮色主题 ===== */
+[data-theme="light"] .squad-modal-content {
+  background: linear-gradient(160deg, rgba(255,248,240,0.98), rgba(255,240,225,0.96)) !important;
+  color: #2c2418 !important;
+  border-color: rgba(180,120,60,0.3) !important;
+}
+[data-theme="light"] .map-card,
+[data-theme="light"] .diff-card {
+  background: rgba(180,120,60,0.06) !important;
+  border-color: rgba(180,120,60,0.2) !important;
+  color: #2c2418 !important;
+}
+[data-theme="light"] .map-card.active,
+[data-theme="light"] .diff-card.active {
+  background: rgba(197,96,42,0.1) !important;
+  border-color: #c5602a !important;
+}
+[data-theme="light"] .voice-chip {
+  background: rgba(0,0,0,0.04) !important;
+  border-color: rgba(180,120,60,0.15) !important;
+  color: #4a3a2a !important;
+}
+[data-theme="light"] .voice-chip.active {
+  background: #c5602a !important;
+  color: #fff !important;
+}
+[data-theme="light"] #squadTitle,
+[data-theme="light"] #squadNeedOp,
+[data-theme="light"] #squadVoice,
+[data-theme="light"] #squadNote {
+  background: rgba(255,252,248,0.8) !important;
+  border-color: rgba(180,120,60,0.2) !important;
+  color: #2c2418 !important;
+}
+
+
+/* ===== 组队大厅语音版样式 ===== */
+.squad-item-v4 {
+  background: rgba(20,15,10,0.7);
+  border: 1px solid rgba(255,140,80,0.15);
+  border-radius: 20px;
+  margin-bottom: 10px;
+  overflow: hidden;
+  transition: all 0.3s;
+}
+.squad-item-v4:hover {
+  border-color: var(--accent);
+  background: rgba(255,107,53,0.04);
+}
+.squad-header-v4 {
+  padding: 12px 16px;
+  cursor: pointer;
+  user-select: none;
+  background: rgba(255,107,53,0.03);
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+}
+.squad-card-body-v4 {
+  padding: 12px 16px;
+}
+.squad-voice-bar {
+  background: rgba(0,0,0,0.2);
+  border-radius: 14px;
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.squad-voice-btn {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.7rem;
+  cursor: pointer;
+  transition: 0.2s;
+}
+.squad-voice-btn.active {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+.voice-level-bar {
+  height: 4px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.voice-level-fill {
+  height: 100%;
+  width: 0%;
+  background: #2ecc71;
+  transition: width 0.1s;
+}
+.squad-member-avatars {
+  display: flex;
+  align-items: center;
+}
+.squad-chat-box {
+  transition: all 0.3s;
+}
+.squad-chat-box.hidden {
+  display: none;
+}
+
+
+/* ===== 快捷键面板样式 ===== */
+.shortcut-panel {
+  position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+  background: rgba(0,0,0,0.7); z-index: 10000;
+  display: flex; align-items: center; justify-content: center;
+  backdrop-filter: blur(4px);
+}
+.shortcut-panel-content {
+  background: linear-gradient(160deg, #1a120b, #0f0906);
+  border: 1px solid rgba(255,140,80,0.4);
+  border-radius: 24px; padding: 24px; max-width: 380px; width: 90%;
+  color: var(--text);
+}
+.shortcut-panel-content h3 {
+  font-family: 'ZCOOL QingKe HuangYou', sans-serif;
+  letter-spacing: 2px; margin-bottom: 16px;
+  display: flex; align-items: center; gap: 10px;
+}
+.shortcut-grid {
+  display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px;
+}
+.shortcut-item {
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 0.9rem;
+}
+.shortcut-item kbd {
+  background: rgba(255,107,53,0.15);
+  border: 1px solid var(--accent);
+  border-radius: 6px; padding: 3px 10px;
+  font-family: monospace; font-weight: bold;
+  color: var(--accent);
+}
+.shortcut-note {
+  font-size: 0.75rem; color: var(--muted); margin-bottom: 12px;
+}
+.shortcut-help-btn {
+  background: transparent; border: 1px solid var(--border);
+  color: var(--muted); width: 28px; height: 28px;
+  border-radius: 50%; cursor: pointer; display: flex;
+  align-items: center; justify-content: center;
+  margin-left: 6px; transition: 0.2s;
+}
+.shortcut-help-btn:hover {
+  border-color: var(--accent); color: var(--accent);
+}
+
+
+
+/* ===== 组队大厅卡片防溢出 + 美化 ===== */
+.squad-item-v4 {
+  word-wrap: break-word;
+  overflow: hidden;
+}
+.squad-header-v4 {
+  flex-wrap: nowrap;
+  align-items: center;
+}
+.squad-header-v4 .text-sm {
+  max-width: 120px;          /* 防止昵称过长 */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.squad-map-tag {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.squad-diff-tag {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.squad-card-body-v4 {
+  word-break: break-word;
+}
+.squad-voice-bar {
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.squad-voice-btn {
+  white-space: nowrap;
+}
+.squad-member-avatars {
+  margin-left: 0;
+}
+/* 聊天输入框 */
+.squad-chat-box input {
+  min-width: 0;
+}
+
+/* 手机端进一步优化 */
+@media (max-width: 640px) {
+  .squad-header-v4 {
+    flex-wrap: wrap;
+  }
+  .squad-header-v4 .text-sm {
+    max-width: 80px;
+  }
+}
+
+
+.console-recruit-btn {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 20px;
+  padding: 4px 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.3s;
+  margin: 0 6px;
+}
+.console-recruit-btn:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
 
 
 
@@ -35097,6 +35701,9 @@ async function generateShareCard(postId) {
     showToast('生成失败，请重试', 'error');
   }
 }
+
+
+
 
 
 
