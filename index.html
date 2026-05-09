@@ -10484,8 +10484,8 @@ loadSiteLogoFromStorage();
 
  // ========== 新增：加载手势锁密码并初始化画布 ==========
   await loadGesturePassword();
-  setTimeout(() => initGestureCanvas(), 500);
-  // =====================================================
+  
+  
 
 
 }  
@@ -32581,6 +32581,93 @@ display: flex; flex-direction: column; gap: 20px;
 .profile-welfare-grid .welfare-card {
   box-shadow: 0 4px 12px rgba(0,0,0,0.05);
 }
+
+
+
+/* ========== 用户详情弹窗·干员档案 ========== */
+#userProfileModal .modal-content {
+  background: linear-gradient(160deg, rgba(20,12,8,0.96) 0%, rgba(15,10,5,0.98) 100%);
+  border: 1px solid rgba(255,140,80,0.25);
+  box-shadow: 0 30px 60px rgba(0,0,0,0.6);
+  border-radius: 28px;
+  padding: 28px 24px;
+}
+
+#userProfileModal #viewUserName {
+  font-family: 'ZCOOL QingKe HuangYou', sans-serif;
+  letter-spacing: 2px;
+}
+
+#userProfileModal #viewUserAvatar {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 15px rgba(255,107,53,0.3);
+}
+
+#userProfileModal #viewUserDisplayName {
+  color: var(--text);
+}
+
+#userProfileModal #viewUserLevel,
+#userProfileModal #viewUserFollowers {
+  color: var(--muted);
+}
+
+/* 统计卡片网格 */
+#userProfileModal .grid-cols-3 > div {
+  background: rgba(255,107,53,0.05);
+  border: 1px solid rgba(255,140,80,0.15);
+  border-radius: 14px;
+  padding: 12px 8px;
+}
+
+/* “最新帖子”标题 */
+#userProfileModal h3.font-bold {
+  color: var(--accent);
+  font-size: 1rem;
+  border-top: 1px dashed rgba(255,140,80,0.3);
+  padding-top: 14px;
+  margin-top: 8px;
+}
+
+/* 帖子列表项 */
+#viewUserRecentPosts .p-2 {
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,140,80,0.1);
+  border-radius: 12px;
+  transition: 0.2s;
+}
+#viewUserRecentPosts .p-2:hover {
+  background: rgba(255,107,53,0.08);
+  border-color: var(--accent);
+}
+
+/* 关注按钮强化 */
+#viewUserFollowBtn {
+  background: linear-gradient(135deg, #FF6B35, #FF4757);
+  color: #fff !important;
+  border: none;
+  border-radius: 20px;
+  padding: 6px 18px;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(255,107,53,0.3);
+}
+
+/* 亮色模式适配 */
+[data-theme="light"] #userProfileModal .modal-content {
+  background: linear-gradient(160deg, rgba(255,248,240,0.98) 0%, rgba(255,240,225,0.95) 100%);
+  border-color: rgba(180,120,60,0.3);
+}
+[data-theme="light"] #userProfileModal .grid-cols-3 > div {
+  background: rgba(255,107,53,0.03);
+  border-color: rgba(180,120,60,0.15);
+}
+[data-theme="light"] #viewUserRecentPosts .p-2 {
+  background: rgba(0,0,0,0.02);
+  border-color: rgba(180,120,60,0.12);
+}
+
+
+
 
 
 </style>
