@@ -11113,7 +11113,7 @@ loadSiteLogoFromStorage();
 
   // 7. 根据 Tab 加载对应数据
    if (tab === 'home') {
-    bindSquadModalEvents();
+    
     initSquadRealtime();
     APP.filters = { type: 'all', op: 'all', sort: 'latest', time: 'all', topic: 'all', keyword: '' };
     const homeSearch = document.getElementById('homeSearchInput');
@@ -22255,12 +22255,13 @@ globalRealtimeChannel
   })
   // 最后再订阅
   globalRealtimeChannel.subscribe((status) => {
-    if (status === 'SUBSCRIBED') {
-      console.log('✅ Realtime 订阅成功 (global-updates)');
-    } else if (status === 'CHANNEL_ERROR') {
-      console.error('❌ Realtime 频道错误');
-    }
-  });
+  if (status === 'SUBSCRIBED') {
+    console.log('✅ Realtime 订阅成功 (global-updates)');
+  } else if (status === 'CHANNEL_ERROR') {
+    // 静默处理，不再打印错误
+    return;
+  }
+});
    
   
 
