@@ -32909,6 +32909,61 @@ html[data-time="night"] body::after {
   to { opacity: 1; transform: translateX(0); }
 }
 
+
+
+
+/* ===== 干员互助中心弹窗移动端适配 ===== */
+@media (max-width: 640px) {
+  #mutualAidModal .modal-content {
+    padding: 12px !important;
+    width: 98% !important;
+    max-height: 90vh !important;
+  }
+  /* 积分状态栏换行 */
+  #mutualAidModal .flex.items-center.justify-between.p-3 {
+    flex-wrap: wrap !important;
+    gap: 10px !important;
+  }
+  /* 普通盲盒/超级盲盒按钮换行 */
+  #mutualAidModal .flex.gap-2 {
+    flex-wrap: wrap !important;
+  }
+  /* 推荐人输入区域 */
+  #mutualAidModal .p-3[style*="border: 1px dashed"] > div {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+  }
+  /* 按钮全宽 */
+  #mutualAidModal .btn-warm,
+  #mutualAidModal .btn-ghost {
+    width: 100% !important;
+    margin: 4px 0 !important;
+  }
+  /* 标签切换按钮 */
+  #mutualAidModal .mutual-aid-tab {
+    font-size: 12px !important;
+    padding: 6px 10px !important;
+  }
+  /* 福利列表网格改为单列 */
+  #mutualAidModal .grid.md\\:grid-cols-2 {
+    grid-template-columns: 1fr !important;
+  }
+  /* 硬件配置区域 */
+  #mutualAidModal .grid.grid-cols-3 {
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+  }
+  /* 积分/推荐人数字 */
+  #mutualAidModal .text-xl.font-bold {
+    font-size: 1rem !important;
+  }
+}
+
+
+
+
+
+
 </style>
 
 <div class="modal-overlay" id="supplyBoxModal">
