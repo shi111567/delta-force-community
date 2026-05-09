@@ -559,6 +559,8 @@ function enableHorizontalDragScroll(element) {
 <style>
 
 
+
+
 .bgm-player > *:not(canvas) {
   position: relative;
   z-index: 2;
@@ -2834,6 +2836,19 @@ pointer-events: auto !important;
     transition: all 0.3s; display: flex; align-items: center; justify-content: center;
   }
   .scroll-btn:hover { transform: scale(1.15); box-shadow: 0 6px 30px rgba(255,107,53,0.6); }
+
+
+#scrollBtn::before {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  background: conic-gradient(var(--accent) calc(var(--scroll) * 1%), transparent calc(var(--scroll) * 1%));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #fff calc(100% - 3px));
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #fff calc(100% - 3px));
+}
+
+
 
 /* ===== 移动端底部导航（三端自适应） ===== */
 .mobile-nav {
@@ -5240,6 +5255,10 @@ window.addEventListener('scroll', () => {
   const scrollHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
   const progress = scrollHeight > 0 ? (scrollTop / scrollHeight) * 100 : 0;
   document.getElementById('readProgressBar').style.width = progress + '%';
+
+  // 更新滚动进度环
+  const scrollPercent = Math.round((window.scrollY / (document.documentElement.scrollHeight - window.innerHeight)) * 100);
+  document.getElementById('scrollBtn')?.style.setProperty('--scroll', scrollPercent);
 });
 </script>
 
@@ -5303,17 +5322,81 @@ window.addEventListener('scroll', () => {
 </div>
 
 
-  <div class="flex items-center justify-between mb-2">
-    <h3 class="font-display text-sm flex items-center gap-2"><i class="fas fa-toolbox" style="color: var(--accent);"></i> 干员工具箱</h3>
-    <span class="text-xs" style="color: var(--muted);">滑动查看更多 <i class="fas fa-arrow-right ml-1"></i></span>
-<i class="fas fa-chevron-up recommend-section-icon" id="recommendSectionIcon"></i>
-  </div>
+  <div class="toolbox-header" onclick="toggleToolbox()" style="cursor:pointer; user-select:none; margin-bottom:8px;">
+  <h3 class="font-display text-sm flex items-center gap-2" style="margin:0;">
+    <i class="fas fa-toolbox" style="color: var(--accent);"></i> 干员工具箱
+  </h3>
+  <span class="toolbox-arrow" style="transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); display: inline-block;">
+    <i class="fas fa-chevron-up"></i>
+  </span>
+</div>
+
+<!-- 工具箱折叠容器 -->
+<div class="toolbox-content" id="toolboxContent" style="max-height: 500px; overflow: hidden; transition: max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1);">
   <div class="flex gap-3 overflow-x-auto pb-2" id="toolboxBar" style="scrollbar-width: none; cursor: grab;">
-    <!-- 动态渲染 -->
+    <!-- 动态渲染的工具图标会自动出现在这里 -->
   </div>
+</div>
+
+<i class="fas fa-chevron-up recommend-section-icon" id="recommendSectionIcon"></i>
 </section>
   
   
+
+<!-- ========== 战术终端：互助中心+物资箱 ========== -->
+<div class="tactical-terminal" id="tacticalTerminal">
+  <!-- 顶部标签 -->
+  <div class="terminal-tabs">
+    <button class="terminal-tab active" data-tab="aid" onclick="switchTerminalTab('aid')">
+      <i class="fas fa-hand-holding-heart"></i> 互助中心
+    </button>
+    <button class="terminal-tab" data-tab="supply" onclick="switchTerminalTab('supply')">
+      <i class="fas fa-box-open"></i> 物资箱
+    </button>
+    <!-- 滑动指示器 -->
+    <div class="terminal-indicator" id="terminalIndicator"></div>
+  </div>
+
+  <!-- 内容容器 -->
+  <div class="terminal-content" id="terminalContent">
+    <!-- 互助中心面板（默认显示） -->
+    <div class="terminal-panel active" id="terminalAid">
+      <div class="card-base p-4 cursor-pointer" onclick="openMutualAidModal()" style="border-left:4px solid #FFD700;">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-full flex items-center justify-center" style="background:linear-gradient(135deg, #FFD700, #FF6B35);">
+            <i class="fas fa-hand-holding-heart text-white"></i>
+          </div>
+          <div>
+            <span class="font-bold text-sm">干员互助中心</span>
+            <p class="text-xs" style="color:var(--muted);">福利点评 · 画质门诊 · 赚积分</p>
+          </div>
+          <i class="fas fa-chevron-right ml-auto" style="color:var(--accent);"></i>
+        </div>
+      </div>
+    </div>
+
+    <!-- 物资箱面板 -->
+    <div class="terminal-panel" id="terminalSupply">
+      <div class="card-base p-4 cursor-pointer" onclick="openSupplyBoxModal()" style="border-left:4px solid #FFD700;">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-full flex items-center justify-center" style="background:linear-gradient(135deg, #FFD700, #FF6B35);">
+            <i class="fas fa-box-open text-white"></i>
+          </div>
+          <div>
+            <span class="font-bold text-sm">战区物资箱</span>
+            <p class="text-xs" style="color:var(--muted);">20积分开一次，100+稀有物资</p>
+          </div>
+          <i class="fas fa-chevron-right ml-auto" style="color:var(--accent);"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- ========== 战术终端结束 ========== -->
+
+
+
+
 <!-- 发帖奖励提示条 -->
 <div id="dailyPostRewardBar" class="card-base p-3 mb-4 flex items-center justify-between hidden" style="background: linear-gradient(135deg, var(--accent)10, #FFD70010); border-left: 5px solid #FFD700;">
   <div class="flex items-center gap-3">
@@ -5328,160 +5411,13 @@ window.addEventListener('scroll', () => {
 
 
 
-<!-- ==================== 干员互助中心入口（融合积分赚取） ==================== -->
-<div class="card-base p-4 mb-4 transition-all hover:shadow-xl" 
-     style="background: linear-gradient(135deg, rgba(255,215,0,0.1) 0%, rgba(255,107,53,0.05) 100%); border-left: 6px solid #FFD700;">
-  
-  <!-- 上半部分：标题 + 入口（可点击进入互助中心） -->
-  <div class="flex items-center justify-between cursor-pointer group" onclick="openMutualAidModal()">
-    <div class="flex items-center gap-4">
-      <div class="w-12 h-12 rounded-full flex items-center justify-center" style="background: linear-gradient(135deg, #FFD700, #FF6B35);">
-        <i class="fas fa-hand-holding-heart text-white text-xl"></i>
-      </div>
-      <div>
-        <h3 class="font-display text-base flex items-center gap-2">
-          干员互助中心
-          <span class="text-xs px-2 py-0.5 rounded-full" style="background: #FFD700; color: #1a1a2e;">Beta</span>
-        </h3>
-        <p class="text-xs" style="color: var(--muted);">福利点评 · 画质门诊 · 赚积分开盲盒</p>
-      </div>
-    </div>
-    <i class="fas fa-chevron-right text-lg group-hover:translate-x-1 transition-transform" style="color: var(--accent);"></i>
-  </div>
-  
-  <!-- 下半部分：积分赚取快捷栏（不干扰主入口点击） -->
-  <div class="flex items-center justify-between mt-3 pt-3 border-t" style="border-color: rgba(255,215,0,0.2);">
-    <div class="flex items-center gap-3 sm:gap-5">
-      <div class="flex items-center gap-1 text-xs cursor-pointer hover:scale-105 transition-transform" onclick="event.stopPropagation(); showToast('每日签到可得2积分', 'info')">
-        <i class="fas fa-calendar-check" style="color: #FFD700;"></i>
-        <span class="font-bold" style="color: #2ecc71;">+2</span>
-      </div>
-      <div class="flex items-center gap-1 text-xs cursor-pointer hover:scale-105 transition-transform" onclick="event.stopPropagation(); showToast('发表一篇帖子可得15积分', 'info')">
-        <i class="fas fa-pen-fancy" style="color: var(--accent);"></i>
-        <span class="font-bold" style="color: #2ecc71;">+15</span>
-      </div>
-      <div class="flex items-center gap-1 text-xs cursor-pointer hover:scale-105 transition-transform" onclick="event.stopPropagation(); showToast('点赞帖子可得5积分', 'info')">
-        <i class="far fa-heart" style="color: #FF4757;"></i>
-        <span class="font-bold" style="color: #2ecc71;">+5</span>
-      </div>
-      <div class="flex items-center gap-1 text-xs cursor-pointer hover:scale-105 transition-transform" onclick="event.stopPropagation(); showToast('邀请战友可得50积分', 'info')">
-        <i class="fas fa-user-plus" style="color: #3498db;"></i>
-        <span class="font-bold" style="color: #2ecc71;">+50</span>
-      </div>
-    </div>
-    <button class="text-xs px-3 py-1.5 rounded-full flex items-center gap-1 transition-all hover:scale-105" 
-            style="background: var(--surface); border: 1px solid var(--border); color: var(--text);"
-            onclick="event.stopPropagation(); showPointsRuleModal()">
-      <i class="fas fa-search"></i> 规则
-    </button>
-  </div>
-</div>
 
 
 
 
 
 
-        <!-- 筛选栏（精简版 + 更多筛选抽屉） -->
-<div class="flex items-center gap-2 mb-4">
-  <!-- 排序下拉（保留） -->
-  <div class="filter-dropdown" id="sortDropdown">
-    <button class="btn-ghost text-sm px-4 py-2 flex items-center gap-1" onclick="toggleFilterDropdown('sortDropdown')">
-      <span id="currentSortLabel">最新</span> <i class="fas fa-chevron-down text-xs"></i>
-    </button>
-    <div class="filter-menu hidden">
-      <button class="filter-option" data-sort="latest" onclick="selectFilterSort('latest')"><i class="fas fa-clock"></i>最新</button>
-      <button class="filter-option" data-sort="hot" onclick="selectFilterSort('hot')"><i class="fas fa-fire"></i>热度</button>
-      <button class="filter-option" data-sort="likes" onclick="selectFilterSort('likes')"><i class="fas fa-thumbs-up"></i>赞最多</button>
-      <button class="filter-option" data-sort="downloads" onclick="selectFilterSort('downloads')"><i class="fas fa-download"></i>下载最多</button>
-    </div>
-  </div>
-  
-  <!-- 搜索输入框（保留） -->
-  <div class="flex items-center gap-1 flex-1">
-    <div class="relative flex-1">
-      <input type="text" id="homeSearchInput" placeholder="搜索帖子..." class="w-full pl-9 pr-3 py-2 text-sm rounded-xl" style="background:var(--surface);border:1.5px solid var(--border);color:var(--text)">
-      <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-sm" style="color:var(--accent)"></i>
-      <div id="homeSearchSuggestions" class="absolute top-full left-0 right-0 mt-1 card-base p-2 hidden" style="z-index:100; max-height:300px; overflow-y:auto;">
-        <div class="text-xs font-bold px-2 py-1" style="color:var(--muted);">热门搜索</div>
-        <div id="hotSearchList" class="space-y-1"></div>
-        <div id="searchHistoryList" class="space-y-1 mt-2 hidden">
-
-<div id="searchHistoryDropdown" class="card-base p-2 hidden" style="position:absolute; top:100%; left:0; right:0; z-index:101; max-height:200px; overflow-y:auto;">
-  <div class="text-xs font-bold px-2 py-1" style="color:var(--muted);">最近搜索</div>
-  <div id="searchHistoryListContent" class="space-y-1"></div>
-</div>
-
-</div>
-      </div>
-    </div>
-
-
- 
-
-
-    <button class="btn-ghost text-sm px-3 py-2" onclick="performHomeSearch()">
-      <i class="fas fa-arrow-right"></i>
-    </button>
-  </div>
-  
-  <!-- 更多筛选按钮（打开抽屉） -->
-
-
-<button class="btn-ghost text-sm px-4 py-2 flex items-center gap-1" id="unreadFilterBtn" onclick="toggleUnreadFilter()">
-  <i class="fas fa-eye"></i> <span class="hidden sm:inline">未读</span>
-</button>
-
-
-
-  <button class="btn-ghost text-sm px-4 py-2 flex items-center gap-1" onclick="openFilterDrawer()">
-    <i class="fas fa-sliders-h"></i> <span class="hidden sm:inline">筛选</span>
-  </button>
-  
-  <span class="text-xs ml-auto" style="color:var(--muted)"><span id="postCount">0</span> 条动态</span>
-</div>
-
-<!-- 更多筛选抽屉（默认隐藏） -->
-<div id="filterDrawerOverlay" class="modal-overlay" style="z-index:1001;" onclick="closeFilterDrawer()">
-  <div class="modal-content" style="max-width:360px; margin-left:auto; margin-right:0; height:100%; max-height:100%; border-radius:20px 0 0 20px;" onclick="event.stopPropagation()">
-    <div class="flex justify-between items-center mb-4">
-      <h2 class="font-display text-lg">筛选</h2>
-      <button onclick="closeFilterDrawer()" class="w-8 h-8 rounded-full flex items-center justify-center" style="background:var(--surface)"><i class="fas fa-times"></i></button>
-    </div>
-    <div class="space-y-4">
-      <div>
-        <label class="text-sm font-bold block mb-2">内容类型</label>
-        <div class="flex flex-wrap gap-2" id="filterDrawerType">
-          <button class="filter-chip" data-type="all" onclick="setDrawerFilter('type','all')">全部</button>
-          <button class="filter-chip" data-type="normal" onclick="setDrawerFilter('type','normal')">图文</button>
-          <button class="filter-chip" data-type="vote" onclick="setDrawerFilter('type','vote')">投票</button>
-          <button class="filter-chip" data-type="qa" onclick="setDrawerFilter('type','qa')">问答</button>
-        </div>
-      </div>
-      <div>
-        <label class="text-sm font-bold block mb-2">兵种</label>
-        <div class="flex flex-wrap gap-2" id="filterDrawerOp">
-          <button class="filter-chip" data-op="all" onclick="setDrawerFilter('op','all')">全兵种</button>
-          <button class="filter-chip" data-op="突击" onclick="setDrawerFilter('op','突击')">突击</button>
-          <button class="filter-chip" data-op="工程" onclick="setDrawerFilter('op','工程')">工程</button>
-          <button class="filter-chip" data-op="侦察" onclick="setDrawerFilter('op','侦察')">侦察</button>
-          <button class="filter-chip" data-op="支援" onclick="setDrawerFilter('op','支援')">支援</button>
-        </div>
-      </div>
-      <div>
-        <label class="text-sm font-bold block mb-2">话题</label>
-        <div class="flex flex-wrap gap-2 max-h-48 overflow-y-auto p-1" id="filterDrawerTopic">
-          <button class="filter-chip" data-topic="all" onclick="setDrawerFilter('topic','all')">全话题</button>
-          <!-- 动态生成话题列表 -->
-        </div>
-      </div>
-      <div class="pt-4 border-t" style="border-color:var(--border);">
-        <button class="btn-warm w-full py-2" onclick="applyDrawerFilters()">应用筛选</button>
-        <button class="btn-ghost w-full py-2 mt-2" onclick="resetDrawerFilters()">重置</button>
-      </div>
-    </div>
-  </div>
-</div>
+     
 
 <!-- ==================== 战术控制台 · 全新布局 ==================== -->
 
@@ -5676,7 +5612,119 @@ window.addEventListener('scroll', () => {
   </div>
 </div>
 <!-- ==================== 战术控制台结束 ==================== -->
+
+
+
+
+
+
+
+
 </div>
+
+
+   <!-- 筛选栏（精简版 + 更多筛选抽屉） -->
+<div class="flex items-center gap-2 mb-4">
+  <!-- 排序下拉（保留） -->
+  <div class="filter-dropdown" id="sortDropdown">
+    <button class="btn-ghost text-sm px-4 py-2 flex items-center gap-1" onclick="toggleFilterDropdown('sortDropdown')">
+      <span id="currentSortLabel">最新</span> <i class="fas fa-chevron-down text-xs"></i>
+    </button>
+    <div class="filter-menu hidden">
+      <button class="filter-option" data-sort="latest" onclick="selectFilterSort('latest')"><i class="fas fa-clock"></i>最新</button>
+      <button class="filter-option" data-sort="hot" onclick="selectFilterSort('hot')"><i class="fas fa-fire"></i>热度</button>
+      <button class="filter-option" data-sort="likes" onclick="selectFilterSort('likes')"><i class="fas fa-thumbs-up"></i>赞最多</button>
+      <button class="filter-option" data-sort="downloads" onclick="selectFilterSort('downloads')"><i class="fas fa-download"></i>下载最多</button>
+    </div>
+  </div>
+  
+  <!-- 搜索输入框（保留） -->
+  <div class="flex items-center gap-1 flex-1">
+    <div class="relative flex-1">
+      <input type="text" id="homeSearchInput" placeholder="搜索帖子..." class="w-full pl-9 pr-3 py-2 text-sm rounded-xl" style="background:var(--surface);border:1.5px solid var(--border);color:var(--text)">
+      <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-sm" style="color:var(--accent)"></i>
+      <div id="homeSearchSuggestions" class="absolute top-full left-0 right-0 mt-1 card-base p-2 hidden" style="z-index:100; max-height:300px; overflow-y:auto;">
+        <div class="text-xs font-bold px-2 py-1" style="color:var(--muted);">热门搜索</div>
+        <div id="hotSearchList" class="space-y-1"></div>
+        <div id="searchHistoryList" class="space-y-1 mt-2 hidden">
+
+<div id="searchHistoryDropdown" class="card-base p-2 hidden" style="position:absolute; top:100%; left:0; right:0; z-index:101; max-height:200px; overflow-y:auto;">
+  <div class="text-xs font-bold px-2 py-1" style="color:var(--muted);">最近搜索</div>
+  <div id="searchHistoryListContent" class="space-y-1"></div>
+</div>
+
+</div>
+      </div>
+    </div>
+
+
+ 
+
+
+    <button class="btn-ghost text-sm px-3 py-2" onclick="performHomeSearch()">
+      <i class="fas fa-arrow-right"></i>
+    </button>
+  </div>
+  
+  <!-- 更多筛选按钮（打开抽屉） -->
+
+
+<button class="btn-ghost text-sm px-4 py-2 flex items-center gap-1" id="unreadFilterBtn" onclick="toggleUnreadFilter()">
+  <i class="fas fa-eye"></i> <span class="hidden sm:inline">未读</span>
+</button>
+
+
+
+  <button class="btn-ghost text-sm px-4 py-2 flex items-center gap-1" onclick="openFilterDrawer()">
+    <i class="fas fa-sliders-h"></i> <span class="hidden sm:inline">筛选</span>
+  </button>
+  
+  <span class="text-xs ml-auto" style="color:var(--muted)"><span id="postCount">0</span> 条动态</span>
+</div>
+
+<!-- 更多筛选抽屉（默认隐藏） -->
+<div id="filterDrawerOverlay" class="modal-overlay" style="z-index:1001;" onclick="closeFilterDrawer()">
+  <div class="modal-content" style="max-width:360px; margin-left:auto; margin-right:0; height:100%; max-height:100%; border-radius:20px 0 0 20px;" onclick="event.stopPropagation()">
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="font-display text-lg">筛选</h2>
+      <button onclick="closeFilterDrawer()" class="w-8 h-8 rounded-full flex items-center justify-center" style="background:var(--surface)"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="space-y-4">
+      <div>
+        <label class="text-sm font-bold block mb-2">内容类型</label>
+        <div class="flex flex-wrap gap-2" id="filterDrawerType">
+          <button class="filter-chip" data-type="all" onclick="setDrawerFilter('type','all')">全部</button>
+          <button class="filter-chip" data-type="normal" onclick="setDrawerFilter('type','normal')">图文</button>
+          <button class="filter-chip" data-type="vote" onclick="setDrawerFilter('type','vote')">投票</button>
+          <button class="filter-chip" data-type="qa" onclick="setDrawerFilter('type','qa')">问答</button>
+        </div>
+      </div>
+      <div>
+        <label class="text-sm font-bold block mb-2">兵种</label>
+        <div class="flex flex-wrap gap-2" id="filterDrawerOp">
+          <button class="filter-chip" data-op="all" onclick="setDrawerFilter('op','all')">全兵种</button>
+          <button class="filter-chip" data-op="突击" onclick="setDrawerFilter('op','突击')">突击</button>
+          <button class="filter-chip" data-op="工程" onclick="setDrawerFilter('op','工程')">工程</button>
+          <button class="filter-chip" data-op="侦察" onclick="setDrawerFilter('op','侦察')">侦察</button>
+          <button class="filter-chip" data-op="支援" onclick="setDrawerFilter('op','支援')">支援</button>
+        </div>
+      </div>
+      <div>
+        <label class="text-sm font-bold block mb-2">话题</label>
+        <div class="flex flex-wrap gap-2 max-h-48 overflow-y-auto p-1" id="filterDrawerTopic">
+          <button class="filter-chip" data-topic="all" onclick="setDrawerFilter('topic','all')">全话题</button>
+          <!-- 动态生成话题列表 -->
+        </div>
+      </div>
+      <div class="pt-4 border-t" style="border-color:var(--border);">
+        <button class="btn-warm w-full py-2" onclick="applyDrawerFilters()">应用筛选</button>
+        <button class="btn-ghost w-full py-2 mt-2" onclick="resetDrawerFilters()">重置</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
   <!-- 置顶帖 -->
     <div id="topPostArea" class="mb-4"></div>
 
@@ -10299,6 +10347,17 @@ function updateBJTime() {
   const m = String(bj.getMinutes()).padStart(2,'0');
   const s = String(bj.getSeconds()).padStart(2,'0');
   $('bjTime').textContent = ` ${h}:${m}:${s}`;
+
+// 根据小时设置时间氛围
+const hour = now.getHours();
+let timeAttr = 'day';
+if (hour >= 5 && hour < 8) timeAttr = 'morning';
+else if (hour >= 8 && hour < 17) timeAttr = 'day';
+else if (hour >= 17 && hour < 21) timeAttr = 'dusk';
+else timeAttr = 'night';
+document.documentElement.setAttribute('data-time', timeAttr);
+
+
 }
 setInterval(updateBJTime, 1000); updateBJTime();
 
@@ -10973,6 +11032,8 @@ loadSiteLogoFromStorage();
 
     renderToolbox();
     renderTopicCards();
+
+
     
     loadPosts(true);
 
@@ -11982,6 +12043,9 @@ async function loadPosts(reset) {
     APP.postsPage = 0; 
     APP.allPostsLoaded = false; 
     $('postsGrid').innerHTML = ''; 
+
+
+
   }
   
   if (APP.allPostsLoaded) {
@@ -12001,6 +12065,17 @@ function highlightKeywords(keyword) {
     });
 }
     APP.loading = false;
+
+
+// 搜索关键词高亮
+if (APP.filters.keyword && APP.filters.keyword.trim()) {
+  const kw = APP.filters.keyword.trim();
+  document.querySelectorAll('.post-title, .post-description').forEach(el => {
+    const regex = new RegExp(`(${kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+    el.innerHTML = el.innerHTML.replace(regex, '<mark style="background:#FFD700;color:#000;padding:0 2px;border-radius:3px;">$1</mark>');
+  });
+}
+
     return;
   }
 
@@ -12069,7 +12144,7 @@ if (APP.filters.topic && APP.filters.topic !== 'all') {
 
     let filteredData = data || [];
   if (unreadFilterActive && APP.user) {
-    const readPosts = JSON.parse(localStorage.getItem('readPosts') || '{}');
+    
     filteredData = filteredData.filter(p => !readPosts[p.id]);
   }
   filteredData.forEach((p, i) => {
@@ -12984,6 +13059,14 @@ async function favPost(pid) {
 
 // ==================== 评论系统 ====================
 async function openComments(pid) {
+
+let readPosts = JSON.parse(localStorage.getItem('readPosts') || '{}');
+readPosts[pid] = Date.now();
+localStorage.setItem('readPosts', JSON.stringify(readPosts));
+
+
+// 保存当前滚动位置
+
   APP.currentPostId = pid;
 
   
@@ -13008,7 +13091,7 @@ async function openComments(pid) {
 
 
 // 记录已读帖子（用于未读标记）
-let readPosts = JSON.parse(localStorage.getItem('readPosts') || '{}');
+readPosts = JSON.parse(localStorage.getItem('readPosts') || '{}');
 readPosts[pid] = Date.now();
 // 只保留最近7天的记录
 const weekAgo = Date.now() - 7*86400000;
@@ -13029,6 +13112,11 @@ localStorage.setItem('readPosts', JSON.stringify(readPosts));
   // 构建弹窗内容
   const modal = $('commentsModal');
   const contentDiv = modal.querySelector('.modal-content');
+
+
+
+
+
   
   // 保存原始评论列表区域（如果已存在则保留，否则创建结构）
   let postPreviewEl = $('postPreviewSection');
@@ -13045,6 +13133,13 @@ localStorage.setItem('readPosts', JSON.stringify(readPosts));
       <div class="flex gap-2 items-end">
         <div class="flex-1">
           <textarea id="commentInput" rows="2" placeholder="写评论... @提及用户" class="w-full text-sm"></textarea>
+
+
+<label style="font-size:12px;margin-bottom:8px;display:flex;align-items:center;gap:6px;">
+  <input type="checkbox" id="onlyAuthorFilter" onchange="filterComments()"> 只看楼主
+</label>
+
+
 <!-- 表情选择器（默认隐藏） -->
 <div id="emojiPicker" class="hidden grid grid-cols-8 gap-1 p-2 mb-1 rounded-lg" style="background:var(--surface); max-height:120px; overflow-y:auto;"></div>
           <div class="flex gap-1 mt-1">
@@ -13214,6 +13309,11 @@ function replyTo(username, parentId) {
   inp.dataset.mention = username;
   inp.focus();
 }
+
+
+
+
+
 // ==================== 表情选择器 ====================
 function toggleEmojiPicker() {
   const picker = $('emojiPicker');
@@ -13238,6 +13338,21 @@ function toggleEmojiPicker() {
 function insertEmoji(emoji) {
   $('commentInput').value += emoji;
 }
+
+
+
+
+function filterComments() {
+  const authorName = document.getElementById('postDetailAuthor')?.textContent.trim();
+  const checked = document.getElementById('onlyAuthorFilter')?.checked;
+  document.querySelectorAll('#commentsList > div').forEach(comment => {
+    const nameEl = comment.querySelector('.text-sm.font-bold') || comment.querySelector('.font-bold');
+    const name = nameEl?.textContent.trim();
+    comment.style.display = (checked && name !== authorName) ? 'none' : '';
+  });
+}
+
+
 async function submitComment() {
   if (!APP.user) { showToast('请先登录'); openAuthModal(); return; }
   const content = $('commentInput').value.trim();
@@ -32574,6 +32689,24 @@ display: flex; flex-direction: column; gap: 20px;
   --border: rgba(180, 120, 60, 0.2);
 }
 
+
+
+/* 战术终端亮色适配 */
+[data-theme="light"] .tactical-terminal {
+  background: linear-gradient(160deg, rgba(255,248,240,0.95), rgba(255,240,225,0.98));
+  border-color: rgba(180,120,60,0.2);
+}
+[data-theme="light"] .terminal-tabs {
+  background: rgba(255,107,53,0.05);
+  border-bottom-color: rgba(180,120,60,0.15);
+}
+[data-theme="light"] .terminal-tab {
+  color: #6b5b4e;
+}
+[data-theme="light"] .terminal-tab.active {
+  color: #c5602a;
+}
+
 /* ===== 个人中心卡片阴影 ===== */
 .profile-stats-grid .stat-cell,
 .profile-header-card,
@@ -32669,6 +32802,112 @@ display: flex; flex-direction: column; gap: 20px;
 
 
 
+/* ===== 动态光影系统 ===== */
+body::after {
+  content: '';
+  position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+  pointer-events: none; z-index: 0;
+  mix-blend-mode: overlay;
+}
+/* 清晨 5-7点：冷蓝 */
+html[data-time="morning"] body::after {
+  background: linear-gradient(180deg, rgba(100,150,255,0.08), transparent);
+}
+/* 白天 8-17点：暖金 */
+html[data-time="day"] body::after {
+  background: linear-gradient(180deg, rgba(255,200,150,0.05), transparent);
+}
+/* 傍晚 18-20点：橙红 */
+html[data-time="dusk"] body::after {
+  background: linear-gradient(180deg, rgba(255,100,50,0.10), transparent);
+}
+/* 深夜 21-4点：暗紫 */
+html[data-time="night"] body::after {
+  background: linear-gradient(180deg, rgba(80,50,120,0.12), transparent);
+}
+
+
+.toolbox-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-radius: 16px;
+  background: rgba(255,107,53,0.04);
+  transition: background 0.3s;
+}
+.toolbox-header:hover {
+  background: rgba(255,107,53,0.08);
+}
+.toolbox-header:active {
+  transform: scale(0.98);
+}
+
+
+
+
+/* ===== 战术终端（双模块滑动切换） ===== */
+.tactical-terminal {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  margin: 16px 0 24px;
+  overflow: hidden;
+  box-shadow: 0 4px 16px var(--shadow);
+  backdrop-filter: blur(8px);
+}
+.terminal-tabs {
+  display: flex;
+  align-items: center;
+  position: relative;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+.terminal-tab {
+  flex: 1;
+  padding: 12px 0;
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: color 0.3s;
+  position: relative;
+  z-index: 1;
+}
+.terminal-tab.active {
+  color: var(--accent);
+}
+.terminal-tab i {
+  margin-right: 6px;
+}
+.terminal-indicator {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 50%;
+  height: 3px;
+  background: var(--accent);
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: 0 0 12px var(--glow);
+}
+.terminal-content {
+  position: relative;
+  min-height: 60px;
+}
+.terminal-panel {
+  display: none;
+  padding: 12px;
+  animation: terminalFadeIn 0.3s ease;
+}
+.terminal-panel.active {
+  display: block;
+}
+@keyframes terminalFadeIn {
+  from { opacity: 0; transform: translateX(10px); }
+  to { opacity: 1; transform: translateX(0); }
+}
 
 </style>
 
@@ -34545,31 +34784,6 @@ reportModal.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate
 })(); 
 
 
-// 入口自动插入（工具箱下方）——修复版
-(function addEntrance() {
-  if (document.getElementById('supplyTeaser')) return;
-  const toolboxSection = document.getElementById('toolboxSection');
-  const toolboxBar = document.getElementById('toolboxBar');
-  if (!toolboxSection || !toolboxBar) return setTimeout(addEntrance, 200);
-
-  const teaser = document.createElement('div');
-  teaser.id = 'supplyTeaser';
-  // 样式：块级元素，独占一行，和工具箱横条分开
-  teaser.style.cssText = 'width:100%; margin-top:16px;';
-  teaser.innerHTML = `
-    <div class="card-base p-4 flex items-center gap-3 cursor-pointer" style="border-left: 6px solid #FFD700; background: linear-gradient(135deg, rgba(255,215,0,0.12), rgba(255,107,53,0.05));" onclick="window.openSupplyBoxModal()">
-      <div class="w-12 h-12 rounded-full flex items-center justify-center" style="background: linear-gradient(135deg, #FFD700, #FF6B35);">
-        <i class="fas fa-box-open text-white text-xl"></i>
-      </div>
-      <div>
-        <h3 class="font-display text-base">战区物资箱</h3>
-        <p class="text-xs" style="color: var(--muted);">20积分开一次，100+稀有物资</p>
-      </div>
-    </div>
-  `;
-  // 关键改动：把入口放在 toolboxBar 后面，而不是塞进 toolboxBar 里面
-  toolboxBar.after(teaser);
-})();
 
 
 // ========== 配装历史记录 ==========
@@ -34612,19 +34826,21 @@ function clearLoadoutHistory() {
 
 
 
-// 在查看详情时记录历史
-const originalShowLoadoutDetail = showLoadoutDetail;
-showLoadoutDetail = function(code) {
-  const item = currentLoadoutData.find(l => l.code === code);
-  if (item) {
-    let history = JSON.parse(localStorage.getItem('loadoutDetailHistory') || '[]');
-    history = history.filter(h => h.code !== code);
-    history.unshift({ name: item.weapon || item.name, code: code });
-    if (history.length > LOADOUT_HISTORY_MAX) history.pop();
-    localStorage.setItem('loadoutDetailHistory', JSON.stringify(history));
-  }
-  originalShowLoadoutDetail(code);
-};
+// 在查看详情时记录历史 (先确保原函数已定义)
+(function() {
+  const originalShowLoadoutDetail = showLoadoutDetail;
+  showLoadoutDetail = function(code) {
+    const item = currentLoadoutData.find(l => l.code === code);
+    if (item) {
+      let history = JSON.parse(localStorage.getItem('loadoutDetailHistory') || '[]');
+      history = history.filter(h => h.code !== code);
+      history.unshift({ name: item.weapon || item.name, code: code });
+      if (history.length > LOADOUT_HISTORY_MAX) history.pop();
+      localStorage.setItem('loadoutDetailHistory', JSON.stringify(history));
+    }
+    if (originalShowLoadoutDetail) originalShowLoadoutDetail(code);
+  };
+})();
 
 
 
@@ -34835,7 +35051,37 @@ async function generateShareCard(postId) {
 <script>
 
 
+function toggleToolbox() {
+  const content = document.getElementById('toolboxContent');
+  const arrow = document.querySelector('.toolbox-arrow');
+  if (!content || !arrow) return;
 
+  const isCollapsed = content.style.maxHeight === '0px';
+  if (isCollapsed) {
+    content.style.maxHeight = '500px'; // 展开
+    arrow.style.transform = 'rotate(0deg)';
+  } else {
+    content.style.maxHeight = '0px'; // 收起
+    arrow.style.transform = 'rotate(180deg)';
+  }
+}
+
+
+function switchTerminalTab(tab) {
+  // 更新标签激活状态
+  document.querySelectorAll('.terminal-tab').forEach(t => {
+    t.classList.toggle('active', t.dataset.tab === tab);
+  });
+  // 移动指示器
+  const indicator = document.getElementById('terminalIndicator');
+  if (indicator) {
+    indicator.style.transform = tab === 'aid' ? 'translateX(0)' : 'translateX(100%)';
+  }
+  // 切换面板
+  document.querySelectorAll('.terminal-panel').forEach(p => {
+    p.classList.toggle('active', p.id === (tab === 'aid' ? 'terminalAid' : 'terminalSupply'));
+  });
+}
 
 
 
