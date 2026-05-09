@@ -6216,11 +6216,11 @@ window.addEventListener('scroll', () => {
 
 
 <!-- ✅ 预设地图下拉菜单 - 插入在这里 -->
-<div class="filter-dropdown relative" id="presetMapDropdown" style="z-index: 200;">
+<div class="filter-dropdown" id="presetMapDropdown" style="position:relative; z-index:99999 !important;">
   <button class="tactical-tool-btn" onclick="toggleFilterDropdown('presetMapDropdown')">
     <i class="fas fa-map"></i> 预设地图 <i class="fas fa-chevron-down text-xs ml-1"></i>
   </button>
-  <div class="filter-menu hidden absolute top-full left-0 mt-1" style="z-index: 9999 !important; min-width:110px;">
+  <div class="filter-menu hidden" style="position:absolute !important; top:100% !important; left:0 !important; z-index:999999 !important; min-width:110px; background:var(--card) !important; border:1px solid var(--accent) !important; box-shadow:0 12px 30px rgba(0,0,0,0.6) !important;">
     <button class="filter-option" onclick="loadPresetMap('dam');toggleFilterDropdown('presetMapDropdown')">🏭 大坝</button>
     <button class="filter-option" onclick="loadPresetMap('space');toggleFilterDropdown('presetMapDropdown')">🚀 航天</button>
     <button class="filter-option" onclick="loadPresetMap('valley');toggleFilterDropdown('presetMapDropdown')">🏹 长弓</button>
@@ -6228,12 +6228,24 @@ window.addEventListener('scroll', () => {
 </div>
 
 
+
 <button class="tactical-tool-btn" data-tool="coordinate" id="coordinateModeBtn" onclick="toggleCoordinateMode()"><i class="fas fa-map-pin"></i> 坐标</button>
+
+
+<button class="tactical-tool-btn" id="snapToggleBtn" onclick="toggleSnap()" style="background:#FF6B35 !important; color:#fff !important; font-weight:bold !important; box-shadow:0 0 12px #FF6B35 !important; border:1px solid #FF4757 !important;">
+  <i class="fas fa-magnet"></i> 吸附关
+</button>
 
 
 <input type="file" id="tacticalBgInput" accept="image/*" style="display:none">
     <input type="color" id="tacticalColor" value="#FF6B35" class="w-10 h-10 rounded-full border-0 p-1 cursor-pointer">
     <select id="tacticalSize" class="px-3 py-1 rounded-full text-sm" style="background:var(--surface); border:1px solid var(--border);">
+
+
+
+
+
+
       <option value="2">细</option><option value="5" selected>中</option><option value="10">粗</option>
     </select>
   </div>
@@ -19825,6 +19837,7 @@ let placeMode = false;
       setTimeout(initTactical, 100);
     }
     return;
+
   }
 
 
@@ -20848,6 +20861,50 @@ function copyBlueprintCode(code, btn) {
     showToast('❌ 蓝图码无效或已损坏', 'error');
   }
 };
+
+
+
+  // ---------- 吸附系统（V2 精简版） ----------
+  window.snapEnabled = false;
+  const GRID_SIZE = 40;
+  const SNAP_DISTANCE = 20;
+
+  window.toggleSnap = function() {
+    window.snapEnabled = !window.snapEnabled;
+    const btn = document.getElementById('snapToggleBtn');
+    if (btn) {
+      btn.innerHTML = window.snapEnabled ? '<i class="fas fa-magnet"></i> 吸附开' : '<i class="fas fa-magnet"></i> 吸附关';
+      btn.style.background = window.snapEnabled ? '#e74c3c' : '#FF6B35';
+      btn.style.color = '#fff';
+    }
+  };
+
+  function getSnappedPos(x, y) {
+    let bestX = x, bestY = y, bestDist = SNAP_DISTANCE + 1;
+    const gx = Math.round(x / GRID_SIZE) * GRID_SIZE;
+    const gy = Math.round(y / GRID_SIZE) * GRID_SIZE;
+    const gd = Math.hypot(x - gx, y - gy);
+    if (gd < bestDist) { bestX = gx; bestY = gy; bestDist = gd; }
+    document.querySelectorAll('.placed-point').forEach(el => {
+      const px = parseFloat(el.getAttribute('data-x') || 0);
+      const py = parseFloat(el.getAttribute('data-y') || 0);
+      const d = Math.hypot(x - px, y - py);
+      if (d < bestDist) { bestX = px; bestY = py; bestDist = d; }
+    });
+    return { x: bestX, y: bestY };
+  }
+
+  const origAddPlacedPoint = addPlacedPoint;
+  window.addPlacedPoint = function(type, x, y) {
+    if (window.snapEnabled) {
+      const snapped = getSnappedPos(x, y);
+      x = snapped.x; y = snapped.y;
+    }
+    origAddPlacedPoint(type, x, y);
+  };
+
+
+
 
 console.log('✅ 战术板修复版（分层绘制）已启动');
 }
@@ -33566,6 +33623,29 @@ html[data-time="night"] body::after {
   transform: translateY(-1px);
 }
 
+
+#snapToggleBtn.active {
+  background: var(--accent) !important;
+  color: #fff !important;
+  box-shadow: 0 0 10px var(--accent);
+}
+
+/* 吸附按钮独立发光 */
+#snapToggleBtn {
+  background: linear-gradient(135deg, #FF6B35, #FF4757) !important;
+  color: #fff !important;
+  font-weight: bold !important;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.4) !important;
+  box-shadow: 0 0 15px rgba(255,107,53,0.6) !important;
+  border: 1px solid #FF6B35 !important;
+  margin-left: 6px; /* 与其它按钮拉开一点距离 */
+}
+
+
+/* 确保战术板工具栏允许子元素溢出 */
+#tacticalTab, #tacticalTab > div, #tacticalTab .card-base, #tacticalTab .flex-wrap {
+  overflow: visible !important;
+}
 
 
 </style>
