@@ -7742,10 +7742,49 @@ window.addEventListener('scroll', () => {
           </select>
           <button class="btn-warm text-sm" onclick="grantBadge()">授予勋章</button>
         </div>
+
+
+
+
+<!-- ========== 超级管理员验证按钮 ========== -->
+<div id="superAdminSection" style="display:none; margin-top:16px; padding-top:16px; border-top:1px solid var(--border);">
+  <h3 class="font-bold mb-2">🔐 超级管理员验证</h3>
+  <p class="text-xs mb-2" style="color:var(--muted);">通过手势验证后可管理积分（至少连接6个点）</p>
+  <button class="btn-ghost text-sm" onclick="openGestureLockModal()">
+    <i class="fas fa-fingerprint mr-1"></i>手势验证
+  </button>
+</div>
+
+<!-- 积分修改面板（验证通过后显示） -->
+<div id="superAdminPointsPanel" style="display:none; margin-top:16px; padding-top:16px; border-top:1px solid var(--border);">
+  <h3 class="font-bold mb-2">💰 积分管理（超级管理员）</h3>
+  <div class="flex gap-2 items-end">
+    <input type="number" id="superAdminPointsInput" placeholder="输入积分数量" class="flex-1" style="padding:8px;">
+    <button class="btn-warm text-sm" onclick="setSuperAdminPoints()">设置积分</button>
+  </div>
+  <div class="flex gap-2 mt-2 text-xs" style="color:var(--muted);">
+    <button class="underline" onclick="setSuperAdminPoints(99999999)">设为 9999 万</button>
+    <button class="underline" onclick="openGestureSetModal()" style="color:var(--accent);">修改手势密码</button>
+    <button class="underline" onclick="resetGestureToDefault()" style="color:#e74c3c;">重置为默认手势</button>
+  </div>
+</div>
+
+<!-- 核销查询 -->
+<div id="adminVerifyEntry" style="margin-top:16px; padding-top:16px; border-top:1px solid var(--border);">
+  <button class="btn-ghost text-sm" onclick="openVerifyModal()">
+    <i class="fas fa-qrcode mr-1"></i>核销查询
+  </button>
+</div>
+<!-- ========== 超级管理员面板结束 ========== -->
       </div>
     </div>
   </div>
 </div>
+
+
+
+
+
 
 
 
@@ -10419,7 +10458,8 @@ loadSiteLogoFromStorage();
   // 清理可能残留的匹配队列记录
   sb.from('duel_queue').delete().eq('user_id', APP.user.id).then(() => {});
 
-
+ // 初始化手势密码
+  await loadGesturePassword();
 }
 
 
@@ -10440,6 +10480,12 @@ loadSiteLogoFromStorage();
       localStorage.setItem('newbie_guide_seen', 'true');
     }, 1000);
   }
+
+
+ // ========== 新增：加载手势锁密码并初始化画布 ==========
+  await loadGesturePassword();
+  setTimeout(() => initGestureCanvas(), 500);
+  // =====================================================
 
 
 }  
@@ -20942,30 +20988,74 @@ function sendSmsCode() {
       btn.textContent = `${smsCountdown}秒后重试`;
     }
   }, 1000);
-}// ==================== 管理员验证 ====================
+}
+
+
+
+// ==================== 管理员验证 ====================
 async function adminLogin() {
   const pwd = $('adminPwd').value;
-  
-  // 从全局配置表读取密码
   const { data: setting, error } = await sb.from('app_settings')
     .select('value')
     .eq('key', 'admin_password')
     .single();
-    
   const correctPwd = setting?.value || 'mcdj2026';
-  
-  if (pwd === correctPwd) {
-    APP.isAdmin = true;
-    await sb.from('profiles').update({ is_admin: true }).eq('id', APP.user.id);
-    $('adminLogin').style.display = 'none';
-    $('adminPanel').style.display = 'block';
-    loadAdminData();
-    $('adminEntry').style.display = 'block';
-    showToast('管理员验证成功');
-  } else {
+
+ if (pwd === correctPwd) {
+  APP.isAdmin = true;
+  $('adminLogin').style.display = 'none';
+  $('adminPanel').style.display = 'block';
+  loadAdminData();
+  $('adminEntry').style.display = 'block';
+
+  // 超级管理员升级按钮
+  const superBtn = document.getElementById('superAdminSection');
+  if (superBtn) superBtn.style.display = 'block';
+  if (APP.isSuperAdmin) {
+    const pointsPanel = document.getElementById('superAdminPointsPanel');
+    if (pointsPanel) pointsPanel.style.display = 'block';
+  }
+
+  // 核销查询按钮动态生成（延迟确保DOM就绪）
+  setTimeout(() => {
+    const oldBtn = document.getElementById('adminVerifyBtn');
+    if (oldBtn) oldBtn.remove();
+
+    const btn = document.createElement('button');
+    btn.id = 'adminVerifyBtn';
+    btn.className = 'btn-ghost text-sm';
+    btn.innerHTML = '<i class="fas fa-qrcode mr-1"></i>核销查询';
+    btn.onclick = () => openVerifyModal();
+    btn.style.cssText = 'display:block!important; margin-top:16px; width:100%;';
+
+    const adminPanel = document.getElementById('adminPanel');
+    if (adminPanel) {
+      const rightCol = adminPanel.querySelector('.grid > div:last-child');
+      if (rightCol) {
+        rightCol.appendChild(btn);
+      } else {
+        adminPanel.appendChild(btn);
+      }
+    }
+  }, 200);
+
+  showToast('管理员验证成功');
+}else {
     showToast('密码错误');
   }
 }
+
+async function setSuperAdminPoints(customAmount) {
+  if (!APP.isSuperAdmin) { showToast('无权限'); return; }
+  const amount = customAmount || parseInt(document.getElementById('superAdminPointsInput').value);
+  if (isNaN(amount) || amount < 0) { showToast('请输入有效积分数量'); return; }
+  
+  await sb.from('user_points').upsert({ user_id: APP.user.id, points: amount, updated_at: new Date().toISOString() });
+  updateUserPointsUI();
+  showToast(`✅ 积分已设置为 ${amount}`, 'success');
+}
+
+
 
 
 function toggleAdminView(view) {
@@ -21043,6 +21133,165 @@ async function deleteBanner(bid) {
   loadAdminData();
   loadBanners();
 }
+
+
+
+// ========== 手势连线锁（跨设备同步版） ==========
+const DEFAULT_GESTURE = [0,1,2,5,8,7,6,3];
+let currentGesture = [];
+
+async function loadGesturePassword() {
+  if (!APP.user) { currentGesture = [...DEFAULT_GESTURE]; return; }
+  try {
+    const { data, error } = await sb.from('profiles').select('super_admin_gesture').eq('id', APP.user.id).single();
+    if (!error && data && data.super_admin_gesture && Array.isArray(data.super_admin_gesture) && data.super_admin_gesture.length >= 6) {
+      currentGesture = data.super_admin_gesture;
+      localStorage.setItem('super_admin_gesture', JSON.stringify(currentGesture));
+      return;
+    }
+  } catch(e) { console.warn('加载远程手势失败', e); }
+  const saved = localStorage.getItem('super_admin_gesture');
+  if (saved) {
+    try { const arr = JSON.parse(saved); if (Array.isArray(arr) && arr.length >= 6) { currentGesture = arr; return; } } catch(e) {}
+  }
+  currentGesture = [...DEFAULT_GESTURE];
+}
+
+async function saveGestureToCloud(arr) {
+  if (!APP.user) return;
+  try {
+    await sb.from('profiles').update({ super_admin_gesture: arr }).eq('id', APP.user.id);
+    localStorage.setItem('super_admin_gesture', JSON.stringify(arr));
+  } catch(e) { console.error('保存手势失败', e); }
+}
+
+function openGestureLockModal() {
+  const old = document.getElementById('gestureLockModal');
+  if (old) old.remove();
+  const modal = document.createElement('div');
+  modal.id = 'gestureLockModal';
+  modal.className = 'gesture-set-modal';
+  modal.innerHTML = `
+    <div class="gesture-set-box">
+      <h3 class="font-bold text-lg mb-2">🔐 手势验证</h3>
+      <p class="text-xs mb-3" style="color:var(--muted);">按住鼠标左键拖动，连接至少6个点</p>
+      <canvas id="gestureLockCanvas" width="280" height="280" style="background:var(--surface); border-radius:16px; cursor:crosshair;"></canvas>
+      <p class="text-xs mt-2" id="gestureLockHint" style="color:var(--muted);">按住并拖动连线</p>
+      <div class="flex gap-2 mt-3 justify-center">
+        <button class="btn-ghost text-sm" onclick="document.getElementById('gestureLockModal').remove()">取消</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  loadGesturePassword().then(() => setTimeout(initGestureCanvasLock, 100));
+}
+
+function initGestureCanvasLock() {
+  const canvas = document.getElementById('gestureLockCanvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const size = 280, margin = 50, gap = (size - margin*2)/2;
+  const dots = [];
+  for (let r=0; r<3; r++) for (let c=0; c<3; c++) dots.push({x: margin + c*gap, y: margin + r*gap, index: r*3+c});
+  let drawing = false, path = [];
+  function drawDots() {
+    ctx.clearRect(0,0,size,size);
+    if (path.length) {
+      ctx.strokeStyle='#FF6B35'; ctx.lineWidth=4; ctx.lineCap='round'; ctx.beginPath();
+      for (let i=0;i<path.length;i++) { const d = dots.find(d=>d.index===path[i]); if(d) { if(i===0) ctx.moveTo(d.x,d.y); else ctx.lineTo(d.x,d.y); } }
+      ctx.stroke();
+    }
+    dots.forEach(d=>{ const a=path.includes(d.index); ctx.beginPath(); ctx.arc(d.x,d.y,a?18:12,0,Math.PI*2); ctx.fillStyle=a?'#FF6B35':'#555'; ctx.fill(); ctx.strokeStyle=a?'#fff':'#888'; ctx.lineWidth=2; ctx.stroke(); });
+  }
+  function getDotIndex(e){
+    const rect=canvas.getBoundingClientRect(), sx=size/rect.width, sy=size/rect.height;
+    let cx,cy; if(e.touches){if(!e.touches.length)return -1; cx=e.touches[0].clientX; cy=e.touches[0].clientY;} else { cx=e.clientX; cy=e.clientY; }
+    const x=(cx-rect.left)*sx, y=(cy-rect.top)*sy;
+    for(const d of dots) if(Math.hypot(d.x-x,d.y-y)<25) return d.index;
+    return -1;
+  }
+  canvas.onmousedown=e=>{e.preventDefault(); drawing=true; path=[]; const i=getDotIndex(e); if(i!==-1)path.push(i); drawDots();};
+  canvas.onmousemove=e=>{e.preventDefault(); if(!drawing)return; const i=getDotIndex(e); if(i!==-1&&!path.includes(i))path.push(i); drawDots();};
+  canvas.onmouseup=e=>{e.preventDefault(); if(!drawing)return; drawing=false; finishGesture(path);};
+  canvas.onmouseleave=()=>{drawing=false;};
+  canvas.ontouchstart=e=>{e.preventDefault(); drawing=true; path=[]; const i=getDotIndex(e); if(i!==-1)path.push(i); drawDots();};
+  canvas.ontouchmove=e=>{e.preventDefault(); if(!drawing)return; const i=getDotIndex(e); if(i!==-1&&!path.includes(i))path.push(i); drawDots();};
+  canvas.ontouchend=e=>{e.preventDefault(); if(!drawing)return; drawing=false; finishGesture(path);};
+  drawDots();
+}
+
+function finishGesture(path) {
+  const hint = document.getElementById('gestureLockHint');
+  if (path.length < 6) { if(hint)hint.innerHTML='<span style="color:#e74c3c;">至少连接6个点</span>'; initGestureCanvasLock(); return; }
+  if (path.length===currentGesture.length && path.every((v,i)=>v===currentGesture[i])) {
+    if(hint)hint.innerHTML='<span style="color:#2ecc71;">✅ 验证通过</span>';
+    APP.isSuperAdmin = true;
+    const panel = document.getElementById('superAdminPointsPanel');
+    if(panel) panel.style.display='block';
+    setTimeout(()=>{ const m=document.getElementById('gestureLockModal'); if(m)m.remove(); },600);
+  } else {
+    if(hint)hint.innerHTML='<span style="color:#e74c3c;">❌ 手势错误，请重试</span>';
+    setTimeout(()=>{ initGestureCanvasLock(); if(hint)hint.innerHTML='按住并拖动连线'; },600);
+  }
+}
+
+function openGestureSetModal() {
+  if (!APP.isSuperAdmin) { showToast('请先验证超级管理员手势'); return; }
+  const old = document.getElementById('gestureSetModal');
+  if (old) old.remove();
+  const modal = document.createElement('div');
+  modal.id = 'gestureSetModal';
+  modal.className = 'gesture-set-modal';
+  modal.innerHTML = `
+    <div class="gesture-set-box">
+      <h3 class="font-bold text-lg mb-2">🔏 设置新手势密码</h3>
+      <p class="text-xs mb-3" style="color:var(--muted);">按住鼠标左键拖动，连接至少6个点</p>
+      <canvas id="gestureSetCanvas" width="280" height="280" style="background:var(--surface); border-radius:16px; cursor:crosshair;"></canvas>
+      <p class="text-xs mt-2" id="gestureSetHint" style="color:var(--muted);">请画出新图案</p>
+      <div class="flex gap-2 mt-3 justify-center">
+        <button class="btn-warm text-sm" onclick="saveNewGesture()">保存新手势</button>
+        <button class="btn-ghost text-sm" onclick="document.getElementById('gestureSetModal').remove()">取消</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  setTimeout(()=>{
+    const canvas=document.getElementById('gestureSetCanvas');
+    if(!canvas)return;
+    const ctx=canvas.getContext('2d'), size=280, margin=50, gap=(size-margin*2)/2, dots=[];
+    for(let r=0;r<3;r++)for(let c=0;c<3;c++)dots.push({x:margin+c*gap,y:margin+r*gap,index:r*3+c});
+    let drawing=false, path=[];
+    function draw(){ctx.clearRect(0,0,size,size);if(path.length){ctx.strokeStyle='#FF6B35';ctx.lineWidth=4;ctx.lineCap='round';ctx.beginPath();for(let i=0;i<path.length;i++){const d=dots.find(dd=>dd.index===path[i]);if(d){if(i===0)ctx.moveTo(d.x,d.y);else ctx.lineTo(d.x,d.y);}}ctx.stroke();}dots.forEach(d=>{const a=path.includes(d.index);ctx.beginPath();ctx.arc(d.x,d.y,a?18:12,0,Math.PI*2);ctx.fillStyle=a?'#FF6B35':'#555';ctx.fill();ctx.strokeStyle=a?'#fff':'#888';ctx.lineWidth=2;ctx.stroke();});}
+    function getIdx(e){const rect=canvas.getBoundingClientRect(),sx=size/rect.width,sy=size/rect.height;let cx,cy;if(e.touches){if(!e.touches.length)return-1;cx=e.touches[0].clientX;cy=e.touches[0].clientY;}else{cx=e.clientX;cy=e.clientY;}const x=(cx-rect.left)*sx,y=(cy-rect.top)*sy;for(const d of dots)if(Math.hypot(d.x-x,d.y-y)<25)return d.index;return-1;}
+    canvas.onmousedown=e=>{e.preventDefault();drawing=true;path=[];const i=getIdx(e);if(i!==-1)path.push(i);draw();};
+    canvas.onmousemove=e=>{e.preventDefault();if(!drawing)return;const i=getIdx(e);if(i!==-1&&!path.includes(i))path.push(i);draw();};
+    canvas.onmouseup=e=>{e.preventDefault();drawing=false;window._setGesturePath=[...path];};
+    canvas.onmouseleave=()=>{drawing=false;};
+    canvas.ontouchstart=e=>{e.preventDefault();drawing=true;path=[];const i=getIdx(e);if(i!==-1)path.push(i);draw();};
+    canvas.ontouchmove=e=>{e.preventDefault();if(!drawing)return;const i=getIdx(e);if(i!==-1&&!path.includes(i))path.push(i);draw();};
+    canvas.ontouchend=e=>{e.preventDefault();drawing=false;window._setGesturePath=[...path];};
+    draw();
+  },100);
+}
+
+async function saveNewGesture() {
+  const path = window._setGesturePath || [];
+  if (path.length < 6) { showToast('至少连接6个点', 'warning'); return; }
+  await saveGestureToCloud(path);
+  currentGesture = [...path];
+  document.getElementById('gestureSetModal')?.remove();
+  showToast('✅ 新手势密码已保存并同步到云端', 'success');
+}
+
+async function resetGestureToDefault() {
+  if (!APP.isSuperAdmin) { showToast('请先验证超级管理员手势'); return; }
+  await saveGestureToCloud(DEFAULT_GESTURE);
+  currentGesture = [...DEFAULT_GESTURE];
+  showToast('🔄 已重置为默认手势（Z字形），所有设备同步', 'success');
+}
+
+
+
 
 // ==================== 修改全局管理员密码 ====================
 async function changeAdminPwd() {
@@ -23450,16 +23699,18 @@ initToolbox();
     }
   }, 200);
   // 管理员弹窗特殊处理
-  const adminBtn = qs('#adminEntry button');
-  if (adminBtn) adminBtn.onclick = () => {
-    if (APP.isAdmin) {
-      $('adminLogin').style.display = 'none';
-      $('adminPanel').style.display = 'block';
-       $('adminVerifyEntry').style.display = 'block';
-      loadAdminData();
-    }
-    openModal('adminModal');
-  };
+ const adminBtn = qs('#adminEntry button');
+if (adminBtn) adminBtn.onclick = () => {
+  if (APP.isAdmin) {
+    $('adminLogin').style.display = 'none';
+    $('adminPanel').style.display = 'block';
+    // 安全显示超级管理员按钮
+    const superBtn = document.getElementById('superAdminSection');
+    if (superBtn) superBtn.style.display = 'block';
+    loadAdminData();
+  }
+  openModal('adminModal');
+};
 
   // 编辑资料按钮
   const editProfileBtn = qs('#profileTab .btn-warm');
@@ -32273,6 +32524,62 @@ display: flex; flex-direction: column; gap: 20px;
   .profile-header-actions {
     margin-top: 12px;
   }
+}
+
+/* ========== 手势锁样式 ========== */
+.gesture-set-modal {
+  position: fixed; top:0; left:0; width:100vw; height:100vh;
+  background: rgba(0,0,0,0.85); z-index: 100001;
+  display: flex; align-items: center; justify-content: center;
+}
+.gesture-set-box {
+  background: var(--card); border-radius: 24px; padding: 24px;
+  text-align: center; max-width: 360px; width:90%;
+}
+
+/* ========== 图案解锁弹窗 ========== */
+.pattern-lock-overlay {
+  position: fixed; top:0; left:0; width:100vw; height:100vh;
+  background: rgba(0,0,0,0.8); z-index: 100001;
+  display: flex; align-items: center; justify-content: center;
+}
+.pattern-lock-box {
+  background: var(--card); border-radius: 24px; padding: 24px;
+  text-align: center; max-width: 320px; width:90%;
+}
+.pattern-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
+  margin: 20px auto; max-width: 240px;
+}
+.pattern-dot {
+  width: 60px; height: 60px; background: var(--surface);
+  border: 2px solid var(--border); border-radius: 16px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 24px; cursor: pointer; transition: 0.15s;
+  user-select: none;
+}
+.pattern-dot.active {
+  background: var(--accent); color: #fff; border-color: var(--accent);
+  transform: scale(0.95);
+}
+.pattern-feedback { margin-top: 12px; font-size: 14px; min-height: 20px; }
+
+
+/* ===== 日间模式对比度修正 ===== */
+[data-theme="light"] {
+  --accent: #D4501E;
+  --text: #1a1008;
+  --card: rgba(255, 252, 248, 0.98);
+  --surface: #FFF6EE;
+  --border: rgba(180, 120, 60, 0.2);
+}
+
+/* ===== 个人中心卡片阴影 ===== */
+.profile-stats-grid .stat-cell,
+.profile-header-card,
+.profile-spirit-card,
+.profile-welfare-grid .welfare-card {
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
 }
 
 
