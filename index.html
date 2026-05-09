@@ -6201,58 +6201,62 @@ window.addEventListener('scroll', () => {
     <canvas id="tacticalCanvas" width="800" height="500" style="width:100%; height:auto; background: #1a1a1a; border-radius: 16px; cursor: crosshair;"></canvas>
   </div>
   <div class="flex flex-wrap gap-2 mt-4 justify-center">
-    <button class="tactical-tool-btn" data-tool="pen"><i class="fas fa-pencil"></i> 画笔</button>
-    <button class="tactical-tool-btn" data-tool="arrow"><i class="fas fa-arrow-right"></i> 箭头</button>
-    <button class="tactical-tool-btn" data-tool="text"><i class="fas fa-font"></i> 文字</button>
-    <button class="tactical-tool-btn" data-tool="erase"><i class="fas fa-eraser"></i> 橡皮</button><button class="tactical-tool-btn" onclick="uploadTacticalBackground()"><i class="fas fa-upload"></i> 上传底图</button>
 
 
 
-
-
-<button class="tactical-tool-btn" onclick="saveBlueprint()"><i class="fas fa-save"></i> 保存蓝图</button>
-<button class="tactical-tool-btn" onclick="loadBlueprint()"><i class="fas fa-folder-open"></i> 加载蓝图</button>
-
-
-
-<!-- ✅ 预设地图下拉菜单 - 插入在这里 -->
-<div class="filter-dropdown" id="presetMapDropdown" style="position:relative; z-index:99999 !important;">
-  <button class="tactical-tool-btn" onclick="toggleFilterDropdown('presetMapDropdown')">
-    <i class="fas fa-map"></i> 预设地图 <i class="fas fa-chevron-down text-xs ml-1"></i>
-  </button>
-  <div class="filter-menu hidden" style="position:absolute !important; top:100% !important; left:0 !important; z-index:999999 !important; min-width:110px; background:var(--card) !important; border:1px solid var(--accent) !important; box-shadow:0 12px 30px rgba(0,0,0,0.6) !important;">
-    <button class="filter-option" onclick="loadPresetMap('dam');toggleFilterDropdown('presetMapDropdown')">🏭 大坝</button>
-    <button class="filter-option" onclick="loadPresetMap('space');toggleFilterDropdown('presetMapDropdown')">🚀 航天</button>
-    <button class="filter-option" onclick="loadPresetMap('valley');toggleFilterDropdown('presetMapDropdown')">🏹 长弓</button>
+    <div class="tactical-toolbar">
+  <!-- 主要绘制工具组 -->
+  <div class="tool-group">
+    <button class="tactical-tool-btn" data-tool="pen"><i class="fas fa-pencil"></i><span>画笔</span></button>
+    <button class="tactical-tool-btn" data-tool="arrow"><i class="fas fa-arrow-right"></i><span>箭头</span></button>
+    <button class="tactical-tool-btn" data-tool="text"><i class="fas fa-font"></i><span>文字</span></button>
+    <button class="tactical-tool-btn" data-tool="erase"><i class="fas fa-eraser"></i><span>橡皮</span></button>
   </div>
-</div>
+
+  <!-- 画布操作组 -->
+  <div class="tool-group">
+    <button class="tactical-tool-btn" onclick="uploadTacticalBackground()"><i class="fas fa-upload"></i><span>底图</span></button>
+    <button class="tactical-tool-btn" onclick="saveBlueprint()"><i class="fas fa-save"></i><span>保存</span></button>
+    <button class="tactical-tool-btn" onclick="loadBlueprint()"><i class="fas fa-folder-open"></i><span>加载</span></button>
+  </div>
+
+  <!-- 辅助功能组 -->
+  <div class="tool-group">
+    <!-- 预设地图（独立按钮，触发浮动面板） -->
+    <button class="tactical-tool-btn" onclick="togglePresetMapMenu(this)"><i class="fas fa-map"></i><span>地图</span></button>
+    <!-- 坐标按钮 -->
+    <button class="tactical-tool-btn" data-tool="coordinate" id="coordinateModeBtn" onclick="toggleCoordinateMode()"><i class="fas fa-map-pin"></i><span>坐标</span></button>
 
 
+    <!-- 吸附按钮（内联切换） -->
+<button class="tactical-tool-btn" id="snapToggleBtn" onclick="(function(){var s=window.snapEnabled=!window.snapEnabled;var b=document.getElementById('snapToggleBtn');if(b){b.innerHTML=s?'<i class=\'fas fa-magnet\'></i><span>吸附开</span>':'<i class=\'fas fa-magnet\'></i><span>吸附</span>';b.style.background=s?'#e74c3c':'var(--surface)';b.style.color=s?'#fff':'var(--muted)';b.style.boxShadow=s?'0 0 12px #e74c3c':'none';}})()" style="background:var(--surface); color:var(--muted);">
+  <i class="fas fa-magnet"></i><span>吸附</span>
+</button>
 
-<button class="tactical-tool-btn" data-tool="coordinate" id="coordinateModeBtn" onclick="toggleCoordinateMode()"><i class="fas fa-map-pin"></i> 坐标</button>
-
-
-<button class="tactical-tool-btn" id="snapToggleBtn" onclick="toggleSnap()" style="background:#FF6B35 !important; color:#fff !important; font-weight:bold !important; box-shadow:0 0 12px #FF6B35 !important; border:1px solid #FF4757 !important;">
-  <i class="fas fa-magnet"></i> 吸附关
+<!-- 在线地图按钮（内联弹窗） -->
+<button class="tactical-tool-btn" onclick="var u=prompt('粘贴三角洲地图图片的直接链接（URL）：');if(u){var i=new Image();i.crossOrigin='anonymous';i.onload=function(){var c=window.tacBgCtx;if(c){c.clearRect(0,0,800,500);c.drawImage(i,0,0,800,500);if(typeof drawTacticalGridOverlayOnCtx==='function')drawTacticalGridOverlayOnCtx(c);if(typeof redrawCanvas==='function')redrawCanvas();showToast('✅ 在线地图已加载','success');}};i.onerror=function(){showToast('❌ 图片无法加载，请检查链接','error');};i.src=u;}">
+  <i class="fas fa-link"></i><span>在线地图</span>
 </button>
 
 
-<input type="file" id="tacticalBgInput" accept="image/*" style="display:none">
-    <input type="color" id="tacticalColor" value="#FF6B35" class="w-10 h-10 rounded-full border-0 p-1 cursor-pointer">
-    <select id="tacticalSize" class="px-3 py-1 rounded-full text-sm" style="background:var(--surface); border:1px solid var(--border);">
+    <!-- 撤销/重做 -->
+    <button class="tactical-tool-btn" onclick="tacticalUndo()" title="撤销 (Ctrl+Z)"><i class="fas fa-undo"></i></button>
+    <button class="tactical-tool-btn" onclick="tacticalRedo()" title="重做 (Ctrl+Y)"><i class="fas fa-redo"></i></button>
+  </div>
 
-
-
-
-
-
-      <option value="2">细</option><option value="5" selected>中</option><option value="10">粗</option>
+  <!-- 样式设置组 -->
+  <div class="tool-group tool-settings">
+    <input type="color" id="tacticalColor" value="#FF6B35" class="tactical-color-picker">
+    <select id="tacticalSize" class="tactical-size-select">
+      <option value="2">细</option>
+      <option value="5" selected>中</option>
+      <option value="10">粗</option>
     </select>
   </div>
-  <div class="text-xs text-center mt-2" style="color:var(--muted);">
-    <i class="fas fa-map-pin"></i> 背景为「零号大坝」战术地图 · 可自由标注
-  </div>
 </div>
+
+
+
 <!-- 性价比起装方案 Tab（融合智能推荐） -->
 <div id="budgetLoadoutTab" style="display:none">
   <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
@@ -20864,50 +20868,268 @@ function copyBlueprintCode(code, btn) {
 
 
 
-  // ---------- 吸附系统（V2 精简版） ----------
+    // ---------- 战术板终极增强：吸附 + 撤销/重做（修复版）----------
+  
+  // 吸附系统
   window.snapEnabled = false;
   const GRID_SIZE = 40;
   const SNAP_DISTANCE = 20;
-
+  
   window.toggleSnap = function() {
     window.snapEnabled = !window.snapEnabled;
     const btn = document.getElementById('snapToggleBtn');
     if (btn) {
-      btn.innerHTML = window.snapEnabled ? '<i class="fas fa-magnet"></i> 吸附开' : '<i class="fas fa-magnet"></i> 吸附关';
-      btn.style.background = window.snapEnabled ? '#e74c3c' : '#FF6B35';
-      btn.style.color = '#fff';
+      if (window.snapEnabled) {
+        btn.innerHTML = '<i class="fas fa-magnet"></i> <span class="tool-label">吸附开</span>';
+        btn.style.background = '#e74c3c';
+        btn.style.color = '#fff';
+        btn.style.boxShadow = '0 0 12px #e74c3c';
+      } else {
+        btn.innerHTML = '<i class="fas fa-magnet"></i> <span class="tool-label">吸附</span>';
+        btn.style.background = 'var(--surface)';
+        btn.style.color = 'var(--muted)';
+        btn.style.boxShadow = 'none';
+        hideSnapPreview();
+        tacCanvas.style.cursor = 'crosshair';
+      }
+      showToast(window.snapEnabled ? '🧲 吸附已开启' : '吸附已关闭', 'info');
     }
   };
+  
+
+// ========== 在线地图URL输入 ==========
+function promptMapURL() {
+  const url = prompt('粘贴三角洲地图图片的直接链接（URL）：');
+  if (!url) return;
+  const img = new Image();
+  img.crossOrigin = 'anonymous';
+  img.onload = function() {
+    // tacBgCtx 是全局变量，在 initTactical 中赋值
+    if (typeof tacBgCtx !== 'undefined' && tacBgCtx) {
+      tacBgCtx.clearRect(0, 0, 800, 500);
+      tacBgCtx.drawImage(img, 0, 0, 800, 500);
+      if (typeof drawTacticalGridOverlayOnCtx === 'function') drawTacticalGridOverlayOnCtx(tacBgCtx);
+      if (typeof redrawCanvas === 'function') redrawCanvas();
+      showToast('✅ 在线地图已加载', 'success');
+    } else {
+      showToast('⚠️ 战术板未初始化，请先切换到战术板', 'warning');
+    }
+  };
+  img.onerror = () => showToast('❌ 图片无法加载，请检查链接', 'error');
+  img.src = url;
+}
+
 
   function getSnappedPos(x, y) {
     let bestX = x, bestY = y, bestDist = SNAP_DISTANCE + 1;
-    const gx = Math.round(x / GRID_SIZE) * GRID_SIZE;
-    const gy = Math.round(y / GRID_SIZE) * GRID_SIZE;
-    const gd = Math.hypot(x - gx, y - gy);
+    let gx = Math.round(x / GRID_SIZE) * GRID_SIZE;
+    let gy = Math.round(y / GRID_SIZE) * GRID_SIZE;
+    let gd = Math.hypot(x - gx, y - gy);
     if (gd < bestDist) { bestX = gx; bestY = gy; bestDist = gd; }
     document.querySelectorAll('.placed-point').forEach(el => {
-      const px = parseFloat(el.getAttribute('data-x') || 0);
-      const py = parseFloat(el.getAttribute('data-y') || 0);
-      const d = Math.hypot(x - px, y - py);
+      let px = parseFloat(el.getAttribute('data-x') || 0);
+      let py = parseFloat(el.getAttribute('data-y') || 0);
+      let d = Math.hypot(x - px, y - py);
       if (d < bestDist) { bestX = px; bestY = py; bestDist = d; }
     });
-    return { x: bestX, y: bestY };
+    return { x: bestX, y: bestY, snapped: bestDist <= SNAP_DISTANCE };
   }
-
-  const origAddPlacedPoint = addPlacedPoint;
+  
+  function showSnapPreview(x, y) {
+    const hl = document.getElementById('snapPreview');
+    const rect = tacCanvas.getBoundingClientRect();
+    const sx = 800 / rect.width;
+    const sy = 500 / rect.height;
+    const left = rect.left + x / sx;
+    const top = rect.top + y / sy;
+    let el = hl;
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'snapPreview';
+      el.style.cssText = 'position:fixed; pointer-events:none; z-index:9999;';
+      document.body.appendChild(el);
+    }
+    el.innerHTML = `
+      <div style="position:fixed; left:${left}px; top:${rect.top}px; width:1px; height:${rect.height}px; background:rgba(255,107,53,0.4);"></div>
+      <div style="position:fixed; left:${rect.left}px; top:${top}px; width:${rect.width}px; height:1px; background:rgba(255,107,53,0.4);"></div>
+      <div style="position:fixed; left:${left-10}px; top:${top-10}px; width:20px; height:20px; border:2px solid var(--accent); border-radius:50%; background:rgba(255,107,53,0.15); box-shadow:0 0 15px var(--accent);"></div>
+    `;
+    tacCanvas.style.cursor = 'none';
+  }
+  
+  function hideSnapPreview() {
+    const el = document.getElementById('snapPreview');
+    if (el) el.remove();
+  }
+  
+  tacCanvas.addEventListener('mousemove', function(e) {
+    if (!window.snapEnabled) { hideSnapPreview(); return; }
+    const rect = tacCanvas.getBoundingClientRect();
+    const sx = 800 / rect.width;
+    const sy = 500 / rect.height;
+    const x = (e.clientX - rect.left) * sx;
+    const y = (e.clientY - rect.top) * sy;
+    const res = getSnappedPos(x, y);
+    if (res.snapped) {
+      showSnapPreview(res.x, res.y);
+      if (navigator.vibrate && !window._vibing) {
+        navigator.vibrate(5);
+        window._vibing = true;
+        setTimeout(() => window._vibing = false, 80);
+      }
+    } else {
+      hideSnapPreview();
+    }
+  });
+  
+  tacCanvas.addEventListener('mouseleave', function() {
+    hideSnapPreview();
+    tacCanvas.style.cursor = 'crosshair';
+  });
+  
+  // 点位放置时吸附
+  const _origAddPlacedPoint = addPlacedPoint;
   window.addPlacedPoint = function(type, x, y) {
     if (window.snapEnabled) {
-      const snapped = getSnappedPos(x, y);
-      x = snapped.x; y = snapped.y;
+      const res = getSnappedPos(x, y);
+      x = res.x; y = res.y;
     }
-    origAddPlacedPoint(type, x, y);
+    _origAddPlacedPoint(type, x, y);
+    pushHistory();
   };
+  
+  // 撤销/重做系统
+  let historyStack = [];
+  let historyIndex = -1;
+  const MAX_HISTORY = 50;
+  
+  function pushHistory() {
+    historyStack = historyStack.slice(0, historyIndex + 1);
+    const state = tacCanvas.toDataURL();
+    historyStack.push(state);
+    if (historyStack.length > MAX_HISTORY) historyStack.shift();
+    else historyIndex++;
+  }
+  
+  function restoreCanvasState(dataUrl) {
+    const img = new Image();
+    img.onload = function() {
+      tacCtx.clearRect(0, 0, 800, 500);
+      tacCtx.drawImage(img, 0, 0);
+    };
+    img.src = dataUrl;
+  }
+  
+  window.tacticalUndo = function() {
+    if (historyIndex <= 0) { showToast('没有更早的操作了', 'info'); return; }
+    historyIndex--;
+    restoreCanvasState(historyStack[historyIndex]);
+    showToast('↩️ 已撤销', 'info');
+  };
+  
+  window.tacticalRedo = function() {
+    if (historyIndex >= historyStack.length - 1) { showToast('没有可重做的操作', 'info'); return; }
+    historyIndex++;
+    restoreCanvasState(historyStack[historyIndex]);
+    showToast('↪️ 已重做', 'info');
+  };
+  
+  // 键盘快捷键
+  document.addEventListener('keydown', function(e) {
+    if (APP.currentTab !== 'tactical') return;
+    if (e.ctrlKey && e.key === 'z') { e.preventDefault(); tacticalUndo(); }
+    if (e.ctrlKey && e.key === 'y') { e.preventDefault(); tacticalRedo(); }
+  });
+  
+  // 自动压入历史（鼠标松开时记录）
+  tacCanvas.addEventListener('mouseup', function(e) {
+    setTimeout(() => pushHistory(), 50);
+  });
+  
+  // 每隔5秒自动保存一次当前状态（防止多次未松手就离开）
+  setInterval(() => pushHistory(), 10000);
+  
+  // 初始状态保存
+  setTimeout(() => pushHistory(), 200);
 
 
 
 
 console.log('✅ 战术板修复版（分层绘制）已启动');
 }
+
+
+
+
+function togglePresetMapMenu(btn) {
+  const old = document.getElementById('presetMapPopup');
+  if (old) { old.remove(); return; }
+
+  const rect = btn.getBoundingClientRect();
+  const maps = [
+    { id: 'dam', name: '零号大坝', icon: '🏭', desc: '新手友好·物资密集' },
+    { id: 'space', name: '航天基地', icon: '🚀', desc: '高难度·丰富资源' },
+    { id: 'valley', name: '长弓溪谷', icon: '🏹', desc: '面积广·地形复杂' }
+  ];
+
+  const popup = document.createElement('div');
+  popup.id = 'presetMapPopup';
+  popup.style.cssText = `
+    position: fixed;
+    z-index: 999999;
+    left: ${Math.max(8, rect.left)}px;
+    top: ${rect.bottom + 6}px;
+    background: rgba(20,12,8,0.92);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(255,140,80,0.35);
+    border-radius: 18px;
+    padding: 6px;
+    max-width: 260px;
+    width: fit-content;
+    box-shadow: 0 16px 40px rgba(0,0,0,0.7);
+  `;
+
+  popup.innerHTML = maps.map((m, i) => `
+    <div class="map-pop-item"
+         onclick="loadPresetMap('${m.id}'); document.getElementById('presetMapPopup')?.remove();"
+         style="
+           display:flex; align-items:center; gap:10px; padding:10px 12px;
+           border-radius:12px; cursor:pointer; transition:all 0.25s ease;
+           animation: mapItemIn 0.3s ease forwards;
+           animation-delay:${i*0.05}s;
+         "
+         onmouseenter="this.style.background='rgba(255,107,53,0.15)';this.style.transform='translateX(4px)'"
+         onmouseleave="this.style.background='transparent';this.style.transform='translateX(0)'"
+    >
+      <span style="font-size:22px;width:36px;text-align:center;">${m.icon}</span>
+      <div style="flex:1;min-width:0;">
+        <div style="font-weight:700;font-size:14px;color:var(--text);">${m.name}</div>
+        <div style="font-size:11px;color:var(--muted);">${m.desc}</div>
+      </div>
+    </div>
+  `).join('');
+
+  document.body.appendChild(popup);
+
+  // 如果菜单超出屏幕右边界，自动左移
+  const popRect = popup.getBoundingClientRect();
+  if (popRect.right > window.innerWidth - 8) {
+    popup.style.left = (window.innerWidth - popRect.width - 8) + 'px';
+  }
+
+  // 点击外部关闭
+  setTimeout(() => {
+    const handler = (e) => {
+      if (!popup.contains(e.target) && e.target !== btn) {
+        popup.remove();
+        document.removeEventListener('click', handler);
+      }
+    };
+    document.addEventListener('click', handler);
+  }, 10);
+}
+
+
 
 // ==================== 全局蓝图加载函数 ====================
 function loadBlueprint() {
@@ -33648,6 +33870,141 @@ html[data-time="night"] body::after {
 }
 
 
+/* ========== 战术板工具栏·顶级设计 ========== */
+.tactical-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 16px;
+}
+.tool-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255,255,255,0.03);
+  border-radius: 40px;
+  padding: 6px 10px;
+  border: 1px solid rgba(255,140,80,0.15);
+}
+.tactical-tool-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 30px;
+  background: transparent;
+  border: none;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+.tactical-tool-btn i { font-size: 15px; }
+.tactical-tool-btn:hover {
+  background: var(--accent);
+  color: #fff;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(255,107,53,0.3);
+}
+.tactical-tool-btn.active {
+  background: var(--accent);
+  color: #fff;
+}
+/* 手机上隐藏文字，只留图标 */
+@media (max-width: 640px) {
+  .tactical-tool-btn span { display: none; }
+  .tactical-tool-btn { padding: 10px 12px; }
+  .tool-group { padding: 4px 6px; }
+  .tactical-toolbar { gap: 4px; }
+}
+/* 颜色选择器 */
+.tactical-color-picker {
+  width: 36px; height: 36px;
+  border: 2px solid var(--border);
+  border-radius: 50%;
+  cursor: pointer;
+  background: transparent;
+  padding: 2px;
+}
+.tactical-size-select {
+  padding: 8px 12px;
+  border-radius: 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 13px;
+  cursor: pointer;
+  outline: none;
+}
+
+
+@media (max-width: 400px) {
+  .tool-group {
+    padding: 4px 4px;
+    gap: 3px;
+  }
+  .tactical-tool-btn {
+    padding: 8px 10px;
+  }
+}
+
+
+
+/* ===== 地图菜单入场动画 ===== */
+@keyframes menuItemIn {
+  from { opacity: 0; transform: translateX(-10px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+/* 悬停时扫光 + 箭头动画 */
+.map-menu-item:hover > div:first-child {
+  left: 100% !important;
+}
+.map-menu-item:hover i.fa-chevron-right {
+  transform: translateX(3px);
+  opacity: 1 !important;
+}
+
+/* 手机端适配 */
+@media (max-width: 480px) {
+  #presetMapPopup {
+    left: 10px !important;
+    right: 10px !important;
+    min-width: auto !important;
+  }
+}
+
+
+@keyframes mapItemIn {
+  from { opacity: 0; transform: translateX(-8px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+
+
+
+
+
+
+/* 确保战术面板文字在暗色/亮色下都清晰 */
+#presetMapPopup, #presetMapPopup * {
+  color-scheme: dark;
+}
+[data-theme="light"] #presetMapPopup {
+  background: rgba(255,248,240,0.95) !important;
+  border-color: rgba(180,120,60,0.4) !important;
+}
+[data-theme="light"] #presetMapPopup .map-pop-item:hover {
+  background: rgba(197,96,42,0.1) !important;
+}
+
+
+
 </style>
 
 <div class="modal-overlay" id="supplyBoxModal">
@@ -35600,78 +35957,48 @@ function copyPostLink(postId) {
 }
 
 
+// 优化后的预设地图加载函数（带更好的反馈）
 window.loadPresetMap = function(type) {
-  if (!tacCtx) {
-    const canvas = document.getElementById('tacticalCanvas');
-    if (canvas) tacCtx = canvas.getContext('2d');
-  }
-  // 确保背景层也可用
-  if (!tacBgCtx && tacBgCanvas) {
-    tacBgCtx = tacBgCanvas.getContext('2d');
-  }
-  
-  const colors = {
-    dam: { bg: '#2a3a2a', grid: '#3a5a3a', name: '零号大坝' },
-    space: { bg: '#1a1a2e', grid: '#2a2a3e', name: '航天基地' },
-    valley: { bg: '#2a2a1a', grid: '#3a3a2a', name: '长弓溪谷' }
+  // 内置可靠的 Base64 纯色地图（避免外部图片失效）
+  const colorMaps = {
+    dam: { name: '零号大坝', color: '#2a3a2a', grid: '#3a5a3a', text: '🏭 零号大坝 (阿萨拉·乌姆河)' },
+    space: { name: '航天基地', color: '#1a1a2e', grid: '#2a2a4e', text: '🚀 航天基地 (哈夫克发射中心)' },
+    valley: { name: '长弓溪谷', color: '#2a2a1a', grid: '#3a3a2a', text: '🏹 长弓溪谷 (阿萨拉下游河谷)' }
   };
-  const c = colors[type];
-  
-  // ✅ 同时更新主画布
-  if (tacCtx) {
-    tacCtx.fillStyle = c.bg;
-    tacCtx.fillRect(0, 0, 800, 500);
-    tacCtx.strokeStyle = c.grid;
-    tacCtx.lineWidth = 0.5;
-    for (let i = 0; i <= 800; i += 40) { tacCtx.beginPath(); tacCtx.moveTo(i,0); tacCtx.lineTo(i,500); tacCtx.stroke(); }
-    for (let i = 0; i <= 500; i += 40) { tacCtx.beginPath(); tacCtx.moveTo(0,i); tacCtx.lineTo(800,i); tacCtx.stroke(); }
-  }
-  
-  // ✅ 同时更新背景层（防止 redrawCanvas 覆盖）
+
+  const map = colorMaps[type];
+  if (!map) { showToast('未知地图类型', 'warning'); return; }
+
+  // 先绘制纯色背景（确保有底图）
   if (tacBgCtx) {
-    tacBgCtx.fillStyle = c.bg;
+    tacBgCtx.fillStyle = map.color;
     tacBgCtx.fillRect(0, 0, 800, 500);
-    tacBgCtx.strokeStyle = c.grid;
+    // 绘制网格
+    tacBgCtx.strokeStyle = map.grid;
     tacBgCtx.lineWidth = 0.5;
-    for (let i = 0; i <= 800; i += 40) { tacBgCtx.beginPath(); tacBgCtx.moveTo(i,0); tacBgCtx.lineTo(i,500); tacBgCtx.stroke(); }
-    for (let i = 0; i <= 500; i += 40) { tacBgCtx.beginPath(); tacBgCtx.moveTo(0,i); tacBgCtx.lineTo(800,i); tacBgCtx.stroke(); }
-  }
-  
-  showToast(`✅ 已加载 ${c.name} 战术地图`, 'success');
-};
+    for (let i = 0; i <= 800; i += 40) {
+      tacBgCtx.beginPath(); tacBgCtx.moveTo(i, 0); tacBgCtx.lineTo(i, 500); tacBgCtx.stroke();
+    }
+    for (let i = 0; i <= 500; i += 40) {
+      tacBgCtx.beginPath(); tacBgCtx.moveTo(0, i); tacBgCtx.lineTo(800, i); tacBgCtx.stroke();
+    }
+    // 添加地图名称水印
+    tacBgCtx.fillStyle = 'rgba(255,255,255,0.1)';
+    tacBgCtx.font = 'bold 28px "Noto Sans SC"';
+    tacBgCtx.textAlign = 'center';
+    tacBgCtx.fillText(map.text, 400, 250);
 
+    if (typeof redrawCanvas === 'function') redrawCanvas();
 
-
-let lootWatchlist = JSON.parse(localStorage.getItem('loot_watchlist') || '[]');
-
-window.toggleLootWatch = function(name) {
-  let watchlist = JSON.parse(localStorage.getItem('loot_watchlist') || '[]');
-  const target = name.trim();
-  const index = watchlist.indexOf(target);
-  
-  if (index === -1) {
-    watchlist.push(target);
-    showToast(`🌟 已关注 ${target}`, 'success');
-  } else {
-    watchlist.splice(index, 1);
-    showToast(`已取消关注 ${target}`, 'info');
-  }
-  
-  localStorage.setItem('loot_watchlist', JSON.stringify(watchlist));
-  
-  // 自动切换标签：如果添加关注且当前不是关注标签，切换到关注标签
-  if (index === -1 && watchlist.length > 0) {
-    document.querySelectorAll('.loot-cat-chip').forEach(chip => {
-      chip.classList.toggle('active', chip.dataset.cat === 'watchlist');
-    });
-    currentLootCat = 'watchlist';
-  }
-  
-  // 重新渲染
-  if (typeof renderLootList === 'function') {
-    renderLootList();
+    // 更新底部文字
+    const tip = document.querySelector('.text-xs.text-center.mt-2');
+    if (tip) {
+      tip.innerHTML = `<i class="fas fa-map-pin"></i> 背景为「${map.name}」战术地图 · 可自由标注`;
+    }
+    showToast(`✅ 已加载 ${map.name} 基础地图`, 'success');
   }
 };
+
 
 
 
