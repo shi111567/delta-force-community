@@ -26486,12 +26486,10 @@ async function renderTopicRadarV2() {
   canvas.style.height = '100%';
   canvas.style.display = 'block';
 
-  // 等待容器尺寸有效（宽度 > 0）
   if (container.offsetWidth === 0 || container.offsetHeight === 0) {
-    console.warn('⏳ 雷达图容器尺寸为0，200ms后重试...');
-    setTimeout(() => renderTopicRadarV2(), 200);
-    return;
-  }
+  console.warn('⏳ 雷达图容器尺寸为0，跳过渲染避免死循环');
+  return;  // 不再递归重试
+}
 
   // 销毁旧图表
   if (window.topicRadarChartV2) {
