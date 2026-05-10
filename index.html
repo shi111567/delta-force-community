@@ -8278,6 +8278,10 @@ window.addEventListener('scroll', () => {
     </p>
   </div>
 </div>
+
+
+
+
 <!-- 起装方案详情弹窗（点击卡片放大） -->
 <div class="modal-overlay" id="budgetDetailModal" onclick="if(event.target===this) closeModal('budgetDetailModal')">
   <div class="modal-content" style="max-width: 600px; max-height: 85vh; overflow-y: auto;">
@@ -11045,166 +11049,96 @@ function openNotifModal() {
 
 function switchTab(tab) {
   console.log('🔥 switchTab 被调用，目标：' + tab);
+  if (APP._tabTimer) clearTimeout(APP._tabTimer);
+  if (APP.currentTab === tab && !['profile','escort','budgetLoadout'].includes(tab)) return;
 
-  // 1. 防止重复切换同一 Tab
-  if (APP.currentTab === tab && tab !== 'profile') {
-    console.log('⏭️ 已是当前 Tab，跳过');
-    return;
-  }
-
-  // 2. 强制隐藏所有 Tab 容器
-  const allTabs = ['homeTab','discoverTab','followingTab','profileTab','searchTab','escortTab','tacticalTab','budgetLoadoutTab'];
-  allTabs.forEach(id => {
-    const el = document.getElementById(id);
-    if (el) {
-      el.style.display = 'none';
-    } else {
-      console.warn('⚠️ 找不到元素：' + id);
-    }
+  // 隐藏所有
+  ['homeTab','discoverTab','followingTab','profileTab','searchTab','escortTab','tacticalTab','budgetLoadoutTab'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.style.display = 'none';
   });
 
-  // 3. 显示目标 Tab
   const targetEl = document.getElementById(tab + 'Tab');
+  if (!targetEl) return;
+  targetEl.classList.remove('hidden','hide','invisible','collapse');
+  targetEl.style.setProperty('display', 'block', 'important');
+  targetEl.style.setProperty('visibility', 'visible', 'important');
+  targetEl.style.opacity = '1';
 
-// 强制确保起装Tab在非激活时完全隐藏
-const budgetTab = document.getElementById('budgetLoadoutTab');
-if (budgetTab && tab !== 'budgetLoadout') {
-    budgetTab.style.display = 'none';
-}
-
-  if (!targetEl) {
-    console.error('❌ 目标 Tab 不存在：' + tab + 'Tab');
-    return;
-  }
-  targetEl.style.display = 'block';
-  console.log('✅ 已显示：' + tab + 'Tab');
-
-  // 4. 工具箱仅在首页显示
+  // 工具箱
   const toolbox = document.getElementById('toolboxSection');
-  if (toolbox) {
-    toolbox.style.display = tab === 'home' ? 'block' : 'none';
-  }
+  if (toolbox) toolbox.style.display = tab === 'home' ? 'block' : 'none';
 
-  // 5. 更新当前 Tab 状态
   APP.currentTab = tab;
-loadSiteLogoFromStorage();
+  loadSiteLogoFromStorage();
 
-
-  // 6. 导航高亮处理
+  // 导航高亮
   document.querySelectorAll('.top-nav .btn-ghost, .mobile-nav button').forEach(el => {
-    el.classList.remove('active');
-    el.style.color = '';
-    el.style.borderBottom = 'none';
-    el.style.fontWeight = 'normal';
+    el.classList.remove('active'); el.style.color = ''; el.style.borderBottom = 'none'; el.style.fontWeight = 'normal';
   });
+  const navMap = { home:'navHome', discover:'navDiscover', following:'navFollowing', escort:'navEscort', budgetLoadout:'navBudget' };
+  const btn = document.getElementById(navMap[tab]);
+  if (btn) { btn.classList.add('active'); btn.style.color = 'var(--accent)'; btn.style.borderBottom = '2px solid var(--accent)'; btn.style.fontWeight = '700'; }
+  const mobMap = { home:'mobHome', discover:'mobDiscover', following:'mobFollowing', escort:'mobEscort', budgetLoadout:'mobBudget' };
+  const mobBtn = document.getElementById(mobMap[tab]); if (mobBtn) mobBtn.classList.add('active');
 
-  const navMap = { home: 'navHome', discover: 'navDiscover', following: 'navFollowing', escort: 'navEscort', budgetLoadout: 'navBudget' };
-  const desktopBtn = document.getElementById(navMap[tab]);
-  if (desktopBtn) {
-    desktopBtn.classList.add('active');
-    desktopBtn.style.color = 'var(--accent)';
-    desktopBtn.style.borderBottom = '2px solid var(--accent)';
-    desktopBtn.style.fontWeight = '700';
-  }
-
-  const mobMap = { home: 'mobHome', discover: 'mobDiscover', following: 'mobFollowing', escort: 'mobEscort', budgetLoadout: 'mobBudget' };
-  const mobileBtn = document.getElementById(mobMap[tab]);
-  if (mobileBtn) mobileBtn.classList.add('active');
-
-  // 7. 根据 Tab 加载对应数据
-   if (tab === 'home') {
-    
+  if (tab === 'home') {
     initSquadRealtime();
-    APP.filters = { type: 'all', op: 'all', sort: 'latest', time: 'all', topic: 'all', keyword: '' };
-    const homeSearch = document.getElementById('homeSearchInput');
-    if (homeSearch) homeSearch.value = '';
+    APP.filters = { type:'all', op:'all', sort:'latest', time:'all', topic:'all', keyword:'' };
+    const homeSearch = document.getElementById('homeSearchInput'); if (homeSearch) homeSearch.value = '';
     document.querySelectorAll('.filter-menu').forEach(m => m.classList.add('hidden'));
-
-  
-
- 
-  // ===== 新增：确保雷达图在情报中心展开时正常显示 =====
-  setTimeout(() => {
-    const body = document.getElementById('intelConsoleBody');
-    if (body && body.style.display !== 'none') {
-      if (typeof renderTopicRadarV2 === 'function') {
-        renderTopicRadarV2();
-      }
-    }
-  }, 300);
-  // ===== 新增结束 =====
-
-
-  // ===== 修复：延迟确保DOM渲染完毕后再加载轮播和护航员 =====
-    setTimeout(() => {
-      loadHomeBanners();
-      loadOnlineEscorts();   // ← 之前这里可能没调用
-    }, 100);
-
-    renderToolbox();
-    renderTopicCards();
-
-
-    
-    loadPosts(true);
-
-    // 确保其他模块不显示（精准隐藏起装模块）
-    const budgetTab = document.getElementById('budgetLoadoutTab');
-    if (budgetTab) budgetTab.style.display = 'none';
-    const hotPanel = document.getElementById('hotRecommendPanel');
-    if (hotPanel) hotPanel.style.display = 'none';
-    const aiPanel = document.getElementById('aiLoadoutPanel');
-    if (aiPanel) aiPanel.style.display = 'none';
-  } 
-
-else if (tab === 'discover') {
-    loadRanks();
-    loadRisingRank();
-    loadDiscoverBanners();
-    loadHomeBanners();  // 直接调用，内部会自检宽度
-    loadDiscoverStats();
-    loadDiscoverTopics();
-    loadDiscoverEscorts();
-    loadDiscoverVideos();
+    setTimeout(() => { const body = document.getElementById('intelConsoleBody'); if (body && body.style.display !== 'none' && typeof renderTopicRadarV2 === 'function') renderTopicRadarV2(); }, 300);
+    setTimeout(() => { loadHomeBanners(); loadOnlineEscorts(); }, 100);
+    renderToolbox(); renderTopicCards(); loadPosts(true);
+    document.getElementById('budgetLoadoutTab').style.display = 'none';
+  }
+  else if (tab === 'discover') {
+    loadRanks(); loadRisingRank(); loadDiscoverBanners(); loadHomeBanners(); loadDiscoverStats(); loadDiscoverTopics(); loadDiscoverEscorts(); loadDiscoverVideos();
     setTimeout(() => loadDiscoverBanners(), 200);
-  } else if (tab === 'following') {
+  }
+  else if (tab === 'following') {
     loadFollowingPosts();
-  } else if (tab === 'profile') {
+    if (document.documentElement.getAttribute('data-theme') === 'light') {
+      document.querySelectorAll('.command-status-bar-v2, .feed-card-v2, .recommend-card-glass-v2').forEach(el => { el.style.backgroundColor = 'rgba(255,248,240,0.95)'; el.style.color = '#2c2418'; });
+      document.querySelectorAll('.status-title-v2, .status-subtitle, .stat-value-v2, .stat-label-v2').forEach(el => { el.style.setProperty('color', '#2c2418', 'important'); });
+      document.querySelectorAll('.feed-card-desc-v2, .feed-card-time-v2, .rec-stats-v2').forEach(el => { el.style.setProperty('color', '#5c4a3a', 'important'); });
+    }
+  }
+  else if (tab === 'profile') {
+    const pt = document.getElementById('profileTab');
+    if (pt) { pt.classList.remove('hidden','hide'); pt.style.setProperty('display','block','important'); pt.style.visibility = 'visible'; }
     renderProfile();
-  } else if (tab === 'escort') {
-
-  // 管理员身份也强制刷新面板
-  setTimeout(() => {
-    if (typeof renderEscortInspirePanel === 'function') {
-      renderEscortInspirePanel();
-    }
-  }, 300);
-
+  }
+  else if (tab === 'escort') {
+    const et = document.getElementById('escortTab');
+    et.classList.remove('hidden','hide'); et.style.setProperty('display','block','important'); et.style.visibility = 'visible';
+    const newGrid = document.getElementById('escortVideoGridNew'); if(newGrid) newGrid.style.display = '';
+    const empty = document.getElementById('escortEmptyNew'); if(empty) { empty.style.display = ''; empty.classList.remove('hidden'); }
     loadEscortVideos(true);
-    renderEscortInspirePanel();
-
-
-    // 检查广播权限并显示按钮
-    if (APP.profile?.broadcast_until && new Date(APP.profile.broadcast_until) > new Date()) {
-      document.getElementById('broadcastBtn').style.display = 'inline-block';
-    } else {
-      const btn = document.getElementById('broadcastBtn');
-      if (btn) btn.style.display = 'none';
-    }
-
-  } else if (tab === 'tactical') {
+    setTimeout(() => { if (typeof renderEscortInspirePanel === 'function') renderEscortInspirePanel(); }, 300);
+    const bBtn = document.getElementById('broadcastBtn');
+    if (APP.profile && APP.profile.broadcast_until && new Date(APP.profile.broadcast_until) > new Date()) {
+      if (bBtn) bBtn.style.display = 'inline-block';
+    } else { if (bBtn) bBtn.style.display = 'none'; }
+  }
+  else if (tab === 'tactical') {
     initTactical();
-  } else if (tab === 'budgetLoadout') {
-     budgetLoadoutsInitialized = false; // 重置标志，允许重新初始化
-     initBudgetLoadouts();
-// 加载收藏状态
-setTimeout(() => loadUserFavoriteStatus(), 300);
+  }
+  else if (tab === 'budgetLoadout') {
+    const bt = document.getElementById('budgetLoadoutTab');
+    bt.classList.remove('hidden','hide'); bt.style.setProperty('display','block','important'); bt.style.visibility = 'visible';
+    // 强制显示浏览视图，隐藏推荐视图
+    const browse = document.getElementById('budgetBrowseView');
+    const recommend = document.getElementById('budgetRecommendView');
+    if(browse) { browse.style.display = ''; browse.style.setProperty('display','block','important'); }
+    if(recommend) recommend.style.display = 'none';
+    budgetLoadoutsInitialized = false;
+    // 延迟调用，确保 DOM 稳定
+    setTimeout(() => { if (typeof initBudgetLoadouts === 'function') initBudgetLoadouts(); }, 50);
+    setTimeout(() => loadUserFavoriteStatus(), 300);
   }
 
-  // 8. 触发 resize 事件，确保移动端适配
   window.dispatchEvent(new Event('resize'));
   console.log('🎉 switchTab 执行完毕');
-
 
   // 页面过渡动画
   const main = document.getElementById('mainContent');
@@ -11218,8 +11152,38 @@ setTimeout(() => loadUserFavoriteStatus(), 300);
     });
   }
 
+  // ===== 最终保险：强制显示所有 tab 并修复关注页文字 =====
+  setTimeout(() => {
+    // 强制显示所有 tab，重点保证目标 tab 绝对可见
+    const allTabsList = ['homeTab','discoverTab','followingTab','profileTab','searchTab','escortTab','tacticalTab','budgetLoadoutTab'];
+    allTabsList.forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      // 移除任何可能隐藏的类
+      el.classList.remove('hidden', 'hide', 'invisible');
+      if (id === tab + 'Tab') {
+        el.style.setProperty('display', 'block', 'important');
+        el.style.setProperty('visibility', 'visible', 'important');
+      } else {
+        el.style.setProperty('display', 'none', 'important');
+        el.style.setProperty('visibility', 'hidden', 'important');
+      }
+    });
+    // 修复关注页亮色模式文字
+    if (document.documentElement.getAttribute('data-theme') === 'light') {
+      document.querySelectorAll('.command-status-bar-v2, .feed-card-v2, .recommend-card-glass-v2').forEach(el => {
+        el.style.backgroundColor = 'rgba(255,248,240,0.95)';
+        el.style.color = '#2c2418';
+      });
+      document.querySelectorAll('.status-title-v2, .status-subtitle, .stat-value-v2, .stat-label-v2').forEach(el => {
+        el.style.setProperty('color', '#2c2418', 'important');
+      });
+      document.querySelectorAll('.feed-card-desc-v2, .feed-card-time-v2, .rec-stats-v2').forEach(el => {
+        el.style.setProperty('color', '#5c4a3a', 'important');
+      });
+    }
+  }, 150);
 }
-
 
 
 async function updateDailyPostRewardBar() {
@@ -16463,12 +16427,28 @@ $('escortPendingCountNew').textContent = stats.filter(v => v.status === 'pending
     }
   }
   
-  if (data && data.length >= escortState.pageSize) {
+    if (data && data.length >= escortState.pageSize) {
     escortState.page++;
   } else {
     escortState.allLoaded = true;
   }
   
+  // --- 增强：若无数据，显示空雷达提示 ---
+    // 确保空雷达绝对可见
+  if (reset && (!data || data.length === 0)) {
+    const emptyEl = $('escortEmptyNew');
+    if (emptyEl) {
+      emptyEl.classList.remove('hidden');
+      emptyEl.style.display = '';
+      // 补充空雷达内容（若原本为空）
+      if (!emptyEl.innerHTML.trim()) {
+        emptyEl.innerHTML = `<div class="radar-sweep"></div><div class="radar-core"></div><p>📡 雷达未发现护航视频</p><p class="radar-sub">上传你的第一个护航录像吧</p>`;
+      }
+    }
+  } else if (reset) {
+    const emptyEl = $('escortEmptyNew');
+    if (emptyEl) emptyEl.classList.add('hidden');
+  }
   escortState.loading = false;
 }
 
@@ -33992,17 +33972,39 @@ html[data-time="night"] body::after {
 
 
 
-/* 确保战术面板文字在暗色/亮色下都清晰 */
-#presetMapPopup, #presetMapPopup * {
-  color-scheme: dark;
+
+/* ===== 关注页亮色模式终极适配 ===== */
+[data-theme="light"] .command-status-bar-v2,
+[data-theme="light"] .feed-card-v2,
+[data-theme="light"] .recommend-card-glass-v2 {
+  background: rgba(255,248,240,0.92) !important;
+  border-color: rgba(180,120,60,0.25) !important;
 }
-[data-theme="light"] #presetMapPopup {
-  background: rgba(255,248,240,0.95) !important;
-  border-color: rgba(180,120,60,0.4) !important;
+[data-theme="light"] .status-title-v2,
+[data-theme="light"] .status-subtitle,
+[data-theme="light"] .stat-value-v2,
+[data-theme="light"] .stat-label-v2,
+[data-theme="light"] .feed-card-title-v2,
+[data-theme="light"] .feed-card-author-v2,
+[data-theme="light"] .rec-name-v2 {
+  color: #2c2418 !important;
+  text-shadow: none !important;
+  -webkit-text-fill-color: #2c2418 !important;
 }
-[data-theme="light"] #presetMapPopup .map-pop-item:hover {
-  background: rgba(197,96,42,0.1) !important;
+[data-theme="light"] .feed-card-desc-v2,
+[data-theme="light"] .feed-card-time-v2,
+[data-theme="light"] .rec-stats-v2 {
+  color: #5c4a3a !important;
 }
+[data-theme="light"] .command-status-bar-v2 .status-title-v2,
+[data-theme="light"] .command-status-bar-v2 .stat-value-v2 {
+  color: #2c2418 !important;
+  opacity: 1 !important;
+}
+
+
+
+
 
 
 
@@ -36393,7 +36395,23 @@ window.activateDynamicBg = async function(rewardId) {
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 
 
-
+<script>
+(function fixTabLocation() {
+  var main = document.getElementById('mainContent');
+  if (!main) return;
+  // 把三个游离在外的 Tab 移动到 main 内部
+  ['escortTab', 'budgetLoadoutTab', 'profileTab'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el && el.parentElement !== main) {
+      main.appendChild(el);
+    }
+  });
+  // 初始全部隐藏，让 switchTab 控制显示
+  document.querySelectorAll('#escortTab, #budgetLoadoutTab, #profileTab').forEach(function(el) {
+    el.style.display = 'none';
+  });
+})();
+</script>
 
 
 
