@@ -2538,13 +2538,14 @@ transition: max-width 0.3s ease;
   --shadow: rgba(80, 50, 30, 0.05);
 }
 
+/* 个人中心暗色模式 */
 [data-theme="dark"] {
-  --bg: #1A1612; /* 暗色暖黑，不是纯黑 */
+  --bg: #1A1612;
   --card: rgba(28, 22, 16, 0.95);
   --surface: #242018;
-  --text: #EDE5D8; /* 暖米白文字 */
+  --text: #EDE5D8;
   --muted: #8B7B6B;
-  --accent: #E08050; /* 暖橙 */
+  --accent: #E08050;
   --accent2: #C5602A;
   --gold: #D4943A;
   --border: rgba(200, 140, 100, 0.12);
@@ -2552,7 +2553,30 @@ transition: max-width 0.3s ease;
   --shadow: rgba(0, 0, 0, 0.4);
 }
 
-
+/* 个人中心暗色模式（只针对个人中心组件，不影响全局） */
+[data-theme="dark"] .profile-archive {
+  background: #1A1A2E !important;
+}
+[data-theme="dark"] .profile-top-area {
+  border-color: #3E4350 !important;
+}
+[data-theme="dark"] .profile-header-card,
+[data-theme="dark"] .profile-stats-grid .stat-cell,
+[data-theme="dark"] .profile-spirit-card,
+[data-theme="dark"] .profile-welfare-grid .welfare-card,
+[data-theme="dark"] .profile-section .section-header {
+  background: #2A2D3E !important;
+  border-color: #3E4350 !important;
+  color: #EDE5D8 !important;
+}
+[data-theme="dark"] .profile-display-name,
+[data-theme="dark"] .stat-number,
+[data-theme="dark"] .stat-label,
+[data-theme="dark"] .section-header h3,
+[data-theme="dark"] .spirit-name,
+[data-theme="dark"] .welfare-card span {
+  color: #EDE5D8 !important;
+}
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
@@ -6737,47 +6761,52 @@ window.addEventListener('scroll', () => {
 
   <!-- 个人主页 -->
   <div id="profileTab" style="display:none">
-  <div class="profile-archive">
-    <!-- 头部卡片 -->
-    <div class="profile-header-card">
-      <div class="profile-avatar-ring">
-        <img src="" alt="头像" id="profileAvatarNew">
-      </div>
-      <div class="profile-info">
-        <h2 class="profile-display-name" id="profileNameNew">干员_0000</h2>
-        <div class="profile-level-badge">
-          <span id="profileLevelNew">Lv.1</span>
+
+      <!-- 自定义背景顶部区域 -->
+    <div class="profile-top-area" id="profileTopArea">
+      <!-- 头部卡片 -->
+      <div class="profile-header-card">
+        <div class="profile-avatar-ring">
+          <img src="" alt="头像" id="profileAvatarNew">
         </div>
-        <div class="profile-exp-wrapper">
-          <div class="exp-bar"><div class="exp-fill" id="profileExpBarNew" style="width:0%"></div></div>
-          <span class="exp-text" id="profileExpTextNew">0/100 EXP</span>
+        <div class="profile-info">
+          <h2 class="profile-display-name" id="profileNameNew">干员_0000</h2>
+          <div class="profile-level-badge">
+            <span id="profileLevelNew">Lv.1</span>
+          </div>
+          <div class="profile-exp-wrapper">
+            <div class="exp-bar"><div class="exp-fill" id="profileExpBarNew" style="width:0%"></div></div>
+            <span class="exp-text" id="profileExpTextNew">0/100 EXP</span>
+          </div>
+        </div>
+                <div class="profile-header-actions">
+          <button class="btn-warm text-sm" onclick="openModal('editProfileModal')">编辑资料</button>
+          <button class="btn-ghost text-sm" onclick="openCosmeticsModal()"><i class="fas fa-vest mr-1"></i>装扮</button>
+          <button class="btn-ghost text-sm" id="customBgBtn" onclick="triggerCustomBgUpload()"><i class="fas fa-image mr-1"></i>更换背景</button>
+          <button class="btn-ghost text-sm" id="resetBgBtn" style="display:none;" onclick="resetCustomBg()"><i class="fas fa-undo mr-1"></i>恢复默认</button>
         </div>
       </div>
-      <div class="profile-header-actions">
-        <button class="btn-warm text-sm" onclick="openModal('editProfileModal')">编辑资料</button>
-        <button class="btn-ghost text-sm" onclick="openCosmeticsModal()"><i class="fas fa-vest mr-1"></i>装扮</button>
+
+      <!-- 统计数据 -->
+      <div class="profile-stats-grid">
+        <div class="stat-cell" onclick="showUserStatDetail('posts')">
+          <span class="stat-number" id="statPostsNew">0</span>
+          <span class="stat-label">发帖</span>
+        </div>
+        <div class="stat-cell" onclick="showUserStatDetail('likes')">
+          <span class="stat-number" id="statLikesNew">0</span>
+          <span class="stat-label">获赞</span>
+        </div>
+        <div class="stat-cell" onclick="showUserStatDetail('followers')">
+          <span class="stat-number" id="statFollowersNew">0</span>
+          <span class="stat-label">粉丝</span>
+        </div>
+        <div class="stat-cell" onclick="showUserStatDetail('following')">
+          <span class="stat-number" id="statFollowingNew">0</span>
+          <span class="stat-label">关注</span>
+        </div>
       </div>
     </div>
-
-    <!-- 统计数据 -->
-    <div class="profile-stats-grid">
-  <div class="stat-cell" onclick="showUserStatDetail('posts')">
-    <span class="stat-number" id="statPostsNew">0</span>
-    <span class="stat-label">发帖</span>
-  </div>
-  <div class="stat-cell" onclick="showUserStatDetail('likes')">
-    <span class="stat-number" id="statLikesNew">0</span>
-    <span class="stat-label">获赞</span>
-  </div>
-  <div class="stat-cell" onclick="showUserStatDetail('followers')">
-    <span class="stat-number" id="statFollowersNew">0</span>
-    <span class="stat-label">粉丝</span>
-  </div>
-  <div class="stat-cell" onclick="showUserStatDetail('following')">
-    <span class="stat-number" id="statFollowingNew">0</span>
-    <span class="stat-label">关注</span>
-  </div>
-</div>
 
     <!-- 精灵 -->
     <div class="profile-spirit-card">
@@ -11573,7 +11602,9 @@ async function viewUserProfile(userId) {
           <button onclick="closeModal('userProfileModal')" class="w-8 h-8 rounded-full flex items-center justify-center" style="background:var(--surface)"><i class="fas fa-times"></i></button>
         </div>
         <div class="flex items-center gap-4 mb-4">
-          <img id="viewUserAvatar" class="w-16 h-16 rounded-full object-cover border-2" style="border-color:var(--accent)">
+          <div id="viewUserBg" style="padding:20px;border-radius:16px;margin-bottom:16px;background-size:cover;background-position:center;background-image:url(${profile.custom_bg || ''})">
+  <img id="viewUserAvatar" class="w-16 h-16 rounded-full object-cover border-2" style="border-color:var(--accent)">
+</div>
           <div>
             <div class="font-bold text-lg" id="viewUserDisplayName"></div>
             <div class="text-sm" style="color:var(--muted)">Lv.<span id="viewUserLevel">1</span> · <span id="viewUserFollowers">0</span> 粉丝</div>
@@ -11638,6 +11669,209 @@ function toggleFollowFromModal(uid) {
   $('viewUserFollowers').textContent = (parseInt($('viewUserFollowers').textContent) + (isFollowing ? 1 : -1)) || 0;
 }
 
+
+
+// 触发更换背景（等级≥5 或管理员）
+async function triggerCustomBgUpload() {
+  if (!APP.user) { openAuthModal(); return; }
+  const level = APP.profile?.level || 1;
+  if (!APP.isAdmin && level < 5) {
+    showToast('达到 Lv.5 或成为管理员后可更换背景', 'warning');
+    return;
+  }
+
+  const input = document.createElement('input');
+  input.type = 'file';
+  // 管理员允许视频，普通用户只允许图片和GIF
+  input.accept = APP.isAdmin ? 'image/*,image/gif,video/*' : 'image/*,image/gif';
+  input.onchange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // 文件大小限制：管理员50MB，普通10MB
+    const maxSize = APP.isAdmin ? 50 * 1024 * 1024 : 10 * 1024 * 1024;
+    if (file.size > maxSize) {
+      showToast(`文件不能超过 ${APP.isAdmin ? '50MB' : '10MB'}`, 'warning');
+      return;
+    }
+
+    // 如果是GIF或视频，只有管理员或Lv.10以上才能使用
+    if ((file.type === 'image/gif' || file.type.startsWith('video/')) && !APP.isAdmin && level < 10) {
+      showToast('达到 Lv.10 或成为管理员才能使用动态背景', 'warning');
+      return;
+    }
+
+    // 视频处理（暂时不支持视频作为背景，提示用户）
+    if (file.type.startsWith('video/')) {
+      showToast('视频暂不支持，请上传GIF动图', 'info');
+      return;
+    }
+
+    // 读取图片并判断是否需要裁剪
+    const reader = new FileReader();
+    reader.onload = async (ev) => {
+      const img = new Image();
+      img.src = ev.target.result;
+      img.onload = () => {
+        const area = document.querySelector('.profile-top-area');
+        if (!area) return;
+        const areaRatio = area.clientWidth / area.clientHeight;
+        const imgRatio = img.naturalWidth / img.naturalHeight;
+        // 比例误差在15%以内直接上传
+        if (Math.abs(imgRatio - areaRatio) < 0.15) {
+          uploadOriginal(file);
+        } else {
+          openCropModal(file);
+        }
+      };
+    };
+    reader.readAsDataURL(file);
+  };
+  input.click();
+}
+
+async function uploadOriginal(file) {
+  const ext = file.name.split('.').pop().toLowerCase();
+  const path = `${APP.user.id}/custom_bg_${Date.now()}.${ext}`;
+  const { error } = await sb.storage.from('posts').upload(path, file);
+  if (error) { showToast('上传失败', 'error'); return; }
+  const { data: { publicUrl } } = sb.storage.from('posts').getPublicUrl(path);
+  await sb.from('profiles').update({ custom_bg: publicUrl }).eq('id', APP.user.id);
+  APP.profile.custom_bg = publicUrl;
+  applyCustomBg(publicUrl);
+  showToast('背景已更换', 'success');
+}
+
+
+// 裁剪弹窗
+function openCropModal(file) {
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const imgSrc = e.target.result;
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay active';
+    modal.style.zIndex = '99999';
+    modal.innerHTML = `
+      <div class="modal-content active" style="max-width:600px; padding:16px; background:#fff; border-radius:20px;">
+        <div class="flex justify-between items-center mb-2">
+          <h3 class="font-display text-lg">调整背景位置</h3>
+          <button onclick="this.closest('.modal-overlay').remove()" class="w-8 h-8 rounded-full flex items-center justify-center" style="background:var(--surface)"><i class="fas fa-times"></i></button>
+        </div>
+        <p class="text-xs mb-2" style="color:var(--muted);">拖动图片选择要显示的区域，然后确认</p>
+        <div id="cropArea" style="position:relative; width:100%; height:200px; overflow:hidden; background:#eee; border-radius:12px; cursor:move; touch-action:none;">
+          <div id="cropImage" style="position:absolute; top:0; left:0; width:100%; height:100%; background-size:cover; background-position:center; background-image:url(${imgSrc});"></div>
+          <div style="position:absolute; inset:0; box-shadow: 0 0 0 9999px rgba(0,0,0,0.5); border-radius:12px; pointer-events:none; border:2px dashed var(--accent);"></div>
+        </div>
+        <div class="flex gap-2 mt-3">
+          <button class="btn-warm flex-1 py-2" id="confirmCropBtn">确认裁剪</button>
+          <button class="btn-ghost flex-1 py-2" onclick="this.closest('.modal-overlay').remove()">取消</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+
+    // 拖动交互
+    const cropArea = document.getElementById('cropArea');
+    const cropImage = document.getElementById('cropImage');
+    let isDragging = false, startX, startY, currentX = 50, currentY = 50;
+
+    function startDrag(x, y) {
+      isDragging = true;
+      startX = x - currentX;
+      startY = y - currentY;
+    }
+    function moveDrag(x, y) {
+      if (!isDragging) return;
+      currentX = Math.min(100, Math.max(0, x - startX));
+      currentY = Math.min(100, Math.max(0, y - startY));
+      cropImage.style.backgroundPosition = `${currentX}% ${currentY}%`;
+    }
+
+    cropArea.addEventListener('mousedown', (e) => { startDrag(e.clientX, e.clientY); });
+    cropArea.addEventListener('touchstart', (e) => { startDrag(e.touches[0].clientX, e.touches[0].clientY); e.preventDefault(); }, { passive: false });
+    window.addEventListener('mousemove', (e) => { moveDrag(e.clientX, e.clientY); });
+    window.addEventListener('touchmove', (e) => { moveDrag(e.touches[0].clientX, e.touches[0].clientY); });
+    window.addEventListener('mouseup', () => { isDragging = false; });
+    window.addEventListener('touchend', () => { isDragging = false; });
+
+    // 确认裁剪
+    document.getElementById('confirmCropBtn').onclick = async () => {
+      const canvas = document.createElement('canvas');
+      const areaRect = cropArea.getBoundingClientRect();
+      const scale = 2;
+      canvas.width = areaRect.width * scale;
+      canvas.height = areaRect.height * scale;
+      const ctx = canvas.getContext('2d');
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.src = imgSrc;
+      img.onload = async () => {
+        const imgW = img.naturalWidth, imgH = img.naturalHeight;
+        const aspectRatio = areaRect.width / areaRect.height;
+        let displayW, displayH, offsetX, offsetY;
+        if (imgW / imgH > aspectRatio) {
+          displayH = imgH;
+          displayW = imgH * aspectRatio;
+          offsetY = 0;
+          offsetX = (imgW - displayW) * (currentX / 100);
+        } else {
+          displayW = imgW;
+          displayH = imgW / aspectRatio;
+          offsetX = 0;
+          offsetY = (imgH - displayH) * (currentY / 100);
+        }
+        ctx.drawImage(img, offsetX, offsetY, displayW, displayH, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob(async (blob) => {
+          if (!blob) return;
+          const path = `${APP.user.id}/custom_bg_crop_${Date.now()}.jpg`;
+          const { error } = await sb.storage.from('posts').upload(path, blob);
+          if (error) { showToast('上传失败', 'error'); return; }
+          const { data: { publicUrl } } = sb.storage.from('posts').getPublicUrl(path);
+          await sb.from('profiles').update({ custom_bg: publicUrl }).eq('id', APP.user.id);
+          APP.profile.custom_bg = publicUrl;
+          applyCustomBg(publicUrl);
+          showToast('背景已更新', 'success');
+          modal.remove();
+        }, 'image/jpeg', 0.9);
+      };
+    };
+  };
+  reader.readAsDataURL(file);
+}
+
+
+
+
+
+
+// 重置背景
+async function resetCustomBg() {
+  if (!APP.user) return;
+  await sb.from('profiles').update({ custom_bg: null }).eq('id', APP.user.id);
+  APP.profile.custom_bg = null;
+  applyCustomBg(null);
+  showToast('已恢复默认背景', 'success');
+}
+
+// 应用背景到顶部区域
+function applyCustomBg(url) {
+  const area = document.querySelector('.profile-top-area');
+  const resetBtn = document.getElementById('resetBgBtn');
+  if (!area) return;
+ if (url) {
+  area.style.setProperty('background-image', `url(${url})`, 'important');
+  area.style.setProperty('background-size', 'cover', 'important');
+  area.style.setProperty('background-position', 'center', 'important');
+  area.classList.add('has-custom-bg');
+  if (resetBtn) resetBtn.style.display = 'inline-block';
+} else {
+  area.style.removeProperty('background-image');
+  area.style.removeProperty('background-size');
+  area.style.removeProperty('background-position');
+  area.classList.remove('has-custom-bg');
+  if (resetBtn) resetBtn.style.display = 'none';
+}
+}
 
 function updateNavAvatar() {
   const url = APP.profile?.avatar_url || dicebearUrl('default');
@@ -14754,6 +14988,19 @@ if (nameEl) {
   setTimeout(() => renderPendingRewardsInProfile(), 200);
 loadProfileLucky();
   loadMyLoadoutFavorites();
+
+  // 自动加载已保存的自定义背景
+      applyCustomBg(APP.profile?.custom_bg || null);
+
+
+  // 显示/隐藏“恢复默认”按钮
+  const resetBtn = document.getElementById('resetBgBtn');
+  if (resetBtn) {
+    resetBtn.style.display = APP.profile?.custom_bg ? 'inline-block' : 'none';
+  }
+  // 应用已保存的自定义背景
+  applyCustomBg(APP.profile?.custom_bg);
+
 
 
    
@@ -33117,10 +33364,90 @@ input:focus, textarea:focus, select:focus {
 
 
 /* ========== 干员档案室 ========== */
-.profile-archive { 
-display: flex; flex-direction: column; gap: 20px;
- 
- }
+.profile-archive {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  background: #FAF7F3;               /* 基础底色，白天看干净 */
+  border-radius: 24px;
+  padding: 20px;
+  max-width: 960px;
+  margin: 0 auto;
+  position: relative;
+  overflow: hidden;
+  transition: background 0.8s ease;
+}
+
+
+/* ---- 随时间变色，直接改底色 ---- */
+html[data-time="morning"] .profile-archive { background: #F0F4FA; }
+html[data-time="day"] .profile-archive { background: #FAF7F3; }
+html[data-time="dusk"] .profile-archive { background: #FDF3E8; }
+html[data-time="night"] .profile-archive { background: #1E2030; }
+[data-theme="dark"] .profile-archive { background: #1A1A2E; }
+
+/* ---- 统一白色卡片风格 ---- */
+.profile-header-card,
+.profile-stats-grid .stat-cell,
+.profile-spirit-card,
+.profile-welfare-grid .welfare-card,
+.profile-section .section-header {
+  background: #FFFFFF !important;
+  border: 1px solid #EDE4D8 !important;
+  border-radius: 16px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.03);
+}
+
+/* ---- 文字颜色保底 ---- */
+.profile-display-name,
+.stat-number,
+.stat-label,
+.section-header h3,
+.spirit-name,
+.welfare-card span {
+  color: #2C2418;
+}
+
+/* ---- 勋章墙紧凑排列，不再溢出 ---- */
+.badge-wall {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.badge-wall .badge {
+  flex: 1 1 calc(25% - 8px);
+  min-width: 60px;
+  text-align: center;
+  justify-content: center;
+  font-size: 12px;
+  padding: 6px 4px;
+}
+
+/* ---- 电脑大屏居中 ---- */
+@media (min-width: 1024px) {
+  .profile-archive {
+    max-width: 960px;
+    margin: 0 auto;
+  }
+}
+
+/* ---- 手机端自适应 ---- */
+@media (max-width: 768px) {
+  .profile-archive {
+    padding: 12px;
+    gap: 14px;
+  }
+  .profile-header-card {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  .profile-header-actions {
+    margin-top: 12px;
+  }
+}
+
+
 .profile-header-card {
   background: linear-gradient(160deg, rgba(20,12,8,0.95), rgba(15,10,5,0.9));
   border: 1px solid rgba(255,140,80,0.2); border-radius: 24px; padding: 28px;
@@ -34001,6 +34328,95 @@ html[data-time="night"] body::after {
 }
 
 
+
+
+
+/* ===== 个人中心自定义背景区域 ===== */
+.profile-top-area {
+  position: relative;
+  border-radius: 20px;
+  overflow: hidden;
+  background: #FFFFFF;
+  border: 1px solid #EDE4D8;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  margin-bottom: 20px;
+  min-height: 180px;
+  transition: background 0.8s ease;
+}
+
+/* 随时间自动变化背景色 */
+html[data-time="morning"] .profile-top-area { background: #F2F5FA; }
+html[data-time="day"] .profile-top-area     { background: #FFFFFF; }
+html[data-time="dusk"] .profile-top-area    { background: #FDF4ED; }
+html[data-time="night"] .profile-top-area   { background: #252A3A; }
+[data-theme="dark"] .profile-top-area       { background: #1F2233; }
+
+/* 当设置了自定义背景时 */
+.profile-top-area.has-custom-bg {
+  background-size: cover !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+}
+
+/* 保证内部卡片依然清晰 */
+.profile-top-area .profile-header-card,
+.profile-top-area .profile-stats-grid {
+  background: transparent;
+}
+
+
+.profile-top-area.has-custom-bg {
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+
+/* 自定义背景生效时，卡片完全透明，文字用白色+阴影 */
+.profile-top-area.has-custom-bg .profile-header-card,
+.profile-top-area.has-custom-bg .profile-stats-grid .stat-cell {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+}
+
+.profile-top-area.has-custom-bg .profile-display-name,
+.profile-top-area.has-custom-bg .profile-level-badge span,
+.profile-top-area.has-custom-bg .exp-text,
+.profile-top-area.has-custom-bg .stat-number,
+.profile-top-area.has-custom-bg .stat-label {
+  color: #ffffff !important;
+  text-shadow: 0 0 2px rgba(0,0,0,0.8) !important;   /* 极细黑色描边 */
+  background: rgba(0,0,0,0.25) !important;            /* 半透明黑底，只在文字背后 */
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+
+.profile-top-area.has-custom-bg .profile-avatar-ring {
+  border-color: #ffffff;
+}
+
+
+.profile-top-area .profile-header-actions button {
+  backdrop-filter: blur(6px);
+  background: rgba(255,255,255,0.3) !important;
+  border: 1px solid rgba(255,255,255,0.4) !important;
+  color: #1A1A1A !important;
+}
+
+
+/* 手机端自适应 */
+@media (max-width: 768px) {
+  .profile-top-area {
+    min-height: 150px;
+  }
+}
+
+.profile-top-area.has-custom-bg .profile-display-name {
+  font-size: 22px;
+}
 
 
 
