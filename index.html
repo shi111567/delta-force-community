@@ -11679,59 +11679,640 @@ async function triggerCustomBgUpload() {
     showToast('达到 Lv.5 或成为管理员后可更换背景', 'warning');
     return;
   }
-
-  const input = document.createElement('input');
-  input.type = 'file';
-  // 管理员允许视频，普通用户只允许图片和GIF
-  input.accept = APP.isAdmin ? 'image/*,image/gif,video/*' : 'image/*,image/gif';
-  input.onchange = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    // 文件大小限制：管理员50MB，普通10MB
-    const maxSize = APP.isAdmin ? 50 * 1024 * 1024 : 10 * 1024 * 1024;
-    if (file.size > maxSize) {
-      showToast(`文件不能超过 ${APP.isAdmin ? '50MB' : '10MB'}`, 'warning');
-      return;
-    }
-
-    // 如果是GIF或视频，只有管理员或Lv.10以上才能使用
-    if ((file.type === 'image/gif' || file.type.startsWith('video/')) && !APP.isAdmin && level < 10) {
-      showToast('达到 Lv.10 或成为管理员才能使用动态背景', 'warning');
-      return;
-    }
-
-    // 视频处理（暂时不支持视频作为背景，提示用户）
-    if (file.type.startsWith('video/')) {
-      showToast('视频暂不支持，请上传GIF动图', 'info');
-      return;
-    }
-
-    // 读取图片并判断是否需要裁剪
-    const reader = new FileReader();
-    reader.onload = async (ev) => {
-      const img = new Image();
-      img.src = ev.target.result;
-      img.onload = () => {
-        const area = document.querySelector('.profile-top-area');
-        if (!area) return;
-        const areaRatio = area.clientWidth / area.clientHeight;
-        const imgRatio = img.naturalWidth / img.naturalHeight;
-        // 比例误差在15%以内直接上传
-        if (Math.abs(imgRatio - areaRatio) < 0.15) {
-          uploadOriginal(file);
-        } else {
-          openCropModal(file);
-        }
-      };
-    };
-    reader.readAsDataURL(file);
-  };
-  input.click();
+  openModal('bgEditorModal');
+  const modal = document.getElementById('bgEditorModal');
+  if (modal) {
+    modal.style.display = 'flex';
+    modal.classList.add('active');
+  }
+  setTimeout(() => {
+    initBgEditor();
+  }, 200);
 }
 
-async function uploadOriginal(file) {
-  const ext = file.name.split('.').pop().toLowerCase();
+
+// ==================== 背景编辑器核心逻辑（增强版） ====================
+let bgEditorState = {
+  file: null,
+  type: 'image',
+  canvas: null,
+  ctx: null,
+  gridSize: 40,
+  crop: { x: 0, y: 0, w: 0, h: 0, active: false },
+  history: [],
+  playing: false,
+  duration: 0,
+  currentTime: 0,
+  cutStart: 0,
+  cutEnd: 0,
+  thumbnails: [],
+  originalSrc: null,
+  zoom: 1, // 当前缩放比例
+};
+
+function initBgEditor() {
+  const canvas = document.getElementById('bgPreviewCanvas');
+  bgEditorState.canvas = canvas;
+  bgEditorState.ctx = canvas.getContext('2d');
+  bgEditorState.zoom = 1;
+  resetBgEditor();
+
+  // 绑定事件（只绑一次）
+  if (!bgEditorState._eventsBound) {
+    const fileInput = document.getElementById('bgEditorFileInput');
+    if (fileInput) fileInput.addEventListener('change', handleBgFileSelect);
+    const uploadZone = document.getElementById('bgEditorUploadZone');
+    if (uploadZone) {
+      uploadZone.addEventListener('dragover', e => e.preventDefault());
+      uploadZone.addEventListener('drop', e => {
+        e.preventDefault();
+        const file = e.dataTransfer.files[0];
+        if (file) processBgFile(file);
+      });
+    }
+    // 裁剪框拖动已在 enableCrop 中绑定
+    bgEditorState._eventsBound = true;
+  }
+}
+
+function resetBgEditor() {
+  bgEditorState.file = null;
+  bgEditorState.type = 'image';
+  const $ = (id) => document.getElementById(id);
+  const hide = (id) => { const el = $(id); if (el) el.style.display = 'none'; };
+  hide('bgEditorWorkspace');
+  const upload = $('bgEditorUploadZone'); if (upload) upload.style.display = 'block';
+  hide('mediaControls'); hide('timelinePanel'); hide('cropInfoBar'); hide('zoomControls');
+  const video = $('bgPreviewVideo');
+  const img = $('bgPreviewImg');
+  if (video) { video.style.display = 'none'; video.src = ''; }
+  if (img) { img.style.display = 'none'; img.src = ''; }
+  const canvas = bgEditorState.canvas;
+  if (canvas) canvas.style.display = 'none';
+  if (bgEditorState.ctx && canvas) bgEditorState.ctx.clearRect(0, 0, canvas.width, canvas.height);
+  bgEditorState.crop = { x: 0, y: 0, w: 0, h: 0, active: false };
+  const box = $('cropBox'); if (box) box.style.display = 'none';
+  bgEditorState.zoom = 1;
+
+  // --------- 在这里添加 ---------
+  const floatLabel = document.getElementById('cropFloatLabel');
+  if (floatLabel) floatLabel.remove();
+  // ---------------------------
+
+}
+
+// 文件选择处理
+function handleBgFileSelect(e) { const file = e.target.files[0]; if (file) processBgFile(file); }
+
+function processBgFile(file) {
+  const level = APP.profile?.level || 1;
+  const maxSize = APP.isAdmin ? 50 * 1024 * 1024 : 10 * 1024 * 1024;
+  if (file.size > maxSize) { showToast(`文件不能超过 ${APP.isAdmin ? '50MB' : '10MB'}`, 'warning'); return; }
+  if (file.type.startsWith('video/') && !APP.isAdmin && level < 10) { showToast('达到 Lv.10 或成为管理员才能使用视频背景', 'warning'); return; }
+  if (file.type === 'image/gif' && !APP.isAdmin && level < 10) { showToast('达到 Lv.10 或成为管理员才能使用GIF动图', 'warning'); return; }
+
+  bgEditorState.file = file;
+  bgEditorState.originalSrc = URL.createObjectURL(file);
+
+  if (file.type.startsWith('video/')) {
+    bgEditorState.type = 'video';
+    loadVideoPreview(file);
+  } else if (file.type === 'image/gif') {
+    bgEditorState.type = 'gif';
+    loadGifPreview(file);
+  } else {
+    bgEditorState.type = 'image';
+    loadImagePreview(file);
+  }
+  document.getElementById('bgEditorUploadZone').style.display = 'none';
+  document.getElementById('bgEditorWorkspace').style.display = 'block';
+}
+
+// ----- 预览加载 -----
+function loadImagePreview(file) {
+  var img = document.getElementById('bgPreviewImg');
+  if (!img) return;
+  img.onload = function() {
+    try { setupMediaSize(img.naturalWidth, img.naturalHeight); } catch(e) {}
+    img.style.display = 'block';
+    var video = document.getElementById('bgPreviewVideo');
+    if (video) video.style.display = 'none';
+    if (bgEditorState.canvas) bgEditorState.canvas.style.display = 'none';
+    var mc = document.getElementById('mediaControls');
+    if (mc) mc.style.display = 'none';
+    var tp = document.getElementById('timelinePanel');
+    if (tp) tp.style.display = 'none';
+    var zc = document.getElementById('zoomControls');
+    if (zc) zc.style.display = 'flex';
+    enableCrop();
+  };
+  img.src = bgEditorState.originalSrc;
+}
+
+function loadGifPreview(file) {
+  var img = document.getElementById('bgPreviewImg');
+  if (!img) return;
+  img.onload = function() {
+    try { setupMediaSize(img.naturalWidth, img.naturalHeight); } catch(e) {}
+    img.style.display = 'block';
+    var video = document.getElementById('bgPreviewVideo');
+    if (video) video.style.display = 'none';
+    if (bgEditorState.canvas) bgEditorState.canvas.style.display = 'none';
+    var mc = document.getElementById('mediaControls');
+    if (mc) mc.style.display = 'none';
+    var tp = document.getElementById('timelinePanel');
+    if (tp) tp.style.display = 'none';
+    var zc = document.getElementById('zoomControls');
+    if (zc) zc.style.display = 'flex';
+    enableCrop();
+  };
+  img.src = bgEditorState.originalSrc;
+}
+
+
+
+function loadGifPreview(file) {
+  const img = document.getElementById('bgPreviewImg');
+  img.onload = () => {
+    setupMediaSize(img.naturalWidth, img.naturalHeight);
+    img.style.display = 'block';
+    document.getElementById('bgPreviewVideo').style.display = 'none';
+    bgEditorState.canvas.style.display = 'none';
+    document.getElementById('mediaControls').style.display = 'none';
+    document.getElementById('timelinePanel').style.display = 'none';
+    document.getElementById('zoomControls').style.display = 'flex';
+    enableCrop();
+  };
+  img.src = bgEditorState.originalSrc;
+}
+
+function loadVideoPreview(file) {
+  var video = document.getElementById('bgPreviewVideo');
+  if (!video) return;
+  video.src = bgEditorState.originalSrc;
+  video.onloadedmetadata = function() {
+    bgEditorState.duration = video.duration || 0;
+    // 安全设置尺寸
+    try { setupMediaSize(video.videoWidth, video.videoHeight); } catch(e) {}
+    // 显示视频
+    video.style.display = 'block';
+    var img = document.getElementById('bgPreviewImg');
+    if (img) img.style.display = 'none';
+    if (bgEditorState.canvas) bgEditorState.canvas.style.display = 'none';
+    // 显示播放控件、时间轴、缩放按钮
+    var mc = document.getElementById('mediaControls');
+    if (mc) mc.style.display = 'flex';
+    var tp = document.getElementById('timelinePanel');
+    if (tp) tp.style.display = 'block';
+    var zc = document.getElementById('zoomControls');
+    if (zc) zc.style.display = 'flex';
+    // 初始化裁剪（延迟确保元素已渲染）
+    setTimeout(function() {
+      enableCrop();
+    }, 50);
+    bgEditorState.cutEnd = video.duration;
+    updateTimeline();
+    generateVideoThumbnails();
+    video.currentTime = 0;
+    video.addEventListener('timeupdate', updateVideoProgress);
+  };
+}
+
+
+
+// 统一设置媒体元素尺寸和位置
+function setupMediaSize(nw, nh) {
+  var container = document.getElementById('previewContainer');
+  var video = document.getElementById('bgPreviewVideo');
+  var img = document.getElementById('bgPreviewImg');
+  var canvas = bgEditorState.canvas;
+  if (!container || !canvas) return;
+  var maxW = (container.clientWidth || 858) - 10;
+  var maxH = 400;
+  var ratio = Math.min(maxW / (nw || 640), maxH / (nh || 360), 1);
+  var newW = Math.floor((nw || 640) * ratio);
+  var newH = Math.floor((nh || 360) * ratio);
+  [video, img, canvas].forEach(function(el) {
+    if (!el) return;
+    el.style.position = 'absolute';
+    el.style.top = '0';
+    el.style.left = '0';
+    el.style.width = newW + 'px';
+    el.style.height = newH + 'px';
+  });
+  canvas.width = newW;
+  canvas.height = newH;
+  container.style.height = newH + 'px';
+  var grid = document.getElementById('gridOverlay');
+  if (grid) grid.style.backgroundSize = bgEditorState.gridSize + 'px ' + bgEditorState.gridSize + 'px';
+  var zoomCtl = document.getElementById('zoomControls');
+  if (zoomCtl) zoomCtl.style.display = 'flex';
+}
+
+
+
+// 缩放功能
+function bgEditorZoom(delta) {
+  bgEditorState.zoom = Math.min(2, Math.max(0.5, bgEditorState.zoom + delta));
+  document.getElementById('zoomLevel').textContent = Math.round(bgEditorState.zoom * 100) + '%';
+  // 应用缩放变换
+  const container = document.getElementById('previewContainer');
+  const media = container.querySelector('video, img, canvas:not([style*="display: none"])');
+  if (media) {
+    media.style.transform = `scale(${bgEditorState.zoom})`;
+    media.style.transformOrigin = 'top left';
+  }
+  // 调整裁剪框跟随缩放
+  if (bgEditorState.crop.active) updateCropBox();
+}
+
+// 裁剪框显示与拖动
+function enableCrop() {
+  var box = document.getElementById('cropBox');
+  if (!box) {
+    // 如果裁剪框还没生成，稍后重试
+    setTimeout(enableCrop, 100);
+    return;
+  }
+  box.style.display = 'block';
+  if (!bgEditorState.crop.active) {
+    bgEditorState.crop = { x: 50, y: 50, w: 200, h: 150, active: true };
+  }
+  updateCropBox();
+  var infoBar = document.getElementById('cropInfoBar');
+  if (infoBar) infoBar.style.display = 'flex';
+  var zoomCtl = document.getElementById('zoomControls');
+  if (zoomCtl) zoomCtl.style.display = 'flex';
+
+  // 添加 8 个拖拽手柄（只添加一次）
+  if (!box.dataset.handlesAdded) {
+    var handles = ['nw', 'n', 'ne', 'w', 'e', 'sw', 's', 'se'];
+    handles.forEach(function(dir) {
+      var handle = document.createElement('div');
+      handle.className = 'crop-handle crop-handle-' + dir;
+      handle.dataset.dir = dir;
+      handle.addEventListener('mousedown', function(e) {
+        e.stopPropagation();
+        startResizeCrop(dir, e.clientX, e.clientY);
+      });
+      box.appendChild(handle);
+    });
+    box.dataset.handlesAdded = 'true';
+  }
+
+  // 拖动裁剪框（只绑定一次）
+  if (box.dataset.cropDragBound) return;
+  box.dataset.cropDragBound = 'true';
+
+  var dragging = false, startX, startY, startLeft, startTop;
+  box.addEventListener('mousedown', function(e) {
+    if (e.target.classList.contains('crop-handle')) return;
+    dragging = true;
+    startX = e.clientX; startY = e.clientY;
+    startLeft = parseInt(box.style.left) || 0;
+    startTop = parseInt(box.style.top) || 0;
+    e.stopPropagation();
+  });
+  window.addEventListener('mousemove', function(e) {
+    if (!dragging) return;
+    var newX = startLeft + e.clientX - startX;
+    var newY = startTop + e.clientY - startY;
+    newX = Math.max(0, Math.min(newX, bgEditorState.canvas.width - bgEditorState.crop.w));
+    newY = Math.max(0, Math.min(newY, bgEditorState.canvas.height - bgEditorState.crop.h));
+    bgEditorState.crop.x = snapToGrid(newX);
+    bgEditorState.crop.y = snapToGrid(newY);
+    updateCropBox();
+  });
+  window.addEventListener('mouseup', function() { dragging = false; });
+}
+
+
+
+
+
+// 调整裁剪框大小的函数（新增）
+function startResizeCrop(dir, startX, startY) {
+  const crop = bgEditorState.crop;
+  const origX = crop.x, origY = crop.y, origW = crop.w, origH = crop.h;
+  const onMove = (e) => {
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+    let newX = origX, newY = origY, newW = origW, newH = origH;
+    if (dir.includes('e')) newW = Math.max(40, origW + dx);
+    if (dir.includes('w')) { newX = origX + dx; newW = Math.max(40, origW - dx); }
+    if (dir.includes('s')) newH = Math.max(40, origH + dy);
+    if (dir.includes('n')) { newY = origY + dy; newH = Math.max(40, origH - dy); }
+    // 限制不超出画布
+    if (newX < 0) { newW += newX; newX = 0; }
+    if (newY < 0) { newH += newY; newY = 0; }
+    if (newX + newW > bgEditorState.canvas.width) newW = bgEditorState.canvas.width - newX;
+    if (newY + newH > bgEditorState.canvas.height) newH = bgEditorState.canvas.height - newY;
+    crop.x = snapToGrid(newX); crop.y = snapToGrid(newY);
+    crop.w = snapToGrid(newW); crop.h = snapToGrid(newH);
+    updateCropBox();
+  };
+  const onUp = () => {
+    window.removeEventListener('mousemove', onMove);
+    window.removeEventListener('mouseup', onUp);
+  };
+  window.addEventListener('mousemove', onMove);
+  window.addEventListener('mouseup', onUp);
+}
+
+
+
+
+function updateCropBox() {
+  const crop = bgEditorState.crop;
+  const box = document.getElementById('cropBox');
+  box.style.left = crop.x + 'px';
+  box.style.top = crop.y + 'px';
+  box.style.width = crop.w + 'px';
+  box.style.height = crop.h + 'px';
+
+  // 更新下方信息栏
+  const sizeEl = document.getElementById('cropSizeDisplay');
+  const posEl = document.getElementById('cropPosDisplay');
+  if (sizeEl) sizeEl.textContent = `${crop.w} x ${crop.h}`;
+  if (posEl) posEl.textContent = `(${crop.x}, ${crop.y})`;
+
+  // 在预览区显示浮层（像截图工具那样）
+  let floatLabel = document.getElementById('cropFloatLabel');
+  if (!floatLabel) {
+    floatLabel = document.createElement('div');
+    floatLabel.id = 'cropFloatLabel';
+    floatLabel.style.cssText = `
+      position:absolute; pointer-events:none; background:rgba(0,0,0,0.75);
+      color:white; font-size:12px; padding:4px 10px; border-radius:12px;
+      white-space:nowrap; z-index:50;
+    `;
+    document.getElementById('previewContainer').appendChild(floatLabel);
+  }
+  // 放置于裁剪框上方
+  const gridX = Math.floor(crop.x / bgEditorState.gridSize);
+  const gridY = Math.floor(crop.y / bgEditorState.gridSize);
+  const gridW = Math.floor(crop.w / bgEditorState.gridSize);
+  const gridH = Math.floor(crop.h / bgEditorState.gridSize);
+  floatLabel.innerHTML = `选区: ${crop.w}×${crop.h} | 网格: ${gridX},${gridY} (${gridW}×${gridH}) | 吸附:${bgEditorSnapEnabled?'开':'关'}`;
+  floatLabel.style.left = Math.max(0, crop.x) + 'px';
+  floatLabel.style.top = Math.max(0, crop.y - 28) + 'px';
+  floatLabel.style.display = 'block';
+}
+
+
+
+let bgEditorSnapEnabled = true; // 全局吸附状态
+
+function toggleSnap() {
+  bgEditorSnapEnabled = !bgEditorSnapEnabled;
+  const btn = document.getElementById('btnSnapToggle');
+  if (btn) {
+    btn.innerHTML = bgEditorSnapEnabled 
+      ? '<i class="fas fa-magnet"></i> 吸附:开' 
+      : '<i class="fas fa-magnet"></i> 吸附:关';
+    btn.style.color = bgEditorSnapEnabled ? 'var(--accent)' : 'var(--muted)';
+  }
+}
+
+function snapToGrid(value) {
+  if (!bgEditorSnapEnabled) return value;
+  return Math.round(value / bgEditorState.gridSize) * bgEditorState.gridSize;
+}
+
+
+
+// 视频进度更新
+function updateVideoProgress() {
+  const video = document.getElementById('bgPreviewVideo');
+  if (!video.duration) return;
+  document.getElementById('seekSlider').value = (video.currentTime / video.duration) * 100;
+  document.getElementById('currentTimeDisplay').textContent = 
+    formatTime(video.currentTime) + ' / ' + formatTime(video.duration);
+  // 更新时间轴进度条
+  document.getElementById('timelineProgress').style.width = (video.currentTime / video.duration) * 100 + '%';
+}
+
+// 播放控制
+function bgEditorTogglePlay() {
+  const video = document.getElementById('bgPreviewVideo');
+  if (!video) return;
+  if (video.paused) {
+    video.play().catch(e => showToast('播放失败，请重试'));
+    document.getElementById('btnPlay').innerHTML = '<i class="fas fa-pause"></i>';
+  } else {
+    video.pause();
+    document.getElementById('btnPlay').innerHTML = '<i class="fas fa-play"></i>';
+  }
+}
+function bgEditorSeek(value) {
+  const video = document.getElementById('bgPreviewVideo');
+  video.currentTime = (value / 100) * bgEditorState.duration;
+}
+function bgEditorStep(dir) {
+  const video = document.getElementById('bgPreviewVideo');
+  video.currentTime = Math.min(bgEditorState.duration, Math.max(0, video.currentTime + dir * 0.1));
+}
+
+// 时间轴与截取
+function updateTimeline() {
+  const duration = bgEditorState.duration;
+  document.getElementById('cutEndLabel').textContent = formatTime(duration);
+  document.getElementById('cutDurationLabel').textContent = `时长：${formatTime(duration)}`;
+  // 重绘时间轴高亮区域
+  updateTimelineSelection();
+}
+
+function bgEditorSetCut(type) {
+  const video = document.getElementById('bgPreviewVideo');
+  if (type === 'start') bgEditorState.cutStart = video.currentTime;
+  else bgEditorState.cutEnd = video.currentTime;
+  updateCutDisplay();
+  updateTimelineSelection();
+}
+
+function updateCutDisplay() {
+  document.getElementById('cutStartLabel').textContent = formatTime(bgEditorState.cutStart);
+  document.getElementById('cutEndLabel').textContent = formatTime(bgEditorState.cutEnd);
+  const duration = bgEditorState.cutEnd - bgEditorState.cutStart;
+  document.getElementById('cutDurationLabel').textContent = `时长：${formatTime(duration)}`;
+}
+
+function updateTimelineSelection() {
+  const bar = document.getElementById('timelineBarContainer');
+  const selection = document.getElementById('timelineSelection');
+  const totalDuration = bgEditorState.duration;
+  if (!totalDuration) return;
+  const startPercent = (bgEditorState.cutStart / totalDuration) * 100;
+  const endPercent = (bgEditorState.cutEnd / totalDuration) * 100;
+  selection.style.left = startPercent + '%';
+  selection.style.width = (endPercent - startPercent) + '%';
+  // 未选中区域灰色遮罩（通过伪元素或背景实现，在CSS中已定义）
+}
+
+// 生成视频缩略图条带
+async function generateVideoThumbnails() {
+  const strip = document.getElementById('thumbnailStrip');
+  strip.innerHTML = '';
+  const video = document.getElementById('bgPreviewVideo');
+  const count = 10; // 10张缩略图
+  const step = video.duration / count;
+  for (let i = 0; i < count; i++) {
+    const time = i * step;
+    const canvas = document.createElement('canvas');
+    canvas.width = 60; canvas.height = 40;
+    const ctx = canvas.getContext('2d');
+    video.currentTime = time;
+    await new Promise(resolve => {
+      video.onseeked = () => {
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        resolve();
+      };
+    });
+    const img = document.createElement('img');
+    img.src = canvas.toDataURL();
+    img.style.width = '60px';
+    img.style.height = '40px';
+    img.style.cursor = 'pointer';
+    img.onclick = () => video.currentTime = time;
+    strip.appendChild(img);
+  }
+}
+
+// 格式化时间
+function formatTime(sec) {
+  const m = Math.floor(sec / 60);
+  const s = Math.floor(sec % 60);
+  return `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+}
+
+// 视频转GIF（保持原有逻辑）
+async function bgEditorConvertToGif() {
+  if (bgEditorState.type !== 'video') {
+    showToast('仅支持视频转GIF', 'warning');
+    return;
+  }
+  // 创建或获取进度条容器
+  let progressBar = document.getElementById('gifProgressBar');
+  if (!progressBar) {
+    progressBar = document.createElement('div');
+    progressBar.id = 'gifProgressBar';
+    progressBar.style.cssText = 'margin-top:8px; padding:0 10px;';
+    progressBar.innerHTML = `
+      <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+        <span style="font-size:12px; color:var(--text);">GIF 转换进度</span>
+        <span id="gifProgressPercent" style="font-size:12px; color:var(--accent);">0%</span>
+      </div>
+      <div style="height:8px; background:var(--surface); border-radius:4px; overflow:hidden;">
+        <div id="gifProgressFill" style="height:100%; width:0%; background:var(--accent); transition:width 0.1s;"></div>
+      </div>
+    `;
+    const mediaControls = document.getElementById('mediaControls');
+    if (mediaControls) mediaControls.after(progressBar);
+  }
+  document.getElementById('gifProgressFill').style.width = '0%';
+  const percentEl = document.getElementById('gifProgressPercent');
+  if (percentEl) percentEl.textContent = '0%';
+
+  // 加载 gif.js（如果未加载）
+  if (typeof GIF === 'undefined') {
+    await loadScript('https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.js');
+  }
+
+  // 解决 file:// 下 Worker 跨域问题：动态获取 worker 脚本内容并创建 Blob Worker
+  let workerBlobURL = null;
+  try {
+    const workerResp = await fetch('https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.worker.js');
+    if (!workerResp.ok) throw new Error('Worker 脚本加载失败');
+    const workerText = await workerResp.text();
+    const blob = new Blob([workerText], { type: 'application/javascript' });
+    workerBlobURL = URL.createObjectURL(blob);
+  } catch (e) {
+    showToast('无法加载 GIF 编码器，请通过 http:// 访问此页面', 'error');
+    console.warn('Worker fetch failed:', e);
+    if (progressBar) progressBar.remove();
+    return;
+  }
+
+  const video = document.getElementById('bgPreviewVideo');
+  const fps = parseInt(document.getElementById('bgFpsSelect').value) || 10;
+  const gif = new GIF({
+    workers: 2,
+    quality: 10,
+    width: bgEditorState.canvas.width,
+    height: bgEditorState.canvas.height,
+    workerScript: workerBlobURL,
+  });
+
+  showToast('正在转换GIF...', 'info');
+  const frameDelay = 1000 / fps;
+  let current = bgEditorState.cutStart;
+  const totalFrames = Math.ceil((bgEditorState.cutEnd - bgEditorState.cutStart) / (frameDelay / 1000));
+  let framesAdded = 0;
+  const tempCanvas = document.createElement('canvas');
+  tempCanvas.width = bgEditorState.canvas.width;
+  tempCanvas.height = bgEditorState.canvas.height;
+  const tempCtx = tempCanvas.getContext('2d');
+
+  const capture = () => {
+    if (current >= bgEditorState.cutEnd) {
+      gif.on('finished', (blob) => {
+  const url = URL.createObjectURL(blob);
+  const fakeFile = new File([blob], 'converted.gif', { type: 'image/gif' });
+  processBgFile(fakeFile);
+  showToast('✅ GIF 转换完成！已在预览区显示', 'success');
+  console.log('GIF转换完成，文件大小:', blob.size);
+  if (progressBar) progressBar.remove();
+  URL.revokeObjectURL(workerBlobURL);
+});
+
+
+// 确保进度条不会显示100%卡住
+setTimeout(() => {
+  const fill = document.getElementById('gifProgressFill');
+  if (fill) fill.style.width = '0%';
+  const percentEl = document.getElementById('gifProgressPercent');
+  if (percentEl) percentEl.textContent = '0%';
+}, 500);
+
+
+
+      gif.render();
+      return;
+    }
+    video.currentTime = current;
+    video.onseeked = () => {
+      tempCtx.drawImage(video, 0, 0, tempCanvas.width, tempCanvas.height);
+      gif.addFrame(tempCanvas, { copy: true, delay: frameDelay });
+      framesAdded++;
+      const pct = Math.round((framesAdded / totalFrames) * 100);
+      const fill = document.getElementById('gifProgressFill');
+      if (fill) fill.style.width = pct + '%';
+      if (percentEl) percentEl.textContent = pct + '%';
+      current += frameDelay / 1000;
+      setTimeout(capture, 10);
+    };
+  };
+  video.currentTime = bgEditorState.cutStart;
+  video.onseeked = capture;
+}
+
+// 撤回（重置裁剪）
+function bgEditorUndo() {
+  bgEditorState.crop = { x: 0, y: 0, w: bgEditorState.canvas.width, h: bgEditorState.canvas.height, active: true };
+  updateCropBox();
+  showToast('已重置裁剪区域', 'info');
+}
+function bgEditorResetCrop() {
+  bgEditorState.crop = { x: 0, y: 0, w: bgEditorState.canvas.width, h: bgEditorState.canvas.height, active: true };
+  updateCropBox();
+  showToast('裁剪区域已重置为全尺寸', 'info');
+}
+
+// 应用背景
+async function bgEditorApply() {
+  if (!bgEditorState.file) { showToast('请先选择文件', 'warning'); return; }
+  const file = bgEditorState.file;
+  const ext = file.name.split('.').pop();
   const path = `${APP.user.id}/custom_bg_${Date.now()}.${ext}`;
   const { error } = await sb.storage.from('posts').upload(path, file);
   if (error) { showToast('上传失败', 'error'); return; }
@@ -11739,104 +12320,8 @@ async function uploadOriginal(file) {
   await sb.from('profiles').update({ custom_bg: publicUrl }).eq('id', APP.user.id);
   APP.profile.custom_bg = publicUrl;
   applyCustomBg(publicUrl);
-  showToast('背景已更换', 'success');
-}
-
-
-// 裁剪弹窗
-function openCropModal(file) {
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    const imgSrc = e.target.result;
-    const modal = document.createElement('div');
-    modal.className = 'modal-overlay active';
-    modal.style.zIndex = '99999';
-    modal.innerHTML = `
-      <div class="modal-content active" style="max-width:600px; padding:16px; background:#fff; border-radius:20px;">
-        <div class="flex justify-between items-center mb-2">
-          <h3 class="font-display text-lg">调整背景位置</h3>
-          <button onclick="this.closest('.modal-overlay').remove()" class="w-8 h-8 rounded-full flex items-center justify-center" style="background:var(--surface)"><i class="fas fa-times"></i></button>
-        </div>
-        <p class="text-xs mb-2" style="color:var(--muted);">拖动图片选择要显示的区域，然后确认</p>
-        <div id="cropArea" style="position:relative; width:100%; height:200px; overflow:hidden; background:#eee; border-radius:12px; cursor:move; touch-action:none;">
-          <div id="cropImage" style="position:absolute; top:0; left:0; width:100%; height:100%; background-size:cover; background-position:center; background-image:url(${imgSrc});"></div>
-          <div style="position:absolute; inset:0; box-shadow: 0 0 0 9999px rgba(0,0,0,0.5); border-radius:12px; pointer-events:none; border:2px dashed var(--accent);"></div>
-        </div>
-        <div class="flex gap-2 mt-3">
-          <button class="btn-warm flex-1 py-2" id="confirmCropBtn">确认裁剪</button>
-          <button class="btn-ghost flex-1 py-2" onclick="this.closest('.modal-overlay').remove()">取消</button>
-        </div>
-      </div>
-    `;
-    document.body.appendChild(modal);
-
-    // 拖动交互
-    const cropArea = document.getElementById('cropArea');
-    const cropImage = document.getElementById('cropImage');
-    let isDragging = false, startX, startY, currentX = 50, currentY = 50;
-
-    function startDrag(x, y) {
-      isDragging = true;
-      startX = x - currentX;
-      startY = y - currentY;
-    }
-    function moveDrag(x, y) {
-      if (!isDragging) return;
-      currentX = Math.min(100, Math.max(0, x - startX));
-      currentY = Math.min(100, Math.max(0, y - startY));
-      cropImage.style.backgroundPosition = `${currentX}% ${currentY}%`;
-    }
-
-    cropArea.addEventListener('mousedown', (e) => { startDrag(e.clientX, e.clientY); });
-    cropArea.addEventListener('touchstart', (e) => { startDrag(e.touches[0].clientX, e.touches[0].clientY); e.preventDefault(); }, { passive: false });
-    window.addEventListener('mousemove', (e) => { moveDrag(e.clientX, e.clientY); });
-    window.addEventListener('touchmove', (e) => { moveDrag(e.touches[0].clientX, e.touches[0].clientY); });
-    window.addEventListener('mouseup', () => { isDragging = false; });
-    window.addEventListener('touchend', () => { isDragging = false; });
-
-    // 确认裁剪
-    document.getElementById('confirmCropBtn').onclick = async () => {
-      const canvas = document.createElement('canvas');
-      const areaRect = cropArea.getBoundingClientRect();
-      const scale = 2;
-      canvas.width = areaRect.width * scale;
-      canvas.height = areaRect.height * scale;
-      const ctx = canvas.getContext('2d');
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      img.src = imgSrc;
-      img.onload = async () => {
-        const imgW = img.naturalWidth, imgH = img.naturalHeight;
-        const aspectRatio = areaRect.width / areaRect.height;
-        let displayW, displayH, offsetX, offsetY;
-        if (imgW / imgH > aspectRatio) {
-          displayH = imgH;
-          displayW = imgH * aspectRatio;
-          offsetY = 0;
-          offsetX = (imgW - displayW) * (currentX / 100);
-        } else {
-          displayW = imgW;
-          displayH = imgW / aspectRatio;
-          offsetX = 0;
-          offsetY = (imgH - displayH) * (currentY / 100);
-        }
-        ctx.drawImage(img, offsetX, offsetY, displayW, displayH, 0, 0, canvas.width, canvas.height);
-        canvas.toBlob(async (blob) => {
-          if (!blob) return;
-          const path = `${APP.user.id}/custom_bg_crop_${Date.now()}.jpg`;
-          const { error } = await sb.storage.from('posts').upload(path, blob);
-          if (error) { showToast('上传失败', 'error'); return; }
-          const { data: { publicUrl } } = sb.storage.from('posts').getPublicUrl(path);
-          await sb.from('profiles').update({ custom_bg: publicUrl }).eq('id', APP.user.id);
-          APP.profile.custom_bg = publicUrl;
-          applyCustomBg(publicUrl);
-          showToast('背景已更新', 'success');
-          modal.remove();
-        }, 'image/jpeg', 0.9);
-      };
-    };
-  };
-  reader.readAsDataURL(file);
+  closeModal('bgEditorModal');
+  showToast('背景已更新', 'success');
 }
 
 
@@ -11858,20 +12343,57 @@ function applyCustomBg(url) {
   const area = document.querySelector('.profile-top-area');
   const resetBtn = document.getElementById('resetBgBtn');
   if (!area) return;
- if (url) {
-  area.style.setProperty('background-image', `url(${url})`, 'important');
-  area.style.setProperty('background-size', 'cover', 'important');
-  area.style.setProperty('background-position', 'center', 'important');
-  area.classList.add('has-custom-bg');
-  if (resetBtn) resetBtn.style.display = 'inline-block';
-} else {
-  area.style.removeProperty('background-image');
-  area.style.removeProperty('background-size');
-  area.style.removeProperty('background-position');
+
+  // 移除旧视频元素
+  const oldVideo = area.querySelector('video.custom-bg-video');
+  if (oldVideo) oldVideo.remove();
+  area.style.backgroundImage = '';
   area.classList.remove('has-custom-bg');
-  if (resetBtn) resetBtn.style.display = 'none';
+
+  if (url) {
+    const ext = url.split('.').pop().toLowerCase();
+    if (['mp4', 'webm', 'ogg'].includes(ext)) {
+      // 视频背景：创建 video 标签
+      const video = document.createElement('video');
+      video.src = url;
+      video.className = 'custom-bg-video';
+      video.autoplay = true;
+      video.muted = true;
+      video.loop = true;
+      video.playsInline = true;
+      video.style.position = 'absolute';
+      video.style.top = '0'; video.style.left = '0';
+      video.style.width = '100%'; video.style.height = '100%';
+      video.style.objectFit = 'cover';
+      video.style.zIndex = '0';
+      area.style.position = 'relative';
+      area.prepend(video);
+      area.classList.add('has-custom-bg');
+      // 保证文字内容在视频上方
+      Array.from(area.children).forEach(child => {
+        if (child !== video) {
+          child.style.position = 'relative';
+          child.style.zIndex = '1';
+        }
+      });
+    } else {
+      // 图片/GIF 背景
+      area.style.setProperty('background-image', `url(${url})`, 'important');
+      area.style.setProperty('background-size', 'cover', 'important');
+      area.style.setProperty('background-position', 'center', 'important');
+      area.classList.add('has-custom-bg');
+    }
+    if (resetBtn) resetBtn.style.display = 'inline-block';
+  } else {
+    area.style.removeProperty('background-image');
+    area.style.removeProperty('background-size');
+    area.style.removeProperty('background-position');
+    area.classList.remove('has-custom-bg');
+    if (resetBtn) resetBtn.style.display = 'none';
+  }
 }
-}
+
+
 
 function updateNavAvatar() {
   const url = APP.profile?.avatar_url || dicebearUrl('default');
@@ -21553,7 +22075,7 @@ function saveTactical() {
     const tempCanvas = document.createElement('canvas');
     tempCanvas.width = canvas.width;
     tempCanvas.height = canvas.height;
-    const tempCtx = tempCanvas.getContext('2d');
+    const tempCtx = tempCanvas.getContext('2d', { willReadFrequently: true });
     tempCtx.drawImage(canvas, 0, 0);
     
     const link = document.createElement('a');
@@ -28773,7 +29295,7 @@ if ('ontouchstart' in window) {
 }
 
 // ==================== 首页轮播（管理员可管理） ====================
-let homeBannerSwiper = null;
+var homeBannerSwiper = null;
 
 // 加载首页轮播图（增强版：修复首次加载不显示）
 async function loadHomeBanners() {
@@ -31915,6 +32437,112 @@ function exportAllFavoritesAsText() {
 </script>
 
 
+
+
+<!-- ==================== 背景编辑器弹窗（全功能增强版） ==================== -->
+<div class="modal-overlay" id="bgEditorModal" style="z-index:10001;">
+  <div class="modal-content" style="max-width:900px; width:96%; max-height:90vh; overflow-y:auto; background:var(--card); border:1px solid var(--border); border-radius:24px; padding:0;">
+    <div class="bg-editor-container">
+      <!-- 顶部标题栏 -->
+      <div class="bg-editor-header">
+        <h2><i class="fas fa-film mr-2" style="color:var(--accent);"></i>背景编辑器</h2>
+        <div class="bg-editor-header-actions">
+          <select id="bgFpsSelect" class="bg-fps-select" title="动态背景帧率">
+            <option value="10">10 fps</option>
+            <option value="15">15 fps</option>
+            <option value="24" selected>24 fps</option>
+            <option value="30">30 fps</option>
+            <option value="60">60 fps</option>
+            <option value="120">120 fps</option>
+          </select>
+          <!-- 网格吸附开关 -->
+          <button id="btnSnapToggle" class="btn-ghost text-sm" onclick="toggleSnap()" title="网格吸附">
+            <i class="fas fa-magnet"></i> 吸附:开
+          </button>
+          <button class="btn-ghost text-sm" onclick="closeModal('bgEditorModal')"><i class="fas fa-times"></i></button>
+        </div>
+      </div>
+
+      <!-- 上传区域 -->
+      <div class="bg-editor-upload" id="bgEditorUploadZone">
+        <input type="file" id="bgEditorFileInput" accept="image/*,image/gif,video/*" style="display:none;">
+        <div class="upload-placeholder" onclick="document.getElementById('bgEditorFileInput').click()">
+          <i class="fas fa-cloud-upload-alt"></i>
+          <p>点击上传 或 拖拽文件到此处</p>
+          <p class="text-xs">支持图片/GIF/视频</p>
+        </div>
+      </div>
+
+      <!-- 预览与编辑区域 -->
+      <div class="bg-editor-workspace" id="bgEditorWorkspace" style="display:none;">
+        <div class="bg-editor-preview-pane">
+          <div class="preview-container" id="previewContainer">
+            <canvas id="bgPreviewCanvas" class="bg-preview-canvas"></canvas>
+            <video id="bgPreviewVideo" class="bg-preview-video" style="display:none;" muted loop></video>
+            <img id="bgPreviewImg" class="bg-preview-img" style="display:none;">
+            <!-- 网格线覆盖层 -->
+            <div class="grid-overlay" id="gridOverlay"></div>
+            <!-- 裁剪框 -->
+            <div class="crop-box" id="cropBox"></div>
+            <!-- 放大/缩小按钮 -->
+            <div class="zoom-controls" id="zoomControls" style="display:none;">
+              <button onclick="bgEditorZoom(-0.1)" title="缩小"><i class="fas fa-search-minus"></i></button>
+              <span id="zoomLevel">100%</span>
+              <button onclick="bgEditorZoom(0.1)" title="放大"><i class="fas fa-search-plus"></i></button>
+            </div>
+          </div>
+          <!-- 播放控制 -->
+          <div class="media-controls" id="mediaControls" style="display:none;">
+            <button id="btnRewind" onclick="bgEditorStep(-1)"><i class="fas fa-backward"></i></button>
+            <button id="btnPlay" onclick="bgEditorTogglePlay()"><i class="fas fa-play"></i></button>
+            <button id="btnForward" onclick="bgEditorStep(1)"><i class="fas fa-forward"></i></button>
+            <span id="currentTimeDisplay">00:00 / 00:00</span>
+            <input type="range" id="seekSlider" min="0" max="100" value="0" oninput="bgEditorSeek(this.value)">
+          </div>
+        </div>
+
+        <!-- 时间轴与缩略图 -->
+        <div class="timeline-panel" id="timelinePanel" style="display:none;">
+          <div class="timeline-header">
+            <span>时间轴</span>
+            <div class="timeline-actions">
+              <button class="btn-ghost text-xs" id="btnSetStart" onclick="bgEditorSetCut('start')">设起始</button>
+              <button class="btn-ghost text-xs" id="btnSetEnd" onclick="bgEditorSetCut('end')">设结束</button>
+              <button class="btn-ghost text-xs" id="btnConvertGif" onclick="bgEditorConvertToGif()">转为GIF</button>
+            </div>
+          </div>
+          <div class="timeline-thumbnails" id="thumbnailStrip"></div>
+          <div class="timeline-bar" id="timelineBarContainer">
+            <div class="timeline-selected" id="timelineSelection"></div>
+            <div class="timeline-progress" id="timelineProgress"></div>
+          </div>
+          <div class="timeline-labels">
+            <span id="cutStartLabel">00:00</span>
+            <span id="cutEndLabel">00:00</span>
+            <span id="cutDurationLabel">时长：00:00</span>
+          </div>
+        </div>
+
+        <!-- 裁剪信息栏 -->
+        <div class="crop-info-bar" id="cropInfoBar" style="display:none;">
+          <span>裁切区域：<span id="cropSizeDisplay">0 x 0</span></span>
+          <span>位置：<span id="cropPosDisplay">(0,0)</span></span>
+          <button class="btn-ghost text-xs" onclick="bgEditorResetCrop()">重置裁剪</button>
+        </div>
+
+        <!-- 操作按钮 -->
+        <div class="bg-editor-actions">
+          <button class="btn-ghost" id="btnUndo" onclick="bgEditorUndo()"><i class="fas fa-undo"></i> 撤回</button>
+          <button class="btn-warm" onclick="bgEditorApply()">应用背景</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+
 <!-- 我的订单弹窗（个人中心查看） -->
 <div class="modal-overlay" id="myOrdersModal">
   <div class="modal-content" style="max-width:500px; max-height:70vh; overflow-y:auto;">
@@ -34421,6 +35049,220 @@ html[data-time="night"] .profile-top-area   { background: #252A3A; }
 
 
 
+/* ========== 背景编辑器样式 ========== */
+.bg-editor-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+  background: var(--bg);
+  border-radius: 24px;
+}
+.bg-editor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.bg-editor-header h2 { font-size: 1.5rem; }
+.bg-editor-upload {
+  border: 2px dashed var(--border);
+  border-radius: 16px;
+  padding: 40px;
+  text-align: center;
+  cursor: pointer;
+  transition: 0.2s;
+}
+.bg-editor-upload:hover { border-color: var(--accent); }
+.upload-placeholder i { font-size: 2.5rem; color: var(--accent); margin-bottom: 10px; }
+
+
+.preview-container {
+  position: relative;
+  width: 100%;
+  max-height: 450px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #000;
+}
+
+
+.bg-preview-canvas, .bg-preview-video, .bg-preview-img {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  object-fit: contain;
+}
+.grid-overlay {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background-image: 
+    linear-gradient(rgba(255,255,255,0.15) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.15) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+  z-index: 5;
+}
+.crop-box {
+  position: absolute;
+  border: 2px solid var(--accent);
+  box-shadow: 0 0 0 9999px rgba(0,0,0,0.5);
+  cursor: move;
+  z-index: 10;
+  display: none;
+}
+.media-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px;
+  background: var(--surface);
+  border-radius: 12px;
+  margin-top: 8px;
+}
+.media-controls button { background: none; border: none; color: var(--text); font-size: 1.2rem; cursor: pointer; }
+.timeline-panel { margin-top: 12px; }
+.timeline-thumbnails { display: flex; gap: 4px; overflow-x: auto; padding: 8px 0; }
+.timeline-bar { height: 20px; background: var(--surface); border-radius: 10px; position: relative; margin: 8px 0; }
+.timeline-selected { position: absolute; height: 100%; background: rgba(255,107,53,0.3); border-radius: 10px; }
+.timeline-progress { position: absolute; height: 100%; background: var(--accent); border-radius: 10px; width: 0%; }
+.crop-info-bar { display: flex; gap: 12px; align-items: center; padding: 8px; background: var(--surface); border-radius: 8px; font-size: 0.85rem; }
+.bg-editor-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 16px; }
+.bg-fps-select {
+  padding: 4px 10px;
+  border-radius: 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 0.8rem;
+}
+
+
+
+
+
+/* 时间轴增强 */
+.timeline-bar {
+  position: relative;
+  height: 20px;
+  background: var(--surface);
+  border-radius: 10px;
+  margin: 8px 0;
+  overflow: hidden;
+}
+.timeline-selected {
+  position: absolute;
+  height: 100%;
+  background: rgba(255,107,53,0.3);
+  border-radius: 10px;
+}
+.timeline-progress {
+  position: absolute;
+  height: 100%;
+  background: var(--accent);
+  border-radius: 10px;
+  width: 0%;
+  transition: width 0.1s;
+}
+/* 缩略图条带 */
+.timeline-thumbnails {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  padding: 8px 0;
+}
+.timeline-thumbnails img {
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+
+
+
+.zoom-controls {
+  position: absolute !important;
+  bottom: 10px !important;
+  right: 10px !important;
+  display: flex !important;
+  align-items: center;
+  gap: 8px;
+  background: rgba(0,0,0,0.8) !important;
+  border-radius: 20px;
+  padding: 6px 14px;
+  z-index: 1000 !important;       /* 比裁剪框高 */
+  backdrop-filter: blur(4px);
+}
+.zoom-controls button {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 1.3rem;
+  cursor: pointer;
+  padding: 2px 8px;
+  line-height: 1;
+}
+.zoom-controls span {
+  color: white;
+  font-size: 0.9rem;
+  min-width: 45px;
+  text-align: center;
+  user-select: none;
+}
+
+
+
+/* 裁剪手柄 */
+.crop-handle {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  background: white;
+  border: 2px solid var(--accent);
+  border-radius: 3px;
+  z-index: 30;
+}
+.crop-handle-nw { top: -7px; left: -7px; cursor: nw-resize; }
+.crop-handle-n  { top: -7px; left: calc(50% - 7px); cursor: n-resize; }
+.crop-handle-ne { top: -7px; right: -7px; cursor: ne-resize; }
+.crop-handle-w  { top: calc(50% - 7px); left: -7px; cursor: w-resize; }
+.crop-handle-e  { top: calc(50% - 7px); right: -7px; cursor: e-resize; }
+.crop-handle-sw { bottom: -7px; left: -7px; cursor: sw-resize; }
+.crop-handle-s  { bottom: -7px; left: calc(50% - 7px); cursor: s-resize; }
+.crop-handle-se { bottom: -7px; right: -7px; cursor: se-resize; }
+
+/* 缩放按钮确保可见 */
+.zoom-controls {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(0,0,0,0.7);
+  border-radius: 20px;
+  padding: 6px 14px;
+  z-index: 30;
+}
+.zoom-controls button {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 2px 6px;
+}
+.zoom-controls span {
+  color: white;
+  font-size: 0.85rem;
+  min-width: 40px;
+  text-align: center;
+}
+
+
+
+
+
+
 
 </style>
 
@@ -36525,6 +37367,11 @@ async function generateShareCard(postId) {
     showToast('生成失败，请重试', 'error');
   }
 }
+
+
+
+
+
 
 
 
