@@ -11583,11 +11583,17 @@ let viewingUserId = null;
 async function viewUserProfile(userId) {
   if (!userId) return;
   viewingUserId = userId;
-  const { data: profile, error } = await sb
+
+
+     const { data: profile, error } = await sb
   .from('profiles')
-  .select('id, username, avatar_url, level, followers_count, posts_count, likes_received, badges')
+  .select('id, username, avatar_url, level, followers_count, posts_count, likes_received, badges, custom_bg')
   .eq('id', userId)
   .single();
+
+
+
+
   if (!profile) { showToast('用户不存在'); return; }
   
   let modal = $('userProfileModal');
@@ -11634,12 +11640,11 @@ async function viewUserProfile(userId) {
   }
 
 
-  $('viewUserBg').style.backgroundImage = profile.custom_bg ? `url(${profile.custom_bg})` : '';
-  $('viewUserBg').style.backgroundSize = 'cover';
-  $('viewUserBg').style.backgroundPosition = 'center';
+    applyViewUserBg(profile.custom_bg);
 
   $('viewUserName').textContent = profile.username;
-  $('viewUserAvatar').src = profile.avatar_url || dicebearUrl(profile.username);
+    const avatarEl = document.getElementById('viewUserAvatar');
+  if (avatarEl) avatarEl.src = profile.avatar_url || dicebearUrl(profile.username);
   $('viewUserDisplayName').textContent = profile.username;
   $('viewUserLevel').textContent = profile.level || 1;
   $('viewUserFollowers').textContent = profile.followers_count || 0;
@@ -11672,6 +11677,50 @@ async function viewUserProfile(userId) {
   }
   openModal('userProfileModal');
 }
+
+
+
+function applyViewUserBg(url) {
+  const container = document.getElementById('viewUserBg');
+  if (!container) return;
+  // 移除旧媒体元素
+  container.querySelectorAll('video, img').forEach(el => el.remove());
+  container.style.backgroundImage = '';
+
+  if (!url) return;
+
+  const ext = url.split('.').pop().toLowerCase();
+  if (['mp4', 'webm', 'ogg'].includes(ext)) {
+    // 视频背景
+    const video = document.createElement('video');
+    video.src = url;
+    video.autoplay = true;
+    video.muted = true;
+    video.loop = true;
+    video.playsInline = true;
+    video.style.position = 'absolute';
+    video.style.top = '0'; video.style.left = '0';
+    video.style.width = '100%'; video.style.height = '100%';
+    video.style.objectFit = 'cover';
+    video.style.zIndex = '0';
+    container.style.position = 'relative';
+    container.prepend(video);
+    // 保证文字内容在视频上方
+    Array.from(container.children).forEach(child => {
+      if (child !== video) {
+        child.style.position = 'relative';
+        child.style.zIndex = '1';
+      }
+    });
+  } else {
+    // 图片/GIF 背景
+    container.style.backgroundImage = `url(${url})`;
+    container.style.backgroundSize = 'cover';
+    container.style.backgroundPosition = 'center';
+  }
+}
+
+
 
 function toggleFollowFromModal(uid) {
   followUser(uid);
@@ -16328,7 +16377,9 @@ function showStatModal(title, content) {
   modal.style.zIndex = '10000';
   modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
 
-      modal.innerHTML = `
+      
+
+    modal.innerHTML = `
       <div class="modal-content" style="max-width:480px">
         <div class="flex justify-between items-center mb-4">
           <h2 class="font-display text-xl" id="viewUserName">干员资料</h2>
