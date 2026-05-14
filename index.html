@@ -7700,12 +7700,12 @@ window.addEventListener('scroll', () => {
       <div class="bgm-tool-buttons">
 
 
-<button onclick="window.cycleBgmEffect()" class="bgm-tool-btn" title="切换皮肤"><i class="fas fa-magic"></i></button>
+<button onclick="window.cycleBgmSkin()" class="bgm-tool-btn" title="播放器皮肤"><i class="fas fa-palette"></i></button>
 
 
-<button onclick="cycleLyricColor()" class="bgm-tool-btn" title="切换歌词颜色">
-  <i class="fas fa-palette"></i>
-</button>
+<button onclick="cycleLyricColor()" class="bgm-tool-btn" title="切换歌词颜色"><i class="fas fa-paint-brush"></i></button>
+
+
         <button onclick="cycleWaveformStyle()" class="bgm-tool-btn" title="切换波形"><i class="fas fa-chart-line"></i></button>
         <button onclick="openMusicSearchWithHistory()" class="bgm-tool-btn" title="搜索歌曲"><i class="fas fa-search"></i></button>
         <button onclick="toggleBgmPlaylist()" class="bgm-tool-btn" title="播放列表"><i class="fas fa-list"></i></button>
@@ -24093,10 +24093,13 @@ let skinFrame = 0;
 // ---------- 各皮肤绘制函数 ----------
 const BGM_SKINS = {
   // 关闭特效
-  none: { init: () => {}, draw: () => {} },
+    none: { name: '❌ 关闭特效', init: () => {}, draw: () => {} },
+
+
   
   // 1. 秋千 · 童年 (暖色调)
   swing: {
+name: '🌅 秋千·童年',
     init: () => { skinFrame = 0; },
     draw: (w, h) => {
       bgmEffectCtx.clearRect(0, 0, w, h);
@@ -24168,6 +24171,7 @@ const BGM_SKINS = {
   
   // 2. 纸飞机 · 梦想 (暖白/蓝)
   paperplane: {
+name: '✈️ 纸飞机·梦想',
     init: () => {
       skinParticles = [];
       for (let i=0; i<8; i++) {
@@ -24225,6 +24229,7 @@ const BGM_SKINS = {
   
   // 3. 超音速 · 飞行 (动感/橙色)
   supersonic: {
+name: '🚀 超音速·飞行',
     init: () => { skinFrame = 0; },
     draw: (w, h) => {
       bgmEffectCtx.clearRect(0, 0, w, h);
@@ -24280,6 +24285,7 @@ const BGM_SKINS = {
   
   // 4. 海面滑行 · 自由 (蓝绿/金色)
   seaglide: {
+name: '🌊 海面滑行',
     init: () => { skinFrame = 0; },
     draw: (w, h) => {
       const grad = bgmEffectCtx.createLinearGradient(0, 0, 0, h);
@@ -24338,6 +24344,7 @@ const BGM_SKINS = {
   
   // 5. 希区柯克变焦 · 眩晕 (橙紫)
   hitchcock: {
+name: '🌀 希区柯克变焦',
     init: () => { skinFrame = 0; },
     draw: (w, h) => {
       bgmEffectCtx.fillStyle = '#1a0a2e';
@@ -24373,6 +24380,7 @@ const BGM_SKINS = {
   
   // 6. 超级赛亚人 · 爆气 (金/橙/红)
   saiyan: {
+name: '⚡ 超级赛亚人',
     init: () => { skinFrame = 0; },
     draw: (w, h) => {
       bgmEffectCtx.fillStyle = '#0a0502';
@@ -24428,6 +24436,7 @@ const BGM_SKINS = {
   
   // 7. 哆啦A梦 · 童趣 (蓝/白/红)
   doraemon: {
+name: '🐱 哆啦A梦',
     init: () => { skinFrame = 0; },
     draw: (w, h) => {
       const grad = bgmEffectCtx.createLinearGradient(0, 0, 0, h);
@@ -24500,61 +24509,378 @@ const BGM_SKINS = {
       bgmEffectCtx.beginPath();
       bgmEffectCtx.arc(w*0.3, h*0.2, 25, 0, Math.PI*2);
       bgmEffectCtx.arc(w*0.35, h*0.15, 20, 0, Math.PI*2);
-      bgmEffectCtx.fill();
+            bgmEffectCtx.fill();
+    }
+  },
+
+
+     // === 10款酷炫动态粒子/渐变背景（Canvas绘制，永不失效） ===
+  bg1: {
+    name: '🌌 星河流转',
+    type: 'canvas',
+    particles: [],
+    init: function() { this.particles = []; },
+    draw: function(w, h) {
+      const ctx = bgmEffectCtx;
+      ctx.fillStyle = '#0a0a1a'; ctx.fillRect(0, 0, w, h);
+      if (this.particles.length < 120) {
+        this.particles.push({ x: Math.random()*w, y: Math.random()*h, r: Math.random()*2+0.5, speed: Math.random()*0.5+0.2, angle: Math.random()*Math.PI*2 });
+      }
+      this.particles.forEach(p => {
+        p.x += Math.cos(p.angle)*p.speed; p.y += Math.sin(p.angle)*p.speed;
+        if (p.x<0||p.x>w||p.y<0||p.y>h) { p.x=Math.random()*w; p.y=Math.random()*h; }
+        ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+        ctx.fillStyle = 'rgba(200,200,255,0.8)'; ctx.fill();
+      });
+    }
+  },
+  bg2: {
+    name: '🔥 烈焰粒子',
+    type: 'canvas',
+    particles: [],
+    init: function() { this.particles = []; },
+    draw: function(w, h) {
+      const ctx = bgmEffectCtx;
+      ctx.fillStyle = '#1a0500'; ctx.fillRect(0, 0, w, h);
+      if (this.particles.length < 80) {
+        this.particles.push({ x: w/2, y: h, vx: (Math.random()-0.5)*1.5, vy: -Math.random()*2-1, life: 1, size: Math.random()*4+1 });
+      }
+      this.particles = this.particles.filter(p => p.life > 0);
+      this.particles.forEach(p => {
+        p.x += p.vx; p.y += p.vy; p.life -= 0.01; p.vy -= 0.02;
+        const alpha = p.life * 0.8;
+        ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI*2);
+        ctx.fillStyle = `rgba(255,${Math.floor(100+p.life*100)},0,${alpha})`; ctx.fill();
+      });
+      if (this.particles.length < 80) {
+        for(let i=0; i<3; i++) this.particles.push({ x: w/2+(Math.random()-0.5)*60, y: h, vx: (Math.random()-0.5)*1.5, vy: -Math.random()*2-1, life: 1, size: Math.random()*4+1 });
+      }
+    }
+  },
+  bg3: {
+    name: '🌊 深海波纹',
+    type: 'canvas',
+    init: function() {},
+    draw: function(w, h) {
+      const ctx = bgmEffectCtx;
+      const grad = ctx.createLinearGradient(0,0,0,h);
+      grad.addColorStop(0,'#0a1620'); grad.addColorStop(1,'#1a3a5a');
+      ctx.fillStyle = grad; ctx.fillRect(0,0,w,h);
+      const time = Date.now()/1000;
+      for (let i=0; i<5; i++) {
+        ctx.beginPath(); ctx.moveTo(0, h*0.4+i*30);
+        for (let x=0; x<=w; x+=10) {
+          ctx.lineTo(x, h*0.4+i*30 + Math.sin(x*0.02+time+i)*15);
+        }
+        ctx.strokeStyle = `rgba(0,150,255,${0.5-i*0.08})`; ctx.lineWidth = 2; ctx.stroke();
+      }
+    }
+  },
+  bg4: {
+    name: '💜 赛博朋克',
+    type: 'canvas',
+    particles: [],
+    init: function() { this.particles = []; },
+    draw: function(w, h) {
+      const ctx = bgmEffectCtx;
+      ctx.fillStyle = '#0a0015'; ctx.fillRect(0,0,w,h);
+      ctx.fillStyle = '#ff00ff'; ctx.font = '20px monospace';
+      const time = Date.now()/100;
+      for (let i=0; i<20; i++) {
+        const x = (i*60 + time) % (w+100)-50;
+        const y = Math.sin(i+time*0.1)*h*0.4 + h*0.5;
+        ctx.fillText(Math.random()>0.5?'1':'0', x, y);
+      }
+      // 霓虹线条
+      ctx.strokeStyle = '#00ffff'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(0,h*0.5+Math.sin(time*0.1)*30);
+      for (let x=0; x<=w; x+=30) ctx.lineTo(x, h*0.5+Math.sin(x*0.03+time*0.1)*30);
+      ctx.stroke();
+    }
+  },
+  bg5: {
+    name: '🍃 极光森林',
+    type: 'canvas',
+    init: function() {},
+    draw: function(w, h) {
+      const ctx = bgmEffectCtx;
+      ctx.fillStyle = '#0a0f0a'; ctx.fillRect(0,0,w,h);
+      const time = Date.now()/1000;
+      // 极光带
+      for (let i=0; i<3; i++) {
+        ctx.beginPath(); ctx.moveTo(0, h*0.2+i*50);
+        for (let x=0; x<=w; x+=20) {
+          ctx.lineTo(x, h*0.2+i*50 + Math.sin(x*0.01+time+i*2)*40 + Math.sin(x*0.03)*25);
+        }
+        ctx.strokeStyle = `rgba(${100+i*40},${200+i*30},${100+i*50},0.6)`; ctx.lineWidth = 3; ctx.stroke();
+      }
+    }
+  },
+  bg6: {
+    name: '⚡ 雷电风暴',
+    type: 'canvas',
+    init: function() {},
+    draw: function(w, h) {
+      const ctx = bgmEffectCtx;
+      ctx.fillStyle = '#0a0a10'; ctx.fillRect(0,0,w,h);
+      const time = Date.now()/1000;
+      if (Math.sin(time*3) > 0.95) {
+        const x = Math.random()*w;
+        ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.moveTo(x,0);
+        for (let y=0; y<h; y+=10) ctx.lineTo(x+(Math.random()-0.5)*30, y);
+        ctx.stroke();
+      }
+      // 闪电闪烁
+      if (Math.sin(time*5) > 0.98) {
+        ctx.fillStyle = 'rgba(255,255,255,0.15)'; ctx.fillRect(0,0,w,h);
+      }
+    }
+  },
+  bg7: {
+    name: '🌸 樱花飘落',
+    type: 'canvas',
+    petals: [],
+    init: function() { this.petals = []; },
+    draw: function(w, h) {
+      const ctx = bgmEffectCtx;
+      ctx.fillStyle = '#1a1020'; ctx.fillRect(0,0,w,h);
+      if (this.petals.length < 40) {
+        this.petals.push({ x: Math.random()*w, y: -10, speed: Math.random()*1+0.3, size: Math.random()*4+2, drift: Math.random()*0.5-0.25 });
+      }
+      this.petals.forEach(p => {
+        p.y += p.speed; p.x += p.drift + Math.sin(p.y*0.05)*0.3;
+        if (p.y > h+10) { p.y = -10; p.x = Math.random()*w; }
+        ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI*2);
+        ctx.fillStyle = 'rgba(255,180,200,0.7)'; ctx.fill();
+      });
+    }
+  },
+  bg8: {
+    name: '🏔️ 雪山云雾',
+    type: 'canvas',
+    init: function() {},
+    draw: function(w, h) {
+      const ctx = bgmEffectCtx;
+      const grad = ctx.createLinearGradient(0,0,0,h);
+      grad.addColorStop(0,'#1a2a3a'); grad.addColorStop(1,'#3a5a7a');
+      ctx.fillStyle = grad; ctx.fillRect(0,0,w,h);
+      const time = Date.now()/1000;
+      for (let i=0; i<8; i++) {
+        ctx.beginPath(); ctx.arc(w*0.3+i*30, h*0.4+i*10, 40, 0, Math.PI*2);
+        ctx.fillStyle = 'rgba(200,220,255,0.15)'; ctx.fill();
+      }
+      // 云雾
+      for (let i=0; i<5; i++) {
+        ctx.beginPath(); ctx.ellipse(w*0.3+(time*20+i*60)%w, h*0.6, 60+i*20, 15, 0, 0, Math.PI*2);
+        ctx.fillStyle = 'rgba(255,255,255,0.1)'; ctx.fill();
+      }
+    }
+  },
+  bg9: {
+    name: '🌆 城市夜景',
+    type: 'canvas',
+    init: function() {},
+    draw: function(w, h) {
+      const ctx = bgmEffectCtx;
+      ctx.fillStyle = '#0a0a15'; ctx.fillRect(0,0,w,h);
+      const time = Date.now()/1000;
+      // 星星
+      for (let i=0; i<60; i++) {
+        ctx.beginPath(); ctx.arc((i*37+time*5)%w, (i*23)%(h*0.6), Math.random()*1.5+0.5, 0, Math.PI*2);
+        ctx.fillStyle = `rgba(255,255,200,${Math.sin(time+i)*0.5+0.5})`; ctx.fill();
+      }
+      // 建筑轮廓
+      ctx.fillStyle = '#111'; ctx.fillRect(0, h*0.7, w, h*0.3);
+      for (let i=0; i<10; i++) {
+        const bw = 20+Math.random()*60; const bh = 30+Math.random()*h*0.25;
+        ctx.fillStyle = '#1a1a2a'; ctx.fillRect(i*80, h*0.7-bh, bw, bh);
+        // 窗户灯光
+        for (let wy=h*0.7-bh+10; wy<h*0.7; wy+=15) {
+          for (let wx=i*80+5; wx<i*80+bw-5; wx+=10) {
+            if (Math.random()>0.4) { ctx.fillStyle = `rgba(255,200,100,${Math.random()*0.6+0.2})`; ctx.fillRect(wx, wy, 6, 6); }
+          }
+        }
+      }
+    }
+  },
+  bg10: {
+    name: '🎇 金色粒子',
+    type: 'canvas',
+    particles: [],
+    init: function() { this.particles = []; },
+    draw: function(w, h) {
+      const ctx = bgmEffectCtx;
+      ctx.fillStyle = '#0a0a05'; ctx.fillRect(0,0,w,h);
+      if (this.particles.length < 100) {
+        this.particles.push({ x: w/2, y: h/2, vx: (Math.random()-0.5)*2, vy: (Math.random()-0.5)*2, life: 1, size: Math.random()*2+1 });
+      }
+      this.particles = this.particles.filter(p => p.life > 0);
+      this.particles.forEach(p => {
+        p.x += p.vx; p.y += p.vy; p.life -= 0.005; p.vx *= 0.998; p.vy *= 0.998;
+        ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI*2);
+        ctx.fillStyle = `rgba(255,215,0,${p.life})`; ctx.fill();
+      });
+      if (this.particles.length < 100) {
+        for(let i=0; i<5; i++) this.particles.push({ x: w/2, y: h/2, vx: (Math.random()-0.5)*2, vy: (Math.random()-0.5)*2, life: 1, size: Math.random()*2+1 });
+      }
     }
   }
 };
 
+
 // ---------- 系统控制 ----------
 window.startBgmEffect = function() {
-  bgmEffectCanvas = document.getElementById('bgmEffectCanvas');
-  if (!bgmEffectCanvas) return;
-  bgmEffectCtx = bgmEffectCanvas.getContext('2d');
-  
-  const resize = () => {
-    const rect = bgmEffectCanvas.parentElement.getBoundingClientRect();
-    bgmEffectCanvas.width = rect.width || 300;
-    bgmEffectCanvas.height = rect.height || 200;
-    if (BGM_SKINS[bgmSkinType] && BGM_SKINS[bgmSkinType].init) {
-      BGM_SKINS[bgmSkinType].init();
-    }
-  };
-  
-  window.addEventListener('resize', resize);
-  const observer = new ResizeObserver(resize);
-  observer.observe(bgmEffectCanvas.parentElement);
-  resize();
-  
-  const animate = () => {
-    if (bgmSkinType !== 'none' && BGM_SKINS[bgmSkinType]) {
-      BGM_SKINS[bgmSkinType].draw(bgmEffectCanvas.width, bgmEffectCanvas.height);
-    } else {
-      bgmEffectCtx.clearRect(0, 0, bgmEffectCanvas.width, bgmEffectCanvas.height);
-    }
-    bgmSkinAnimation = requestAnimationFrame(animate);
-  };
-  animate();
+  // 取消任何正在运行的 canvas 动画，避免视频皮肤报错
+  if (bgmSkinAnimation) { cancelAnimationFrame(bgmSkinAnimation); bgmSkinAnimation = null; }
+  // 清理旧视频元素
+  let oldVideo = document.getElementById('bgmWallpaperVideo');
+  if (oldVideo) oldVideo.remove();
+
+  const skin = BGM_SKINS[bgmSkinType];
+  if (!skin) return;
+  const skinKey = bgmSkinType;
+
+  if (skin.type === 'video') {
+    // 隐藏 canvas，使用视频背景
+    const canvas = document.getElementById('bgmEffectCanvas');
+    if (canvas) canvas.style.display = 'none';
+
+    let video = document.createElement('video');
+    video.id = 'bgmWallpaperVideo';
+    video.muted = true;
+    video.loop = true;
+    video.playsInline = true;
+    video.src = skin.url;
+    video.style.cssText = 'position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover; z-index:0; border-radius:inherit; pointer-events:none;';
+    const player = document.getElementById('bgmPlayer');
+    if (player) player.appendChild(video);
+        video.play().catch(()=>{});
+    video.addEventListener('error', () => {
+      // 视频加载失败时自动切换回默认简笔画皮肤
+      showToast('视频壁纸加载失败，已切换回默认皮肤', 'warning');
+      switchBgmSkin('swing');
+    });
+  } else if (skin.type === 'canvas') {
+    // Canvas 动态粒子皮肤
+    const video = document.getElementById('bgmWallpaperVideo');
+    if (video) video.style.display = 'none';
+    bgmEffectCanvas = document.getElementById('bgmEffectCanvas');
+    if (!bgmEffectCanvas) return;
+    bgmEffectCanvas.style.display = 'block';
+    bgmEffectCtx = bgmEffectCanvas.getContext('2d');
+
+    const resize = () => {
+      const rect = bgmEffectCanvas.parentElement.getBoundingClientRect();
+      bgmEffectCanvas.width = rect.width || 300;
+      bgmEffectCanvas.height = rect.height || 200;
+      if (skin.init) skin.init();
+    };
+    window.addEventListener('resize', resize);
+    const observer = new ResizeObserver(resize);
+    observer.observe(bgmEffectCanvas.parentElement);
+    resize();
+
+    const animate = () => {
+      if (bgmSkinType !== skinKey || !BGM_SKINS[bgmSkinType] || BGM_SKINS[bgmSkinType].type !== 'canvas') {
+        return;
+      }
+      if (skin.draw) skin.draw(bgmEffectCanvas.width, bgmEffectCanvas.height);
+      bgmSkinAnimation = requestAnimationFrame(animate);
+    };
+    animate();
+  } else {
+    // 原有简笔画皮肤
+    const video = document.getElementById('bgmWallpaperVideo');
+    if (video) video.style.display = 'none';
+
+    bgmEffectCanvas = document.getElementById('bgmEffectCanvas');
+    if (!bgmEffectCanvas) return;
+    bgmEffectCanvas.style.display = 'block';
+    bgmEffectCtx = bgmEffectCanvas.getContext('2d');
+
+    const resize = () => {
+      const rect = bgmEffectCanvas.parentElement.getBoundingClientRect();
+      bgmEffectCanvas.width = rect.width || 300;
+      bgmEffectCanvas.height = rect.height || 200;
+      if (skin.init) skin.init();
+    };
+    window.addEventListener('resize', resize);
+    const observer = new ResizeObserver(resize);
+    observer.observe(bgmEffectCanvas.parentElement);
+    resize();
+
+    const animate = () => {
+      if (bgmSkinType === 'none' || !BGM_SKINS[bgmSkinType]) {
+        bgmEffectCtx.clearRect(0, 0, bgmEffectCanvas.width, bgmEffectCanvas.height);
+      } else {
+        BGM_SKINS[bgmSkinType].draw(bgmEffectCanvas.width, bgmEffectCanvas.height);
+      }
+      bgmSkinAnimation = requestAnimationFrame(animate);
+    };
+    animate();
+  }
 };
+
+
+
 
 window.switchBgmSkin = function(type) {
   bgmSkinType = type;
-  if (BGM_SKINS[type] && BGM_SKINS[type].init) BGM_SKINS[type].init();
-  const names = {
-    none: '❌ 关闭', swing: '🌅 秋千·童年', paperplane: '✈️ 纸飞机', supersonic: '🚀 超音速',
-    seaglide: '🌊 海面滑行', hitchcock: '🌀 希区柯克', saiyan: '⚡ 超级赛亚人', doraemon: '🐱 哆啦A梦'
-  };
-  showToast(`🎨 皮肤：${names[type] || type}`, 'info');
+  const skin = BGM_SKINS[type];
+  if (!skin) return;
+
+  // 更新按钮文字（如果有的话，这里暂时不管，我们后面会用新按钮）
+  const nameMap = {};
+  for (let key in BGM_SKINS) {
+    nameMap[key] = BGM_SKINS[key].name || key;
+  }
+  showToast(`🎨 皮肤：${nameMap[type] || type}`, 'info');
+
+  // 停止之前的动画
+  if (bgmSkinAnimation) {
+    cancelAnimationFrame(bgmSkinAnimation);
+    bgmSkinAnimation = null;
+  }
+
+  // 重新启动效果
+  startBgmEffect();
 };
+
+
+
 
 window.cycleBgmSkin = function() {
-  const types = ['swing', 'paperplane', 'supersonic', 'seaglide', 'hitchcock', 'saiyan', 'doraemon', 'none'];
-  const idx = types.indexOf(bgmSkinType);
-  const next = types[(idx + 1) % types.length];
-  window.switchBgmSkin(next);
+  openSkinListModal();  // 打开皮肤选择面板
 };
-
 // 兼容旧函数名
 window.cycleBgmEffect = window.cycleBgmSkin;
+
+
+
+
+
+function openSkinListModal() {
+  const grid = document.getElementById('skinGrid');
+  if (!grid) return;
+  // 生成所有皮肤（包括旧的简笔画和新的视频皮肤）
+  const skins = Object.entries(BGM_SKINS);
+  grid.innerHTML = skins.map(([key, skin]) => {
+    const isActive = (key === bgmSkinType);
+    const name = skin.name || key;
+    return `
+      <div class="skin-card" onclick="switchBgmSkin('${key}'); closeModal('skinListModal');" style="
+        text-align:center; padding:12px; border-radius:16px; border:2px solid ${isActive ? 'var(--accent)' : 'var(--border)'};
+        background:var(--surface); cursor:pointer; transition:0.2s;
+      ">
+        <div style="font-size:28px; margin-bottom:6px;">${name.slice(0,2)}</div>
+        <div style="font-weight:600; font-size:13px;">${name}</div>
+        ${isActive ? '<div style="color:var(--accent); font-size:11px; margin-top:4px;">当前使用</div>' : ''}
+      </div>
+    `;
+  }).join('');
+  openModal('skinListModal');
+}
 
 
 
@@ -25302,30 +25628,29 @@ function startWaveformAnimation() {
 // ==================== 按关键词自动搜索音乐（供主题切换调用） ====================
 async function searchMusicByKeyword(keyword) {
     if (!keyword) return null;
-    const API_BASE = 'https://api.yunjianyi.top';
-    const keywordsToTry = [keyword, '纯音乐'];
-    for (const kw of keywordsToTry) {
-        try {
-            const searchRes = await fetch(`${API_BASE}/search?keywords=${encodeURIComponent(kw)}&limit=30`);
-            if (!searchRes.ok) continue;
-            const searchData = await searchRes.json();
-            const songs = searchData?.result?.songs || [];
-            if (!songs.length) continue;
-            const selected = songs[0];
-            const playUrl = `https://music.163.com/song/media/outer/url?id=${selected.id}.mp3`;
-            if (playUrl) {
-                return {
-                    name: selected.name,
-                    url: playUrl,
-                    artist: selected.ar?.[0]?.name || '未知艺术家',
-                    songId: selected.id
-                };
-            }
-        } catch (e) {}
+    try {
+        const searchRes = await fetch(`${MUSIC_API}?types=search&source=netease&name=${encodeURIComponent(keyword)}&count=1&pages=1`);
+        if (!searchRes.ok) return null;
+        const searchData = await searchRes.json();
+        const songs = searchData || [];
+        if (!songs.length) return null;
+        const selected = songs[0];
+        // 获取真实播放链接
+        const urlRes = await fetch(`${MUSIC_API}?types=url&source=netease&id=${selected.id}&br=320`);
+        const urlData = await urlRes.json();
+        if (urlData && urlData.url) {
+            return {
+                name: selected.name,
+                url: urlData.url,
+                artist: (selected.artist || []).join(' / '),
+                songId: selected.id
+            };
+        }
+    } catch (e) {
+        console.warn('自动搜索音乐失败:', e);
     }
     return null;
 }
-
 
 
 // ==================== 稳定免费音乐 API ====================
@@ -33263,6 +33588,19 @@ function exportAllFavoritesAsText() {
   </div>
 </div>
 
+
+
+
+<!-- 播放器皮肤选择弹窗 -->
+<div class="modal-overlay" id="skinListModal" style="z-index:10003;">
+  <div class="modal-content" style="max-width:680px; width:95%; max-height:80vh; overflow-y:auto; background:var(--card); border-radius:24px; padding:20px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+      <h3 style="font-size:1.3rem; font-weight:700;"><i class="fas fa-palette mr-2" style="color:var(--accent);"></i>播放器皮肤</h3>
+      <button onclick="closeModal('skinListModal')" style="background:var(--surface); border:none; width:32px; height:32px; border-radius:50%;"><i class="fas fa-times"></i></button>
+    </div>
+    <div id="skinGrid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(140px,1fr)); gap:12px;"></div>
+  </div>
+</div>
 
 
 
