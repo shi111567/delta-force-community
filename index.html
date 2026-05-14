@@ -11907,6 +11907,7 @@ function enableCrop() {
   const box = document.getElementById('cropBox');
   if (!box) { setTimeout(enableCrop, 100); return; }
   box.style.display = 'block';
+box.style.touchAction = 'none';
   if (!bgEditorState.crop.active) {
     bgEditorState.crop = { x: 50, y: 50, w: 200, h: 150, active: true };
   }
@@ -11924,6 +11925,21 @@ function enableCrop() {
         e.stopPropagation();
         startResizeCrop(dir, e.clientX, e.clientY);
       });
+
+
+           // 触摸事件支持（移动端拖拽手柄）
+      handle.addEventListener('touchstart', (e) => {
+        e.preventDefault();           // 阻止页面滚动
+        e.stopPropagation();          // 阻止触发裁剪框的拖动
+        const touch = e.touches[0];
+        startResizeCrop(dir, touch.clientX, touch.clientY);
+      }, { passive: false });
+
+      // 允许触摸拖动，禁止浏览器手势
+      handle.style.touchAction = 'none';
+
+
+
       box.appendChild(handle);
     });
     box.dataset.handlesAdded = 'true';
@@ -11952,6 +11968,42 @@ function enableCrop() {
     updateCropBox();
   });
   window.addEventListener('mouseup', () => { dragging = false; pushCropHistory(); });
+
+
+  // 触摸事件（移动端拖动裁剪框）
+  box.addEventListener('touchstart', (e) => {
+    if (e.target.classList.contains('crop-handle')) return;
+    e.preventDefault();
+    const touch = e.touches[0];
+    dragging = true;
+    startX = touch.clientX;
+    startY = touch.clientY;
+    startLeft = parseInt(box.style.left) || 0;
+    startTop = parseInt(box.style.top) || 0;
+  }, { passive: false });
+
+  window.addEventListener('touchmove', (e) => {
+    if (!dragging) return;
+    const touch = e.touches[0];
+    let newX = startLeft + touch.clientX - startX;
+    let newY = startTop + touch.clientY - startY;
+    newX = Math.max(0, Math.min(newX, bgEditorState.canvas.width - bgEditorState.crop.w));
+    newY = Math.max(0, Math.min(newY, bgEditorState.canvas.height - bgEditorState.crop.h));
+    bgEditorState.crop.x = snapToGrid(newX);
+    bgEditorState.crop.y = snapToGrid(newY);
+    updateCropBox();
+  }, { passive: false });
+
+  window.addEventListener('touchend', () => {
+    if (dragging) {
+      dragging = false;
+      pushCropHistory();
+    }
+  });
+
+
+
+
 }
 
 function startResizeCrop(dir, startX, startY) {
@@ -11980,7 +12032,12 @@ function startResizeCrop(dir, startX, startY) {
   };
   window.addEventListener('mousemove', onMove);
   window.addEventListener('mouseup', onUp);
+
 }
+
+
+
+
 
 function updateCropBox() {
   const crop = bgEditorState.crop;
@@ -12012,7 +12069,7 @@ function updateCropBox() {
   floatLabel.style.top = Math.max(0, crop.y - 28) + 'px';
   floatLabel.style.display = 'block';
 
-  const finalPreview = document.getElementById('bgFinalPreview');
+   const finalPreview = document.getElementById('bgFinalPreview');
   const finalArea = document.getElementById('bgFinalPreviewArea');
   if (finalPreview && finalArea) {
     const imgEl = document.getElementById('bgPreviewImg');
@@ -12032,8 +12089,12 @@ function updateCropBox() {
     }
     if (src) {
       finalArea.style.backgroundImage = `url(${src})`;
+      // 设置背景显示裁剪区域，并自动缩放适应容器
       finalArea.style.backgroundPosition = `-${crop.x}px -${crop.y}px`;
       finalArea.style.backgroundSize = `${bgEditorState.canvas.width}px ${bgEditorState.canvas.height}px`;
+      // 添加轻微缩放动画
+      finalArea.style.transform = 'scale(1.02)';
+      setTimeout(() => { finalArea.style.transform = 'scale(1)'; }, 100);
     }
     finalPreview.style.display = 'block';
   }
@@ -32914,15 +32975,14 @@ function exportAllFavoritesAsText() {
 
 
 
-<!-- 背景效果小预览 -->
-          <div class="bg-final-preview" id="bgFinalPreview" style="display:none; margin-top:8px;">
-            <div style="font-size:11px; color:var(--muted); margin-bottom:4px;">背景效果预览</div>
-            <div id="bgFinalPreviewArea" style="width:200px; height:112px; background-size:cover; background-position:center; border-radius:8px; border:1px solid var(--border); overflow:hidden;">
-              <div style="padding:8px; background:rgba(0,0,0,0.3); height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center;">
-                <div style="width:20px; height:20px; border-radius:50%; background:#fff; margin-bottom:6px;"></div>
-                <div style="width:60px; height:6px; background:#fff; border-radius:3px;"></div>
-                <div style="width:40px; height:4px; background:rgba(255,255,255,0.5); border-radius:2px; margin-top:8px;"></div>
-              </div>
+<!-- 背景效果小预览（优化布局） -->
+<div class="bg-final-preview" id="bgFinalPreview" style="display:none; margin-top:10px;">
+  <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+    <span style="font-size:12px; font-weight:600;"><i class="fas fa-search-plus mr-1" style="color:var(--accent);"></i>裁剪区域预览</span>
+    <span style="font-size:10px; color:var(--muted);">实时跟随</span>
+  </div>
+  <div id="bgFinalPreviewArea" style="width:100%; height:140px; background-size:contain; background-repeat:no-repeat; background-position:center; border-radius:12px; border:2px solid var(--border); background-color:#000; transition: all 0.3s ease;"></div>
+</div>
             </div>
           </div>
 
@@ -35878,6 +35938,56 @@ html[data-time="night"] .profile-top-area   { background: #252A3A; }
   color: white;
   border-color: var(--accent);
 }
+
+
+
+/* ===== 背景编辑器手机端优化 ===== */
+@media (max-width: 640px) {
+  .bg-editor-preview-pane {
+    flex-direction: column;
+  }
+  .preview-container {
+    max-height: 250px !important;
+  }
+  .bg-final-preview {
+    margin-top: 8px !important;
+  }
+  #bgFinalPreviewArea {
+    height: 100px !important;
+  }
+  .crop-info-bar {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .bg-editor-actions {
+    flex-direction: column;
+    gap: 8px;
+  }
+  .zoom-controls {
+    bottom: 5px;
+    right: 5px;
+  }
+}
+
+/* 裁剪框拖拽动效 */
+.crop-box {
+  transition: box-shadow 0.15s;
+}
+.crop-box:active {
+  box-shadow: 0 0 0 9999px rgba(0,0,0,0.55), 0 0 0 3px var(--accent);
+}
+
+/* 手柄触摸优化 */
+.crop-handle {
+  touch-action: none;  /* 允许触摸拖动 */
+}
+
+
+.preview-container {
+  touch-action: manipulation;
+}
+
+
 
 
 </style>
