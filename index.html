@@ -11721,6 +11721,7 @@ let bgEditorState = {
   thumbnails: [],
   originalSrc: null,
   zoom: 1,
+  dirty: false,
 };
 let bgEditorSnapEnabled = true;
 
@@ -11730,6 +11731,10 @@ function initBgEditor() {
   bgEditorState.ctx = canvas.getContext('2d');
   bgEditorState.zoom = 1;
   resetBgEditor();
+
+
+
+
 
   if (!bgEditorState._eventsBound) {
     const fileInput = document.getElementById('bgEditorFileInput');
@@ -11751,11 +11756,24 @@ function initBgEditor() {
       const modal = document.getElementById('bgEditorModal');
       if (!modal || !modal.classList.contains('active')) return;
       if (e.ctrlKey && e.key === 'z') { e.preventDefault(); bgEditorUndo(); }
-      if (e.key === 'Escape') { closeModal('bgEditorModal'); }
+            if (e.key === 'Escape') { closeBgEditor(); }
       if (e.key === 'Enter') { bgEditorApply(); }
     });
     bgEditorState._hotkeysBound = true;
   }
+
+// 👇 这里开始插入遮罩点击关闭检查
+  if (!bgEditorState._overlayBound) {
+    var overlay = document.getElementById('bgEditorModal');
+    if (overlay) {
+      overlay.addEventListener('click', function(e) {
+        if (e.target === overlay) closeBgEditor();
+      });
+    }
+    bgEditorState._overlayBound = true;
+  }
+  // 👆 插入结束
+
 }
 
 function resetBgEditor() {
@@ -11808,6 +11826,7 @@ function processBgFile(file) {
   }
   document.getElementById('bgEditorUploadZone').style.display = 'none';
   document.getElementById('bgEditorWorkspace').style.display = 'block';
+  bgEditorState.dirty = false;
 }
 
 function loadImagePreview(file) {
@@ -12131,6 +12150,8 @@ function pushCropHistory() {
   state.history.push({ x: state.crop.x, y: state.crop.y, w: state.crop.w, h: state.crop.h });
   if (state.history.length > state.maxHistory) state.history.shift();
   else state.historyIndex++;
+
+bgEditorState.dirty = true;   // ← 新增
 }
 
 function bgEditorUndo() {
@@ -12147,6 +12168,7 @@ function bgEditorResetCrop() {
   bgEditorState.crop = { x: 0, y: 0, w: bgEditorState.canvas.width, h: bgEditorState.canvas.height, active: true };
   updateCropBox();
   showToast('裁剪区域已重置为全尺寸', 'info');
+ bgEditorState.dirty = true;   // ← 新增
 }
 
 function updateVideoProgress() {
@@ -12185,6 +12207,7 @@ function bgEditorSetCut(type) {
   else bgEditorState.cutEnd = video.currentTime;
   updateCutDisplay();
   updateTimelineSelection();
+bgEditorState.dirty = true;   // ← 新增
 }
 
 function updateCutDisplay() {
@@ -12369,6 +12392,7 @@ function applyBgFilters() {
   document.getElementById('brightnessVal').textContent = brightness + '%';
   document.getElementById('contrastVal').textContent = contrast + '%';
   document.getElementById('saturateVal').textContent = saturate + '%';
+bgEditorState.dirty = true;   // ← 新增
 }
 
 
@@ -12561,8 +12585,10 @@ function applyPresetFilter(name, filterValue) {
   media.style.filter = (filterValue === 'none') ? 'none' : filterValue;
   currentPresetFilter = name;
   resetBgFilters(); // 重置滑块
+bgEditorState.dirty = true;   // ← 新增
   showToast('✅ 已应用「' + name + '」滤镜', 'success');
   closeModal('filterLibraryModal');
+
 }
 
 // 恢复原画
@@ -12577,6 +12603,7 @@ function removeFilter() {
     showToast('已恢复原画', 'info');
   }
   closeModal('filterLibraryModal');
+ bgEditorState.dirty = true;   // ← 新增（即使没有媒体，关闭也算操作）
 }
 
 // 覆盖原有 resetBgFilters（确保一致性）
@@ -12749,6 +12776,7 @@ function bgEditorZoom(delta) {
     media.style.transformOrigin = 'top left';
   }
   if (bgEditorState.crop.active) updateCropBox();
+bgEditorState.dirty = true;   // ← 新增
 }
 
 async function bgEditorExportCrop() {
@@ -12768,6 +12796,22 @@ async function bgEditorExportCrop() {
   URL.revokeObjectURL(url);
   showToast('✅ 裁剪图片已下载', 'success');
 }
+
+
+
+
+function closeBgEditor() {
+  if (bgEditorState.dirty) {
+    if (confirm('您有未保存的编辑，确定离开吗？')) {
+      closeModal('bgEditorModal');
+      resetBgEditor();
+    }
+  } else {
+    closeModal('bgEditorModal');
+  }
+}
+
+
 
 async function bgEditorApply() {
   if (!bgEditorState.file) {
@@ -12829,6 +12873,7 @@ async function bgEditorApply() {
   APP.profile.custom_bg = publicUrl;
   applyCustomBg(publicUrl);
   closeModal('bgEditorModal');
+  bgEditorState.dirty = false;
   showToast('背景已更新', 'success');
 }
 
@@ -32990,7 +33035,7 @@ function exportAllFavoritesAsText() {
           <button id="btnSnapToggle" class="btn-ghost text-sm" onclick="toggleSnap()" title="网格吸附">
             <i class="fas fa-magnet"></i> 吸附:开
           </button>
-          <button class="btn-ghost text-sm" onclick="closeModal('bgEditorModal')"><i class="fas fa-times"></i></button>
+          <button class="btn-ghost text-sm" onclick="closeBgEditor()"><i class="fas fa-times"></i></button>
         </div>
       </div>
 
