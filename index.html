@@ -24785,6 +24785,7 @@ if (bgmState.audio._mediaSource) {
   bgmState.audio.load();
   
   // 设置新歌曲
+  bgmState.audio.crossOrigin = 'anonymous';
   bgmState.audio.src = song.url;
   bgmState.audio.load();
   
@@ -24822,12 +24823,23 @@ if (wasPlaying) {
 } else {
   bgmState.playing = false;
   updateBGMBtn();
-  document.getElementById('bgmPlayer')?.classList.remove('playing');
-}
 
-  
+
+
+document.getElementById('bgmPlayer')?.classList.remove('playing');
+}
+ 
   // 重置进度显示
   updateBGMProgress();
+
+
+  if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+  if (analyser && !bgmState.audio._mediaSource) {
+    try {
+      source = audioCtx.createMediaElementSource(bgmState.audio);
+      source.connect(analyser);
+    } catch(e) {}
+  }
 }
 
 
@@ -24933,14 +24945,27 @@ function toggleBgmPlaylist() {
 }
 
 function renderBGMPlaylist() {
-  const pl = $('bgmPlaylist');
-  pl.innerHTML = bgmState.playlist.map((s, i) => `
-    <div class="flex items-center gap-2 p-1.5 rounded text-xs cursor-pointer hover:bg-black/5 ${i === bgmState.idx ? 'font-bold' : ''}" onclick="playBGMIdx(${i})" style="${i === bgmState.idx ? 'color:var(--accent)' : 'color:var(--muted)'}">
-      <i class="fas fa-${i===bgmState.idx && bgmState.playing ? 'volume-up' : 'music'}"></i>
-      <span class="truncate flex-1">${s.name}</span>
+  const pl = document.getElementById('bgmPlaylist');
+  if (!pl) return;
+  const total = bgmState.playlist.length;
+  pl.innerHTML = `
+    <div class="flex items-center justify-between px-2 py-1 text-xs" style="color:var(--muted); border-bottom:1px solid var(--border);">
+      <span>播放列表 (${total})</span>
+      <button class="text-xs hover:text-red-400" onclick="clearBgmPlaylist()"><i class="fas fa-trash-alt"></i> 清空</button>
     </div>
-  `).join('');
+    ${bgmState.playlist.map((s, i) => `
+      <div class="flex items-center gap-2 p-1.5 rounded text-xs cursor-pointer hover:bg-black/5 ${i === bgmState.idx ? 'font-bold' : ''}" 
+           style="${i === bgmState.idx ? 'color:var(--accent)' : 'color:var(--muted)'}">
+        <i class="fas fa-${i===bgmState.idx && bgmState.playing ? 'volume-up' : 'music'}" onclick="playBGMIdx(${i})"></i>
+        <span class="truncate flex-1" onclick="playBGMIdx(${i})">${s.name}</span>
+        <button class="text-xs hover:text-red-400" onclick="event.stopPropagation(); removeFromBgmPlaylist(${i})">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+    `).join('')}
+  `;
 }
+
 
 function playBGMIdx(i) {
   bgmState.idx = i;
@@ -25106,15 +25131,17 @@ async function fetchLyricForCurrentSong() {
 
   setFallbackLyric('♫ 正在加载歌词...');
   for (const api of MUSIC_API) {
-    try {
-      const raw = await fetchWithRetry(api.lyric(songId), 1, 4000);
-      const lyricText = api.parseLyric(raw);
-      if (lyricText) {
-        bgmState.lyricLines = parseLRC(lyricText);
-        if (typeof updateKaraokeLyric === 'function') updateKaraokeLyric();
-        return;
-      }
-    } catch (e) { console.warn(`${api.name} 歌词获取失败:`, e.message); }
+      try {
+    const resp = await fetch(`${MUSIC_API}?types=lyric&source=netease&id=${songId}`);
+    const data = await resp.json();
+    if (data && data.lyric) {
+      bgmState.lyricLines = parseLRC(data.lyric);
+      updateKaraokeLyric();
+      return;
+    }
+  } catch(e)
+
+{ console.warn(`${api.name} 歌词获取失败:`, e.message); }
   }
   setFallbackLyric('🎤 歌词加载失败');
 }
@@ -25302,54 +25329,12 @@ async function searchMusicByKeyword(keyword) {
 
 
 // ==================== 稳定免费音乐 API ====================
-const MUSIC_API = [
-  {
-    name: 'Sanyue',
-    search: (keyword) => `https://api.music.imsyy.top/search?keywords=${encodeURIComponent(keyword)}&limit=30`,
-    parseSearch: (raw) => {
-      const data = JSON.parse(raw);
-      if (data.result && data.result.songs) {
-        return data.result.songs.map(song => ({
-          id: song.id,
-          name: song.name,
-          artist: (song.artists || [])[0]?.name || '未知',
-          url: '',
-        }));
-      }
-      return [];
-    },
-    songUrl: (id) => `https://api.music.imsyy.top/song/url?id=${id}`,
-    parseUrl: (raw) => {
-      const data = JSON.parse(raw);
-      return data.data?.[0]?.url || null;
-    },
-    lyric: (id) => `https://api.music.imsyy.top/lyric?id=${id}`,
-    parseLyric: (raw) => {
-      const data = JSON.parse(raw);
-      return data.lrc?.lyric || null;
-    }
-  }
-];
 
-// 通用请求函数（解决 CORS 问题）
-async function fetchWithRetry(url, retries = 1, timeoutMs = 5000) {
-  for (let i = 0; i <= retries; i++) {
-    try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), timeoutMs);
-      const resp = await fetch(url, {
-        signal: controller.signal,
-        headers: { 'Accept': 'application/json' }
-      });
-      clearTimeout(timeout);
-      if (!resp.ok) throw new Error('HTTP ' + resp.status);
-      return await resp.text();
-    } catch (err) {
-      if (i === retries) throw err;
-      await new Promise(r => setTimeout(r, 1000));
-    }
-  }
-}
+const MUSIC_API = 'https://music-api.gdstudio.xyz/api.php';
+
+
+
+
 
 
 // ===== 搜索音乐 =====
@@ -25362,24 +25347,19 @@ async function searchMusic() {
   const results = document.getElementById('musicSearchResults');
   results.innerHTML = '<div class="text-center py-4 text-xs" style="color:var(--muted);"><i class="fas fa-spinner fa-pulse"></i> 搜索中...</div>';
 
-  let allSongs = [];
-  for (const api of MUSIC_API) {
-    try {
-      const raw = await fetchWithRetry(api.search(keyword), 1, 4000);
-      const parsed = api.parseSearch(raw);
-      if (parsed.length > 0) {
-        allSongs = parsed;
-        break;
-      }
-    } catch (e) { console.warn(`${api.name} 搜索失败:`, e.message); }
+  try {
+    const resp = await fetch(`${MUSIC_API}?types=search&source=netease&name=${encodeURIComponent(keyword)}&count=20&pages=1`);
+    if (!resp.ok) throw new Error('搜索失败');
+    const data = await resp.json();
+    if (!data || data.length === 0) {
+      results.innerHTML = '<div class="text-center py-4 text-xs" style="color:var(--muted);">未找到相关歌曲</div>';
+      return;
+    }
+    addMusicSearchHistory(keyword);
+    renderMusicSearchResults(data);
+  } catch (e) {
+    results.innerHTML = '<div class="text-center py-4 text-xs" style="color:var(--muted);">搜索失败，请稍后重试</div>';
   }
-
-  if (allSongs.length === 0) {
-    results.innerHTML = '<div class="text-center py-4 text-xs" style="color:var(--muted);">❌ 所有音乐源均无法连接<br><small>请检查网络或稍后重试</small></div>';
-    return;
-  }
-  addMusicSearchHistory(keyword);
-  renderMusicSearchResults(allSongs);
 }
 
 
@@ -25389,88 +25369,30 @@ async function searchMusic() {
 function renderMusicSearchResults(data) {
   const container = document.getElementById('musicSearchResults');
   if (!container) return;
-
-
-
- container.innerHTML = data.map(s => {
-    const creator = s.creator || {};
-    const members = s.members || [];
-    const isFull = members.length >= (s.max_members || 3);
-    const isJoined = APP.user && members.includes(APP.user.id);
-    const isCreator = APP.user && creator.id === APP.user.id;
-    const cardId = 'squad-' + s.id;
-
-    return `
-    <div class="squad-item-v4 squad-card-collapsible" id="${cardId}">
-      <div class="squad-header-v4 flex items-center gap-2" onclick="toggleSquadCard('${cardId}')">
-        <img src="${creator.avatar_url || dicebearUrl(creator.username || 'default')}" class="w-8 h-8 rounded-full border-2" style="border-color: var(--accent);">
-        <div class="flex-1 min-w-0">
-          <div class="flex items-center gap-1">
-            <span class="text-sm font-bold truncate">${creator.username || '干员'}</span>
-            <span class="squad-map-tag text-xs"><i class="fas fa-map-marker-alt mr-1"></i>${s.map}</span>
-            <span class="squad-diff-tag diff-${s.difficulty} text-xs">${s.difficulty}</span>
-          </div>
-          <div class="text-xs" style="color:var(--muted);">${timeAgo(s.created_at)} · ${s.note ? s.note.substring(0,25) : '快速组队'}</div>
-        </div>
-        <div class="flex items-center gap-2">
-          <span class="tag-pill text-xs"><i class="fas fa-user"></i> ${members.length}/${s.max_members || 3}</span>
-          <i class="fas fa-chevron-down squad-expand-icon" id="icon-${cardId}"></i>
-        </div>
-      </div>
-      <div class="squad-card-body-v4" id="body-${cardId}">
-        <!-- 快捷语音栏 -->
-        <div class="squad-voice-bar" id="voiceBar-${s.id}">
-          <div class="flex items-center gap-2">
-            
-            <button class="squad-voice-btn" onmousedown="startSquadVoice('${s.id}')" onmouseup="stopSquadVoice()" ontouchstart="startSquadVoice('${s.id}')" ontouchend="stopSquadVoice()">
-  <i class="fas fa-microphone"></i> 按住说话
-</button>
-            <span class="text-xs" style="color:var(--muted);">语音频道：${s.voice_channel || '未设置'}</span>
-          </div>
-          <div class="voice-level-bar" id="voiceLevel-${s.id}" style="display:none;">
-            <div class="voice-level-fill" id="voiceFill-${s.id}"></div>
-          </div>
-        </div>
-        <!-- 成员标签 -->
-        <div class="flex flex-wrap gap-1 mt-2">
-          ${s.need_op ? `<span class="tag-pill"><i class="fas fa-user-tag mr-1"></i>需求: ${s.need_op}</span>` : ''}
-          ${s.mic_only ? '<span class="tag-pill"><i class="fas fa-microphone"></i> 需麦克风</span>' : ''}
-        </div>
-        <!-- 成员头像堆叠 -->
-        <div class="flex items-center mt-2">
-          <div class="squad-member-avatars">
-            ${members.slice(0,5).map(uid => `<img src="${dicebearUrl(uid)}" class="w-6 h-6 rounded-full border-2" style="border-color:var(--bg); margin-left: -8px;" title="${uid}">`).join('')}
-          </div>
-          <span class="text-xs ml-2" style="color:var(--muted);">${members.length}人</span>
-        </div>
-        <!-- 操作按钮 -->
-        <div class="flex gap-2 justify-end mt-3">
-          ${!APP.user ? '<button class="btn-ghost text-xs px-3 py-1" onclick="openAuthModal()">登录后加入</button>' :
-            isCreator ? '<button class="btn-ghost text-xs px-3 py-1" onclick="deleteSquad(\'' + s.id + '\')"><i class="fas fa-trash"></i> 解散</button>' :
-            isJoined ? '<button class="btn-ghost text-xs px-3 py-1" onclick="leaveSquad(\'' + s.id + '\')"><i class="fas fa-sign-out-alt"></i> 退出</button>' :
-            isFull ? '<button class="btn-ghost text-xs px-3 py-1" disabled style="opacity:0.5;">队伍已满</button>' :
-            '<button class="btn-warm text-xs px-3 py-1" onclick="joinSquad(\'' + s.id + '\')"><i class="fas fa-hand-fist"></i> 加入</button>'
-          }
-        </div>
-        <!-- 聊天区域折叠入口 -->
-        <div class="mt-2 pt-2 border-t" style="border-color:var(--border);">
-          <button class="text-xs font-bold text-accent" onclick="toggleSquadChat('${s.id}')"><i class="fas fa-comments mr-1"></i>战术文字</button>
-          <div class="squad-chat-box hidden" id="chatBox-${s.id}" style="margin-top:6px;">
-            <div class="squad-messages max-h-32 overflow-y-auto text-xs p-1 rounded" style="background:var(--surface);" id="msg-${s.id}">
-              <div class="text-center" style="color:var(--muted);">暂无消息</div>
-            </div>
-            <div class="flex gap-1 mt-1">
-              <input type="text" placeholder="发送消息..." class="flex-1 text-xs p-1.5 rounded" id="msgInput-${s.id}" style="background:var(--card); border:1px solid var(--border);">
-              <button class="btn-ghost text-xs px-2" onclick="sendSquadMessage('${s.id}')"><i class="fas fa-paper-plane"></i></button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  `;
-}).join('');
+  container.innerHTML = data.map(s => {
+    var name = (s.name || '').replace(/'/g, "\\'");
+    var artist = (s.artist || []).join('/').replace(/'/g, "\\'");
+    var id = s.id;
+    var pic = s.pic_id || '';
+    return '<div class="flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 transition-all" style="border-bottom:1px solid var(--border);">' +
+      '<i class="fas fa-music" style="color:var(--accent);"></i>' +
+      '<div class="flex-1 min-w-0">' +
+        '<div class="text-sm font-medium truncate">' + s.name + '</div>' +
+        '<div class="text-xs" style="color:var(--muted);">' + (s.artist || []).join(' / ') + '</div>' +
+      '</div>' +
+      '<button class="btn-warm text-xs px-3 py-1 rounded-full" onclick="event.stopPropagation(); playFromSearch(\'' + id + '\',\'' + name + '\',\'' + artist + '\',\'' + pic + '\')">' +
+        '<i class="fas fa-play mr-1"></i>播放' +
+      '</button>' +
+      '<button class="btn-ghost text-xs px-3 py-1 rounded-full" onclick="event.stopPropagation(); addToPlaylistFromSearch(\'' + id + '\',\'' + name + '\',\'' + artist + '\')">' +
+        '<i class="fas fa-plus mr-1"></i>添加' +
+      '</button>' +
+    '</div>';
+  }).join('');
 }
 
+
+
+        
 
 
 // 打开音乐搜索弹窗并加载历史记录
@@ -25541,6 +25463,36 @@ async function autoSearchAndPlayThemeMusic(keyword) {
 
 
 
+function removeFromBgmPlaylist(index) {
+  if (bgmState.playlist.length <= 1) {
+    showToast('至少保留一首歌曲', 'warning');
+    return;
+  }
+  bgmState.playlist.splice(index, 1);
+  if (bgmState.idx >= bgmState.playlist.length) bgmState.idx = 0;
+  renderBGMPlaylist();
+  if (bgmState.playing && index === bgmState.idx) {
+    loadBGMTrack();
+    bgmState.audio.play().catch(()=>{});
+  }
+}
+
+function clearBgmPlaylist() {
+  if (bgmState.playlist.length === 0) return;
+  if (!confirm('确定清空整个播放列表吗？')) return;
+  bgmState.playlist = [...BGM_SONGS]; // 恢复默认歌曲
+  bgmState.idx = 0;
+  if (bgmState.playing) {
+    bgmState.audio.pause();
+    bgmState.playing = false;
+    updateBGMBtn();
+  }
+  renderBGMPlaylist();
+  showToast('已恢复默认歌单', 'info');
+}
+
+
+
 
 function addToPlaylist(name, url) {
   if (!name || !url) { showToast('无法添加该歌曲'); return; }
@@ -25595,29 +25547,44 @@ await sb.from('posts')
 
 
 // ========== 网易云播放/添加函数（修复版） ==========
-window.playNeteaseSong = async function(name, songId) {
-  if (!songId) { showToast('❌ 无效ID', 'error'); return; }
-  showToast('🔄 获取播放链接...', 'info');
-
-  for (const api of MUSIC_API) {
-    try {
-      const raw = await fetchWithRetry(api.songUrl(songId), 1, 4000);
-      const playUrl = api.parseUrl(raw);
-      if (playUrl) {
-        bgmState.playlist = [{ name, url: playUrl, songId }];
-        bgmState.idx = 0;
-        bgmState.playing = true;
-        loadBGMTrack();
-        closeModal('musicSearchModal');
-        renderBGMPlaylist();
-        showToast(`🎵 正在播放：${name}`, 'success');
-        return;
-      }
-    } catch (e) { console.warn(`${api.name} 获取URL失败:`, e.message); }
+async function playFromSearch(id, name, artist, picId) {
+  showToast('正在获取播放链接...', 'info');
+  try {
+    const resp = await fetch(`${MUSIC_API}?types=url&source=netease&id=${id}&br=320`);
+    const data = await resp.json();
+    if (!data || !data.url) { showToast('获取播放链接失败', 'error'); return; }
+    
+    bgmState.playlist = [{ name: name, url: data.url, artist: artist, songId: id }];
+    bgmState.idx = 0;
+    loadBGMTrack();
+    bgmState.audio.play().then(() => {
+      bgmState.playing = true;
+      updateBGMBtn();
+      document.getElementById('bgmPlayer')?.classList.add('playing');
+      // 恢复波形
+      initAnalyzerOnce();
+    }).catch(() => {});
+    renderBGMPlaylist();
+    closeModal('musicSearchModal');
+    showToast(`🎵 正在播放：${name}`, 'success');
+  } catch (e) {
+    showToast('播放失败，请重试', 'error');
   }
-  showToast('❌ 该歌曲暂无可用播放源', 'error');
-};
+}
 
+async function addToPlaylistFromSearch(id, name, artist) {
+  try {
+    const resp = await fetch(`${MUSIC_API}?types=url&source=netease&id=${id}&br=320`);
+    const data = await resp.json();
+    if (!data || !data.url) { showToast('获取链接失败', 'error'); return; }
+    
+    bgmState.playlist.push({ name: name, url: data.url, artist: artist, songId: id });
+    renderBGMPlaylist();
+    showToast(`✅ 已添加：${name}`, 'success');
+  } catch (e) {
+    showToast('添加失败', 'error');
+  }
+}
 
 
 
