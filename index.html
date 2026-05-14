@@ -22475,6 +22475,9 @@ function togglePresetMapMenu(btn) {
     box-shadow: 0 16px 40px rgba(0,0,0,0.7);
   `;
 
+
+
+
   popup.innerHTML = maps.map((m, i) => `
     <div class="map-pop-item"
          onclick="loadPresetMap('${m.id}'); document.getElementById('presetMapPopup')?.remove();"
@@ -22513,7 +22516,37 @@ function togglePresetMapMenu(btn) {
     };
     document.addEventListener('click', handler);
   }, 10);
+
+function closePopup() {
+    // 移除监听
+    if (popup._updatePosition) {
+      window.removeEventListener('scroll', popup._updatePosition);
+      window.removeEventListener('resize', popup._updatePosition);
+    }
+    popup.remove();
+  }
+
+  // 实时更新位置
+  const updatePosition = () => {
+    const newRect = btn.getBoundingClientRect();
+    popup.style.left = Math.max(8, newRect.left) + 'px';
+    popup.style.top = (newRect.bottom + 6) + 'px';
+    const popRect = popup.getBoundingClientRect();
+    if (popRect.right > window.innerWidth - 8) {
+      popup.style.left = (window.innerWidth - popRect.width - 8) + 'px';
+    }
+  };
+  popup._updatePosition = updatePosition;
+  window.addEventListener('scroll', updatePosition, { passive: true });
+  window.addEventListener('resize', updatePosition);
 }
+
+
+
+
+
+
+
 
 
 
