@@ -11601,16 +11601,21 @@ async function viewUserProfile(userId) {
           <h2 class="font-display text-xl" id="viewUserName">干员资料</h2>
           <button onclick="closeModal('userProfileModal')" class="w-8 h-8 rounded-full flex items-center justify-center" style="background:var(--surface)"><i class="fas fa-times"></i></button>
         </div>
-        <div class="flex items-center gap-4 mb-4">
-          <div id="viewUserBg" style="padding:20px;border-radius:16px;margin-bottom:16px;background-size:cover;background-position:center;background-image:url(${profile.custom_bg || ''})">
-  <img id="viewUserAvatar" class="w-16 h-16 rounded-full object-cover border-2" style="border-color:var(--accent)">
-</div>
-          <div>
-            <div class="font-bold text-lg" id="viewUserDisplayName"></div>
-            <div class="text-sm" style="color:var(--muted)">Lv.<span id="viewUserLevel">1</span> · <span id="viewUserFollowers">0</span> 粉丝</div>
+
+
+
+                        <div id="viewUserBg" style="padding:20px; border-radius:16px; margin-bottom:16px; background-size:cover; background-position:center; background-image:url(${profile.custom_bg || ''})">
+          <div class="flex items-center gap-4">
+            <img id="viewUserAvatar" class="w-16 h-16 rounded-full object-cover border-2" style="border-color:var(--accent)">
+            <div>
+              <div class="font-bold text-lg" id="viewUserDisplayName"></div>
+              <div class="text-sm" style="color:var(--muted)">Lv.<span id="viewUserLevel">1</span> · <span id="viewUserFollowers">0</span> 粉丝</div>
+            </div>
+            <button class="btn-ghost text-sm ml-auto" id="viewUserFollowBtn" onclick="toggleFollowFromModal()">+ 关注</button>
           </div>
-          <button class="btn-ghost text-sm ml-auto" id="viewUserFollowBtn" onclick="toggleFollowFromModal()">+ 关注</button>
         </div>
+
+
         <div class="grid grid-cols-3 gap-2 text-center mb-4">
           <div><span class="font-bold" id="viewUserPosts">0</span><span class="text-xs block">发帖</span></div>
           <div><span class="font-bold" id="viewUserLikes">0</span><span class="text-xs block">获赞</span></div>
@@ -11627,6 +11632,12 @@ async function viewUserProfile(userId) {
   }
     document.body.appendChild(modal);
   }
+
+
+  $('viewUserBg').style.backgroundImage = profile.custom_bg ? `url(${profile.custom_bg})` : '';
+  $('viewUserBg').style.backgroundSize = 'cover';
+  $('viewUserBg').style.backgroundPosition = 'center';
+
   $('viewUserName').textContent = profile.username;
   $('viewUserAvatar').src = profile.avatar_url || dicebearUrl(profile.username);
   $('viewUserDisplayName').textContent = profile.username;
@@ -12518,8 +12529,16 @@ function previewPresetFilter(name, filterValue) {
   // 恢复原滤镜（如果有）
   media.style.filter = oldFilter || 'none';
 
-  document.getElementById('compareBefore').style.backgroundImage = 'url(' + beforeSrc + ')';
-  document.getElementById('compareAfter').style.backgroundImage = 'url(' + afterSrc + ')';
+    var beforeEl = document.getElementById('compareBefore');
+  var afterEl = document.getElementById('compareAfter');
+  beforeEl.style.backgroundImage = 'url(' + beforeSrc + ')';
+  afterEl.style.backgroundImage = 'url(' + afterSrc + ')';
+  // 强制浏览器立即重绘
+  void beforeEl.offsetWidth;
+  void afterEl.offsetWidth;
+
+
+
 
   // 显示“应用”按钮和滤镜名
   document.getElementById('applyFilterBtn').style.display = 'inline-flex';
@@ -12596,7 +12615,22 @@ resetBgFilters = function() {
         document.getElementById('compareAfter').style.width = (100 - pct) + '%';
         divider.style.left = pct + '%';
         handle.style.left = pct + '%';
+
+
+
+ // ← 下面就是新添加的代码
+        var leftLabel = document.getElementById('compareLeftLabel');
+        var rightLabel = document.getElementById('compareRightLabel');
+        if (leftLabel) leftLabel.style.left = (pct - 8) + '%';
+        if (rightLabel) rightLabel.style.left = (pct + 2) + '%';
+
+
+
       });
+
+
+
+
       window.addEventListener('mouseup', function() {
         dragging = false;
         preview.style.userSelect = '';
@@ -16230,15 +16264,31 @@ function showStatModal(title, content) {
   modal.style.zIndex = '10000';
   modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
 
-  modal.innerHTML = `
-    <div class="modal-content active" style="max-width:480px; max-height:80vh; overflow-y:auto;">
-      <div class="flex justify-between items-center mb-4">
-        <h2 class="font-display text-xl">${title}</h2>
-        <button onclick="this.closest('.modal-overlay').remove()" class="w-8 h-8 rounded-full flex items-center justify-center" style="background:var(--surface);"><i class="fas fa-times"></i></button>
+      modal.innerHTML = `
+      <div class="modal-content" style="max-width:480px">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="font-display text-xl" id="viewUserName">干员资料</h2>
+          <button onclick="closeModal('userProfileModal')" class="w-8 h-8 rounded-full flex items-center justify-center" style="background:var(--surface)"><i class="fas fa-times"></i></button>
+        </div>
+        <div id="viewUserBg" style="padding:20px; border-radius:16px; margin-bottom:16px; background-size:cover; background-position:center; background-image:url(${profile.custom_bg || ''})">
+          <div class="flex items-center gap-4">
+            <img id="viewUserAvatar" class="w-16 h-16 rounded-full object-cover border-2" style="border-color:var(--accent)">
+            <div>
+              <div class="font-bold text-lg" id="viewUserDisplayName"></div>
+              <div class="text-sm" style="color:var(--muted)">Lv.<span id="viewUserLevel">1</span> · <span id="viewUserFollowers">0</span> 粉丝</div>
+            </div>
+            <button class="btn-ghost text-sm ml-auto" id="viewUserFollowBtn" onclick="toggleFollowFromModal()">+ 关注</button>
+          </div>
+        </div>
+        <div class="grid grid-cols-3 gap-2 text-center mb-4">
+          <div><span class="font-bold" id="viewUserPosts">0</span><span class="text-xs block">发帖</span></div>
+          <div><span class="font-bold" id="viewUserLikes">0</span><span class="text-xs block">获赞</span></div>
+          <div><span class="font-bold" id="viewUserBadges">0</span><span class="text-xs block">勋章</span></div>
+        </div>
+        <h3 class="font-bold mb-2">最新帖子</h3>
+        <div id="viewUserRecentPosts" class="space-y-2 max-h-60 overflow-y-auto"></div>
       </div>
-      ${content}
-    </div>
-  `;
+    `;
   document.body.appendChild(modal);
 }
 
@@ -33097,9 +33147,15 @@ function exportAllFavoritesAsText() {
       </div>
       <!-- 可拖动分割线 -->
       <div id="compareDivider" style="position:absolute; left:50%; top:0; bottom:0; width:3px; background:white; z-index:10; box-shadow:0 0 8px rgba(0,0,0,0.5); transform:translateX(-50%); pointer-events:auto;"></div>
-      <div id="compareHandle" style="position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); width:36px; height:36px; background:white; border-radius:50%; z-index:11; display:flex; align-items:center; justify-content:center; box-shadow:0 0 10px rgba(0,0,0,0.4); pointer-events:auto;">
+
+
+            <div id="compareHandle" style="position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); width:44px; height:44px; background:white; border-radius:50%; z-index:11; display:flex; align-items:center; justify-content:center; box-shadow:0 0 10px rgba(0,0,0,0.4); pointer-events:auto;">
         <i class="fas fa-arrows-left-right" style="color:#333; font-size:14px;"></i>
+        <span id="compareLeftLabel" style="position:absolute; left:-60px; white-space:nowrap; font-size:11px; color:#fff; background:rgba(0,0,0,0.6); padding:2px 8px; border-radius:10px; pointer-events:none;">原画</span>
+        <span id="compareRightLabel" style="position:absolute; right:-60px; white-space:nowrap; font-size:11px; color:#fff; background:var(--accent); padding:2px 8px; border-radius:10px; pointer-events:none;">滤镜</span>
       </div>
+
+
     </div>
 
     <!-- 操作按钮行 -->
