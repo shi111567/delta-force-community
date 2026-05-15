@@ -25427,7 +25427,8 @@ function updateKaraokeLyric() {
 
 
 
-function loadBGMTrack() {
+async function loadBGMTrack() {
+
   if (!bgmState.playlist.length) return;
   const song = bgmState.playlist[bgmState.idx % bgmState.playlist.length];
   
@@ -25443,6 +25444,32 @@ if (bgmState.audio._mediaSource) {
   try { bgmState.audio._mediaSource.disconnect(); } catch(e) {}
   bgmState.audio._mediaSource = null;
 }
+
+
+
+
+ // ====== 淡出当前歌曲 (新增) ======
+  if (wasPlaying && bgmState.audio.duration) {
+    const fadeOutAudio = bgmState.audio;
+    const originalVolume = bgmState.volume;
+    const steps = 8;
+    const stepTime = 50; // 400ms
+    let step = 0;
+    const fadeInterval = setInterval(() => {
+      step++;
+      fadeOutAudio.volume = Math.max(0, originalVolume * (1 - step / steps));
+      if (step >= steps) {
+        clearInterval(fadeInterval);
+        fadeOutAudio.pause();
+      }
+    }, stepTime);
+    // 等待淡出完成
+    await new Promise(r => setTimeout(r, steps * stepTime + 50));
+  }
+
+
+
+
 
 
   bgmState.audio.pause();
@@ -25487,29 +25514,44 @@ if (artistEl) artistEl.textContent = song.artist || '';
     fetchLyricForCurrentSong().catch(()=>{});
   }
   
-  // 如果之前是播放状态，自动开始播放
- // 如果之前是播放状态，自动开始播放
-if (wasPlaying) {
-  bgmState.audio.play().then(() => {
-    bgmState.playing = true;
-    updateBGMBtn();
-    document.getElementById('bgmPlayer')?.classList.add('playing');
-  }).catch(err => {
-    console.warn('自动播放失败:', err);
-    // 播放失败时重置状态，并提示用户手动点击
+ 
+  // 如果之前是播放状态，自动开始播放（带淡入）
+  if (wasPlaying) {
+    bgmState.audio.volume = 0; // 从零开始
+    bgmState.audio.play().then(() => {
+      bgmState.playing = true;
+      updateBGMBtn();
+      document.getElementById('bgmPlayer')?.classList.add('playing');
+      
+      // ====== 淡入新歌 ======
+      const fadeInAudio = bgmState.audio;
+      const targetVolume = bgmState.volume;
+      const steps = 10;
+      const stepTime = 50; // 500ms
+      let step = 0;
+      const fadeInInterval = setInterval(() => {
+        step++;
+        fadeInAudio.volume = Math.min(targetVolume, targetVolume * (step / steps));
+        if (step >= steps) {
+          clearInterval(fadeInInterval);
+          fadeInAudio.volume = targetVolume;
+        }
+      }, stepTime);
+    }).catch(err => {
+      console.warn('自动播放失败:', err);
+      bgmState.playing = false;
+      updateBGMBtn();
+      document.getElementById('bgmPlayer')?.classList.remove('playing');
+      showToast('⚠️ 自动播放被阻止，请手动点击播放', 'warning');
+    });
+  } else {
     bgmState.playing = false;
     updateBGMBtn();
     document.getElementById('bgmPlayer')?.classList.remove('playing');
-    showToast('⚠️ 自动播放被阻止，请手动点击播放', 'warning');
-  });
-} else {
-  bgmState.playing = false;
-  updateBGMBtn();
+  }
 
 
 
-document.getElementById('bgmPlayer')?.classList.remove('playing');
-}
  
   // 重置进度显示
   updateBGMProgress();
