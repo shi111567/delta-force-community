@@ -1519,379 +1519,250 @@ function updateConsoleOnlineCount() {
 setInterval(updateConsoleOnlineCount, 2000);
 updateConsoleOnlineCount();
 
-/* ==================== BGM 播放器 · 呼吸展开版 ==================== */
+/* ========== BGM 播放器 · 顶级视觉版 ========== */
 .bgm-player {
   position: fixed;
   bottom: 20px;
   left: 20px;
   z-index: 9999;
   
-  /* 毛玻璃基底 */
-  background: rgba(20, 18, 30, 0.7);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border: 1px solid rgba(255, 140, 90, 0.2);
-  border-radius: 60px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 107, 53, 0.1) inset;
+  /* 毛玻璃 + 微光边框 */
+  background: rgba(18, 15, 25, 0.78);
+  backdrop-filter: blur(28px) saturate(160%);
+  -webkit-backdrop-filter: blur(28px) saturate(160%);
+  border: 1px solid rgba(255, 140, 90, 0.18);
+  border-radius: 22px;
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.45),
+    0 0 0 1px rgba(255, 107, 53, 0.08) inset;
   
-  /* 核心：用 max-width 和 padding 控制展开/收缩 */
   max-width: 56px;
   padding: 8px;
-  transition: max-width 0.4s cubic-bezier(0.2, 0.9, 0.4, 1), 
+  transition: max-width 0.38s cubic-bezier(0.22, 0.61, 0.36, 1), 
               padding 0.3s ease,
               border-radius 0.3s ease,
               box-shadow 0.3s ease,
               background 0.3s ease;
   overflow: hidden;
   white-space: nowrap;
-  touch-action: none; /* 保持可拖拽 */
   cursor: grab;
 }
 
 /* 展开状态 */
 .bgm-player:hover,
 .bgm-player.expanded {
-  max-width: 420px;
-  padding: 12px 18px;
-  border-radius: 40px;
-  background: rgba(255, 140, 90, 0.25);
-  box-shadow: 0 20px 40px rgba(255, 107, 53, 0.2), 0 0 0 1.5px var(--accent) inset;
+  max-width: 370px;
+  padding: 14px 16px;
+  border-radius: 24px;
+  background: rgba(20, 15, 28, 0.88);
+  box-shadow: 
+    0 16px 48px rgba(255, 107, 53, 0.12),
+    0 0 0 1.5px rgba(255, 107, 53, 0.2) inset;
 }
 
-/* 紧凑条内容：只显示播放按钮 */
+/* 紧凑态 */
 .bgm-compact {
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-/* 展开内容：默认透明度为0，展开时渐显 */
-/* ===== 播放器展开内容布局（优化版） ===== */
+/* 展开内容区 */
 .bgm-extended {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
   opacity: 0;
-  transform: translateX(-10px);
-  transition: opacity 0.3s ease 0.1s, transform 0.3s ease 0.1s;
+  transform: translateY(6px);
+  transition: opacity 0.28s ease 0.06s, transform 0.28s ease 0.06s;
 }
 .bgm-player:hover .bgm-extended,
 .bgm-player.expanded .bgm-extended {
   opacity: 1;
-  transform: translateX(0);
+  transform: translateY(0);
 }
 
-/* 顶部 CD + 歌曲信息 */
+/* 歌曲信息行 */
 .bgm-top-row {
   display: flex;
   align-items: center;
   gap: 12px;
 }
 .bgm-cd-container {
-  width: 56px;
-  height: 56px;
-  flex-shrink: 0;
+  width: 48px; height: 48px; flex-shrink: 0;
 }
 .bgm-cd-cover {
-  width: 100%;
-  height: 100%;
+  width: 100%; height: 100%;
   border-radius: 50%;
-  background: linear-gradient(145deg, #2a2a2a, #1a1a1a);
-  border: 2px solid rgba(255, 140, 90, 0.4);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  animation: cdSpin 4s linear infinite;
-  animation-play-state: paused;
+  background: linear-gradient(145deg, #2a2835, #1a1822);
+  border: 2px solid rgba(255, 140, 90, 0.35);
+  display: flex; align-items: center; justify-content: center;
+  animation: cdSpin 4s linear infinite paused;
 }
 .bgm-player.playing .bgm-cd-cover {
   animation-play-state: running;
 }
-.bgm-cd-cover i {
-  font-size: 32px;
-  color: rgba(255, 140, 90, 0.8);
-}
 .bgm-song-info {
-  flex: 1;
-  min-width: 0;
-}
-.bgm-title-wrapper {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  flex: 1; min-width: 0;
 }
 .bgm-title {
-  font-weight: 700;
-  font-size: 14px;
-  color: var(--text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.bgm-fav-btn {
-  color: var(--muted);
-  transition: all 0.2s;
-}
-.bgm-fav-btn:hover {
-  color: #FF4757;
-  transform: scale(1.1);
+  font-weight: 700; font-size: 14px; display: block;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  color: #f0e6d8;
 }
 .bgm-artist {
-  font-size: 12px;
-  font-weight: 600;
-  color: #FFB347;                      /* 明亮的橙黄色，呼应主题 */
-  text-shadow: 0 0 8px rgba(255, 107, 53, 0.9), 0 1px 2px rgba(0,0,0,0.4);
-  letter-spacing: 0.5px;
-  margin-top: 4px;
+  font-size: 12px; font-weight: 600; color: #FFB347;
+  margin-top: 3px; letter-spacing: 0.3px;
 }
+.bgm-fav-btn {
+  color: rgba(255,255,255,0.5); transition: all 0.2s;
+  background: none; border: none; cursor: pointer; font-size: 16px;
+}
+.bgm-fav-btn:hover { color: #FF4757; transform: scale(1.15); }
 
-
-/* 进度条区域 */
+/* 进度条 */
 .bgm-progress-section {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-.bgm-time-row {
-  display: flex;
-  justify-content: space-between;
-  font-size: 10px;
-  color: var(--muted);
+  display: flex; flex-direction: column; gap: 4px;
 }
 .bgm-progress-bar {
-  height: 4px;
-  background: rgba(255,255,255,0.1);
-  border-radius: 4px;
-  cursor: pointer;
-  position: relative;
+  height: 4px; background: rgba(255,255,255,0.06); border-radius: 4px;
+  cursor: pointer; position: relative;
 }
 .bgm-progress-fill {
-  height: 100%;
-  border-radius: 4px;
+  height: 100%; border-radius: 4px;
   background: linear-gradient(90deg, #FF6B35, #FFD700);
-  position: relative;
-  overflow: hidden;
+  position: relative; overflow: hidden;
 }
 .bgm-progress-fill::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
+  content: ''; position: absolute; top: 0; left: -100%;
+  width: 100%; height: 100%;
   background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
   animation: shimmer 2.5s infinite;
+}
+.bgm-time-row {
+  display: flex; justify-content: space-between;
+  font-size: 10px; color: rgba(255,255,255,0.4);
 }
 
 /* 控制按钮行 */
 .bgm-controls-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-around;
-  padding: 4px 0;
+  display: flex; align-items: center; justify-content: center; gap: 10px;
 }
 .bgm-ctrl-btn {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: transparent;
-  color: var(--text);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s;
+  width: 34px; height: 34px; border-radius: 50%;
+  background: transparent; color: rgba(255,255,255,0.6);
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.2s; border: none; cursor: pointer; font-size: 14px;
 }
-.bgm-ctrl-btn:hover {
-  background: rgba(255,140,90,0.2);
-  color: var(--accent);
-}
+.bgm-ctrl-btn:hover { background: rgba(255,140,90,0.15); color: var(--accent); }
 .bgm-play-btn-lg {
-  width: 52px;
-  height: 52px;
-  border-radius: 50%;
+  width: 50px; height: 50px; border-radius: 50%;
   background: linear-gradient(135deg, #FF6B35, #FF4757);
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 4px 12px rgba(255,107,53,0.3);
+  color: white; font-size: 18px; border: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 16px rgba(255,107,53,0.35);
   transition: all 0.2s;
 }
-.bgm-play-btn-lg:hover {
-  transform: scale(1.05);
-  box-shadow: 0 6px 16px rgba(255,107,53,0.5);
-}
+.bgm-play-btn-lg:hover { transform: scale(1.06); box-shadow: 0 6px 22px rgba(255,107,53,0.5); }
 .bgm-mode-wrapper {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  font-size: 10px;
-  color: var(--muted);
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
 }
 .bgm-mode-btn {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background: transparent;
-  color: var(--muted);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  width: 28px; height: 28px; border-radius: 50%;
+  background: transparent; color: rgba(255,255,255,0.5); border: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; font-size: 13px;
 }
-.bgm-mode-btn:hover {
-  background: rgba(255,140,90,0.2);
-  color: var(--accent);
+.bgm-mode-btn:hover { color: var(--accent); }
+.bgm-mode-wrapper span {
+  font-size: 9px; color: rgba(255,255,255,0.3);
 }
 
-/* 工具行 */
+/* 工具按钮行 */
 .bgm-utils-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 6px;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
 }
-
-
 .bgm-volume-slider {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex: 2;
+  display: flex; align-items: center; gap: 6px; flex: 2; min-width: 90px;
 }
-.bgm-vol-range {
-  width: 80px;
-  accent-color: var(--accent);
-}
-
-
+.bgm-vol-range { flex: 1; accent-color: var(--accent); height: 4px; }
 .bgm-tool-buttons {
-  display: flex;
-  gap: 4px;
-  flex-wrap: wrap;
-  justify-content: center;
+  display: flex; flex-wrap: wrap; gap: 4px; align-items: center; justify-content: center;
 }
-
-
-
 .bgm-tool-btn {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: transparent;
-  color: var(--muted);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s;
+  width: 28px; height: 28px; border-radius: 50%;
+  background: rgba(255,255,255,0.04); border: none; color: rgba(255,255,255,0.55);
+  font-size: 13px; cursor: pointer; transition: all 0.2s;
+  display: flex; align-items: center; justify-content: center;
 }
-.bgm-tool-btn:hover {
-  background: rgba(255,140,90,0.2);
-  color: var(--accent);
-}
+.bgm-tool-btn:hover { background: var(--accent); color: white; transform: scale(1.1); }
 
-/* 波形画布 */
+/* 波形 */
 .bgm-wave-canvas {
-  width: 100%;
-  height: 40px;
-  border-radius: 12px;
-  background: transparent !important;  /* 透明背景 */
-  margin: 4px 0;
+  width: 100%; height: 36px; border-radius: 10px;
+  background: rgba(0,0,0,0.2); margin: 2px 0;
 }
 
-/* ===== 快捷键右上角浮层 ===== */
+/* 歌词 */
+.bgm-lyrics-karaoke {
+  text-align: center; padding: 4px 0;
+}
+.karaoke-line {
+  font-size: 18px; font-weight: 800; color: #FFD700;
+  text-shadow: 0 0 18px rgba(255, 140, 0, 0.6);
+  letter-spacing: 2px; line-height: 1.5;
+  background: linear-gradient(135deg, #FFF8DC, #FFD700);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+}
+.karaoke-next {
+  font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.5);
+  margin-top: 6px; opacity: 0.9;
+}
+
+/* 快捷键浮层 */
 .bgm-hotkey-float {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  left: auto;
-  z-index: 25;                /* 提高层级 */
-  pointer-events: auto;       /* 确保可交互 */
+  position: absolute; top: 8px; right: 8px; z-index: 25;
 }
 .hotkey-trigger {
-  width: 32px;                /* 稍微加大点击区域 */
-  height: 32px;
-  border-radius: 50%;
-  background: rgba(255, 140, 90, 0.3);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: help;
-  transition: all 0.25s;
-  border: 1px solid rgba(255, 140, 90, 0.4);
+  width: 26px; height: 26px; border-radius: 50%;
+  background: rgba(255,140,90,0.2); border: 1px solid rgba(255,140,90,0.3);
+  display: flex; align-items: center; justify-content: center;
+  cursor: help; color: rgba(255,255,255,0.6); font-size: 11px;
+  transition: all 0.2s;
 }
-.hotkey-trigger:hover {
-  background: var(--accent);
-  color: white;
-  transform: scale(1.15);
-  box-shadow: 0 0 15px var(--accent);
-}
+.hotkey-trigger:hover { background: var(--accent); color: white; }
 .hotkey-dropdown {
-  position: absolute;
-  top: 40px;
-  right: 0;
-  background: rgba(30, 20, 15, 0.85); /* 深色半透明，文字更清晰 */
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-radius: 20px;
-  padding: 14px 18px;
-  border: 1px solid var(--accent);
-  box-shadow: 0 12px 30px var(--glow);
-  opacity: 0;
-  visibility: hidden;
-  transform: translateY(-8px);
-  transition: all 0.25s;
-  white-space: nowrap;
-  z-index: 30;
-  color: #F5E6D3;             /* 亮色文字 */
-  pointer-events: none;
+  position: absolute; top: 34px; right: 0;
+  background: rgba(15,12,20,0.92); backdrop-filter: blur(20px);
+  border: 1px solid var(--accent); border-radius: 14px;
+  padding: 10px 14px; opacity: 0; visibility: hidden;
+  transform: translateY(-6px); transition: all 0.2s;
+  white-space: nowrap; z-index: 30;
 }
 .bgm-hotkey-float:hover .hotkey-dropdown {
-  opacity: 1;
-  visibility: visible;
-  transform: translateY(0);
-  pointer-events: auto;       /* 显示时可点击内部 */
+  opacity: 1; visibility: visible; transform: translateY(0);
 }
 .hotkey-dropdown .hotkey-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 6px 0;
-  color: #F5E6D3;
-  font-size: 12px;
-  border-bottom: 1px dashed rgba(255, 140, 90, 0.3);
+  display: flex; align-items: center; gap: 10px;
+  padding: 4px 0; color: #f0e6d8; font-size: 11px;
+  border-bottom: 1px dashed rgba(255,140,90,0.15);
 }
-.hotkey-dropdown .hotkey-row:last-child {
-  border-bottom: none;
-}
+.hotkey-dropdown .hotkey-row:last-child { border-bottom: none; }
 .hotkey-dropdown kbd {
-  background: rgba(255, 140, 90, 0.25);
-  border: 1px solid var(--accent);
-  border-radius: 6px;
-  padding: 3px 8px;
-  font-family: 'Courier New', monospace;
-  font-weight: 700;
-  font-size: 11px;
-  color: var(--accent);
-  box-shadow: 0 2px 0 rgba(0,0,0,0.2);
+  background: rgba(255,140,90,0.2); border: 1px solid var(--accent);
+  border-radius: 4px; padding: 2px 7px; font-family: monospace;
+  font-weight: 700; font-size: 10px; color: var(--accent);
 }
 
-
-/* 移动端适配：点击展开而非悬停 */
-@media (max-width: 768px) {
-  .bgm-player {
-    max-width: 56px;
-transition: max-width 0.3s ease;
+/* 响应式 */
+@media (max-width: 640px) {
+  .bgm-player:hover, .bgm-player.expanded {
+    max-width: 300px;
   }
-  .bgm-player.expanded {
-    max-width: 320px;
-  }
-  .bgm-hotkey-inline {
-    font-size: 9px;
-  }
+  .bgm-controls-row { gap: 6px; }
+  .bgm-play-btn-lg { width: 42px; height: 42px; }
+  .bgm-volume-slider { min-width: 60px; }
 }
+
 
 @media (max-width: 480px) {
   .bgm-player.expanded {
@@ -26092,14 +25963,16 @@ async function bgmToggleFavorite() {
 function toggleBgmMaximize() {
   const player = document.getElementById('bgmPlayer');
   const icon = document.getElementById('bgmMaximizeIcon');
-  if (!player || !icon) return;
+  if (!player) return;
   
   player.classList.toggle('maximized');
   
-  if (player.classList.contains('maximized')) {
-    icon.className = 'fas fa-compress';
-  } else {
-    icon.className = 'fas fa-expand';
+  if (icon) {
+    if (player.classList.contains('maximized')) {
+      icon.className = 'fas fa-compress';
+    } else {
+      icon.className = 'fas fa-expand';
+    }
   }
 }
 
