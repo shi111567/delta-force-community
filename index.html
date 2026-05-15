@@ -5028,7 +5028,91 @@ body {
 
 
 
-
+/* 更多面板 */
+.more-panel {
+  position: fixed;
+  bottom: 80px;
+  right: 20px;
+  width: 300px;
+  max-width: 90vw;
+  background: rgba(30, 30, 40, 0.95);
+  backdrop-filter: blur(30px);
+  -webkit-backdrop-filter: blur(30px);
+  border-radius: 20px;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.05) inset;
+  z-index: 10000;
+  overflow: hidden;
+  animation: panelUp 0.25s cubic-bezier(0.22, 0.61, 0.36, 1);
+  color: #eee;
+}
+@keyframes panelUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.more-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 18px 10px;
+  font-weight: 700;
+  font-size: 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.more-panel-header button {
+  background: none;
+  border: none;
+  color: #aaa;
+  font-size: 18px;
+  cursor: pointer;
+}
+.more-panel-body {
+  padding: 12px 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+.more-section-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.5);
+  margin-bottom: 8px;
+  letter-spacing: 1px;
+}
+.more-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.more-grid button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 12px 4px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 12px;
+  color: #ccc;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.more-grid button i {
+  font-size: 20px;
+  color: var(--accent);
+  transition: transform 0.2s;
+}
+.more-grid button:hover {
+  background: rgba(255,255,255,0.08);
+  border-color: var(--accent);
+  transform: translateY(-2px);
+}
+.more-grid button:hover i {
+  transform: scale(1.1);
+}
 
 
 
@@ -7568,8 +7652,7 @@ window.addEventListener('scroll', () => {
 
 
 
-    <!-- 音量 + 工具按钮行 -->
-   <!-- 音量 + 工具按钮行 -->
+      <!-- 音量 + 工具按钮行 -->
 <div class="bgm-utils-row">
   <div class="bgm-volume-slider" style="position: relative;">
     <i class="fas fa-volume-down"></i>
@@ -7580,31 +7663,14 @@ window.addEventListener('scroll', () => {
 
 
 
-            <div class="bgm-tool-buttons" style="display:flex; flex-wrap:wrap; gap:4px; align-items:center;">
-  <button onclick="openMusicSearchWithHistory()" class="bgm-tool-btn" title="搜索歌曲"><i class="fas fa-search"></i></button>
+           <div class="bgm-tool-buttons">
+  <button onclick="openMusicSearchWithHistory()" class="bgm-tool-btn" title="搜索"><i class="fas fa-search"></i></button>
   <button onclick="openFavoritesModal()" class="bgm-tool-btn" title="我的喜欢"><i class="fas fa-heart"></i></button>
   <button onclick="openRecentPlayModal()" class="bgm-tool-btn" title="最近播放"><i class="fas fa-clock-rotate-left"></i></button>
   <button onclick="toggleBgmPlaylist()" class="bgm-tool-btn" title="播放列表"><i class="fas fa-list"></i></button>
   <button onclick="toggleLyricsPanel()" class="bgm-tool-btn" title="歌词"><i class="fas fa-microphone-lines"></i></button>
-  
-  <div style="position: relative;">
-    <button onclick="toggleToolMenu()" class="bgm-tool-btn" title="更多工具"><i class="fas fa-ellipsis-h"></i></button>
-    <div id="bgmToolMenu" class="bgm-tool-menu" style="display: none; position: absolute; bottom: 40px; right: 0; background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 6px; box-shadow: 0 8px 20px var(--shadow); z-index: 10;">
-      <button onclick="window.cycleBgmSkin(); toggleToolMenu()" class="bgm-tool-btn"><i class="fas fa-palette"></i> 皮肤</button>
-      <button onclick="cycleLyricColor(); toggleToolMenu()" class="bgm-tool-btn"><i class="fas fa-paint-brush"></i> 歌词颜色</button>
-      <button onclick="toggleEqPreset(); toggleToolMenu()" class="bgm-tool-btn"><i class="fas fa-sliders"></i> 音效</button>
-      <button onclick="toggleSleepTimer(); toggleToolMenu()" class="bgm-tool-btn"><i class="fas fa-hourglass"></i> 定时关闭</button>
-      <button onclick="cycleWaveformStyle(); toggleToolMenu()" class="bgm-tool-btn"><i class="fas fa-chart-line"></i> 波形</button>
-      <button onclick="togglePlaybackSpeed(); toggleToolMenu()" class="bgm-tool-btn"><i class="fas fa-tachometer-alt"></i> 倍速</button>
-      <button onclick="toggleABLoop(); toggleToolMenu()" class="bgm-tool-btn"><i class="fas fa-repeat"></i> AB循环</button>
-      <button onclick="toggleVolumeBoost(); toggleToolMenu()" class="bgm-tool-btn"><i class="fas fa-volume-up"></i> 增强</button>
-
-<button onclick="toggleQualityMode(); toggleToolMenu()" class="bgm-tool-btn" id="qualityModeBtn"><i class="fas fa-wave-square"></i> 音质模式</button>
-
-
-      <button onclick="toggleBgmMaximize(); toggleToolMenu()" class="bgm-tool-btn"><i class="fas fa-expand"></i> 最大化</button>
-    </div>
-  </div>
+  <button onclick="toggleBgmMaximize()" class="bgm-tool-btn" title="最大化"><i class="fas fa-expand" id="bgmMaximizeIcon"></i></button>
+  <button onclick="toggleMorePanel()" class="bgm-tool-btn" title="更多"><i class="fas fa-ellipsis-h"></i></button>
 </div>
 
 
@@ -25782,6 +25848,22 @@ document.addEventListener('click', function(e) {
 
 
 
+function toggleMorePanel() {
+  const panel = document.getElementById('morePanel');
+  if (!panel) return;
+  panel.style.display = (panel.style.display === 'none' || panel.style.display === '') ? 'block' : 'none';
+}
+// 点击外部关闭
+document.addEventListener('click', function(e) {
+  const panel = document.getElementById('morePanel');
+  if (panel && !e.target.closest('.more-panel') && !e.target.closest('.bgm-tool-btn')) {
+    panel.style.display = 'none';
+  }
+});
+
+
+
+
 
 function bgmToggle() {
   if (bgmState.playing) {
@@ -39880,6 +39962,42 @@ window.activateDynamicBg = async function(rewardId) {
   });
 })();
 </script>
+
+
+<!-- 更多功能面板（QQ音乐风格） -->
+<div id="morePanel" class="more-panel" style="display:none;">
+  <div class="more-panel-header">
+    <span>更多功能</span>
+    <button onclick="toggleMorePanel()"><i class="fas fa-times"></i></button>
+  </div>
+  <div class="more-panel-body">
+    <div class="more-section">
+      <div class="more-section-title">音效调节</div>
+      <div class="more-grid">
+        <button onclick="toggleEqPreset(); toggleMorePanel()"><i class="fas fa-sliders"></i><span>均衡器</span></button>
+        <button onclick="toggleVolumeBoost(); toggleMorePanel()"><i class="fas fa-plus-circle"></i><span>音量增强</span></button>
+        <button onclick="toggleQualityMode(); toggleMorePanel()"><i class="fas fa-wave-square"></i><span>音质模式</span></button>
+      </div>
+    </div>
+    <div class="more-section">
+      <div class="more-section-title">播放设置</div>
+      <div class="more-grid">
+        <button onclick="toggleSleepTimer(); toggleMorePanel()"><i class="fas fa-hourglass"></i><span>定时关闭</span></button>
+        <button onclick="toggleABLoop(); toggleMorePanel()"><i class="fas fa-repeat"></i><span>AB循环</span></button>
+        <button onclick="togglePlaybackSpeed(); toggleMorePanel()"><i class="fas fa-tachometer-alt"></i><span>播放速度</span></button>
+        <button onclick="cycleWaveformStyle(); toggleMorePanel()"><i class="fas fa-chart-line"></i><span>波形样式</span></button>
+      </div>
+    </div>
+    <div class="more-section">
+      <div class="more-section-title">个性化</div>
+      <div class="more-grid">
+        <button onclick="window.cycleBgmSkin(); toggleMorePanel()"><i class="fas fa-palette"></i><span>播放器皮肤</span></button>
+        <button onclick="cycleLyricColor(); toggleMorePanel()"><i class="fas fa-paint-brush"></i><span>歌词颜色</span></button>
+      </div>
+    </div>
+  </div>
+</div>
+
 
 
 
