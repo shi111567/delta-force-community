@@ -7692,6 +7692,11 @@ window.addEventListener('scroll', () => {
       </div>
     </div>
 
+
+
+
+
+
     <!-- 音量 + 工具按钮行 -->
     <div class="bgm-utils-row">
       <div class="bgm-volume-slider">
@@ -7702,10 +7707,18 @@ window.addEventListener('scroll', () => {
       <div class="bgm-tool-buttons">
 
 
+
+<button onclick="openRecentPlayModal()" class="bgm-tool-btn" title="最近播放"><i class="fas fa-clock-rotate-left"></i></button>
+
+
+<button onclick="toggleSleepTimer()" class="bgm-tool-btn" title="定时关闭"><i class="fas fa-hourglass"></i></button>
+
+
+
 <button onclick="window.cycleBgmSkin()" class="bgm-tool-btn" title="播放器皮肤"><i class="fas fa-palette"></i></button>
 
 
-
+<button onclick="toggleEqPreset()" class="bgm-tool-btn" title="音效"><i class="fas fa-sliders"></i></button>
 
 
 <button onclick="cycleLyricColor()" class="bgm-tool-btn" title="切换歌词颜色"><i class="fas fa-paint-brush"></i></button>
@@ -24035,6 +24048,219 @@ async function renderFavoritesList() {
 }
 
 
+// 记录最近播放（每次切歌或播放新歌时调用）
+async function addRecentSong(song) {
+  if (!APP.user || !song || !song.url) return;
+  const { error } = await sb.from('user_recent_songs')
+    .upsert({
+      user_id: APP.user.id,
+      song_identifier: song.songId || song.url,
+      song_name: song.name,
+      artist: song.artist || '',
+      song_url: song.url,
+      played_at: new Date().toISOString()
+    }, { onConflict: 'user_id, song_url' });
+  // 静默失败，不影响主流程
+}
+
+// 在 loadBGMTrack 末尾插入记录逻辑
+// 找到原有的 loadBGMTrack 函数（已有修改版本），在 updateFavoriteButtonState() 调用之前添加：
+// addRecentSong(bgmState.playlist[bgmState.idx]);
+
+
+
+async function openRecentPlayModal() {
+  if (!APP.user) { showToast('请先登录', 'warning'); return; }
+  openModal('recentPlayModal');
+  renderRecentPlayList();
+}
+
+
+// 最近播放相关函数结束
+
+// 定时关闭功能
+let sleepTimer = null;
+function toggleSleepTimer() {
+  if (sleepTimer) {
+    clearTimeout(sleepTimer);
+    sleepTimer = null;
+    showToast('定时关闭已取消', 'info');
+    return;
+  }
+  const minutes = prompt('设置定时关闭（分钟）：', '30');
+  if (!minutes || isNaN(minutes) || minutes <= 0) {
+    showToast('请输入有效分钟数', 'warning');
+    return;
+  }
+  const ms = minutes * 60000;
+  sleepTimer = setTimeout(() => {
+    bgmState.audio.pause();
+    bgmState.playing = false;
+    updateBGMBtn();
+    document.getElementById('bgmPlayer')?.classList.remove('playing');
+    showToast('⏰ 音乐已自动停止', 'info');
+    sleepTimer = null;
+  }, ms);
+  showToast(`将在 ${minutes} 分钟后停止播放`, 'success');
+}
+
+
+
+// 预设均衡器配置（单位：dB）
+const eqPresets = {
+  '关闭': [0, 0, 0, 0, 0, 0, 0, 0, 0],
+  '流行': [3, 2, 1, 0, -1, -1, 0, 2, 3],
+  '摇滚': [5, 4, 3, 2, -2, -3, 0, 2, 4],
+  '古典': [0, 2, 4, 5, 5, 4, 2, 0, -1],
+  '电子': [4, 5, 3, 0, -1, 0, 2, 4, 5],
+  '人声': [2, 0, 2, 4, 5, 5, 3, 1, 0],
+  '低音增强': [6, 5, 3, 0, 0, 0, 0, 0, 0],
+  '高音增强': [0, 0, 0, 0, 0, 3, 4, 5, 6]
+};
+
+function toggleEqPreset() {
+  // 创建一个简单的选择界面
+  const presets = Object.keys(eqPresets);
+  const options = presets.map((name, i) => `
+    <div class="eq-option" onclick="selectEqPreset('${name}')" style="
+      padding: 10px 16px; cursor: pointer; border-radius: 8px; margin: 4px 0;
+      background: ${name === currentEqPreset ? 'var(--accent)' : 'var(--surface)'};
+      color: ${name === currentEqPreset ? 'white' : 'var(--text)'};
+    ">${name}</div>
+  `).join('');
+
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay active';
+  modal.style.zIndex = '10006';
+  modal.innerHTML = `
+    <div class="modal-content active" style="max-width:300px; padding:20px; text-align:center;">
+      <h3 style="margin-bottom:12px; font-size:1.2rem; display:flex; align-items:center; justify-content:center; gap:8px;">
+        <i class="fas fa-sliders"></i> 选择音效
+      </h3>
+      <div style="max-height:300px; overflow-y:auto;">${options}</div>
+      <button class="btn-ghost text-sm" style="margin-top:12px; width:100%;" onclick="this.closest('.modal-overlay').remove()">取消</button>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+}
+
+function selectEqPreset(name) {
+  currentEqPreset = name;
+  applyEqPreset(name);
+  document.querySelector('.modal-overlay.active')?.remove();
+  showToast(`🎚️ 音效：${name}`, 'success');
+}
+
+function applyEqPreset(name) {
+  if (!audioCtx || !analyser) return;
+
+  // 清除旧的滤波器
+  eqFilters.forEach(f => f.disconnect());
+  eqFilters = [];
+
+  if (name === '关闭') {
+    // 恢复原始连接：source → analyser → destination
+    source.disconnect();
+    source.connect(analyser);
+    analyser.disconnect();
+    analyser.connect(audioCtx.destination);
+    showToast('均衡器已关闭', 'info');
+    return;
+  }
+
+  const gains = eqPresets[name];
+  if (!gains) return;
+
+  const frequencies = [32, 64, 125, 250, 500, 1000, 2000, 4000, 8000];
+  
+  // 断开 source 与 analyser 的直接连接
+  source.disconnect();
+  
+  // 重新构建滤波器链：source → filter1 → filter2 → ... → analyser → destination
+  let lastNode = source;
+  gains.forEach((gain, i) => {
+    const filter = audioCtx.createBiquadFilter();
+    filter.type = 'peaking';
+    filter.frequency.value = frequencies[i];
+    filter.Q.value = 1.0;
+    filter.gain.value = gain;
+    
+    lastNode.connect(filter);
+    lastNode = filter;
+    eqFilters.push(filter);
+  });
+  
+  // 最后一个滤波器连接 analyser
+  lastNode.connect(analyser);
+  analyser.disconnect();
+  analyser.connect(audioCtx.destination);
+  
+  showToast(`🎚️ 音效：${name}`, 'success');
+}
+
+
+
+async function renderRecentPlayList() {
+  const container = document.getElementById('recentPlayList');
+  if (!container) return;
+  container.innerHTML = '<div class="text-center py-4 text-xs" style="color:var(--muted);">加载中...</div>';
+
+  const { data, error } = await sb.from('user_recent_songs')
+    .select('song_name, song_url, artist')
+    .eq('user_id', APP.user.id)
+    .order('played_at', { ascending: false })
+    .limit(50);
+
+  if (error || !data || data.length === 0) {
+    container.innerHTML = '<div class="text-center py-8 text-xs" style="color:var(--muted);">暂无播放记录</div>';
+    return;
+  }
+
+  container.innerHTML = data.map(song => {
+    const name = song.song_name || '未知歌曲';
+    const artist = song.artist || '未知歌手';
+    const url = song.song_url || '';
+    return `
+    <div class="flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 transition-all" style="border-bottom:1px solid var(--border);">
+      <i class="fas fa-music" style="color:var(--accent);"></i>
+      <div class="flex-1 min-w-0" onclick="playRecentFromList('${url.replace(/'/g, "\\'")}','${name.replace(/'/g, "\\'")}','${artist.replace(/'/g, "\\'")}')">
+        <div class="text-sm font-medium truncate">${name}</div>
+        <div class="text-xs" style="color:var(--muted);">${artist}</div>
+      </div>
+      <button class="btn-ghost text-xs px-3 py-1 rounded-full" onclick="event.stopPropagation(); removeRecentSong('${url.replace(/'/g, "\\'")}')">
+        <i class="fas fa-trash-alt text-red-400"></i>
+      </button>
+    </div>
+  `;
+  }).join('');
+}
+
+function playRecentFromList(url, name, artist) {
+  bgmState.playlist = [{ name, url, artist }];
+  bgmState.idx = 0;
+  loadBGMTrack();
+  bgmState.audio.play().then(() => {
+    bgmState.playing = true;
+    updateBGMBtn();
+    document.getElementById('bgmPlayer')?.classList.add('playing');
+  }).catch(() => {});
+  renderBGMPlaylist();
+  closeModal('recentPlayModal');
+  showToast(`🎵 正在播放：${name}`, 'success');
+}
+
+async function removeRecentSong(url) {
+  if (!APP.user) return;
+  await sb.from('user_recent_songs').delete()
+    .eq('user_id', APP.user.id)
+    .eq('song_url', url);
+  renderRecentPlayList();
+  showToast('已移除', 'info');
+}
+
+
+
 
 async function deleteFavoriteByUrl(url) {
   if (!APP.user) return;
@@ -24096,6 +24322,10 @@ function updateFavoriteButtonState() {
 const originalLoadBGMTrack = loadBGMTrack;
 loadBGMTrack = function() {
   originalLoadBGMTrack();
+
+
+
+
   updateFavoriteButtonState();
 };
 
@@ -24246,6 +24476,9 @@ function toggleLikeSong(song) {
 
 // ==================== 播放器沉浸式皮肤系统 · 暖色/动感/三端适配 ====================
 let bgmSkinType = 'swing';        // 当前皮肤
+// 均衡器状态
+let eqFilters = [];
+let currentEqPreset = 'none';
 let bgmEffectCanvas, bgmEffectCtx;
 let bgmSkinAnimation = null;
 let skinParticles = [];
@@ -25392,6 +25625,12 @@ document.getElementById('bgmPlayer')?.classList.remove('playing');
  
   // 重置进度显示
   updateBGMProgress();
+
+
+  // 记录最近播放
+  if (APP.user && bgmState.playlist.length > bgmState.idx) {
+    addRecentSong(bgmState.playlist[bgmState.idx]);
+  }
 
 
   if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
@@ -34019,6 +34258,21 @@ function exportAllFavoritesAsText() {
 
 
 
+<!-- 最近播放弹窗 -->
+<div class="modal-overlay" id="recentPlayModal" style="z-index:10005;">
+  <div class="modal-content" style="max-width:480px; width:95%; max-height:70vh; overflow-y:auto; background:var(--card); border-radius:24px; padding:20px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+      <h3 style="font-size:1.3rem; font-weight:700;"><i class="fas fa-clock-rotate-left mr-2" style="color:var(--accent);"></i>最近播放</h3>
+      <button onclick="closeModal('recentPlayModal')" style="background:var(--surface); border:none; width:32px; height:32px; border-radius:50%;"><i class="fas fa-times"></i></button>
+    </div>
+    <div id="recentPlayList" class="space-y-2"></div>
+    <p class="text-xs text-center mt-3" style="color:var(--muted);">最近50首</p>
+  </div>
+</div>
+
+
+
+
 
 <style>
 
@@ -36890,6 +37144,33 @@ html[data-time="night"] .profile-top-area   { background: #252A3A; }
   box-shadow: 0 8px 20px var(--shadow);
   max-height: 220px;
   overflow-y: auto;
+}
+
+
+
+/* 播放器工具按钮优化 */
+.bgm-tool-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  transition: all 0.2s;
+}
+.bgm-tool-btn:hover {
+  background: rgba(255,107,53,0.15);
+  color: var(--accent);
+}
+
+/* 最近播放弹窗适配 */
+@media (max-width: 640px) {
+  #recentPlayModal .modal-content {
+    padding: 16px 12px !important;
+  }
 }
 
 
