@@ -7570,11 +7570,21 @@ window.addEventListener('scroll', () => {
 
     <!-- 音量 + 工具按钮行 -->
     <div class="bgm-utils-row">
-      <div class="bgm-volume-slider">
-        <i class="fas fa-volume-down"></i>
-        <input type="range" min="0" max="100" value="50" class="bgm-vol-range" onchange="bgmSetVolume(this.value)" id="bgmVol">
-        <i class="fas fa-volume-up"></i>
-      </div>
+      <div class="bgm-volume-slider" style="position: relative;">
+  <i class="fas fa-volume-down"></i>
+  <div id="volTooltip" style="position: absolute; left: 50%; transform: translateX(-50%); bottom: 100%; margin-bottom: 8px; background: var(--accent); color: white; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; opacity: 0; transition: opacity 0.25s; pointer-events: none; white-space: nowrap;">50</div>
+
+
+  <div class="bgm-volume-slider" style="position: relative;">
+  <i class="fas fa-volume-down"></i>
+  <div id="volTooltip" style="position: absolute; left: 50%; transform: translateX(-50%); bottom: calc(100% + 8px); background: var(--accent); color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; opacity: 0; transition: opacity 0.25s; pointer-events: none; white-space: nowrap;">音量50%</div>
+  <input type="range" min="0" max="100" value="50" class="bgm-vol-range" onchange="bgmSetVolume(this.value)" id="bgmVol">
+  <i class="fas fa-volume-up"></i>
+</div>
+
+
+  <i class="fas fa-volume-up"></i>
+</div>
 
 
             <div class="bgm-tool-buttons" style="display:flex; flex-wrap:wrap; gap:4px; align-items:center;">
@@ -25637,8 +25647,24 @@ function bgmPrev() {
 
 function bgmSetVolume(val) {
   bgmState.volume = val / 100;
+
+
+
   bgmState.audio.volume = bgmState.volume;
   $('bgmVol').value = val;
+
+    // 更新浮层提示
+  const tip = document.getElementById('volTooltip');
+  if (tip) {
+    tip.textContent = '音量' + val + '%';
+    tip.style.opacity = '1';
+    clearTimeout(tip._hideTimer);
+    tip._hideTimer = setTimeout(() => {
+      tip.style.opacity = '0';
+    }, 1200);
+  }
+
+
 }
 
 function bgmSeek(e) {
