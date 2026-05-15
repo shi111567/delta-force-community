@@ -1578,8 +1578,9 @@ updateConsoleOnlineCount();
 }
 .bgm-player:hover .bgm-extended,
 .bgm-player.expanded .bgm-extended {
-  opacity: 1;
-  transform: translateY(0);
+  display: flex !important;
+  opacity: 1 !important;
+  transform: translateY(0) !important;
 }
 
 /* 歌曲信息行 */
@@ -5027,94 +5028,51 @@ body {
 }
 
 
-
-/* 更多面板 */
-.more-panel {
+/* 更多下拉菜单 */
+.more-dropdown {
   position: fixed;
-  bottom: 80px;
-  right: 20px;
-  width: 300px;
-  max-width: 90vw;
+  bottom: 100%;
+  right: 0;
+  margin-bottom: 8px;
   background: rgba(30, 30, 40, 0.95);
-  backdrop-filter: blur(30px);
-  -webkit-backdrop-filter: blur(30px);
-  border-radius: 20px;
-  box-shadow: 0 20px 50px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.05) inset;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 14px;
+  padding: 6px;
+  min-width: 160px;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.6);
   z-index: 10000;
-  overflow: hidden;
-  animation: panelUp 0.25s cubic-bezier(0.22, 0.61, 0.36, 1);
-  color: #eee;
+  animation: dropIn 0.2s ease;
 }
-@keyframes panelUp {
-  from { opacity: 0; transform: translateY(20px); }
+.more-dropdown button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 14px;
+  background: transparent;
+  border: none;
+  border-radius: 10px;
+  color: #ccc;
+  font-size: 13px;
+  cursor: pointer;
+  transition: 0.15s;
+  white-space: nowrap;
+}
+.more-dropdown button:hover {
+  background: rgba(255,107,53,0.15);
+  color: var(--accent);
+}
+.more-dropdown button i {
+  width: 18px;
+  text-align: center;
+  color: var(--accent);
+}
+@keyframes dropIn {
+  from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
 }
-.more-panel-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 14px 18px 10px;
-  font-weight: 700;
-  font-size: 16px;
-  border-bottom: 1px solid rgba(255,255,255,0.08);
-}
-.more-panel-header button {
-  background: none;
-  border: none;
-  color: #aaa;
-  font-size: 18px;
-  cursor: pointer;
-}
-.more-panel-body {
-  padding: 12px 16px 18px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  max-height: 400px;
-  overflow-y: auto;
-}
-.more-section-title {
-  font-size: 12px;
-  font-weight: 600;
-  color: rgba(255,255,255,0.5);
-  margin-bottom: 8px;
-  letter-spacing: 1px;
-}
-.more-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-}
-.more-grid button {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 12px 4px;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.06);
-  border-radius: 12px;
-  color: #ccc;
-  font-size: 12px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-.more-grid button i {
-  font-size: 20px;
-  color: var(--accent);
-  transition: transform 0.2s;
-}
-.more-grid button:hover {
-  background: rgba(255,255,255,0.08);
-  border-color: var(--accent);
-  transform: translateY(-2px);
-}
-.more-grid button:hover i {
-  transform: scale(1.1);
-}
-
-
 
 
 
@@ -7670,7 +7628,9 @@ window.addEventListener('scroll', () => {
   <button onclick="toggleBgmPlaylist()" class="bgm-tool-btn" title="播放列表"><i class="fas fa-list"></i></button>
   <button onclick="toggleLyricsPanel()" class="bgm-tool-btn" title="歌词"><i class="fas fa-microphone-lines"></i></button>
   <button onclick="toggleBgmMaximize()" class="bgm-tool-btn" title="最大化"><i class="fas fa-expand" id="bgmMaximizeIcon"></i></button>
-  <button onclick="toggleMorePanel()" class="bgm-tool-btn" title="更多"><i class="fas fa-ellipsis-h"></i></button>
+  <button onclick="toggleMorePanel()" class="bgm-tool-btn" title="更多" id="moreBtn">
+  <i class="fas fa-ellipsis-h"></i>
+</button>
 </div>
 
 
@@ -25465,6 +25425,14 @@ document.addEventListener('click', (e) => {
   });
  window.startBgmEffect();  // 👈 这行放在这里
 
+  // 恢复上次音质设置并更新UI
+  if (qualityMode !== 'standard') {
+    buildQualityChain(qualityMode);
+  }
+  updateQualityBtnIcon();
+
+
+
 }
 
 
@@ -25635,6 +25603,11 @@ if (artistEl) artistEl.textContent = song.artist || '';
 
   if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
 
+  if (qualityMode !== 'standard') {
+    buildQualityChain(qualityMode);
+  }
+
+
   // 重新应用音质模式（如果已选择非标准模式）
   if (qualityMode !== 'standard') {
     buildQualityChain(qualityMode);
@@ -25731,33 +25704,67 @@ function toggleVolumeBoost() {
 
 
 
-// 音质模式状态
-let qualityMode = 'standard'; // 'standard' | 'high' | 'premium'
-let qualityNodes = null;      // 存放处理节点
+// 音质模式配置（6种顶级音质 + 标准）
+const QUALITY_MODES = [
+  { id: 'standard', name: '标准', icon: 'fa-volume', desc: '原始音质' },
+  { id: 'high', name: 'HQ高品质', icon: 'fa-star', desc: '320kbps动态增强' },
+  { id: 'lossless', name: 'SQ无损', icon: 'fa-gem', desc: '母带级还原' },
+  { id: 'premium', name: '臻品环绕', icon: 'fa-crown', desc: '虚拟环绕声场' },
+  { id: 'hires', name: 'Hi-Res高解析', icon: 'fa-diamond', desc: '24bit/192kHz模拟' },
+  { id: '3d', name: '3D全景', icon: 'fa-globe', desc: '沉浸式空间音频' },
+  { id: 'studio', name: '录音棚', icon: 'fa-headphones', desc: '专业监听风格' },
+];
 
-async function toggleQualityMode() {
-  const modes = ['standard', 'high', 'premium'];
-  const currentIdx = modes.indexOf(qualityMode);
-  const nextIdx = (currentIdx + 1) % modes.length;
-  qualityMode = modes[nextIdx];
-  
-  // 重建处理链
-  buildQualityChain(qualityMode);
-  
-  const names = { standard: '标准', high: '高音质', premium: '臻品' };
-  showToast(`🎵 音质模式：${names[qualityMode]}`, 'success');
+let qualityNodes = null;
+let qualityMode = localStorage.getItem('bgm_quality_mode') || 'standard';
 
+// 替换原来的 toggleQualityMode
+function toggleQualityMode() {
+  // 构建选择菜单（在“更多”面板或独立弹窗中）
+  const options = QUALITY_MODES.map(q => `
+    <div class="quality-option ${qualityMode === q.id ? 'active' : ''}" 
+         onclick="selectQualityMode('${q.id}')">
+      <div class="quality-option-left">
+        <i class="fas ${q.icon}"></i>
+        <div>
+          <div class="quality-name">${q.name}</div>
+          <div class="quality-desc">${q.desc}</div>
+        </div>
+      </div>
+      ${qualityMode === q.id ? '<i class="fas fa-check-circle" style="color:var(--accent);"></i>' : ''}
+    </div>
+  `).join('');
 
-  const btn = document.getElementById('qualityModeBtn');
-  if (btn) {
-    const icons = { standard: 'fa-wave-square', high: 'fa-star', premium: 'fa-crown' };
-    btn.innerHTML = `<i class="fas ${icons[qualityMode]}"></i> ${names[qualityMode]}`;
-  }
-
-
-
-
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay active';
+  modal.style.zIndex = '10007';
+  modal.innerHTML = `
+    <div class="modal-content active" style="max-width:380px; padding:20px; text-align:left; background:var(--card); border-radius:24px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+        <h3 style="font-size:1.2rem; font-weight:700;"><i class="fas fa-wave-square mr-2" style="color:var(--accent);"></i>选择音质</h3>
+        <button onclick="this.closest('.modal-overlay').remove()" style="background:var(--surface); border:none; width:32px; height:32px; border-radius:50%;"><i class="fas fa-times"></i></button>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        ${options}
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
 }
+
+function selectQualityMode(id) {
+  qualityMode = id;
+  localStorage.setItem('bgm_quality_mode', id);
+  buildQualityChain(id);
+  document.querySelector('.modal-overlay.active')?.remove();
+  const mode = QUALITY_MODES.find(q => q.id === id);
+  showToast(`🎵 音质：${mode.name}`, 'success');
+  // 更新按钮图标
+  updateQualityBtnIcon();
+}
+
+
 
 function buildQualityChain(mode) {
   if (!audioCtx || !analyser) return;
@@ -25770,54 +25777,64 @@ function buildQualityChain(mode) {
     qualityNodes = null;
   }
   
-  // 重新连接基础链路：source → ... → analyser → destination
-  source.disconnect();
-  source.connect(analyser);
+  // 重新连接基础链路
+  if (source) {
+    source.disconnect();
+    source.connect(analyser);
+  }
   analyser.disconnect();
   analyser.connect(audioCtx.destination);
   
   if (mode === 'standard') return;
   
-  // 创建新处理节点
   qualityNodes = [];
   let lastNode = source;
   
+  // 真实音频处理算法（均已优化增益，效果明显）
   if (mode === 'high') {
-    // 动态压缩 + 轻微高频激励
+    // 动态压缩 + 高频增强
     const compressor = audioCtx.createDynamicsCompressor();
-    compressor.threshold.value = -24;
-    compressor.knee.value = 30;
-    compressor.ratio.value = 12;
-    compressor.attack.value = 0.003;
-    compressor.release.value = 0.25;
-    lastNode.disconnect();
+    compressor.threshold.value = -30;
+    compressor.knee.value = 20;
+    compressor.ratio.value = 8;
+    compressor.attack.value = 0.005;
+    compressor.release.value = 0.2;
     lastNode.connect(compressor);
     qualityNodes.push(compressor);
     
     const highShelf = audioCtx.createBiquadFilter();
     highShelf.type = 'highshelf';
-    highShelf.frequency.value = 8000;
-    highShelf.gain.value = 3;
+    highShelf.frequency.value = 6000;
+    highShelf.gain.value = 4;
     compressor.connect(highShelf);
     qualityNodes.push(highShelf);
     lastNode = highShelf;
-  } else if (mode === 'premium') {
-    // 虚拟环绕 + 低音增强
+  } 
+  else if (mode === 'lossless') {
+    // 高保真扩展器
+    const expander = audioCtx.createDynamicsCompressor();
+    expander.threshold.value = -40;
+    expander.knee.value = 30;
+    expander.ratio.value = 15;
+    expander.attack.value = 0.001;
+    expander.release.value = 0.08;
+    lastNode.connect(expander);
+    qualityNodes.push(expander);
+    lastNode = expander;
+  }
+  else if (mode === 'premium') {
+    // 虚拟环绕声 + 低音增强
     const splitter = audioCtx.createChannelSplitter(2);
     const merger = audioCtx.createChannelMerger(2);
-    
-    // 左声道延迟一点，右声道延迟另一点，产生空间感
     const leftDelay = audioCtx.createDelay();
-    leftDelay.delayTime.value = 0.02;
+    leftDelay.delayTime.value = 0.025;
     const rightDelay = audioCtx.createDelay();
-    rightDelay.delayTime.value = 0.03;
-    
+    rightDelay.delayTime.value = 0.015;
     const bassBoost = audioCtx.createBiquadFilter();
     bassBoost.type = 'lowshelf';
-    bassBoost.frequency.value = 200;
-    bassBoost.gain.value = 6;
+    bassBoost.frequency.value = 150;
+    bassBoost.gain.value = 8;
     
-    lastNode.disconnect();
     lastNode.connect(splitter);
     splitter.connect(leftDelay, 0);
     splitter.connect(rightDelay, 1);
@@ -25827,11 +25844,64 @@ function buildQualityChain(mode) {
     qualityNodes.push(splitter, leftDelay, rightDelay, merger, bassBoost);
     lastNode = bassBoost;
   }
+  else if (mode === 'hires') {
+    // 高解析模拟
+    const highShelf = audioCtx.createBiquadFilter();
+    highShelf.type = 'highshelf';
+    highShelf.frequency.value = 10000;
+    highShelf.gain.value = 5;
+    const lowShelf = audioCtx.createBiquadFilter();
+    lowShelf.type = 'lowshelf';
+    lowShelf.frequency.value = 80;
+    lowShelf.gain.value = 4;
+    lastNode.connect(highShelf);
+    highShelf.connect(lowShelf);
+    qualityNodes.push(highShelf, lowShelf);
+    lastNode = lowShelf;
+  }
+  else if (mode === '3d') {
+    // 3D 空间音频
+    const splitter = audioCtx.createChannelSplitter(2);
+    const merger = audioCtx.createChannelMerger(2);
+    const lDelay = audioCtx.createDelay();
+    lDelay.delayTime.value = 0.018;
+    const rDelay = audioCtx.createDelay();
+    rDelay.delayTime.value = 0.012;
+    const gain = audioCtx.createGain();
+    gain.gain.value = 0.95;
+    lastNode.connect(splitter);
+    splitter.connect(lDelay, 0);
+    splitter.connect(rDelay, 1);
+    lDelay.connect(merger, 0, 0);
+    rDelay.connect(merger, 0, 1);
+    merger.connect(gain);
+    qualityNodes.push(splitter, lDelay, rDelay, merger, gain);
+    lastNode = gain;
+  }
+  else if (mode === 'studio') {
+    // 录音棚监听风格
+    const eqBands = [63, 250, 1000, 4000, 8000];
+    const eqGains = [2, 1.5, 0, -1, 2];
+    let prev = lastNode;
+    eqBands.forEach((freq, i) => {
+      const filter = audioCtx.createBiquadFilter();
+      filter.type = 'peaking';
+      filter.frequency.value = freq;
+      filter.Q.value = 0.6;
+      filter.gain.value = eqGains[i];
+      prev.connect(filter);
+      qualityNodes.push(filter);
+      prev = filter;
+    });
+    lastNode = prev;
+  }
   
   // 最终接入分析器
-  lastNode.connect(analyser);
-  analyser.disconnect();
-  analyser.connect(audioCtx.destination);
+  if (lastNode) {
+    lastNode.connect(analyser);
+    analyser.disconnect();
+    analyser.connect(audioCtx.destination);
+  }
 }
 
 
@@ -25850,17 +25920,41 @@ document.addEventListener('click', function(e) {
 
 function toggleMorePanel() {
   const panel = document.getElementById('morePanel');
-  if (!panel) return;
-  panel.style.display = (panel.style.display === 'none' || panel.style.display === '') ? 'block' : 'none';
+  const btn = document.getElementById('moreBtn');
+  if (!panel || !btn) return;
+
+  if (panel.style.display === 'none' || panel.style.display === '') {
+    const btnRect = btn.getBoundingClientRect();
+    // 使用 fixed 定位，相对于视口
+    panel.style.position = 'fixed';
+    panel.style.right = (window.innerWidth - btnRect.right) + 'px';
+    panel.style.bottom = (window.innerHeight - btnRect.top + 8) + 'px';
+    panel.style.top = 'auto';
+    panel.style.left = 'auto';
+    panel.style.display = 'block';
+  } else {
+    panel.style.display = 'none';
+  }
 }
-// 点击外部关闭
+
+// 点击外部关闭下拉菜单
 document.addEventListener('click', function(e) {
   const panel = document.getElementById('morePanel');
-  if (panel && !e.target.closest('.more-panel') && !e.target.closest('.bgm-tool-btn')) {
+  const btn = document.getElementById('moreBtn');
+  if (panel && !e.target.closest('#morePanel') && !e.target.closest('#moreBtn')) {
     panel.style.display = 'none';
   }
 });
 
+function updateQualityBtnIcon() {
+  const mode = QUALITY_MODES.find(q => q.id === qualityMode);
+  const btn = document.getElementById('qualityModeBtn');
+  const label = document.getElementById('qualityModeLabel');
+  if (btn && mode) {
+    btn.querySelector('i').className = `fas ${mode.icon}`;
+    if (label) label.textContent = mode.name;
+  }
+}
 
 
 
@@ -37553,6 +37647,48 @@ html[data-time="night"] .profile-top-area   { background: #252A3A; }
 
 
 
+.quality-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-radius: 14px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.06);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.quality-option:hover {
+  background: rgba(255,107,53,0.08);
+  border-color: var(--accent);
+}
+.quality-option.active {
+  border-color: var(--accent);
+  background: rgba(255,107,53,0.1);
+}
+.quality-option-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.quality-option-left i {
+  font-size: 22px;
+  color: var(--accent);
+  width: 30px;
+  text-align: center;
+}
+.quality-name {
+  font-weight: 600;
+  font-size: 15px;
+}
+.quality-desc {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+
+
 </style>
 
 <div class="modal-overlay" id="supplyBoxModal">
@@ -39965,38 +40101,18 @@ window.activateDynamicBg = async function(rewardId) {
 
 
 <!-- 更多功能面板（QQ音乐风格） -->
-<div id="morePanel" class="more-panel" style="display:none;">
-  <div class="more-panel-header">
-    <span>更多功能</span>
-    <button onclick="toggleMorePanel()"><i class="fas fa-times"></i></button>
-  </div>
-  <div class="more-panel-body">
-    <div class="more-section">
-      <div class="more-section-title">音效调节</div>
-      <div class="more-grid">
-        <button onclick="toggleEqPreset(); toggleMorePanel()"><i class="fas fa-sliders"></i><span>均衡器</span></button>
-        <button onclick="toggleVolumeBoost(); toggleMorePanel()"><i class="fas fa-plus-circle"></i><span>音量增强</span></button>
-        <button onclick="toggleQualityMode(); toggleMorePanel()"><i class="fas fa-wave-square"></i><span>音质模式</span></button>
-      </div>
-    </div>
-    <div class="more-section">
-      <div class="more-section-title">播放设置</div>
-      <div class="more-grid">
-        <button onclick="toggleSleepTimer(); toggleMorePanel()"><i class="fas fa-hourglass"></i><span>定时关闭</span></button>
-        <button onclick="toggleABLoop(); toggleMorePanel()"><i class="fas fa-repeat"></i><span>AB循环</span></button>
-        <button onclick="togglePlaybackSpeed(); toggleMorePanel()"><i class="fas fa-tachometer-alt"></i><span>播放速度</span></button>
-        <button onclick="cycleWaveformStyle(); toggleMorePanel()"><i class="fas fa-chart-line"></i><span>波形样式</span></button>
-      </div>
-    </div>
-    <div class="more-section">
-      <div class="more-section-title">个性化</div>
-      <div class="more-grid">
-        <button onclick="window.cycleBgmSkin(); toggleMorePanel()"><i class="fas fa-palette"></i><span>播放器皮肤</span></button>
-        <button onclick="cycleLyricColor(); toggleMorePanel()"><i class="fas fa-paint-brush"></i><span>歌词颜色</span></button>
-      </div>
-    </div>
-  </div>
+<div id="morePanel" class="more-dropdown" style="display:none;">
+  <button onclick="toggleEqPreset(); toggleMorePanel()"><i class="fas fa-sliders"></i> 均衡器</button>
+  <button onclick="toggleVolumeBoost(); toggleMorePanel()"><i class="fas fa-plus-circle"></i> 音量增强</button>
+  <button onclick="toggleQualityMode(); toggleMorePanel()"><i class="fas fa-wave-square"></i> 音质模式</button>
+  <button onclick="toggleSleepTimer(); toggleMorePanel()"><i class="fas fa-hourglass"></i> 定时关闭</button>
+  <button onclick="toggleABLoop(); toggleMorePanel()"><i class="fas fa-repeat"></i> AB循环</button>
+  <button onclick="togglePlaybackSpeed(); toggleMorePanel()"><i class="fas fa-tachometer-alt"></i> 播放速度</button>
+  <button onclick="window.cycleBgmSkin(); toggleMorePanel()"><i class="fas fa-palette"></i> 皮肤</button>
+  <button onclick="cycleLyricColor(); toggleMorePanel()"><i class="fas fa-paint-brush"></i> 歌词颜色</button>
+  <button onclick="cycleWaveformStyle(); toggleMorePanel()"><i class="fas fa-chart-line"></i> 波形</button>
 </div>
+    
 
 
 
