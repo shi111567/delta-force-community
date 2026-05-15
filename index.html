@@ -7581,21 +7581,27 @@ window.addEventListener('scroll', () => {
 
 
             <div class="bgm-tool-buttons" style="display:flex; flex-wrap:wrap; gap:4px; align-items:center;">
-        <button onclick="openMusicSearchWithHistory()" class="bgm-tool-btn" title="搜索歌曲"><i class="fas fa-search"></i></button>
-        <button onclick="openFavoritesModal()" class="bgm-tool-btn" title="我的喜欢"><i class="fas fa-heart"></i></button>
-        <button onclick="openRecentPlayModal()" class="bgm-tool-btn" title="最近播放"><i class="fas fa-clock-rotate-left"></i></button>
-        <button onclick="toggleBgmPlaylist()" class="bgm-tool-btn" title="播放列表"><i class="fas fa-list"></i></button>
-        <button onclick="toggleLyricsPanel()" class="bgm-tool-btn" title="歌词"><i class="fas fa-microphone-lines"></i></button>
-        <button onclick="window.cycleBgmSkin()" class="bgm-tool-btn" title="播放器皮肤"><i class="fas fa-palette"></i></button>
-        <button onclick="cycleLyricColor()" class="bgm-tool-btn" title="歌词颜色"><i class="fas fa-paint-brush"></i></button>
-        <button onclick="toggleEqPreset()" class="bgm-tool-btn" title="音效"><i class="fas fa-sliders"></i></button>
-        <button onclick="toggleSleepTimer()" class="bgm-tool-btn" title="定时关闭"><i class="fas fa-hourglass"></i></button>
-        <button onclick="cycleWaveformStyle()" class="bgm-tool-btn" title="切换波形"><i class="fas fa-chart-line"></i></button>
-        <button onclick="togglePlaybackSpeed()" class="bgm-tool-btn" title="播放速度"><i class="fas fa-tachometer-alt"></i></button>
-        <button onclick="toggleABLoop()" class="bgm-tool-btn" title="AB循环"><i class="fas fa-repeat"></i></button>
-        <button onclick="toggleVolumeBoost()" class="bgm-tool-btn" title="音量增强"><i class="fas fa-volume-up"></i></button>
-        <button onclick="toggleBgmMaximize()" class="bgm-tool-btn" title="最大化"><i class="fas fa-expand"></i></button>
-      </div>
+  <button onclick="openMusicSearchWithHistory()" class="bgm-tool-btn" title="搜索歌曲"><i class="fas fa-search"></i></button>
+  <button onclick="openFavoritesModal()" class="bgm-tool-btn" title="我的喜欢"><i class="fas fa-heart"></i></button>
+  <button onclick="openRecentPlayModal()" class="bgm-tool-btn" title="最近播放"><i class="fas fa-clock-rotate-left"></i></button>
+  <button onclick="toggleBgmPlaylist()" class="bgm-tool-btn" title="播放列表"><i class="fas fa-list"></i></button>
+  <button onclick="toggleLyricsPanel()" class="bgm-tool-btn" title="歌词"><i class="fas fa-microphone-lines"></i></button>
+  
+  <div style="position: relative;">
+    <button onclick="toggleToolMenu()" class="bgm-tool-btn" title="更多工具"><i class="fas fa-ellipsis-h"></i></button>
+    <div id="bgmToolMenu" class="bgm-tool-menu" style="display: none; position: absolute; bottom: 40px; right: 0; background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 6px; box-shadow: 0 8px 20px var(--shadow); z-index: 10;">
+      <button onclick="window.cycleBgmSkin(); toggleToolMenu()" class="bgm-tool-btn"><i class="fas fa-palette"></i> 皮肤</button>
+      <button onclick="cycleLyricColor(); toggleToolMenu()" class="bgm-tool-btn"><i class="fas fa-paint-brush"></i> 歌词颜色</button>
+      <button onclick="toggleEqPreset(); toggleToolMenu()" class="bgm-tool-btn"><i class="fas fa-sliders"></i> 音效</button>
+      <button onclick="toggleSleepTimer(); toggleToolMenu()" class="bgm-tool-btn"><i class="fas fa-hourglass"></i> 定时关闭</button>
+      <button onclick="cycleWaveformStyle(); toggleToolMenu()" class="bgm-tool-btn"><i class="fas fa-chart-line"></i> 波形</button>
+      <button onclick="togglePlaybackSpeed(); toggleToolMenu()" class="bgm-tool-btn"><i class="fas fa-tachometer-alt"></i> 倍速</button>
+      <button onclick="toggleABLoop(); toggleToolMenu()" class="bgm-tool-btn"><i class="fas fa-repeat"></i> AB循环</button>
+      <button onclick="toggleVolumeBoost(); toggleToolMenu()" class="bgm-tool-btn"><i class="fas fa-volume-up"></i> 增强</button>
+      <button onclick="toggleBgmMaximize(); toggleToolMenu()" class="bgm-tool-btn"><i class="fas fa-expand"></i> 最大化</button>
+    </div>
+  </div>
+</div>
 
 
 
@@ -25450,6 +25456,23 @@ if (bgmState.audio._mediaSource) {
   
   // 更新 UI
   $('bgmTitle').textContent = song.name;
+
+
+  // 尝试设置封面图
+  const cdCover = document.getElementById('bgmCdCover');
+  if (cdCover && song.songId) {
+    fetch(`${MUSIC_API}?types=url&source=netease&id=${song.songId}&br=320`)
+      .then(r => r.json())
+      .then(data => {
+        if (data && data.pic) {
+          cdCover.innerHTML = `<img src="${data.pic}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
+        } else {
+          cdCover.innerHTML = '<i class="fas fa-compact-disc" id="bgmCdIcon"></i>';
+        }
+      }).catch(() => {});
+  }
+
+
   const artistEl = $('bgmArtist');
 if (artistEl) artistEl.textContent = song.artist || '';
   
@@ -25528,6 +25551,14 @@ function updateBGMProgress() {
   // 更新歌词
   if (typeof updateKaraokeLyric === 'function') {
     updateKaraokeLyric();
+
+  // 更新进度条浮层时间
+  const bar = document.querySelector('.bgm-progress-bar');
+  if (bar && dur) {
+    bar.setAttribute('data-hover-time', formatTime(cur));
+  }
+
+
   }
 }
 
@@ -25578,6 +25609,18 @@ function toggleVolumeBoost() {
     showToast('🔉 音量增强已关闭', 'info');
   }
 }
+
+
+
+function toggleToolMenu() {
+  const menu = document.getElementById('bgmToolMenu');
+  if (menu) menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+}
+document.addEventListener('click', function(e) {
+  const menu = document.getElementById('bgmToolMenu');
+  if (menu && !e.target.closest('.bgm-tool-btn')) menu.style.display = 'none';
+});
+
 
 
 
@@ -25683,8 +25726,9 @@ function renderBGMPlaylist() {
     </div>
     ${bgmState.playlist.map((s, i) => `
       <div class="flex items-center gap-2 p-1.5 rounded text-xs cursor-pointer hover:bg-black/5 ${i === bgmState.idx ? 'font-bold' : ''}" 
-           style="${i === bgmState.idx ? 'color:var(--accent)' : 'color:var(--muted)'}">
-        <i class="fas fa-${i===bgmState.idx && bgmState.playing ? 'volume-up' : 'music'}" onclick="playBGMIdx(${i})"></i>
+           style="${i === bgmState.idx ? 'color:var(--accent); background:rgba(255,107,53,0.1);' : 'color:var(--muted)'}">
+        <span class="text-xs w-5 text-right">${i+1}</span>
+        <i class="fas fa-${i===bgmState.idx && bgmState.playing ? 'volume-up' : 'music'}"></i>
         <span class="truncate flex-1" onclick="playBGMIdx(${i})">${s.name}</span>
         <button class="text-xs hover:text-red-400" onclick="event.stopPropagation(); removeFromBgmPlaylist(${i})">
           <i class="fas fa-times"></i>
@@ -25693,7 +25737,6 @@ function renderBGMPlaylist() {
     `).join('')}
   `;
 }
-
 
 function playBGMIdx(i) {
   bgmState.idx = i;
@@ -37201,6 +37244,70 @@ html[data-time="night"] .profile-top-area   { background: #252A3A; }
 
 
 
+
+/* 最大化时歌词毛玻璃背景 */
+.bgm-player.maximized .bgm-lyrics-karaoke {
+  background: rgba(255,255,255,0.05);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-radius: 16px;
+  padding: 12px 16px;
+}
+/* 下一句提前淡显 */
+.karaoke-next {
+  opacity: 0.5;
+  transition: opacity 0.5s;
+  display: block;
+}
+
+
+
+
+
+.bgm-progress-bar {
+  position: relative;
+}
+.bgm-progress-bar::after {
+  content: attr(data-hover-time);
+  position: absolute;
+  top: -28px;
+  transform: translateX(-50%);
+  background: var(--accent);
+  color: white;
+  font-size: 11px;
+  padding: 3px 10px;
+  border-radius: 10px;
+  opacity: 0;
+  transition: opacity 0.15s;
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 10;
+}
+.bgm-progress-bar:hover::after,
+.bgm-progress-bar:active::after {
+  opacity: 1;
+}
+
+
+
+@media (max-width: 640px) {
+  .bgm-player:hover, .bgm-player.expanded {
+    max-width: 280px;
+  }
+  .bgm-controls-row { gap: 4px; }
+  .bgm-play-btn-lg { width: 38px; height: 38px; font-size: 14px; }
+  .bgm-tool-btn { width: 26px; height: 26px; font-size: 11px; }
+  .bgm-volume-slider { min-width: 60px; }
+  .karaoke-line { font-size: 16px; }
+  .karaoke-next { font-size: 12px; }
+}
+@media (max-width: 480px) and (orientation: landscape) {
+  .bgm-player:hover, .bgm-player.expanded {
+    max-width: 240px;
+    max-height: 70vh;
+    overflow-y: auto;
+  }
+}
 
 
 
