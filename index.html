@@ -7598,6 +7598,10 @@ window.addEventListener('scroll', () => {
       <button onclick="togglePlaybackSpeed(); toggleToolMenu()" class="bgm-tool-btn"><i class="fas fa-tachometer-alt"></i> 倍速</button>
       <button onclick="toggleABLoop(); toggleToolMenu()" class="bgm-tool-btn"><i class="fas fa-repeat"></i> AB循环</button>
       <button onclick="toggleVolumeBoost(); toggleToolMenu()" class="bgm-tool-btn"><i class="fas fa-volume-up"></i> 增强</button>
+
+<button onclick="toggleQualityMode(); toggleToolMenu()" class="bgm-tool-btn" id="qualityModeBtn"><i class="fas fa-wave-square"></i> 音质模式</button>
+
+
       <button onclick="toggleBgmMaximize(); toggleToolMenu()" class="bgm-tool-btn"><i class="fas fa-expand"></i> 最大化</button>
     </div>
   </div>
@@ -25564,6 +25568,13 @@ if (artistEl) artistEl.textContent = song.artist || '';
 
 
   if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+
+  // 重新应用音质模式（如果已选择非标准模式）
+  if (qualityMode !== 'standard') {
+    buildQualityChain(qualityMode);
+  }
+
+
   if (analyser && !bgmState.audio._mediaSource) {
     try {
       source = audioCtx.createMediaElementSource(bgmState.audio);
@@ -25651,6 +25662,112 @@ function toggleVolumeBoost() {
     showToast('🔉 音量增强已关闭', 'info');
   }
 }
+
+
+
+// 音质模式状态
+let qualityMode = 'standard'; // 'standard' | 'high' | 'premium'
+let qualityNodes = null;      // 存放处理节点
+
+async function toggleQualityMode() {
+  const modes = ['standard', 'high', 'premium'];
+  const currentIdx = modes.indexOf(qualityMode);
+  const nextIdx = (currentIdx + 1) % modes.length;
+  qualityMode = modes[nextIdx];
+  
+  // 重建处理链
+  buildQualityChain(qualityMode);
+  
+  const names = { standard: '标准', high: '高音质', premium: '臻品' };
+  showToast(`🎵 音质模式：${names[qualityMode]}`, 'success');
+
+
+  const btn = document.getElementById('qualityModeBtn');
+  if (btn) {
+    const icons = { standard: 'fa-wave-square', high: 'fa-star', premium: 'fa-crown' };
+    btn.innerHTML = `<i class="fas ${icons[qualityMode]}"></i> ${names[qualityMode]}`;
+  }
+
+
+
+
+}
+
+function buildQualityChain(mode) {
+  if (!audioCtx || !analyser) return;
+  
+  // 断开之前的处理节点
+  if (qualityNodes) {
+    qualityNodes.forEach(n => {
+      try { n.disconnect(); } catch(e) {}
+    });
+    qualityNodes = null;
+  }
+  
+  // 重新连接基础链路：source → ... → analyser → destination
+  source.disconnect();
+  source.connect(analyser);
+  analyser.disconnect();
+  analyser.connect(audioCtx.destination);
+  
+  if (mode === 'standard') return;
+  
+  // 创建新处理节点
+  qualityNodes = [];
+  let lastNode = source;
+  
+  if (mode === 'high') {
+    // 动态压缩 + 轻微高频激励
+    const compressor = audioCtx.createDynamicsCompressor();
+    compressor.threshold.value = -24;
+    compressor.knee.value = 30;
+    compressor.ratio.value = 12;
+    compressor.attack.value = 0.003;
+    compressor.release.value = 0.25;
+    lastNode.disconnect();
+    lastNode.connect(compressor);
+    qualityNodes.push(compressor);
+    
+    const highShelf = audioCtx.createBiquadFilter();
+    highShelf.type = 'highshelf';
+    highShelf.frequency.value = 8000;
+    highShelf.gain.value = 3;
+    compressor.connect(highShelf);
+    qualityNodes.push(highShelf);
+    lastNode = highShelf;
+  } else if (mode === 'premium') {
+    // 虚拟环绕 + 低音增强
+    const splitter = audioCtx.createChannelSplitter(2);
+    const merger = audioCtx.createChannelMerger(2);
+    
+    // 左声道延迟一点，右声道延迟另一点，产生空间感
+    const leftDelay = audioCtx.createDelay();
+    leftDelay.delayTime.value = 0.02;
+    const rightDelay = audioCtx.createDelay();
+    rightDelay.delayTime.value = 0.03;
+    
+    const bassBoost = audioCtx.createBiquadFilter();
+    bassBoost.type = 'lowshelf';
+    bassBoost.frequency.value = 200;
+    bassBoost.gain.value = 6;
+    
+    lastNode.disconnect();
+    lastNode.connect(splitter);
+    splitter.connect(leftDelay, 0);
+    splitter.connect(rightDelay, 1);
+    leftDelay.connect(merger, 0, 0);
+    rightDelay.connect(merger, 0, 1);
+    merger.connect(bassBoost);
+    qualityNodes.push(splitter, leftDelay, rightDelay, merger, bassBoost);
+    lastNode = bassBoost;
+  }
+  
+  // 最终接入分析器
+  lastNode.connect(analyser);
+  analyser.disconnect();
+  analyser.connect(audioCtx.destination);
+}
+
 
 
 
