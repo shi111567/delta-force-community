@@ -7656,7 +7656,9 @@ window.addEventListener('scroll', () => {
       <div class="bgm-song-info">
         <div class="bgm-title-wrapper">
           <span class="bgm-title" id="bgmTitle">未播放</span>
-          <button onclick="bgmToggleFavorite()" class="bgm-fav-btn" id="bgmFavoriteIcon"><i class="far fa-heart"></i></button>
+          <button onclick="bgmToggleFavorite()" class="bgm-fav-btn" id="bgmFavoriteIcon">
+  <i class="far fa-heart"></i>
+</button>
         </div>
         <div class="bgm-artist">未知艺术家</div>
       </div>
@@ -7703,11 +7705,17 @@ window.addEventListener('scroll', () => {
 <button onclick="window.cycleBgmSkin()" class="bgm-tool-btn" title="播放器皮肤"><i class="fas fa-palette"></i></button>
 
 
+
+
+
 <button onclick="cycleLyricColor()" class="bgm-tool-btn" title="切换歌词颜色"><i class="fas fa-paint-brush"></i></button>
 
 
         <button onclick="cycleWaveformStyle()" class="bgm-tool-btn" title="切换波形"><i class="fas fa-chart-line"></i></button>
         <button onclick="openMusicSearchWithHistory()" class="bgm-tool-btn" title="搜索歌曲"><i class="fas fa-search"></i></button>
+
+<button onclick="openFavoritesModal()" class="bgm-tool-btn" title="我的喜欢"><i class="fas fa-heart"></i></button>
+
         <button onclick="toggleBgmPlaylist()" class="bgm-tool-btn" title="播放列表"><i class="fas fa-list"></i></button>
         <button onclick="toggleLyricsPanel()" class="bgm-tool-btn" title="歌词"><i class="fas fa-microphone-lines"></i></button>
         <button onclick="toggleBgmMaximize()" class="bgm-tool-btn" title="最大化"><i class="fas fa-expand" id="bgmMaximizeIcon"></i></button>
@@ -8483,9 +8491,10 @@ window.addEventListener('scroll', () => {
       <h2 class="font-display text-xl">搜索歌曲</h2>
       <button onclick="closeModal('musicSearchModal')" class="w-8 h-8 rounded-full flex items-center justify-center" style="background:var(--surface)"><i class="fas fa-times"></i></button>
     </div>
-    <div class="flex gap-2 mb-3">
-      <input type="text" placeholder="搜索网易云歌曲..." id="musicSearchInput" class="flex-1" onkeypress="if(event.key==='Enter') searchMusic()">
+        <div class="flex gap-2 mb-3" style="position: relative;">
+      <input type="text" placeholder="搜索想听的歌曲..." id="musicSearchInput" class="flex-1" onkeypress="if(event.key==='Enter') searchMusic()">
       <button class="btn-warm text-sm" onclick="searchMusic()">搜索</button>
+      <div id="searchSuggestions" class="card-base p-2 hidden" style="position:absolute; top:100%; left:0; right:0; z-index:100; max-height:200px; overflow-y:auto; background:var(--card); border-radius:12px; box-shadow:0 8px 20px var(--shadow);"></div>
     </div>
 
 <!-- 搜索历史 -->
@@ -8496,6 +8505,10 @@ window.addEventListener('scroll', () => {
   </div>
   <div id="musicHistoryList" class="space-y-1 max-h-32 overflow-y-auto mt-1"></div>
 </div>
+
+
+
+
 
 
     <div id="musicSearchResults" class="space-y-2 max-h-60 overflow-y-auto"></div>
@@ -11808,6 +11821,9 @@ function initBgEditor() {
             if (e.key === 'Escape') { closeBgEditor(); }
       if (e.key === 'Enter') { bgEditorApply(); }
     });
+
+
+
     bgEditorState._hotkeysBound = true;
   }
 
@@ -23864,13 +23880,33 @@ async function loadPlaybackProgress() {
 
 // 定期保存进度（每5秒）
 setInterval(() => {
-  if (bgmState.playing) savePlaybackProgress();
+  if (APP.user) {
+    saveBgmStateToCloud();
+  } else {
+    if (bgmState.playing) savePlaybackProgress(); // 本地进度保存
+  }
 }, 5000);
 
 // 页面关闭前保存
 window.addEventListener('beforeunload', () => {
   savePlaybackProgress();
 });
+
+
+
+
+async function saveBgmStateToCloud() {
+  if (!APP.user) return;
+  const state = {
+    playlist: bgmState.playlist.map(s => ({ name: s.name, url: s.url, artist: s.artist || '', songId: s.songId })),
+    current_index: bgmState.idx,
+    playback_time: bgmState.audio ? bgmState.audio.currentTime : 0,
+    volume: bgmState.volume,
+    mode: bgmState.mode,
+    updated_at: new Date().toISOString()
+  };
+  await sb.from('user_bgm_state').upsert({ user_id: APP.user.id, ...state }, { onConflict: 'user_id' });
+}
 
 
 
@@ -23926,35 +23962,131 @@ async function loadPlaylistFromCloud() {
 }
 
 
-
-// ----- 收藏歌曲（喜欢）-----
-async function toggleFavoriteCurrentSong() {
-  const song = bgmState.playlist[bgmState.idx];
-  if (!song) return;
-  
-  // 临时方案：只使用本地存储，避免 Supabase 406 错误
-  let favs = JSON.parse(localStorage.getItem('bgm_favorites') || '[]');
-  const exists = favs.find(s => s.url === song.url);
-  if (exists) {
-    favs = favs.filter(s => s.url !== song.url);
-    showToast('已取消收藏', 'info');
-  } else {
-    favs.push({ name: song.name, url: song.url, artist: song.artist || '' });
-    showToast('已添加到收藏', 'success');
-  }
-  localStorage.setItem('bgm_favorites', JSON.stringify(favs));
-  updateFavoriteButtonState();
+function playFavorite(url, name, artist) {
+  // 将当前播放列表替换为这一首歌曲
+  bgmState.playlist = [{ name, url, artist }];
+  bgmState.idx = 0;
+  loadBGMTrack();
+  bgmState.audio.play().then(() => {
+    bgmState.playing = true;
+    updateBGMBtn();
+    document.getElementById('bgmPlayer')?.classList.add('playing');
+  }).catch(() => {});
+  renderBGMPlaylist();
+  closeModal('favoritesModal');
+  showToast(`🎵 正在播放：${name}`, 'success');
 }
 
 
 
-async function updateFavoriteButtonState() {
+
+async function openFavoritesModal() {
+  if (!APP.user) { showToast('请先登录', 'warning'); return; }
+  openModal('favoritesModal');
+  await renderFavoritesList(); // 等待查询完成
+}
+
+async function renderFavoritesList() {
+  const container = document.getElementById('favoritesList');
+  const countEl = document.getElementById('favCount');
+  if (!container) return;
+
+  if (!APP.user) {
+    container.innerHTML = '<div class="text-center py-8 text-xs" style="color:var(--muted);">请先登录</div>';
+    return;
+  }
+
+  container.innerHTML = '<div class="text-center py-4 text-xs" style="color:var(--muted);">加载中...</div>';
+
+  const { data, error } = await sb.from('user_favorite_songs')
+    .select('song_name, song_url, artist')
+    .eq('user_id', APP.user.id)
+    .order('created_at', { ascending: false });
+
+  if (error || !data || data.length === 0) {
+    container.innerHTML = '<div class="text-center py-8 text-xs" style="color:var(--muted);">暂无喜欢的歌曲</div>';
+    if (countEl) countEl.textContent = '0';
+    return;
+  }
+
+  if (countEl) countEl.textContent = data.length;
+
+  container.innerHTML = data.map(song => {
+    const name = song.song_name || '未知歌曲';
+    const artist = song.artist || '未知歌手';
+    const url = song.song_url || '';
+    return `
+    <div class="flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 transition-all" style="border-bottom:1px solid var(--border);">
+      <i class="fas fa-music" style="color:var(--accent);"></i>
+
+
+      <div class="flex-1 min-w-0" onclick="playFavorite('${song.song_url.replace(/'/g, "\\'")}','${song.song_name.replace(/'/g, "\\'")}','${(song.artist||'').replace(/'/g, "\\'")}')">
+
+
+        <div class="text-sm font-medium truncate">${name}</div>
+        <div class="text-xs" style="color:var(--muted);">${artist}</div>
+      </div>
+      <button class="btn-ghost text-xs px-3 py-1 rounded-full" onclick="event.stopPropagation(); deleteFavoriteByUrl('${url.replace(/'/g, "\\'")}')">
+        <i class="fas fa-trash-alt text-red-400"></i>
+      </button>
+    </div>
+  `;
+  }).join('');
+}
+
+
+
+async function deleteFavoriteByUrl(url) {
+  if (!APP.user) return;
+  await sb.from('user_favorite_songs').delete()
+    .eq('user_id', APP.user.id)
+    .eq('song_url', url);
+  bgmState.favorites.delete(url);
+  renderFavoritesList();
+  updateFavoriteButtonState();
+  showToast('已移除', 'info');
+}
+
+
+
+// 本地删除收藏（同时同步云端）
+function removeFavoriteLocal(index) {
+  let localFavs = JSON.parse(localStorage.getItem('bgm_favorites_detail') || '[]');
+  if (index < 0 || index >= localFavs.length) return;
+  const removed = localFavs.splice(index, 1)[0];
+  localStorage.setItem('bgm_favorites_detail', JSON.stringify(localFavs));
+  bgmState.favorites.delete(removed.url);
+  const urls = localFavs.map(s => s.url);
+  localStorage.setItem('bgm_favorites', JSON.stringify(urls));
+  // 尝试删除云端
+  if (APP.user) {
+    sb.from('user_favorite_songs').delete().eq('user_id', APP.user.id).eq('url', removed.url)
+      .then(() => {}).catch(() => {});
+  }
+  renderFavoritesList();
+  updateFavoriteButtonState();
+  showToast('已移除', 'info');
+}
+
+
+
+
+
+
+
+
+
+
+
+function updateFavoriteButtonState() {
   const song = bgmState.playlist[bgmState.idx];
   if (!song) return;
-  const favs = JSON.parse(localStorage.getItem('bgm_favorites') || '[]');
-  const isFav = favs.some(s => s.url === song.url);
-  const icon = document.getElementById('bgmFavoriteIcon');
-  if (icon) icon.innerHTML = isFav ? '<i class="fas fa-heart" style="color:#FF4757;"></i>' : '<i class="far fa-heart"></i>';
+  const btn = document.getElementById('bgmFavoriteIcon');
+  if (!btn) return;
+  const isFav = bgmState.favorites instanceof Set && bgmState.favorites.has(song.url);
+  btn.innerHTML = isFav 
+    ? '<i class="fas fa-heart" style="color:#FF4757;"></i>' 
+    : '<i class="far fa-heart"></i>';
 }
 
 
@@ -23967,11 +24099,7 @@ loadBGMTrack = function() {
   updateFavoriteButtonState();
 };
 
-// 修改 bgmToggleFavorite
-const originalToggleFav = bgmToggleFavorite;
-bgmToggleFavorite = function() {
-  toggleFavoriteCurrentSong();
-};
+
 
 
 
@@ -24919,7 +25047,7 @@ function openSkinListModal() {
 
 
 
-function initBGM() {
+async function initBGM() {
   // 加载保存的状态
   const saved = localStorage.getItem('bgm_custom_playlist');
   if (saved) {
@@ -24938,6 +25066,69 @@ function initBGM() {
   }
 
   bgmState.audio = new Audio();
+
+
+  // 加载本地保存的进度（如果存在）
+  loadPlaybackProgress();
+
+  // 👇 在这里插入云端状态恢复
+  if (APP.user) {
+    const { data: state } = await sb.from('user_bgm_state').select('*').eq('user_id', APP.user.id).single();
+    if (state && state.playlist && state.playlist.length > 0) {
+      bgmState.playlist = state.playlist;
+      bgmState.idx = state.current_index || 0;
+      bgmState.volume = state.volume || 0.5;
+      bgmState.audio.volume = bgmState.volume;
+      $('bgmVol').value = bgmState.volume * 100;
+      bgmState.mode = state.mode || 'list-loop';
+      loadBGMTrack();
+      if (state.playback_time) {
+        bgmState.audio.currentTime = state.playback_time;
+      }
+      bgmState.playing = false;
+      updateBGMBtn();
+      document.getElementById('bgmPlayer')?.classList.remove('playing');
+    }
+  }
+  // 👆 插入结束
+
+  // 继续后面的代码（如加载收藏、绑定快捷键等）
+
+
+
+      // 初始化收藏 Set（安全版）
+   // 初始化收藏 Set（安全版，所有用户适用）
+  bgmState.favorites = new Set();
+  try {
+    const cache = JSON.parse(localStorage.getItem('bgm_favs_cache') || '[]');
+    if (Array.isArray(cache)) {
+      cache.forEach(f => {
+        if (f && typeof f.url === 'string' && f.url.length > 0) {
+          bgmState.favorites.add(f.url);
+        }
+      });
+    }
+  } catch(e) {
+    bgmState.favorites = new Set();
+  }
+  // 从云端同步（登录后）
+  if (APP.user) {
+    try {
+      const { data } = await sb.from('user_favorite_songs').select('song_url').eq('user_id', APP.user.id);
+      if (data && Array.isArray(data)) {
+        bgmState.favorites = new Set();
+        data.forEach(s => { if (s.song_url) bgmState.favorites.add(s.song_url); });
+        localStorage.setItem('bgm_favs_cache', JSON.stringify(data.map(s => ({ url: s.song_url }))));
+      }
+    } catch(e) {}
+  }
+  updateFavoriteButtonState();
+
+
+
+
+
+
   bgmState.audio.volume = bgmState.volume;
   bgmState.audio.crossOrigin = 'anonymous'; // 允许跨域分析
   
@@ -25023,6 +25214,15 @@ function initBGM() {
     }
   });
 
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('#musicSearchInput') && !e.target.closest('#searchSuggestions')) {
+    document.getElementById('searchSuggestions')?.classList.add('hidden');
+  }
+});
+
+
+
+
   // 播放器拖拽与吸附
   var player = $('bgmPlayer');
   player.style.position = 'fixed';
@@ -25092,6 +25292,8 @@ function initBGM() {
  window.startBgmEffect();  // 👈 这行放在这里
 
 }
+
+
 
 function updateKaraokeLyric() {
   const cur = bgmState.audio.currentTime;
@@ -25479,7 +25681,50 @@ function updateKaraokeLyric() {
     }
   }
 }
-
+ function updateKaraokeLyric() {
+  const cur = bgmState.audio.currentTime;
+  const lines = bgmState.lyricLines;
+  const lineEl = document.getElementById('karaokeLine');
+  const nextEl = document.getElementById('karaokeNextLine');
+  
+  if (!lines || !lines.length) {
+    if (lineEl) lineEl.innerHTML = '🎤 暂无歌词';
+    if (nextEl) nextEl.innerHTML = '';
+    return;
+  }
+  
+  // 找到当前行
+  let activeIndex = -1;
+  for (let i = 0; i < lines.length; i++) {
+    if (lines[i].time <= cur) activeIndex = i;
+    else break;
+  }
+  
+  if (activeIndex >= 0) {
+    const currentLine = lines[activeIndex];
+    const nextLine = lines[activeIndex + 1];
+    const currentTime = currentLine.time;
+    const nextTime = nextLine ? nextLine.time : currentTime + 5; // 无下一行用5秒估计
+    const progress = Math.min(1, (cur - currentTime) / Math.max(0.1, nextTime - currentTime));
+    const text = currentLine.text;
+    const splitIndex = Math.floor(text.length * progress);
+    const before = text.substring(0, splitIndex);
+    const after = text.substring(splitIndex);
+    
+    const color = LYRIC_COLORS[currentLyricColorIndex];
+    if (lineEl) {
+      lineEl.innerHTML = `<span style="color:${color.color}; text-shadow:0 0 8px ${color.shadow};">${before}</span><span style="color:#888;">${after}</span>`;
+    }
+    if (nextEl && nextLine) {
+      nextEl.textContent = nextLine.text;
+    } else if (nextEl) {
+      nextEl.textContent = '';
+    }
+  } else {
+    if (lineEl) lineEl.innerHTML = '<span style="color:#aaa;">' + (lines[0]?.text || '等待歌词...') + '</span>';
+    if (nextEl) nextEl.textContent = '';
+  }
+}
 
 // 获取当前播放歌曲的真实歌词（增强版）
 async function fetchLyricForCurrentSong() {
@@ -25515,18 +25760,57 @@ function setFallbackLyric(msg) {
 
 
 
-function bgmToggleFavorite() {
+async function bgmToggleFavorite() {
   const song = bgmState.playlist[bgmState.idx];
-  if (!song) return;
-  const icon = document.getElementById('bgmFavoriteIcon');
-  if (bgmState.favorites.has(song.url)) {
-    bgmState.favorites.delete(song.url);
-    if (icon) icon.innerHTML = '<i class="far fa-heart"></i>';
+  if (!song || !song.url) { showToast('无歌曲信息', 'warning'); return; }
+  if (!APP.user) { showToast('请先登录', 'warning'); return; }
+
+  const url = song.url;
+  if (!(bgmState.favorites instanceof Set)) bgmState.favorites = new Set();
+  const isFav = bgmState.favorites.has(url);
+
+  if (isFav) {
+    // 取消收藏
+    await sb.from('user_favorite_songs').delete()
+      .eq('user_id', APP.user.id)
+      .eq('song_url', url);
+    bgmState.favorites.delete(url);
+    showToast('已取消收藏', 'info');
   } else {
-    bgmState.favorites.add(song.url);
-    if (icon) icon.innerHTML = '<i class="fas fa-heart" style="color:#FF4757;"></i>';
+    // 使用 upsert 避免 409 冲突
+    const { error } = await sb.from('user_favorite_songs')
+      .upsert({
+        user_id: APP.user.id,
+        song_identifier: song.songId || url,
+        song_name: song.name,
+        artist: song.artist || '',
+        song_url: url
+      }, { onConflict: 'user_id, song_url' });
+    if (error) {
+      showToast('收藏失败: ' + error.message, 'error');
+      return;
+    }
+    bgmState.favorites.add(url);
+    showToast('❤️ 已添加到我喜欢', 'success');
+  }
+
+  // 更新红心 UI
+  const favBtn = document.getElementById('bgmFavoriteIcon');
+  if (favBtn) {
+    favBtn.innerHTML = isFav 
+      ? '<i class="far fa-heart"></i>' 
+      : '<i class="fas fa-heart" style="color:#FF4757;"></i>';
+  }
+
+  // 同步本地缓存
+  localStorage.setItem('bgm_favs_cache', JSON.stringify([...bgmState.favorites].map(u => ({ url: u }))));
+  // 刷新收藏弹窗（如果打开）
+  if (document.getElementById('favoritesModal')?.classList.contains('active')) {
+    renderFavoritesList();
   }
 }
+
+
 
 function toggleBgmMaximize() {
   const player = document.getElementById('bgmPlayer');
@@ -25655,6 +25939,76 @@ function startWaveformAnimation() {
   }
   render();
 }
+
+
+
+let searchDebounceTimer;
+
+// 绑定输入事件（在 DOMContentLoaded 中执行一次）
+document.addEventListener('DOMContentLoaded', () => {
+  const input = document.getElementById('musicSearchInput');
+  if (!input) return;
+  input.addEventListener('input', function() {
+    clearTimeout(searchDebounceTimer);
+    const keyword = this.value.trim();
+    if (!keyword || keyword.length < 1) {
+      document.getElementById('searchSuggestions')?.classList.add('hidden');
+      return;
+    }
+    searchDebounceTimer = setTimeout(() => fetchSearchSuggestions(keyword), 300);
+  });
+  // 点击建议外部关闭
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('#musicSearchInput') && !e.target.closest('#searchSuggestions')) {
+      document.getElementById('searchSuggestions')?.classList.add('hidden');
+    }
+  });
+});
+
+async function fetchSearchSuggestions(keyword) {
+  const container = document.getElementById('searchSuggestions');
+  if (!container) return;
+  container.classList.remove('hidden');
+  container.innerHTML = '<div class="text-xs p-2" style="color:var(--muted);">搜索中...</div>';
+  try {
+    const resp = await fetch(`${MUSIC_API}?types=search&source=netease&name=${encodeURIComponent(keyword)}&count=10&pages=1`);
+    if (!resp.ok) throw new Error('请求失败');
+    const data = await resp.json();
+    if (!data || !data.length) {
+      container.innerHTML = '<div class="text-xs p-2" style="color:var(--muted);">无匹配结果</div>';
+      return;
+    }
+    // 排序：以关键词开头的排前
+    data.sort((a, b) => {
+      const aName = (a.name || '').toLowerCase();
+      const bName = (b.name || '').toLowerCase();
+      const kw = keyword.toLowerCase();
+      return aName.startsWith(kw) ? -1 : bName.startsWith(kw) ? 1 : 0;
+    });
+    // 高亮关键词
+    container.innerHTML = data.map(s => {
+      const name = (s.name || '').replace(new RegExp(`(${keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi'), '<mark style="background:#FFD700;color:#000;padding:0 2px;border-radius:3px;">$1</mark>');
+      const artist = (s.artist || []).join(' / ');
+      return `<div class="flex items-center gap-2 p-2 rounded cursor-pointer hover:bg-white/5" onclick="selectSuggest('${s.id}','${(s.name||'').replace(/'/g, "\\'")}','${artist.replace(/'/g, "\\'")}')">
+        <i class="fas fa-music text-xs" style="color:var(--accent);"></i>
+        <div class="flex-1 min-w-0">
+          <div class="text-sm">${name}</div>
+          <div class="text-xs" style="color:var(--muted);">${artist}</div>
+        </div>
+      </div>`;
+    }).join('');
+  } catch (e) {
+    container.innerHTML = '<div class="text-xs p-2" style="color:var(--muted);">网络错误</div>';
+  }
+}
+
+function selectSuggest(id, name, artist) {
+  playFromSearch(id, name, artist, '');
+  document.getElementById('searchSuggestions')?.classList.add('hidden');
+  document.getElementById('musicSearchInput').value = name;
+}
+
+
 
 
 
@@ -33650,9 +34004,17 @@ function exportAllFavoritesAsText() {
 </div>
 
 
-
-
-
+<!-- 我的喜欢弹窗 -->
+<div class="modal-overlay" id="favoritesModal" style="z-index:10004;">
+  <div class="modal-content" style="max-width:480px; width:95%; max-height:70vh; overflow-y:auto; background:var(--card); border-radius:24px; padding:20px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+      <h3 style="font-size:1.3rem; font-weight:700;"><i class="fas fa-heart mr-2" style="color:#FF4757;"></i>我的喜欢</h3>
+      <button onclick="closeModal('favoritesModal')" style="background:var(--surface); border:none; width:32px; height:32px; border-radius:50%;"><i class="fas fa-times"></i></button>
+    </div>
+    <div id="favoritesList" class="space-y-2"></div>
+    <p class="text-xs text-center mt-3" style="color:var(--muted);">共 <span id="favCount">0</span> 首歌曲</p>
+  </div>
+</div>
 
 
 
@@ -36496,6 +36858,39 @@ html[data-time="night"] .profile-top-area   { background: #252A3A; }
   touch-action: manipulation;
 }
 
+/* 我的喜欢弹窗 - 移动端适配 */
+@media (max-width: 640px) {
+  #favoritesModal .modal-content {
+    padding: 16px 12px !important;
+    width: 98% !important;
+  }
+}
+
+
+#musicSearchModal .modal-content {
+  overflow: visible !important;
+}
+
+
+#searchSuggestions {
+  margin-top: 4px;
+}
+
+
+#searchSuggestions {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 9999;
+  margin-top: 4px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 8px 20px var(--shadow);
+  max-height: 220px;
+  overflow-y: auto;
+}
 
 
 
