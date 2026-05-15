@@ -7569,22 +7569,15 @@ window.addEventListener('scroll', () => {
 
 
     <!-- 音量 + 工具按钮行 -->
-    <div class="bgm-utils-row">
-      <div class="bgm-volume-slider" style="position: relative;">
-  <i class="fas fa-volume-down"></i>
-  <div id="volTooltip" style="position: absolute; left: 50%; transform: translateX(-50%); bottom: 100%; margin-bottom: 8px; background: var(--accent); color: white; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; opacity: 0; transition: opacity 0.25s; pointer-events: none; white-space: nowrap;">50</div>
-
-
+   <!-- 音量 + 工具按钮行 -->
+<div class="bgm-utils-row">
   <div class="bgm-volume-slider" style="position: relative;">
-  <i class="fas fa-volume-down"></i>
-  <div id="volTooltip" style="position: absolute; left: 50%; transform: translateX(-50%); bottom: calc(100% + 8px); background: var(--accent); color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; opacity: 0; transition: opacity 0.25s; pointer-events: none; white-space: nowrap;">音量50%</div>
-  <input type="range" min="0" max="100" value="50" class="bgm-vol-range" onchange="bgmSetVolume(this.value)" id="bgmVol">
-  <i class="fas fa-volume-up"></i>
-</div>
+    <i class="fas fa-volume-down"></i>
+    <div id="volTooltip" style="position: absolute; left: 50%; transform: translateX(-50%); bottom: calc(100% + 8px); background: var(--accent); color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; opacity: 0; transition: opacity 0.25s; pointer-events: none; white-space: nowrap;">音量50%</div>
+    <input type="range" min="0" max="100" value="50" class="bgm-vol-range" onchange="bgmSetVolume(this.value)" id="bgmVol">
+    <i class="fas fa-volume-up"></i>
+  </div>
 
-
-  <i class="fas fa-volume-up"></i>
-</div>
 
 
             <div class="bgm-tool-buttons" style="display:flex; flex-wrap:wrap; gap:4px; align-items:center;">
@@ -37109,6 +37102,106 @@ html[data-time="night"] .profile-top-area   { background: #252A3A; }
     padding: 16px 12px !important;
   }
 }
+
+
+
+
+
+/* ========== 播放器视觉排版增强 ========== */
+
+/* 1. 歌曲信息区加柔和分隔 */
+.bgm-top-row {
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  margin-bottom: 2px;
+}
+
+/* 2. 播放按钮呼吸光晕（播放时） */
+.bgm-player.playing .bgm-play-btn-lg {
+  animation: playPulse 2s ease-in-out infinite;
+}
+@keyframes playPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255,107,53,0.5); }
+  50% { box-shadow: 0 0 0 12px rgba(255,107,53,0); }
+}
+
+/* 3. 进度条悬停时间浮层（纯CSS提示） */
+.bgm-progress-bar:hover::before {
+  content: attr(data-time);
+  position: absolute;
+  top: -24px;
+  transform: translateX(-50%);
+  background: var(--accent);
+  color: white;
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 5;
+}
+/* 若要使 data-time 生效，需要在 JS 里更新，这属于可选增强，不更新则无显示，不影响原有功能 */
+
+/* 4. 最大化时波形与歌词之间加柔光分割 */
+.bgm-player.maximized .bgm-wave-canvas {
+  margin-bottom: 6px;
+}
+.bgm-player.maximized .bgm-lyrics-karaoke {
+  border-top: 1px solid rgba(255,255,255,0.08);
+  padding-top: 10px;
+}
+
+/* 5. 控制按钮区微调 */
+.bgm-controls-row {
+  margin: 2px 0;
+}
+
+/* 6. 工具按钮区与波形之间留呼吸空间 */
+.bgm-utils-row {
+  margin-bottom: 4px;
+}
+
+/* 7. 移动端优化 */
+@media (max-width: 640px) {
+  .bgm-player:hover, .bgm-player.expanded {
+    max-width: 280px;
+  }
+  .bgm-top-row {
+    gap: 8px;
+  }
+  .bgm-cd-container {
+    width: 38px; height: 38px;
+  }
+  .bgm-title {
+    font-size: 13px;
+  }
+  .bgm-artist {
+    font-size: 11px;
+  }
+  .bgm-controls-row {
+    gap: 4px;
+  }
+  .bgm-play-btn-lg {
+    width: 42px; height: 42px;
+  }
+  .bgm-volume-slider {
+    min-width: 70px;
+  }
+  .bgm-tool-btn {
+    width: 26px; height: 26px;
+    font-size: 12px;
+  }
+  .karaoke-line {
+    font-size: 16px;
+  }
+  .karaoke-next {
+    font-size: 12px;
+  }
+}
+
+
+
+
 
 
 
