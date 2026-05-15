@@ -7704,36 +7704,27 @@ window.addEventListener('scroll', () => {
         <input type="range" min="0" max="100" value="50" class="bgm-vol-range" onchange="bgmSetVolume(this.value)" id="bgmVol">
         <i class="fas fa-volume-up"></i>
       </div>
-      <div class="bgm-tool-buttons">
 
 
-
-<button onclick="openRecentPlayModal()" class="bgm-tool-btn" title="最近播放"><i class="fas fa-clock-rotate-left"></i></button>
-
-
-<button onclick="toggleSleepTimer()" class="bgm-tool-btn" title="定时关闭"><i class="fas fa-hourglass"></i></button>
-
-
-
-<button onclick="window.cycleBgmSkin()" class="bgm-tool-btn" title="播放器皮肤"><i class="fas fa-palette"></i></button>
-
-
-<button onclick="toggleEqPreset()" class="bgm-tool-btn" title="音效"><i class="fas fa-sliders"></i></button>
-
-
-<button onclick="cycleLyricColor()" class="bgm-tool-btn" title="切换歌词颜色"><i class="fas fa-paint-brush"></i></button>
-
-
-        <button onclick="cycleWaveformStyle()" class="bgm-tool-btn" title="切换波形"><i class="fas fa-chart-line"></i></button>
+            <div class="bgm-tool-buttons" style="display:flex; flex-wrap:wrap; gap:4px; align-items:center;">
         <button onclick="openMusicSearchWithHistory()" class="bgm-tool-btn" title="搜索歌曲"><i class="fas fa-search"></i></button>
-
-<button onclick="openFavoritesModal()" class="bgm-tool-btn" title="我的喜欢"><i class="fas fa-heart"></i></button>
-
+        <button onclick="openFavoritesModal()" class="bgm-tool-btn" title="我的喜欢"><i class="fas fa-heart"></i></button>
+        <button onclick="openRecentPlayModal()" class="bgm-tool-btn" title="最近播放"><i class="fas fa-clock-rotate-left"></i></button>
         <button onclick="toggleBgmPlaylist()" class="bgm-tool-btn" title="播放列表"><i class="fas fa-list"></i></button>
         <button onclick="toggleLyricsPanel()" class="bgm-tool-btn" title="歌词"><i class="fas fa-microphone-lines"></i></button>
-        <button onclick="toggleBgmMaximize()" class="bgm-tool-btn" title="最大化"><i class="fas fa-expand" id="bgmMaximizeIcon"></i></button>
+        <button onclick="window.cycleBgmSkin()" class="bgm-tool-btn" title="播放器皮肤"><i class="fas fa-palette"></i></button>
+        <button onclick="cycleLyricColor()" class="bgm-tool-btn" title="歌词颜色"><i class="fas fa-paint-brush"></i></button>
+        <button onclick="toggleEqPreset()" class="bgm-tool-btn" title="音效"><i class="fas fa-sliders"></i></button>
+        <button onclick="toggleSleepTimer()" class="bgm-tool-btn" title="定时关闭"><i class="fas fa-hourglass"></i></button>
+        <button onclick="cycleWaveformStyle()" class="bgm-tool-btn" title="切换波形"><i class="fas fa-chart-line"></i></button>
+        <button onclick="togglePlaybackSpeed()" class="bgm-tool-btn" title="播放速度"><i class="fas fa-tachometer-alt"></i></button>
+        <button onclick="toggleABLoop()" class="bgm-tool-btn" title="AB循环"><i class="fas fa-repeat"></i></button>
+        <button onclick="toggleVolumeBoost()" class="bgm-tool-btn" title="音量增强"><i class="fas fa-volume-up"></i></button>
+        <button onclick="toggleBgmMaximize()" class="bgm-tool-btn" title="最大化"><i class="fas fa-expand"></i></button>
       </div>
-    </div>
+
+
+
 
     <!-- 波形区域（CSS 波形） -->
     
@@ -25666,6 +25657,53 @@ function updateBGMProgress() {
   }
 }
 
+
+
+function togglePlaybackSpeed() {
+  const rates = [0.5, 0.75, 1, 1.25, 1.5, 2];
+  const current = bgmState.audio.playbackRate;
+  let idx = rates.indexOf(current);
+  if (idx === -1) idx = 2;
+  idx = (idx + 1) % rates.length;
+  bgmState.audio.playbackRate = rates[idx];
+  showToast(`⚡ 播放速度：${rates[idx]}x`, 'info');
+}
+
+let abLoop = { a: 0, b: 0, active: false };
+function toggleABLoop() {
+  if (!abLoop.active) {
+    abLoop.a = bgmState.audio.currentTime;
+    showToast('已设置 A 点，再次点击设置 B 点', 'info');
+    abLoop.active = true;
+  } else {
+    abLoop.b = bgmState.audio.currentTime;
+    if (abLoop.b <= abLoop.a) { showToast('B 点必须大于 A 点', 'warning'); return; }
+    bgmState.audio.addEventListener('timeupdate', abLoopCheck);
+    showToast('AB 循环已启动', 'success');
+    abLoop.active = false;
+  }
+}
+function abLoopCheck() {
+  if (bgmState.audio.currentTime >= abLoop.b) {
+    bgmState.audio.currentTime = abLoop.a;
+  }
+}
+
+let volumeBoost = false;
+function toggleVolumeBoost() {
+  volumeBoost = !volumeBoost;
+  if (volumeBoost) {
+    const gainNode = audioCtx.createGain();
+    gainNode.gain.value = 2.0;
+    source.connect(gainNode);
+    gainNode.connect(analyser);
+    showToast('🔊 音量增强已开启', 'success');
+  } else {
+    source.disconnect();
+    source.connect(analyser);
+    showToast('🔉 音量增强已关闭', 'info');
+  }
+}
 
 
 
