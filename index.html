@@ -7583,9 +7583,14 @@ window.addEventListener('scroll', () => {
     <span id="bgmCurrentTime">0:00</span>
     <span id="bgmDuration">0:00</span>
   </div>
-  <div class="bgm-progress-bar" onclick="bgmSeek(event)">
-    <div class="bgm-progress-fill" id="bgmProgressFill" style="width:0%"></div>
-  </div>
+
+
+<div class="bgm-progress-bar" onclick="bgmSeek(event)" id="bgmProgressBar">
+  <div class="bgm-progress-fill" id="bgmProgressFill" style="width:0%"></div>
+  <div id="bgmHotPoints" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;"></div>
+</div>
+
+
 </div>
 
 
@@ -25465,6 +25470,68 @@ function updateKaraokeLyric() {
 
 
 
+// 🎵 检测歌曲高潮点并标记
+async function detectHotPoints(audioUrl) {
+  const container = document.getElementById('bgmHotPoints');
+  if (!container) return;
+  container.innerHTML = ''; // 清除旧标记
+
+  try {
+    const response = await fetch(audioUrl);
+    const arrayBuffer = await response.arrayBuffer();
+    const offlineCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const audioBuffer = await offlineCtx.decodeAudioData(arrayBuffer);
+    const data = audioBuffer.getChannelData(0);
+    const sampleRate = audioBuffer.sampleRate;
+    const totalDuration = audioBuffer.duration;
+
+    // 每0.5秒一帧计算能量
+    const frameSize = Math.floor(sampleRate * 0.5);
+    const energies = [];
+    for (let i = 0; i < data.length; i += frameSize) {
+      const frame = data.slice(i, Math.min(i + frameSize, data.length));
+      const rms = Math.sqrt(frame.reduce((sum, x) => sum + x * x, 0) / frame.length);
+      energies.push({ time: i / sampleRate, energy: rms });
+    }
+
+    // 找局部峰值
+    const peaks = [];
+    for (let i = 1; i < energies.length - 1; i++) {
+      if (energies[i].energy > energies[i-1].energy * 1.3 &&
+          energies[i].energy > energies[i+1].energy * 1.3) {
+        peaks.push(energies[i]);
+      }
+    }
+
+    // 取能量最高的5个
+    const topPeaks = peaks.sort((a, b) => b.energy - a.energy).slice(0, 5)
+                          .sort((a, b) => a.time - b.time);
+
+    topPeaks.forEach(p => {
+      const percent = (p.time / totalDuration) * 100;
+      const marker = document.createElement('div');
+      marker.className = 'hot-point-marker';
+      marker.style.left = percent + '%';
+      marker.title = `🔥 高潮点 ${formatTime(p.time)}`;
+      marker.addEventListener('click', (e) => {
+        e.stopPropagation();
+        bgmState.audio.currentTime = p.time;
+      });
+      container.appendChild(marker);
+    });
+
+    offlineCtx.close();
+  } catch (e) {
+    console.warn('高潮点分析失败:', e);
+  }
+}
+
+
+
+
+
+
+
 async function loadBGMTrack() {
 
   if (!bgmState.playlist.length) return;
@@ -25523,18 +25590,14 @@ if (bgmState.audio._mediaSource) {
   $('bgmTitle').textContent = song.name;
 
 
-  // 尝试设置封面图
+    // 🖼️ 自动显示歌曲封面
   const cdCover = document.getElementById('bgmCdCover');
-  if (cdCover && song.songId) {
-    fetch(`${MUSIC_API}?types=url&source=netease&id=${song.songId}&br=320`)
-      .then(r => r.json())
-      .then(data => {
-        if (data && data.pic) {
-          cdCover.innerHTML = `<img src="${data.pic}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
-        } else {
-          cdCover.innerHTML = '<i class="fas fa-compact-disc" id="bgmCdIcon"></i>';
-        }
-      }).catch(() => {});
+  if (cdCover) {
+    if (song.pic) {
+      cdCover.innerHTML = `<img src="${song.pic}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" onerror="this.innerHTML='<i class=\'fas fa-compact-disc\'></i>'">`;
+    } else {
+      cdCover.innerHTML = '<i class="fas fa-compact-disc"></i>';
+    }
   }
 
 
@@ -25593,7 +25656,8 @@ if (artistEl) artistEl.textContent = song.artist || '';
  
   // 重置进度显示
   updateBGMProgress();
-
+  // 自动标记高潮点
+  detectHotPoints(song.url);
 
   // 记录最近播放
   if (APP.user && bgmState.playlist.length > bgmState.idx) {
@@ -26812,16 +26876,20 @@ async function playFromSearch(id, name, artist, picId) {
     const resp = await fetch(`${MUSIC_API}?types=url&source=netease&id=${id}&br=320`);
     const data = await resp.json();
     if (!data || !data.url) { showToast('获取播放链接失败', 'error'); return; }
-    
-    bgmState.playlist = [{ name: name, url: data.url, artist: artist, songId: id }];
+
+    bgmState.playlist = [{
+      name: name,
+      url: data.url,
+      artist: artist,
+      songId: id,
+      pic: data.pic || ''   // ← 保存封面
+    }];
     bgmState.idx = 0;
     loadBGMTrack();
     bgmState.audio.play().then(() => {
       bgmState.playing = true;
       updateBGMBtn();
       document.getElementById('bgmPlayer')?.classList.add('playing');
-      // 恢复波形
-      initAnalyzerOnce();
     }).catch(() => {});
     renderBGMPlaylist();
     closeModal('musicSearchModal');
@@ -26831,20 +26899,28 @@ async function playFromSearch(id, name, artist, picId) {
   }
 }
 
+
+
+
 async function addToPlaylistFromSearch(id, name, artist) {
   try {
     const resp = await fetch(`${MUSIC_API}?types=url&source=netease&id=${id}&br=320`);
     const data = await resp.json();
     if (!data || !data.url) { showToast('获取链接失败', 'error'); return; }
-    
-    bgmState.playlist.push({ name: name, url: data.url, artist: artist, songId: id });
+
+    bgmState.playlist.push({
+      name: name,
+      url: data.url,
+      artist: artist,
+      songId: id,
+      pic: data.pic || ''   // ← 保存封面
+    });
     renderBGMPlaylist();
     showToast(`✅ 已添加：${name}`, 'success');
   } catch (e) {
     showToast('添加失败', 'error');
   }
 }
-
 
 
 
@@ -37686,6 +37762,47 @@ html[data-time="night"] .profile-top-area   { background: #252A3A; }
   color: var(--muted);
   margin-top: 2px;
 }
+
+
+#bgmCdCover {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+#bgmCdCover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+
+
+.hot-point-marker {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 12px;
+  height: 12px;
+  background: #FFD700;
+  border-radius: 50%;
+  box-shadow: 0 0 10px #FFD700;
+  pointer-events: auto;
+  cursor: pointer;
+  z-index: 5;
+  transition: transform 0.15s;
+}
+.hot-point-marker:hover {
+  transform: translate(-50%, -50%) scale(1.4);
+}
+
+
+
 
 
 
